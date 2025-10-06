@@ -1,0 +1,12 @@
+{
+  "name": "@olympus/types",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "echo 'Types package ready'",
+    "build": "echo 'Types package ready'",
+    "lint": "echo 'Types package ready'",
+    "test": "echo 'Types package ready'"
+  }
+}

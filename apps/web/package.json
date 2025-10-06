@@ -1,0 +1,11 @@
+{
+  "name": "@olympus/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Next.js app not initialized yet'",
+    "build": "echo 'Next.js app not initialized yet'",
+    "lint": "echo 'Next.js app not initialized yet'",
+    "test": "echo 'Next.js app not initialized yet'"
+  }
+}

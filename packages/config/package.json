@@ -1,0 +1,12 @@
+{
+  "name": "@olympus/config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "echo 'Config package ready'",
+    "build": "echo 'Config package ready'",
+    "lint": "echo 'Config package ready'",
+    "test": "echo 'Config package ready'"
+  }
+}

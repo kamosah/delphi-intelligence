@@ -1,0 +1,12 @@
+{
+  "name": "@olympus/ui",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "echo 'UI package ready'",
+    "build": "echo 'UI package ready'",
+    "lint": "echo 'UI package ready'",
+    "test": "echo 'UI package ready'"
+  }
+}

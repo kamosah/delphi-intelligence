@@ -1,0 +1,11 @@
+{
+  "name": "@olympus/api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'FastAPI app not initialized yet'",
+    "build": "echo 'FastAPI app not initialized yet'",
+    "lint": "echo 'FastAPI app not initialized yet'",
+    "test": "echo 'FastAPI app not initialized yet'"
+  }
+}
