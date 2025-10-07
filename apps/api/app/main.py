@@ -1,0 +1,50 @@
+"""
+FastAPI main application module
+"""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import settings
+from app.routes import health
+
+
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application"""
+
+    app = FastAPI(
+        title=settings.app_name,
+        description="FastAPI backend for Olympus MVP - Document AI and Analysis Platform",
+        version="0.1.0",
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
+        openapi_url="/openapi.json" if settings.debug else None,
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include routers
+    app.include_router(health.router)
+
+    @app.get("/", tags=["root"])
+    async def root():
+        """Root endpoint"""
+        return {
+            "message": f"Welcome to {settings.app_name} API",
+            "version": "0.1.0",
+            "environment": settings.env,
+            "docs": "/docs" if settings.debug else "disabled in production",
+        }
+
+    return app
+
+
+# Create app instance
+app = create_app()
