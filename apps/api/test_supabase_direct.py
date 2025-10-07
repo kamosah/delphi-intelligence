@@ -6,7 +6,6 @@ Used to verify database setup and RLS policies without client library issues
 """
 
 import os
-import json
 import httpx
 from dotenv import load_dotenv
 
