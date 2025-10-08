@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from .document import Document
     from .query import Query
     from .space import Space, SpaceMember
+    from .user_preferences import UserPreferences
 
 
 class User(Base):
@@ -43,6 +44,10 @@ class User(Base):
 
     created_queries: Mapped[list["Query"]] = relationship(
         "Query", back_populates="creator", cascade="all, delete-orphan"
+    )
+
+    preferences: Mapped["UserPreferences | None"] = relationship(
+        "UserPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

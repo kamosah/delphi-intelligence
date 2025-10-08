@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, String
+from sqlalchemy import JSON, Boolean, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +20,7 @@ class UserPreferences(Base):
     # Foreign key to user
     user_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("users.id"),
         nullable=False,
         unique=True,  # One preference record per user
         index=True,
