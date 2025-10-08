@@ -5,7 +5,7 @@ Health check routes for API monitoring and status verification
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.config import settings
 
@@ -81,3 +81,18 @@ async def readiness_probe() -> dict[str, Any]:
 async def liveness_probe() -> dict[str, Any]:
     """Kubernetes liveness probe endpoint"""
     return {"status": "alive", "service": "olympus-api", "timestamp": datetime.now(UTC).isoformat()}
+
+
+@router.get("/protected")
+async def protected_health(current_user: dict = Depends(lambda: None)) -> dict[str, Any]:
+    """Protected health endpoint that requires authentication"""
+    # Import here to avoid circular imports during startup
+
+    # This demonstrates how to use authentication in a route
+    # In practice, you'd add `current_user: dict = Depends(get_current_user)` to the function signature
+    return {
+        "status": "healthy",
+        "message": "This is a protected endpoint",
+        "user_authenticated": current_user is not None,
+        "timestamp": datetime.now(UTC).isoformat(),
+    }

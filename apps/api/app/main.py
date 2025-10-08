@@ -8,7 +8,9 @@ from strawberry.fastapi import GraphQLRouter
 
 from app.config import settings
 from app.graphql import schema
+from app.middleware.auth import AuthenticationMiddleware
 from app.routes import health
+from app.routes.auth import router as auth_router
 
 
 def create_app() -> FastAPI:
@@ -32,10 +34,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Add authentication middleware
+    app.add_middleware(AuthenticationMiddleware)
+
     # Create GraphQL router
     graphql_app = GraphQLRouter(schema, graphiql=settings.debug)
 
     # Include routers
+    app.include_router(auth_router)
     app.include_router(health.router)
     app.include_router(graphql_app, prefix="/graphql")
 

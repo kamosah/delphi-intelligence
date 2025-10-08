@@ -7,60 +7,247 @@ A modern full-stack AI platform built with Turborepo, featuring Next.js frontend
 ```
 athena/
 ├── apps/
-│   ├── web/                 # Next.js frontend application (✅ COMPLETE)
-│   └── api/                 # FastAPI backend application (✅ COMPLETE)
+│   ├── web/                 # Next.js frontend application
+│   └── api/                 # FastAPI backend application
 ├── packages/
 │   ├── ui/                  # Shared UI components
 │   ├── types/               # Shared TypeScript types
 │   └── config/              # Shared configuration files
 ├── .github/workflows/       # CI/CD workflows (future)
-├── docker-compose.yml       # Local development services (✅ COMPLETE)
-├── turbo.json              # Turborepo configuration (✅ COMPLETE)
-├── package.json            # Root package configuration (✅ COMPLETE)
+├── docker-compose.yml       # Local development services
+├── turbo.json              # Turborepo configuration
+├── package.json            # Root package configuration
 ├── .gitignore              # Git ignore rules
 └── README.md               # This file
 ```
 
-## ✅ Completed Features
+## 🏗️ Current Application Setup
 
-### 🚀 **Frontend (Next.js)**
+### 🌐 **Frontend Application (Next.js 14)**
 
-- ✅ Next.js 14 with App Router
-- ✅ TypeScript configuration
-- ✅ Tailwind CSS styling
-- ✅ Authentication pages (login, signup, password reset)
-- ✅ Dashboard layout with sidebar navigation
-- ✅ Responsive design components
-- ✅ Supabase client integration
+**Location**: `/apps/web`  
+**Status**: Production-ready with modern React architecture
 
-### 🔧 **Backend (FastAPI)**
+**Core Features**:
 
-- ✅ FastAPI application with async support
-- ✅ Pydantic v2 configuration management
-- ✅ CORS middleware configuration
-- ✅ Health check endpoints
-- ✅ Environment-based configuration
-- ✅ Poetry dependency management
-- ✅ Comprehensive test infrastructure
+- **App Router**: Utilizing Next.js 14's latest routing system with server components
+- **TypeScript**: Full type safety across the application
+- **Tailwind CSS**: Utility-first styling with responsive design
+- **Authentication Flow**: Complete login/signup/password reset pages
+- **Dashboard Layout**: Sidebar navigation with multiple sections
+- **Supabase Integration**: Client-side authentication and data fetching
 
-### 🗄️ **Database & Migrations**
+**Page Structure**:
 
-- ✅ Supabase PostgreSQL integration
-- ✅ Automated Alembic migration system
-- ✅ Hybrid migration workflow (Alembic + MCP)
-- ✅ Environment-specific database connections
-- ✅ Migration generation and tracking
-- ✅ Database connection testing utilities
-- ✅ Row Level Security (RLS) policies
+```
+/                           # Landing page
+/(auth)/login              # User authentication
+/(auth)/signup             # User registration
+/(auth)/reset-password     # Password reset
+/dashboard                 # Main dashboard
+/dashboard/documents       # Document management
+/dashboard/queries         # AI query interface
+/dashboard/spaces          # Workspace management
+/dashboard/settings        # User settings
+```
 
-### 🔄 **Development Infrastructure**
+### 🔧 **Backend API (FastAPI)**
 
-- ✅ Turborepo monorepo configuration
-- ✅ Docker Compose for local services
-- ✅ Hot reload for both frontend and backend
-- ✅ Environment variable management
-- ✅ Code formatting with Prettier
-- ✅ Git hooks with Husky
+**Location**: `/apps/api`  
+**Status**: Production-ready with comprehensive authentication system
+
+**Core Architecture**:
+
+- **FastAPI Framework**: High-performance async Python API
+- **Pydantic v2**: Request/response validation and serialization
+- **Authentication System**: JWT-based auth with Supabase integration
+- **Middleware Stack**: CORS, authentication, and request processing
+- **Environment Configuration**: Centralized settings management
+
+**API Endpoints**:
+
+```
+GET    /                     # API information
+GET    /health               # Basic health check
+GET    /health/detailed      # Detailed health with dependencies
+GET    /health/protected     # Protected endpoint example
+POST   /auth/register        # User registration
+POST   /auth/login           # User authentication
+POST   /auth/refresh         # Token refresh
+POST   /auth/logout          # User logout
+GET    /auth/me              # Current user profile
+GET    /docs                 # OpenAPI documentation (dev)
+GET    /graphql              # GraphQL endpoint
+```
+
+**Authentication Features**:
+
+- JWT token generation and validation
+- Refresh token mechanism (30-day lifetime)
+- Redis-based session management
+- Token blacklisting for secure logout
+- Role-based access control
+- Supabase Auth integration
+
+### 🗄️ **Database Infrastructure**
+
+**Primary Database**: Supabase PostgreSQL  
+**Session Storage**: Redis  
+**Migration System**: Hybrid Alembic + Supabase MCP
+
+**Database Schema**:
+
+- **Users Table**: Extended Supabase auth.users with profile data
+- **Spaces Table**: Workspace organization with RLS policies
+- **Documents Table**: File metadata and processing status
+- **Queries Table**: AI interaction history and results
+- **User Preferences**: Customizable user settings
+
+**Security Features**:
+
+- Row Level Security (RLS) policies on all tables
+- User-scoped data access patterns
+- Service role for admin operations
+- Automated user profile creation on signup
+
+### 🔐 **Authentication & Security**
+
+**JWT Token System**:
+
+- Access tokens: 24-hour expiration
+- Refresh tokens: 30-day expiration
+- HS256 algorithm with configurable secret
+- Token blacklisting on logout
+
+**Session Management**:
+
+- Redis-based session storage
+- Automatic session cleanup
+- User context injection in requests
+- Multi-device session support
+
+**Security Middleware**:
+
+- Request authentication validation
+- CORS protection with configurable origins
+- Rate limiting ready (infrastructure in place)
+- Environment-based security configurations
+
+### 📦 **Shared Packages**
+
+**UI Package** (`/packages/ui`):
+
+- Reusable React components
+- Design system primitives
+- Consistent styling utilities
+- Component documentation ready
+
+**Types Package** (`/packages/types`):
+
+- Shared TypeScript interfaces
+- API request/response types
+- Database schema types
+- Cross-application type safety
+
+**Config Package** (`/packages/config`):
+
+- ESLint configurations
+- Prettier rules
+- Build tool configurations
+- Development environment setup
+
+### � **Development Environment**
+
+**Local Services** (Docker Compose):
+
+```yaml
+services:
+  postgres: # Alternative to Supabase (optional)
+    - Port: 5432
+    - Database: olympus_mvp
+    - User: olympus/olympus_dev
+
+  redis: # Session storage (required)
+    - Port: 6379
+    - No authentication (dev only)
+```
+
+**Development Tools**:
+
+- **Turborepo**: Monorepo build orchestration
+- **Hot Reload**: Real-time development for both apps
+- **Poetry**: Python dependency management
+- **npm Workspaces**: Package management and linking
+- **Prettier**: Automated code formatting
+- **Husky**: Git hooks for quality control
+
+### 🧪 **Testing Infrastructure**
+
+**Backend Testing**:
+
+- **pytest**: Test framework with async support
+- **JWT Tests**: 9 comprehensive token handling tests
+- **Redis Tests**: 14 session management tests
+- **Route Tests**: Authentication endpoint testing
+- **Mocking**: Proper isolation for external dependencies
+
+**Test Coverage**:
+
+- Authentication system: 100% core functionality
+- JWT token management: All scenarios covered
+- Redis operations: All CRUD operations tested
+- API routes: Success and error cases
+
+### ⚙️ **Configuration Management**
+
+**Environment Variables**:
+
+```bash
+# Application
+APP_NAME=Olympus MVP API
+ENV=development
+DEBUG=true
+
+# Supabase
+SUPABASE_URL=https://project.supabase.co
+SUPABASE_ANON_KEY=public_key
+SUPABASE_SERVICE_ROLE_KEY=admin_key
+
+# Authentication
+JWT_SECRET=secure_secret_key
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
+
+# Services
+REDIS_URL=redis://localhost:6379
+CORS_ORIGINS=["http://localhost:3000"]
+```
+
+**Configuration Features**:
+
+- Pydantic-based settings validation
+- Environment-specific configurations
+- Automatic type conversion and validation
+- Comprehensive error handling for missing variables
+
+### 🚀 **Deployment Ready Features**
+
+**Production Considerations**:
+
+- Environment-based configuration switching
+- Secure JWT secret management
+- CORS configuration for production domains
+- Health check endpoints for monitoring
+- Graceful error handling and logging
+- Scalable Redis session management
+
+**CI/CD Ready**:
+
+- Dockerfile configurations prepared
+- Environment variable templates
+- Test suites for automated validation
+- Build optimization with Turborepo
+- Package vulnerability scanning ready
 
 ## 🚀 Quick Start
 

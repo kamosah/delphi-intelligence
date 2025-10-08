@@ -27,11 +27,15 @@ python-decouple = "^3.8"
 # GraphQL
 strawberry-graphql = {extras = ["fastapi"], version = "^0.240.0"}
 
+# Redis for session management
+redis = "^4.6.0"
+
 # Utilities
 pydantic = ">=2.0,<2.10"
 pydantic-settings = "^2.2.1"
 python-dotenv = "^1.0.0"
 httpx = "^0.24.0"
+email-validator = "^2.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
