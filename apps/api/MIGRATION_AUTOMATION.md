@@ -1,0 +1,284 @@
+# Automated Alembic Migration Setup
+
+## Overview
+
+This setup provides automated migration generation for both local PostgreSQL and Supabase databases, eliminating the need to write migration scripts manually.
+
+## Features
+
+✅ **Automatic migration detection** - Alembic compares your SQLAlchemy models with the database schema  
+✅ **Environment-specific configuration** - Switch between local PostgreSQL and Supabase easily  
+✅ **Enhanced change detection** - Detects column types, defaults, and schema changes  
+✅ **Convenient scripts** - Simple commands for common migration operations  
+✅ **Connection testing** - Verify database connectivity before running migrations
+
+## Configuration
+
+### Environment Variables
+
+Add to your `.env` file:
+
+```bash
+# Option 1: Use local PostgreSQL (recommended for development)
+USE_LOCAL_DB=true
+LOCAL_DATABASE_URL=postgresql+asyncpg://olympus:olympus_dev@localhost:5432/olympus_mvp
+
+# Option 2: Use Supabase database directly
+USE_LOCAL_DB=false
+SUPABASE_DB_URL=postgresql+asyncpg://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+
+# Option 3: Override with custom database URL
+DATABASE_URL=postgresql+asyncpg://user:password@host:port/database
+```
+
+### Database URL Priority
+
+The system chooses the database URL in this order:
+
+1. `DATABASE_URL` (if set)
+2. Local database (if `USE_LOCAL_DB=true`)
+3. Supabase database (if `SUPABASE_DB_URL` is set)
+4. Fallback to local for development
+
+## Usage
+
+### Quick Commands (Shell Script)
+
+```bash
+# Check database connection
+./scripts/migrate.sh check
+
+# Initialize database with first migration
+./scripts/migrate.sh init
+
+# Generate migration from model changes
+./scripts/migrate.sh generate "Add user profile fields"
+
+# Apply pending migrations
+./scripts/migrate.sh apply
+
+# Check migration status
+./scripts/migrate.sh status
+
+# Rollback one migration
+./scripts/migrate.sh rollback
+
+# Use specific database
+./scripts/migrate.sh --supabase generate "Add new table"
+./scripts/migrate.sh --local apply
+```
+
+### Python Scripts
+
+```bash
+# Test database connection
+poetry run python scripts/db_util.py
+
+# Generate migration
+poetry run python scripts/migrate.py generate "Add new table"
+
+# Apply migrations
+poetry run python scripts/migrate.py apply
+
+# Check status
+poetry run python scripts/migrate.py status
+
+# Use specific database
+poetry run python scripts/migrate.py --local generate "Local changes"
+poetry run python scripts/migrate.py --supabase apply
+```
+
+### Direct Alembic Commands
+
+```bash
+# Generate migration
+poetry run alembic revision --autogenerate -m "Your migration message"
+
+# Apply migrations
+poetry run alembic upgrade head
+
+# Check current version
+poetry run alembic current
+
+# Show migration history
+poetry run alembic history --verbose
+```
+
+## Workflow Examples
+
+### 1. Local Development Workflow
+
+```bash
+# 1. Make changes to your SQLAlchemy models
+# 2. Test the connection
+./scripts/migrate.sh check
+
+# 3. Generate migration
+./scripts/migrate.sh --local generate "Add user avatar field"
+
+# 4. Review the generated migration file
+# 5. Apply the migration
+./scripts/migrate.sh --local apply
+
+# 6. Verify the changes
+./scripts/migrate.sh --local status
+```
+
+### 2. Production Deployment Workflow
+
+```bash
+# 1. Switch to Supabase database
+# 2. Apply migrations to production
+./scripts/migrate.sh --supabase apply
+
+# 3. Verify deployment
+./scripts/migrate.sh --supabase status
+```
+
+### 3. Testing Model Changes
+
+```bash
+# 1. Make a test change to a model
+# 2. Generate migration to see what Alembic detects
+./scripts/migrate.sh generate "Test change detection"
+
+# 3. Review the generated migration
+# 4. If it looks good, apply it
+./scripts/migrate.sh apply
+
+# 5. If not, rollback and adjust your models
+./scripts/migrate.sh rollback
+```
+
+## How Automatic Detection Works
+
+### SQLAlchemy Model Changes Detected:
+
+- ✅ **New tables** - Adding new model classes
+- ✅ **New columns** - Adding fields to existing models
+- ✅ **Column modifications** - Changing types, constraints, defaults
+- ✅ **Dropped columns** - Removing fields (be careful!)
+- ✅ **Index changes** - Adding/removing indexes
+- ✅ **Foreign key changes** - Relationship modifications
+
+### Example Model Change:
+
+```python
+# Before
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+
+# After - Alembic will detect these changes
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str] = mapped_column(String(100))  # New field
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # New field with default
+```
+
+Running `./scripts/migrate.sh generate "Add user name and status"` will create:
+
+```python
+def upgrade() -> None:
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.add_column('users', sa.Column('name', sa.String(length=100), nullable=False))
+    op.add_column('users', sa.Column('is_active', sa.Boolean(), nullable=False))
+    # ### end Alembic commands ###
+```
+
+## Database Setup
+
+### Local PostgreSQL
+
+```bash
+# Start PostgreSQL with Docker
+docker run --name olympus-postgres \
+  -e POSTGRES_DB=olympus_mvp \
+  -e POSTGRES_USER=olympus \
+  -e POSTGRES_PASSWORD=olympus_dev \
+  -p 5432:5432 \
+  -d postgres:15
+
+# Set environment
+USE_LOCAL_DB=true
+```
+
+### Supabase Setup
+
+1. Get your database URL from Supabase Dashboard → Settings → Database
+2. Look for "Connection string" under "Connection parameters"
+3. Use the format: `postgresql+asyncpg://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
+
+```bash
+# Set environment
+USE_LOCAL_DB=false
+SUPABASE_DB_URL=postgresql+asyncpg://postgres:your_password@db.your_project.supabase.co:5432/postgres
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+```bash
+# Test database connection
+poetry run python scripts/db_util.py
+
+# Common issues:
+# 1. Wrong credentials
+# 2. Database not running
+# 3. Network/firewall issues
+# 4. Wrong URL format
+```
+
+### Migration Issues
+
+```bash
+# Check current migration state
+./scripts/migrate.sh status
+
+# If migrations are out of sync:
+./scripts/migrate.sh rollback    # Go back one step
+# Or reset completely (dangerous!):
+./scripts/migrate.sh reset
+```
+
+### Model Detection Issues
+
+If Alembic doesn't detect your model changes:
+
+1. **Check imports** - Make sure models are imported in `app/models/__init__.py`
+2. **Check metadata** - Verify `target_metadata = Base.metadata` in `alembic/env.py`
+3. **Check table names** - Ensure `__tablename__` is set correctly
+4. **Run with verbose** - Use `poetry run alembic revision --autogenerate -m "test" --verbose`
+
+## Best Practices
+
+1. **Always review generated migrations** before applying them
+2. **Test migrations on local/staging** before production
+3. **Use descriptive migration messages**
+4. **Backup before running migrations** on production
+5. **Don't edit generated migration files** unless necessary
+6. **Use environment-specific configurations** appropriately
+
+## Files Created
+
+- `app/config.py` - Enhanced with database URL selection logic
+- `alembic/env.py` - Updated for better change detection
+- `scripts/db_util.py` - Database connection testing utility
+- `scripts/migrate.py` - Python migration workflow script
+- `scripts/migrate.sh` - Shell script for convenient operations
+- `.env.example` - Updated with new configuration options
+
+## Next Steps
+
+1. **Set up your database** (local PostgreSQL or configure Supabase URL)
+2. **Test the connection** with `./scripts/migrate.sh check`
+3. **Initialize migrations** with `./scripts/migrate.sh init`
+4. **Start using automated migrations** for your model changes!
+
+The days of manually writing migration scripts are over! 🎉
