@@ -4,8 +4,10 @@ FastAPI main application module
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from strawberry.fastapi import GraphQLRouter
 
 from app.config import settings
+from app.graphql import schema
 from app.routes import health
 
 
@@ -30,8 +32,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Create GraphQL router
+    graphql_app = GraphQLRouter(schema, graphiql=settings.debug)
+
     # Include routers
     app.include_router(health.router)
+    app.include_router(graphql_app, prefix="/graphql")
 
     @app.get("/", tags=["root"])
     async def root():
@@ -41,6 +47,7 @@ def create_app() -> FastAPI:
             "version": "0.1.0",
             "environment": settings.env,
             "docs": "/docs" if settings.debug else "disabled in production",
+            "graphql": "/graphql" if settings.debug else "disabled in production",
         }
 
     return app
