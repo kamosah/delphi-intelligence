@@ -14,12 +14,7 @@ import sys
 def check_docker():
     """Check if Docker is available and running."""
     try:
-        subprocess.run(
-            ["docker", "info"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        subprocess.run(["docker", "info"], capture_output=True, text=True, check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
@@ -28,23 +23,23 @@ def check_docker():
 def run_simple_tests():
     """Run simple mock tests (fast, comprehensive validation)."""
     print("🏃 Running simple mock tests (fast, comprehensive validation)...")
-    result = subprocess.run([
-        "poetry", "run", "pytest",
-        "test_models_simple.py",
-        "-v"
-    ])
+    result = subprocess.run(["poetry", "run", "pytest", "test_models_simple.py", "-v"])
     return result.returncode == 0
 
 
 def run_postgres_tests():
     """Run PostgreSQL tests with Docker."""
     print("🐘 Running PostgreSQL tests (comprehensive, requires Docker)...")
-    result = subprocess.run([
-        "poetry", "run", "pytest",
-        "tests/test_models_postgres.py",
-        "-v",
-        "-s"  # Don't capture output so we can see Docker logs
-    ])
+    result = subprocess.run(
+        [
+            "poetry",
+            "run",
+            "pytest",
+            "tests/test_models_postgres.py",
+            "-v",
+            "-s",  # Don't capture output so we can see Docker logs
+        ]
+    )
     return result.returncode == 0
 
 

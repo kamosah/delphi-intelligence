@@ -26,7 +26,7 @@ class TestModelValidation:
         user = User(
             email="test@example.com",
             full_name="John Doe",
-            avatar_url="https://example.com/avatar.jpg"
+            avatar_url="https://example.com/avatar.jpg",
         )
 
         assert user.email == "test@example.com"
@@ -44,11 +44,7 @@ class TestModelValidation:
     def test_space_creation(self):
         """Test Space model creation."""
         owner_id = uuid.uuid4()
-        space = Space(
-            name="My Workspace",
-            description="A productive workspace",
-            owner_id=owner_id
-        )
+        space = Space(name="My Workspace", description="A productive workspace", owner_id=owner_id)
 
         assert space.name == "My Workspace"
         assert space.description == "A productive workspace"
@@ -65,11 +61,7 @@ class TestModelValidation:
         space_id = uuid.uuid4()
         user_id = uuid.uuid4()
 
-        member = SpaceMember(
-            space_id=space_id,
-            user_id=user_id,
-            role=MemberRole.EDITOR
-        )
+        member = SpaceMember(space_id=space_id, user_id=user_id, role=MemberRole.EDITOR)
 
         assert member.space_id == space_id
         assert member.user_id == user_id
@@ -84,7 +76,7 @@ class TestModelValidation:
             title="Important Document",
             content="This is the document content",
             space_id=space_id,
-            created_by=creator_id
+            created_by=creator_id,
         )
 
         assert document.title == "Important Document"
@@ -104,7 +96,7 @@ class TestModelValidation:
             content="Initial content",
             yjs_state=yjs_data,
             space_id=space_id,
-            created_by=creator_id
+            created_by=creator_id,
         )
 
         assert document.yjs_state == yjs_data
@@ -118,7 +110,7 @@ class TestModelValidation:
             query_text="What is the capital of France?",
             result="The capital of France is Paris.",
             space_id=space_id,
-            created_by=creator_id
+            created_by=creator_id,
         )
 
         assert query.query_text == "What is the capital of France?"
@@ -133,7 +125,7 @@ class TestModelValidation:
 
         agent_steps = [
             {"step": 1, "action": "search", "query": "capital France"},
-            {"step": 2, "action": "analyze", "confidence": 0.95}
+            {"step": 2, "action": "analyze", "confidence": 0.95},
         ]
 
         sources = [
@@ -146,7 +138,7 @@ class TestModelValidation:
             agent_steps=agent_steps,
             sources=sources,
             space_id=space_id,
-            created_by=creator_id
+            created_by=creator_id,
         )
 
         # Test JSONB data access
@@ -226,10 +218,9 @@ class TestDatabaseOperationMocks:
         mock_session.add(user2)
 
         # Mock constraint violation
-        mock_session.flush = AsyncMock(side_effect=IntegrityError(
-            "duplicate key value violates unique constraint",
-            None, None
-        ))
+        mock_session.flush = AsyncMock(
+            side_effect=IntegrityError("duplicate key value violates unique constraint", None, None)
+        )
 
         with pytest.raises(IntegrityError):
             await mock_session.flush()
@@ -274,26 +265,26 @@ class TestJSONBFeatures:
                 "params": {
                     "query": "machine learning algorithms",
                     "filters": ["recent", "academic"],
-                    "max_results": 10
+                    "max_results": 10,
                 },
                 "results": {
                     "count": 8,
                     "sources": ["arxiv", "google_scholar"],
-                    "execution_time_ms": 245
-                }
+                    "execution_time_ms": 245,
+                },
             },
             {
                 "step_id": 2,
                 "action": "document_analysis",
                 "params": {
                     "document_ids": ["doc1", "doc2", "doc3"],
-                    "analysis_type": "semantic_similarity"
+                    "analysis_type": "semantic_similarity",
                 },
                 "results": {
                     "similarities": [0.95, 0.87, 0.76],
-                    "key_concepts": ["neural networks", "deep learning", "training"]
-                }
-            }
+                    "key_concepts": ["neural networks", "deep learning", "training"],
+                },
+            },
         ]
 
         query = Query(
@@ -318,9 +309,9 @@ class TestJSONBFeatures:
                 "relevance_score": 0.94,
                 "chunks": [
                     {"section": "introduction", "score": 0.89},
-                    {"section": "best_practices", "score": 0.97}
+                    {"section": "best_practices", "score": 0.97},
                 ],
-                "last_updated": "2023-10-01T10:00:00Z"
+                "last_updated": "2023-10-01T10:00:00Z",
             },
             {
                 "type": "web_source",
@@ -330,9 +321,9 @@ class TestJSONBFeatures:
                 "metadata": {
                     "authors": ["Dr. Smith", "Dr. Jones"],
                     "published": "2023-01-01",
-                    "citations": 45
-                }
-            }
+                    "citations": 45,
+                },
+            },
         ]
 
         query = Query(
@@ -417,7 +408,7 @@ class TestUtilityFunctions:
         custom_user = create_test_user(
             "custom@example.com",
             full_name="Custom User",
-            avatar_url="https://example.com/avatar.jpg"
+            avatar_url="https://example.com/avatar.jpg",
         )
         assert custom_user.full_name == "Custom User"
         assert custom_user.avatar_url == "https://example.com/avatar.jpg"

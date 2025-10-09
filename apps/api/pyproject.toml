@@ -136,15 +136,50 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "B017",    # pytest.raises(Exception) is fine in tests
     "PT011",   # pytest.raises specificity
     "EM101",   # Exception messages in tests
+    "PT023",   # pytest.mark.asyncio() vs @pytest.mark.asyncio
+    "ERA001",  # Commented-out code in tests
+    "RUF013",  # Implicit Optional in tests
+]
+# Standalone test files in api root
+"test_models_simple.py" = [
+    "PT023",   # pytest.mark.asyncio() vs @pytest.mark.asyncio
+    "ERA001",  # Commented-out code
+    "RUF013",  # Implicit Optional
+    "I001",    # Import sorting
 ]
 # Migration files can have print statements and complex queries
 "alembic/versions/*.py" = ["T201", "E501"]
+# Alembic env file can have commented-out code
+"alembic/env.py" = ["ERA001"]
 # Config files can have complex settings and bind to all interfaces
 "app/config.py" = ["S105", "S106", "S104", "EM101"]
 # Auth files deal with tokens and may have security warnings
 "app/auth/*.py" = ["S105", "S106", "B904", "EM101", "EM102"]
 # Route files may have unused arguments for future implementation
 "app/routes/*.py" = ["ARG001"]
+# Scripts can have print statements and subprocess calls for utility purposes
+"scripts/**/*.py" = [
+    "T201",    # Print statements
+    "S603",    # Subprocess calls
+    "S607",    # Partial executable paths
+    "PLW1510", # subprocess.run without check
+    "RUF005",  # List concatenation
+    "RUF013",  # Implicit Optional
+    "I001",    # Import sorting (scripts may have specific import patterns)
+    "Q000",    # Quote style
+    "W291",    # Trailing whitespace
+]
+# Utility files and standalone scripts
+"*.py" = [
+    "T201",    # Print statements in standalone scripts
+    "S603",    # Subprocess calls
+    "S607",    # Partial executable paths
+    "PLW1510", # subprocess.run without check
+    "PLR0912", # Too many branches (utility scripts)
+    "I001",    # Import sorting
+]
+# Supabase client can have specific patterns
+"supabase_client.py" = ["EM101", "UP007"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

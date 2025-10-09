@@ -24,11 +24,7 @@ async def test_database_connection(url: str) -> tuple[bool, str]:
 
         connect_args = settings.db_connect_args if hasattr(settings, "db_connect_args") else {}
 
-        engine = create_async_engine(
-            url,
-            echo=False,
-            connect_args=connect_args
-        )
+        engine = create_async_engine(url, echo=False, connect_args=connect_args)
         async with engine.connect() as conn:
             result = await conn.execute(text("SELECT 1"))
             result.fetchone()  # fetchone() is not awaitable
@@ -36,12 +32,15 @@ async def test_database_connection(url: str) -> tuple[bool, str]:
         return True, "Connection successful"
     except Exception as e:
         return False, str(e)
+
+
 async def get_database_info(url: str) -> dict:
     """Get basic database information."""
     try:
         # Use settings for connect args if available
         from app.config import settings
-        connect_args = settings.db_connect_args if hasattr(settings, 'db_connect_args') else {}
+
+        connect_args = settings.db_connect_args if hasattr(settings, "db_connect_args") else {}
 
         engine = create_async_engine(url, echo=False, connect_args=connect_args)
         async with engine.connect() as conn:
@@ -107,7 +106,7 @@ async def main():
             print(f"Database: {info['database_name']}")
             print(f"PostgreSQL Version: {info['version'][:50]}...")
             print(f"Alembic initialized: {info['has_alembic']}")
-            if info['current_migration']:
+            if info["current_migration"]:
                 print(f"Current migration: {info['current_migration']}")
             else:
                 print("No migrations applied yet")
