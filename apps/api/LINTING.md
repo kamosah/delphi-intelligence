@@ -2,13 +2,13 @@
 
 ## Overview
 
-This project uses **Ruff** as a single, unified tool for both linting and code formatting. Ruff is an extremely fast Python linter and formatter written in Rust that replaces multiple tools (Black, isort, flake8, pyupgrade, etc.) with a single, performant solution.
+This project uses **Ruff** as a single, unified tool for both linting and code formatting. Ruff is an extremely fast Python linter and formatter written in Rust that replaces multiple tools (isort, flake8, pyupgrade, etc.) with a single, performant solution.
 
 ## Why Ruff?
 
 - **Speed**: 10-100x faster than traditional Python linters
-- **All-in-one**: Replaces Black, isort, flake8, pyupgrade, and more
-- **Drop-in replacement**: Compatible with Black's formatting style
+- **All-in-one**: Replaces isort, flake8, pyupgrade, and more
+- **Drop-in replacement**: Compatible with other formatting styles
 - **Active development**: Modern tool with regular updates
 - **Zero config**: Works well out of the box with sensible defaults
 
@@ -183,23 +183,9 @@ x = 1  # noqa
 
 Use exceptions sparingly and document why they're necessary.
 
-## Migration from Black
-
-Ruff's formatter is designed to be a drop-in replacement for Black:
-
-- ✅ Compatible with Black's style
-- ✅ Same line length behavior
-- ✅ Same string quote normalization
-- ✅ 10-100x faster
-
-The main differences:
-- Ruff is stricter about trailing commas
-- Ruff has better handling of complex expressions
-
 ## Benefits Over Previous Setup
 
 ### Before (Multiple Tools)
-- Black for formatting
 - flake8 for linting
 - isort for imports
 - pyupgrade for syntax modernization
@@ -249,7 +235,6 @@ If a line cannot be shortened:
 
 - [Ruff Documentation](https://docs.astral.sh/ruff/)
 - [Ruff Rules](https://docs.astral.sh/ruff/rules/)
-- [Ruff vs Black](https://docs.astral.sh/ruff/formatter/#black-compatibility)
 - [Pre-commit Hook](https://github.com/astral-sh/ruff-pre-commit)
 
 ## Support
