@@ -13,11 +13,31 @@ FastAPI backend for Olympus MVP - Document AI and Analysis Platform with GraphQL
 
 ## Quick Start
 
+### Option 1: Docker Development (Recommended)
+
+The fastest way to get started is using Docker, which provides a complete development environment:
+
+```bash
+# Start all services (PostgreSQL, Redis, API)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f api
+
+# Access the API
+open http://localhost:8000
+```
+
+🔗 **For detailed Docker setup instructions, see [DOCKER_SETUP.md](./DOCKER_SETUP.md)**
+
+### Option 2: Local Development
+
 ### Prerequisites
 
 - Python 3.11+
 - Poetry for dependency management
 - PostgreSQL database (local or Supabase)
+- Redis server (optional, for session management)
 
 ### Installation
 
@@ -184,6 +204,30 @@ apps/api/
 ```
 
 ## Environment Configuration
+
+The API supports two database configurations:
+
+### Local PostgreSQL with Docker (Development)
+
+```bash
+# Use Docker containers for PostgreSQL and Redis
+USE_LOCAL_DB=true
+DATABASE_URL=postgresql+asyncpg://olympus:olympus_dev@postgres:5432/olympus_mvp
+REDIS_URL=redis://redis:6379/0
+```
+
+### Supabase (Production/Cloud)
+
+```bash
+# Use Supabase hosted database
+USE_LOCAL_DB=false
+DATABASE_URL=postgresql+asyncpg://postgres.your-project:password@aws-0-region.pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+### Complete Environment Variables
 
 Create a `.env` file with the following variables:
 

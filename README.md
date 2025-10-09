@@ -282,13 +282,29 @@ CORS_ORIGINS=["http://localhost:3000"]
    cd apps/api && poetry install && cd ../..
    ```
 
-3. **Start local services** (Optional - if using local PostgreSQL)
+3. **Start local services** (Choose your database setup)
+
+   **Option A: Docker Development Environment (Recommended)**
 
    ```bash
+   # Start complete Docker environment (PostgreSQL + Redis + API)
+   cd apps/api
    docker-compose up -d
+
+   # The API will run at http://localhost:8000
+   # Configure frontend to use Docker API
    ```
 
-   This starts PostgreSQL and Redis containers for local development.
+   **Option B: Supabase Only (External Database)**
+
+   ```bash
+   # Start only Redis for session management
+   docker-compose up -d redis
+
+   # API will connect to Supabase database
+   ```
+
+   📚 **See [Docker Setup Guide](./apps/api/DOCKER_SETUP.md) for detailed instructions**
 
 4. **Configure environment files**
 
@@ -425,12 +441,14 @@ This monorepo uses Turborepo for:
 
 - **Status**: ✅ **Production Ready**
 - **Framework**: FastAPI with async/await support
-- **Database**: Supabase PostgreSQL
-- **Authentication**: Supabase integration
+- **Database**: Supabase PostgreSQL with Docker option
+- **Authentication**: Supabase integration with JWT
+- **Documentation**: 📚 [Complete Setup Guide](./apps/api/DOCKER_SETUP.md) | [Development Workflow](./apps/api/DEVELOPMENT_WORKFLOW.md)
 - **Features**:
-  - RESTful API endpoints
+  - RESTful API endpoints with GraphQL support
+  - Docker development environment with hot reload
   - Automatic OpenAPI documentation
-  - Environment-based configuration
+  - Environment-based configuration (Docker/Supabase switching)
   - Database migrations with Alembic
   - Health check endpoints
   - CORS middleware for frontend integration

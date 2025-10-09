@@ -72,9 +72,7 @@ class Settings(BaseSettings):
     @property
     def db_connect_args(self) -> dict:
         """Get database connection arguments."""
-        if not self.use_local_db and self.supabase_db_url:
-            # Disable prepared statements for Supabase pooler
-            return {"statement_cache_size": 0}
+        # For asyncpg driver, no special connect args needed for local development
         return {}
 
 
