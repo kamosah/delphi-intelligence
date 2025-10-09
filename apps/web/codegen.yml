@@ -1,0 +1,34 @@
+overwrite: true
+schema: "http://localhost:8000/graphql"
+documents: "src/**/*.{ts,tsx,graphql,gql}"
+generates:
+  src/lib/api/generated.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      scalars:
+        ID: string
+        DateTime: string
+      skipTypename: false
+      withHooks: false
+      withHOC: false
+      withComponent: false
+      exportFragmentSpreadSubTypes: true
+      
+  src/lib/api/hooks.generated.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+      - "typescript-react-query"
+    config:
+      fetcher: "./graphql-client#graphqlRequestFetcher"
+      exposeFetcher: true
+      exposeQueryKeys: true
+      addInfiniteQuery: false
+      reactQueryVersion: 5
+      scalars:
+        ID: string
+        DateTime: string
+      skipTypename: false
+      withHooks: true

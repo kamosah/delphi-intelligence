@@ -33,9 +33,9 @@ athena/
 - **App Router**: Utilizing Next.js 14's latest routing system with server components
 - **TypeScript**: Full type safety across the application
 - **Tailwind CSS**: Utility-first styling with responsive design
-- **Authentication Flow**: Complete login/signup/password reset pages
+- **State Management**: React Query + Zustand with JWT authentication
 - **Dashboard Layout**: Sidebar navigation with multiple sections
-- **Supabase Integration**: Client-side authentication and data fetching
+- **GraphQL Integration**: Authenticated client with JWT token headers
 
 **Page Structure**:
 
@@ -111,6 +111,13 @@ GET    /graphql              # GraphQL endpoint
 - Automated user profile creation on signup
 
 ### 🔐 **Authentication & Security**
+
+**Hybrid Authentication Architecture**:
+
+- **REST endpoints** for authentication (`/auth/login`, `/auth/refresh`, `/auth/logout`)
+- **GraphQL endpoint** for all data operations (`/graphql`)
+- **Frontend integration**: React Query + Zustand for state management
+- **Token storage**: HTTP-only cookies + Zustand store for client state
 
 **JWT Token System**:
 
@@ -396,14 +403,13 @@ This monorepo uses Turborepo for:
 - **Styling**: Tailwind CSS
 - **Authentication**: Supabase Auth integration
 - **Features**:
-  - Landing page with navigation
-  - Authentication flow (login/signup/reset)
-  - Dashboard with sidebar navigation
-  - Document management interface
-  - Query interface for AI interactions
-  - Settings and profile management
-
-**Available Routes**:
+- Landing page with navigation
+- Authentication flow (login/signup/reset)
+- Dashboard with sidebar navigation
+- Document management interface
+- Query interface for AI interactions
+- Settings and profile management
+- JWT authentication with React Query state management**Available Routes**:
 
 - `/` - Landing page
 - `/login` - User authentication
@@ -555,6 +561,7 @@ Pre-commit hooks automatically:
 - **Frontend**: Next.js 14 with App Router for modern React patterns
 - **Backend**: FastAPI for high-performance async Python API
 - **Database**: Supabase for managed PostgreSQL with built-in auth
+- **Authentication**: Hybrid approach - REST for auth, GraphQL for data, JWT tokens with React Query
 - **Migrations**: Hybrid Alembic + MCP system to handle Supabase pooler limitations
 - **Styling**: Tailwind CSS for utility-first responsive design
 

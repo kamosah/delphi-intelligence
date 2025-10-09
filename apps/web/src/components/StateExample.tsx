@@ -19,13 +19,13 @@ export default function StateExample() {
   const { user, isAuthenticated, setUser, logout } = useAuthStore();
 
   const handleLogin = () => {
-    // Simulate login
+    // Simulate login with backend User structure
     setUser({
       id: '1',
       email: 'user@example.com',
-      name: 'Test User',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      full_name: 'Test User',
+      role: 'member',
+      is_active: true,
     });
   };
 
@@ -90,8 +90,9 @@ export default function StateExample() {
             <p>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</p>
             {user && (
               <>
-                <p>User: {user.name || user.email}</p>
+                <p>User: {user.full_name || user.email}</p>
                 <p>ID: {user.id}</p>
+                <p>Role: {user.role}</p>
               </>
             )}
           </div>

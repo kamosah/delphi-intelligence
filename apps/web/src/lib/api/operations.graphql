@@ -1,0 +1,62 @@
+# User Operations
+query GetUser($id: ID!) {
+  user(id: $id) {
+    id
+    email
+    fullName
+    avatarUrl
+    bio
+    createdAt
+    updatedAt
+  }
+}
+
+query GetUsers($limit: Int, $offset: Int) {
+  users(limit: $limit, offset: $offset) {
+    id
+    email
+    fullName
+    avatarUrl
+    bio
+    createdAt
+    updatedAt
+  }
+}
+
+query GetUserByEmail($email: String!) {
+  userByEmail(email: $email) {
+    id
+    email
+    fullName
+    avatarUrl
+    bio
+    createdAt
+    updatedAt
+  }
+}
+
+query HealthCheck {
+  health
+}
+
+# Note: Mutations will be added here as your backend implements them
+# mutation CreateUser($input: CreateUserInput!) {
+#   createUser(input: $input) {
+#     id
+#     email
+#     fullName
+#     avatarUrl
+#     bio
+#   }
+# }
+
+# mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
+#   updateUser(id: $id, input: $input) {
+#     id
+#     email
+#     fullName
+#     avatarUrl
+#     bio
+#     updatedAt
+#   }
+# }

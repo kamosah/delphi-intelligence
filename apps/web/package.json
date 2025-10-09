@@ -10,12 +10,18 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
-    "clean": "rm -rf .next out dist node_modules/.cache"
+    "clean": "rm -rf .next out dist node_modules/.cache",
+    "graphql:introspect": "graphql-codegen --config codegen.introspect.yml",
+    "graphql:generate": "graphql-codegen --config codegen.yml",
+    "graphql:watch": "graphql-codegen --config codegen.yml --watch"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.38.0",
     "@tanstack/react-query": "^5.90.2",
     "clsx": "^2.0.0",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -23,6 +29,11 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^6.0.0",
+    "@graphql-codegen/introspection": "^5.0.0",
+    "@graphql-codegen/typescript": "^5.0.2",
+    "@graphql-codegen/typescript-operations": "^5.0.2",
+    "@graphql-codegen/typescript-react-query": "^6.1.1",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",

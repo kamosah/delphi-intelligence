@@ -4,23 +4,24 @@ import { devtools, persist } from 'zustand/middleware';
 export interface User {
   id: string;
   email: string;
-  name?: string;
+  full_name?: string;
+  role: string;
+  is_active: boolean;
   avatar_url?: string;
-  role?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 interface AuthState {
-  // State
+  // Authentication state
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
 
   // Actions
+  setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
-  setTokens: (token: string, refreshToken?: string) => void;
+  setLoading: (loading: boolean) => void;
   logout: () => void;
   clearAuth: () => void;
 }
@@ -31,27 +32,27 @@ export const useAuthStore = create<AuthState>()(
       (set) => ({
         // Initial state
         user: null,
-        token: null,
+        accessToken: null,
         refreshToken: null,
         isAuthenticated: false,
+        isLoading: false,
 
         // Actions
-        setUser: (user) =>
+        setTokens: (accessToken, refreshToken) =>
           set({
-            user,
+            accessToken,
+            refreshToken,
             isAuthenticated: true,
           }),
 
-        setTokens: (token, refreshToken) =>
-          set((state) => ({
-            token,
-            refreshToken: refreshToken || state.refreshToken,
-          })),
+        setUser: (user) => set({ user }),
+
+        setLoading: (loading) => set({ isLoading: loading }),
 
         logout: () =>
           set({
             user: null,
-            token: null,
+            accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
           }),
@@ -59,16 +60,16 @@ export const useAuthStore = create<AuthState>()(
         clearAuth: () =>
           set({
             user: null,
-            token: null,
+            accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
           }),
       }),
       {
-        name: 'olympus-auth-storage',
+        name: 'olympus-auth-store',
         partialize: (state) => ({
           user: state.user,
-          token: state.token,
+          accessToken: state.accessToken,
           refreshToken: state.refreshToken,
           isAuthenticated: state.isAuthenticated,
         }),

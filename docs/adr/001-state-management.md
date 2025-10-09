@@ -172,14 +172,26 @@ We will adopt a **hybrid state management approach**:
 ## Implementation Plan
 
 1. **Week 1 (LOG-69)**: Set up React Query + Zustand
-2. **Week 1 (LOG-70)**: Create auth store with Zustand
+2. **Week 1 (LOG-70)**: Create JWT auth store + GraphQL client integration
 3. **Week 3**: Implement GraphQL query hooks with React Query
 4. **Week 4 (LOG-99)**: Add UI stores for query, editor, and modals
+
+## Authentication Integration
+
+**Decision**: Hybrid authentication approach implemented in LOG-70:
+
+- **REST endpoints** for authentication (`/auth/login`, `/auth/refresh`, `/auth/logout`)
+- **GraphQL endpoint** for all data operations (`/graphql`)
+- **JWT tokens** stored in Zustand auth store + HTTP-only cookies
+- **React Query** wraps GraphQL operations with automatic auth headers
+
+This leverages the existing production-ready backend JWT system while maintaining the benefits of GraphQL for data operations.
 
 ## References
 
 - [React Query Documentation](https://tanstack.com/query/latest)
 - [Zustand Documentation](https://github.com/pmndrs/zustand)
+- [GraphQL Request Documentation](https://github.com/jasonkuhrt/graphql-request)
 - [When to Use Redux](https://redux.js.org/faq/general#when-should-i-use-redux) - Even Redux docs suggest alternatives
 - [You Might Not Need Redux](https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367) - By Redux creator
 
