@@ -5,8 +5,7 @@ JWT token handling utilities for authentication
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from jose import JWTError
-from jose import jwt as jose_jwt
+from jose import JWTError, jwt as jose_jwt
 
 from app.config import settings
 

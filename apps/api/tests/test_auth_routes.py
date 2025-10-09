@@ -4,22 +4,22 @@ Integration tests for authentication routes
 
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
 
 
-@pytest.fixture
+@pytest.fixture()
 def client():
     """Create test client"""
     return TestClient(app)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_auth_service():
     """Mock authentication service"""
-    with patch('app.routes.auth.auth_service') as mock:
+    with patch("app.routes.auth.auth_service") as mock:
         yield mock
 
 
@@ -30,19 +30,19 @@ class TestAuthRoutes:
         """Test successful user registration"""
         # Mock the service response
         from app.auth.schemas import UserProfile
+
         mock_auth_service.register_user.return_value = UserProfile(
             id="user123",
             email="test@example.com",
             full_name="Test User",
             role="member",
-            is_active=True
+            is_active=True,
         )
 
-        response = client.post("/auth/register", json={
-            "email": "test@example.com",
-            "password": "password123",
-            "full_name": "Test User"
-        })
+        response = client.post(
+            "/auth/register",
+            json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+        )
 
         assert response.status_code == 201
         data = response.json()
@@ -52,10 +52,9 @@ class TestAuthRoutes:
 
     def test_register_missing_email(self, client, mock_auth_service):
         """Test registration with missing email"""
-        response = client.post("/auth/register", json={
-            "password": "password123",
-            "full_name": "Test User"
-        })
+        response = client.post(
+            "/auth/register", json={"password": "password123", "full_name": "Test User"}
+        )
 
         assert response.status_code == 422  # Validation error
 
@@ -63,16 +62,14 @@ class TestAuthRoutes:
         """Test successful user login"""
         # Mock the service response
         from app.auth.schemas import TokenResponse
+
         mock_auth_service.login_user.return_value = TokenResponse(
-            access_token="test.access.token",
-            refresh_token="test.refresh.token",
-            expires_in=3600
+            access_token="test.access.token", refresh_token="test.refresh.token", expires_in=3600
         )
 
-        response = client.post("/auth/login", json={
-            "email": "test@example.com",
-            "password": "password123"
-        })
+        response = client.post(
+            "/auth/login", json={"email": "test@example.com", "password": "password123"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -84,30 +81,26 @@ class TestAuthRoutes:
     def test_login_invalid_credentials(self, client, mock_auth_service):
         """Test login with invalid credentials"""
         from fastapi import HTTPException, status
+
         mock_auth_service.login_user.side_effect = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
 
-        response = client.post("/auth/login", json={
-            "email": "test@example.com",
-            "password": "wrongpassword"
-        })
+        response = client.post(
+            "/auth/login", json={"email": "test@example.com", "password": "wrongpassword"}
+        )
 
         assert response.status_code == 401
 
     def test_refresh_token_success(self, client, mock_auth_service):
         """Test successful token refresh"""
         from app.auth.schemas import TokenResponse
+
         mock_auth_service.refresh_token.return_value = TokenResponse(
-            access_token="new.access.token",
-            refresh_token="new.refresh.token",
-            expires_in=3600
+            access_token="new.access.token", refresh_token="new.refresh.token", expires_in=3600
         )
 
-        response = client.post("/auth/refresh", json={
-            "refresh_token": "valid.refresh.token"
-        })
+        response = client.post("/auth/refresh", json={"refresh_token": "valid.refresh.token"})
 
         assert response.status_code == 200
         data = response.json()
@@ -117,31 +110,29 @@ class TestAuthRoutes:
     def test_refresh_token_invalid(self, client, mock_auth_service):
         """Test token refresh with invalid token"""
         from fastapi import HTTPException, status
+
         mock_auth_service.refresh_token.side_effect = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-        response = client.post("/auth/refresh", json={
-            "refresh_token": "invalid.refresh.token"
-        })
+        response = client.post("/auth/refresh", json={"refresh_token": "invalid.refresh.token"})
 
         assert response.status_code == 401
 
-    @patch('app.routes.auth.get_current_user')
+    @patch("app.routes.auth.get_current_user")
     def test_logout_success(self, mock_get_user, client, mock_auth_service):
         """Test successful logout"""
         # Mock current user
         mock_get_user.return_value = {"id": "user123", "email": "test@example.com"}
         mock_auth_service.logout_user.return_value = True
 
-        response = client.post("/auth/logout", headers={
-            "Authorization": "Bearer valid.access.token"
-        })
+        response = client.post(
+            "/auth/logout", headers={"Authorization": "Bearer valid.access.token"}
+        )
 
         assert response.status_code == 204
 
-    @patch('app.routes.auth.get_current_user')
+    @patch("app.routes.auth.get_current_user")
     def test_get_current_user_profile_success(self, mock_get_user, client, mock_auth_service):
         """Test getting current user profile"""
         # Mock current user

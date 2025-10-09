@@ -5,8 +5,8 @@ This module contains comprehensive tests for all database models
 using a real PostgreSQL instance for accurate testing.
 """
 
-import uuid
 from datetime import UTC, datetime
+import uuid
 
 import pytest
 from sqlalchemy import select
@@ -17,14 +17,10 @@ from app.models.space import MemberRole, Space, SpaceMember
 from app.models.user import User
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_user_model_creation(test_session):
     """Test creating and saving a User model."""
-    user = User(
-        email="test@example.com",
-        first_name="John",
-        last_name="Doe"
-    )
+    user = User(email="test@example.com", first_name="John", last_name="Doe")
 
     test_session.add(user)
     await test_session.flush()
@@ -37,7 +33,7 @@ async def test_user_model_creation(test_session):
     assert user.updated_at is not None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_user_email_uniqueness(test_session):
     """Test that user emails must be unique."""
     user1 = User(email="test@example.com")
@@ -52,7 +48,7 @@ async def test_user_email_uniqueness(test_session):
         await test_session.flush()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_space_model_creation(test_session):
     """Test creating and saving a Space model."""
     # Create a user first
@@ -60,11 +56,7 @@ async def test_space_model_creation(test_session):
     test_session.add(user)
     await test_session.flush()
 
-    space = Space(
-        name="Test Space",
-        description="A test workspace",
-        created_by=user.id
-    )
+    space = Space(name="Test Space", description="A test workspace", created_by=user.id)
 
     test_session.add(space)
     await test_session.flush()
@@ -75,7 +67,7 @@ async def test_space_model_creation(test_session):
     assert space.created_by == user.id
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_space_member_roles(test_session):
     """Test space member creation with different roles."""
     # Create users
@@ -105,7 +97,7 @@ async def test_space_member_roles(test_session):
     assert viewer_member.role == MemberRole.VIEWER
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_document_model_creation(test_session):
     """Test creating and saving a Document model."""
     # Create prerequisites
@@ -132,7 +124,7 @@ async def test_document_model_creation(test_session):
     assert document.created_by == user.id
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_document_with_yjs_state(test_session):
     """Test document with Yjs binary state."""
     # Create prerequisites
@@ -160,7 +152,7 @@ async def test_document_with_yjs_state(test_session):
     assert document.yjs_state == yjs_state
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_query_model_with_jsonb(test_session):
     """Test creating a Query model with JSONB fields."""
     # Create prerequisites
@@ -180,7 +172,7 @@ async def test_query_model_with_jsonb(test_session):
 
     sources = [
         {"type": "document", "id": "doc1", "score": 0.95},
-        {"type": "web", "url": "https://example.com", "score": 0.87}
+        {"type": "web", "url": "https://example.com", "score": 0.87},
     ]
 
     query = Query(
@@ -202,7 +194,7 @@ async def test_query_model_with_jsonb(test_session):
     assert query.sources == sources
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_model_relationships(test_session):
     """Test that model relationships work correctly."""
     # Create a user
@@ -219,25 +211,15 @@ async def test_model_relationships(test_session):
     doc1 = Document(title="Doc 1", space_id=space.id, created_by=user.id)
     doc2 = Document(title="Doc 2", space_id=space.id, created_by=user.id)
 
-    query1 = Query(
-        question="Question 1",
-        space_id=space.id,
-        created_by=user.id
-    )
-    query2 = Query(
-        question="Question 2",
-        space_id=space.id,
-        created_by=user.id
-    )
+    query1 = Query(question="Question 1", space_id=space.id, created_by=user.id)
+    query2 = Query(question="Question 2", space_id=space.id, created_by=user.id)
 
     test_session.add_all([doc1, doc2, query1, query2])
     await test_session.flush()
 
     # Test relationships by querying
     # Find all documents in the space
-    result = await test_session.execute(
-        select(Document).where(Document.space_id == space.id)
-    )
+    result = await test_session.execute(select(Document).where(Document.space_id == space.id))
     documents = result.scalars().all()
     assert len(documents) == 2
 
@@ -247,7 +229,7 @@ async def test_model_relationships(test_session):
     assert len(queries) == 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_model_timestamps(test_session):
     """Test that timestamps are set correctly."""
     user = User(email="timestamp@example.com")
@@ -271,7 +253,7 @@ async def test_model_timestamps(test_session):
     assert user.created_at == created_time  # Created should stay the same
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_uuid_primary_keys(test_session):
     """Test that UUID primary keys are generated correctly."""
     user = User(email="uuid@example.com")

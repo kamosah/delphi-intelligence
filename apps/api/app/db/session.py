@@ -24,11 +24,7 @@ engine = create_async_engine(
 
 # Create async session factory
 async_session_factory = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=True,
-    autocommit=False
+    engine, class_=AsyncSession, expire_on_commit=False, autoflush=True, autocommit=False
 )
 
 

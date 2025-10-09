@@ -2,9 +2,9 @@
 
 from uuid import UUID
 
-import strawberry
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+import strawberry
 
 from app.db.session import get_session
 from app.models.user import User as UserModel

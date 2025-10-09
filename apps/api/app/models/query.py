@@ -43,4 +43,3 @@ class Query(Base):
     def __repr__(self) -> str:
         """String representation of the query."""
         return f"<Query(id={self.id}, query_text={self.query_text[:50]}...)>"
-

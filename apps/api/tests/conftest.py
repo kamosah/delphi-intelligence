@@ -5,9 +5,9 @@ This module provides utilities for setting up a PostgreSQL test database
 using Docker containers for integration testing.
 """
 
+from collections.abc import AsyncGenerator
 import subprocess
 import time
-from collections.abc import AsyncGenerator
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -19,12 +19,7 @@ from app.models import Base
 def is_docker_running() -> bool:
     """Check if Docker is running."""
     try:
-        subprocess.run(
-            ["docker", "info"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
+        subprocess.run(["docker", "info"], check=True, capture_output=True, text=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
@@ -39,18 +34,25 @@ def start_test_postgres() -> str:
     db_port = "5433"  # Different from default to avoid conflicts
 
     # Stop and remove existing container if it exists
-    subprocess.run(["docker", "stop", container_name], capture_output=True)
-    subprocess.run(["docker", "rm", container_name], capture_output=True)
+    subprocess.run(["docker", "stop", container_name], capture_output=True, check=False)
+    subprocess.run(["docker", "rm", container_name], capture_output=True, check=False)
 
     # Start new PostgreSQL container
     cmd = [
-        "docker", "run", "-d",
-        "--name", container_name,
-        "-e", f"POSTGRES_DB={db_name}",
-        "-e", f"POSTGRES_USER={db_user}",
-        "-e", f"POSTGRES_PASSWORD={db_password}",
-        "-p", f"{db_port}:5432",
-        "postgres:15-alpine"
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        container_name,
+        "-e",
+        f"POSTGRES_DB={db_name}",
+        "-e",
+        f"POSTGRES_USER={db_user}",
+        "-e",
+        f"POSTGRES_PASSWORD={db_password}",
+        "-p",
+        f"{db_port}:5432",
+        "postgres:15-alpine",
     ]
 
     subprocess.run(cmd, check=True)
@@ -59,10 +61,11 @@ def start_test_postgres() -> str:
     max_attempts = 30
     for attempt in range(max_attempts):
         try:
-            subprocess.run([
-                "docker", "exec", container_name,
-                "pg_isready", "-U", db_user, "-d", db_name
-            ], check=True, capture_output=True)
+            subprocess.run(
+                ["docker", "exec", container_name, "pg_isready", "-U", db_user, "-d", db_name],
+                check=True,
+                capture_output=True,
+            )
             break
         except subprocess.CalledProcessError:
             if attempt == max_attempts - 1:
@@ -75,8 +78,8 @@ def start_test_postgres() -> str:
 def stop_test_postgres():
     """Stop and remove the test PostgreSQL container."""
     container_name = "olympus-test-db"
-    subprocess.run(["docker", "stop", container_name], capture_output=True)
-    subprocess.run(["docker", "rm", container_name], capture_output=True)
+    subprocess.run(["docker", "stop", container_name], capture_output=True, check=False)
+    subprocess.run(["docker", "rm", container_name], capture_output=True, check=False)
 
 
 @pytest.fixture(scope="session")
@@ -106,7 +109,7 @@ async def test_engine(test_database_url):
     engine = create_async_engine(
         test_database_url,
         echo=True,  # Set to False to reduce test output
-        pool_pre_ping=True
+        pool_pre_ping=True,
     )
 
     # Create all tables
@@ -122,14 +125,10 @@ async def test_engine(test_database_url):
     await engine.dispose()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def test_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create a test database session with automatic cleanup."""
-    async_session_maker = sessionmaker(
-        test_engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
+    async_session_maker = sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session_maker() as session:
         # Start a transaction
@@ -142,14 +141,10 @@ async def test_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
             await session.rollback()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def test_session_commit(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create a test session that commits changes (for integration tests)."""
-    async_session_maker = sessionmaker(
-        test_engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
+    async_session_maker = sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session_maker() as session:
         yield session

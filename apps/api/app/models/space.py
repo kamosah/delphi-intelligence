@@ -3,8 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Enum as SQLEnum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

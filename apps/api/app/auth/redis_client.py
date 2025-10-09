@@ -2,8 +2,8 @@
 Redis client configuration for session management
 """
 
-import json
 from datetime import timedelta
+import json
 from typing import Any
 
 import redis.asyncio as aioredis

@@ -50,7 +50,8 @@ class Settings(BaseSettings):
     @property
     def db_url(self) -> str:
         """Get the appropriate database URL based on configuration."""
-        # Priority: explicit DATABASE_URL > local db flag > Supabase direct URL > construct from Supabase URL
+        # Priority: explicit DATABASE_URL > local db flag >
+        # Supabase direct URL > construct from Supabase URL
         if self.database_url:
             return self.database_url
 

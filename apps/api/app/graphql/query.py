@@ -2,8 +2,8 @@
 
 from uuid import UUID
 
-import strawberry
 from sqlalchemy import select
+import strawberry
 
 from app.db.session import get_session
 from app.models.user import User as UserModel

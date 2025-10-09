@@ -13,7 +13,7 @@ from app.auth.redis_client import RedisManager
 class TestRedisManager:
     """Test cases for Redis session management"""
 
-    @pytest.fixture
+    @pytest.fixture()
     async def redis_manager(self):
         """Create Redis manager for testing"""
         with patch("app.auth.redis_client.aioredis") as mock_redis:
@@ -24,7 +24,7 @@ class TestRedisManager:
             manager.redis = mock_client
             yield manager, mock_client
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_set_session_success(self, redis_manager):
         """Test successful session storage"""
         manager, mock_client = redis_manager
@@ -36,7 +36,7 @@ class TestRedisManager:
         assert result is True
         mock_client.setex.assert_called_once()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_set_session_failure(self, redis_manager):
         """Test session storage failure"""
         manager, mock_client = redis_manager
@@ -47,7 +47,7 @@ class TestRedisManager:
 
         assert result is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_session_success(self, redis_manager):
         """Test successful session retrieval"""
         manager, mock_client = redis_manager
@@ -59,7 +59,7 @@ class TestRedisManager:
         assert result == session_data
         mock_client.get.assert_called_once_with("session:123")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_session_not_found(self, redis_manager):
         """Test session retrieval when session doesn't exist"""
         manager, mock_client = redis_manager
@@ -69,7 +69,7 @@ class TestRedisManager:
 
         assert result is None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_session_failure(self, redis_manager):
         """Test session retrieval failure"""
         manager, mock_client = redis_manager
@@ -79,7 +79,7 @@ class TestRedisManager:
 
         assert result is None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_delete_session_success(self, redis_manager):
         """Test successful session deletion"""
         manager, mock_client = redis_manager
@@ -90,7 +90,7 @@ class TestRedisManager:
         assert result is True
         mock_client.delete.assert_called_once_with("session:123")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_delete_session_failure(self, redis_manager):
         """Test session deletion failure"""
         manager, mock_client = redis_manager
@@ -100,7 +100,7 @@ class TestRedisManager:
 
         assert result is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_blacklist_token_success(self, redis_manager):
         """Test successful token blacklisting"""
         manager, mock_client = redis_manager
@@ -113,7 +113,7 @@ class TestRedisManager:
         assert result is True
         mock_client.setex.assert_called_once_with(f"blacklist:{token}", expire, "1")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_is_token_blacklisted_true(self, redis_manager):
         """Test checking if token is blacklisted (true case)"""
         manager, mock_client = redis_manager
@@ -125,7 +125,7 @@ class TestRedisManager:
         assert result is True
         mock_client.get.assert_called_once_with(f"blacklist:{token}")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_is_token_blacklisted_false(self, redis_manager):
         """Test checking if token is blacklisted (false case)"""
         manager, mock_client = redis_manager
@@ -136,7 +136,7 @@ class TestRedisManager:
 
         assert result is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_store_refresh_token_success(self, redis_manager):
         """Test successful refresh token storage"""
         manager, mock_client = redis_manager
@@ -151,7 +151,7 @@ class TestRedisManager:
             f"refresh_token:{user_id}", timedelta(days=30), token
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_refresh_token_success(self, redis_manager):
         """Test successful refresh token retrieval"""
         manager, mock_client = redis_manager
@@ -164,7 +164,7 @@ class TestRedisManager:
         assert result == expected_token
         mock_client.get.assert_called_once_with(f"refresh_token:{user_id}")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_revoke_refresh_token_success(self, redis_manager):
         """Test successful refresh token revocation"""
         manager, mock_client = redis_manager
@@ -176,7 +176,7 @@ class TestRedisManager:
         assert result is True
         mock_client.delete.assert_called_once_with(f"refresh_token:{user_id}")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_close_connection(self, redis_manager):
         """Test closing Redis connection"""
         manager, mock_client = redis_manager

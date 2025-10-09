@@ -41,4 +41,3 @@ class Document(Base):
     def __repr__(self) -> str:
         """String representation of the document."""
         return f"<Document(id={self.id}, title={self.title})>"
-

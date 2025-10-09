@@ -44,7 +44,7 @@ async def detailed_health() -> dict[str, Any]:
 
         client = get_supabase_client()
         # Simple health check - attempt to authenticate
-        auth_health = client.auth.get_session()
+        _auth_health = client.auth.get_session()
         health_status["dependencies"]["supabase"] = {
             "status": "healthy",
             "url": settings.supabase_url,
@@ -89,7 +89,8 @@ async def protected_health(current_user: dict = Depends(lambda: None)) -> dict[s
     # Import here to avoid circular imports during startup
 
     # This demonstrates how to use authentication in a route
-    # In practice, you'd add `current_user: dict = Depends(get_current_user)` to the function signature
+    # In practice, you'd add `current_user: dict = Depends(get_current_user)`
+    # to the function signature
     return {
         "status": "healthy",
         "message": "This is a protected endpoint",

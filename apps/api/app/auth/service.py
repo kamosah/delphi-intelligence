@@ -66,7 +66,7 @@ class AuthService:
                 )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Registration failed: {str(e)}",
+                detail=f"Registration failed: {e!s}",
             )
 
     async def login_user(self, email: str, password: str) -> TokenResponse:
@@ -133,7 +133,7 @@ class AuthService:
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Login failed: {str(e)}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Login failed: {e!s}"
             )
 
     async def refresh_token(self, refresh_token: str) -> TokenResponse:
@@ -204,7 +204,7 @@ class AuthService:
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Token refresh failed: {str(e)}",
+                detail=f"Token refresh failed: {e!s}",
             )
 
     async def logout_user(self, user_id: str, access_token: str) -> bool:
@@ -273,7 +273,7 @@ class AuthService:
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to get user profile: {str(e)}",
+                detail=f"Failed to get user profile: {e!s}",
             )
 
 

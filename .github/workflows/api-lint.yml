@@ -1,0 +1,126 @@
+name: API Linting & Formatting
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+            - "apps/api/**"
+            - ".github/workflows/api-lint.yml"
+    pull_request:
+        branches: [main, develop]
+        paths:
+            - "apps/api/**"
+            - ".github/workflows/api-lint.yml"
+
+jobs:
+    lint:
+        name: Lint with Ruff
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: apps/api
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+                  cache: "pip"
+
+            - name: Install Poetry
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-create: true
+                  virtualenvs-in-project: true
+
+            - name: Load cached venv
+              id: cached-poetry-dependencies
+              uses: actions/cache@v4
+              with:
+                  path: apps/api/.venv
+                  key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+            - name: Install dependencies
+              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+              run: poetry install --no-interaction --no-root --only dev
+
+            - name: Run Ruff linter
+              run: |
+                  poetry run ruff check . --output-format=github
+
+            - name: Run Ruff formatter check
+              run: |
+                  poetry run ruff format --check .
+
+            - name: Check if all issues are fixable
+              if: failure()
+              run: |
+                  echo "❌ Linting or formatting issues found!"
+                  echo "Run the following commands locally to fix:"
+                  echo "  poetry run ruff check . --fix"
+                  echo "  poetry run ruff format ."
+                  exit 1
+
+    type-check:
+        name: Type Check with mypy
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: apps/api
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+                  cache: "pip"
+
+            - name: Install Poetry
+              uses: snok/install-poetry@v1
+              with:
+                  version: latest
+                  virtualenvs-create: true
+                  virtualenvs-in-project: true
+
+            - name: Load cached venv
+              id: cached-poetry-dependencies
+              uses: actions/cache@v4
+              with:
+                  path: apps/api/.venv
+                  key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+            - name: Install dependencies
+              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+              run: poetry install --no-interaction --no-root
+
+            - name: Run mypy
+              run: |
+                  poetry run mypy app/ --ignore-missing-imports || true
+              continue-on-error: true
+
+    summary:
+        name: Lint Summary
+        runs-on: ubuntu-latest
+        needs: [lint, type-check]
+        if: always()
+
+        steps:
+            - name: Check lint status
+              if: needs.lint.result == 'failure'
+              run: |
+                  echo "::error::Ruff linting or formatting failed. Please run 'poetry run ruff check . --fix' and 'poetry run ruff format .' locally."
+                  exit 1
+
+            - name: Success message
+              if: needs.lint.result == 'success'
+              run: |
+                  echo "✅ All linting and formatting checks passed!"
