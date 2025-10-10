@@ -1,15 +1,15 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import { useUIStore } from '@/store/ui-store';
 import {
+  Button,
+  Separator,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store/ui-store';
+} from '@olympus/ui';
 import { motion } from 'framer-motion';
 import {
   ChevronLeft,

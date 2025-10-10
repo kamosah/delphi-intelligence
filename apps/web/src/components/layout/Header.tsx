@@ -1,16 +1,17 @@
 'use client';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { useUIStore } from '@/store/ui-store';
 import {
+  Avatar,
+  AvatarFallback,
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useUIStore } from '@/store/ui-store';
+} from '@olympus/ui';
 import { Menu, Moon, Sun, User } from 'lucide-react';
 
 export function Header() {

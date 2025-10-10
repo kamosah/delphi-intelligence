@@ -1,7 +1,7 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Badge } from '@olympus/ui';
 import { Check, Loader2, Search, Wrench } from 'lucide-react';
 
 interface ToolCallBadgeProps {

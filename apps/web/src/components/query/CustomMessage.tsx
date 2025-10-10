@@ -1,8 +1,8 @@
 'use client';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessagePrimitive, useMessage } from '@assistant-ui/react';
+import { Avatar, AvatarFallback } from '@olympus/ui';
 import { Bot, User } from 'lucide-react';
 
 /**

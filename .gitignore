@@ -114,3 +114,5 @@ venv.bak/
 
 # FastAPI specific
 .pytest_cache/
+*storybook.log
+storybook-static
