@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "assistant-ui": {
+      "command": "npx",
+      "args": ["-y", "@assistant-ui/mcp-docs-server"]
+    },
+    "linear": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.linear.app/sse"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=mvqjahridaytxfsuzljy"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_72251866901920fec086e4fc7ff81ff4993b3f17"
+      }
+    }
+  }
+}

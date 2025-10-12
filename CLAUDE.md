@@ -345,6 +345,579 @@ className="
 "
 ```
 
+## Component Development Best Practices
+
+### Component Architecture Philosophy
+
+**Core Principle**: Build composable, reusable components rather than monolithic page components. Favor composition over large, single-file components.
+
+**Component Hierarchy**:
+
+1. **Design System Components** (`packages/ui/src/components/`) - Base primitives (Button, Input, Card, etc.)
+2. **Layout Components** (`apps/web/src/components/layout/`) - Application structure (Header, Sidebar, Footer)
+3. **Feature Components** (`apps/web/src/components/[feature]/`) - Domain-specific components
+4. **Page Components** (`apps/web/src/app/`) - Composition of all above
+
+### Component Location Strategy
+
+**Where to place components**:
+
+```
+packages/ui/src/components/     # Shadcn + Design System primitives
+├── button.tsx                  # Base components with Storybook stories
+├── button.stories.tsx          # Always include stories for design system
+├── card.tsx
+└── ...
+
+apps/web/src/components/
+├── ui/                         # App-specific UI overrides (if needed)
+├── layout/                     # Layout components (Header, Sidebar, Footer)
+│   ├── Header.tsx
+│   ├── Header.stories.tsx      # Include stories for layout components
+│   ├── Sidebar.tsx
+│   └── Sidebar.stories.tsx
+├── landing/                    # Landing page feature components
+│   ├── HeroSection.tsx
+│   ├── SocialProof.tsx
+│   ├── FeaturesGrid.tsx
+│   ├── ProductShowcase.tsx
+│   ├── UseCases.tsx
+│   ├── Testimonials.tsx
+│   └── FinalCTA.tsx
+├── auth/                       # Authentication components
+│   ├── LoginForm.tsx
+│   ├── SignupForm.tsx
+│   └── ...
+└── documents/                  # Document feature components
+    ├── DocumentList.tsx
+    ├── DocumentCard.tsx
+    └── ...
+```
+
+### Component Creation Rules
+
+**ALWAYS follow these rules when creating components**:
+
+#### Rule 1: Prefer Composition Over Monoliths
+
+❌ **AVOID**: Single-file page components with inline styles
+
+```tsx
+// Bad: Everything in one component with Tailwind classes
+export default function LandingPage() {
+  return (
+    <div className="min-h-screen">
+      <nav className="border-b bg-white/80 backdrop-blur-sm">
+        {/* 50+ lines of nav code */}
+      </nav>
+      <section className="pt-32 pb-20">{/* 100+ lines of hero code */}</section>
+      <section className="py-20 bg-white">
+        {/* 80+ lines of features code */}
+      </section>
+      {/* More sections... */}
+    </div>
+  );
+}
+```
+
+✅ **PREFER**: Composed page with feature components
+
+```tsx
+// Good: Composition of feature components
+import { HeroSection } from '@/components/landing/HeroSection';
+import { SocialProof } from '@/components/landing/SocialProof';
+import { FeaturesGrid } from '@/components/landing/FeaturesGrid';
+import { ProductShowcase } from '@/components/landing/ProductShowcase';
+import { UseCases } from '@/components/landing/UseCases';
+import { Testimonials } from '@/components/landing/Testimonials';
+import { FinalCTA } from '@/components/landing/FinalCTA';
+import { Footer } from '@/components/layout/Footer';
+
+export default function LandingPage() {
+  return (
+    <div className="min-h-screen">
+      <HeroSection />
+      <SocialProof />
+      <FeaturesGrid />
+      <ProductShowcase />
+      <UseCases />
+      <Testimonials />
+      <FinalCTA />
+      <Footer />
+    </div>
+  );
+}
+```
+
+#### Rule 2: Use Design System Components First
+
+**Priority order for creating components**:
+
+1. Check if component exists in `packages/ui` (Shadcn/Design System)
+2. Check if component exists in Assistant UI library
+3. Compose existing components to create new ones
+4. Only create new primitive components if absolutely necessary
+
+❌ **AVOID**: Creating buttons with inline Tailwind classes
+
+```tsx
+// Bad: Custom button with inline styles
+export function CTAButton({ children }: { children: React.ReactNode }) {
+  return (
+    <button className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg">
+      {children}
+    </button>
+  );
+}
+```
+
+✅ **PREFER**: Using design system Button component
+
+```tsx
+// Good: Using design system component
+import { Button } from '@/components/ui/button';
+
+export function CTAButton({ children }: { children: React.ReactNode }) {
+  return (
+    <Button size="lg" variant="default" className="shadow-lg">
+      {children}
+    </Button>
+  );
+}
+```
+
+#### Rule 3: Component File Structure
+
+Each feature component should follow this structure:
+
+```tsx
+// apps/web/src/components/landing/HeroSection.tsx
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import Link from 'next/link';
+
+interface HeroSectionProps {
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+  ctaLink?: string;
+}
+
+/**
+ * Hero section for the landing page.
+ * Displays the main value proposition with CTA buttons.
+ */
+export function HeroSection({
+  title = 'Transform documents into intelligent insights',
+  subtitle = 'Olympus is an AI-powered document intelligence platform...',
+  ctaText = 'Start for free',
+  ctaLink = '/signup',
+}: HeroSectionProps) {
+  return (
+    <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            {title.split(' into ')[0]} into{' '}
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              {title.split(' into ')[1]}
+            </span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-10 leading-relaxed">
+            {subtitle}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild size="lg" className="shadow-lg shadow-blue-600/20">
+              <Link href={ctaLink}>{ctaText}</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link href="/login">Sign in</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+```
+
+**Component file structure checklist**:
+
+- ✅ Import design system components first
+- ✅ Define TypeScript interfaces for props
+- ✅ Include JSDoc comments describing the component
+- ✅ Provide sensible default props
+- ✅ Export named function (not default export for feature components)
+- ✅ Use semantic HTML elements
+
+#### Rule 4: Create Storybook Stories for Reusable Components
+
+**When to create stories**:
+
+- ✅ Design system components (`packages/ui`)
+- ✅ Layout components (`apps/web/src/components/layout`)
+- ✅ Highly reusable feature components
+- ❌ Page-specific one-off components
+- ❌ Simple wrapper components
+
+**Story structure**:
+
+```tsx
+// apps/web/src/components/landing/HeroSection.stories.tsx
+
+import type { Meta, StoryObj } from '@storybook/react';
+import { HeroSection } from './HeroSection';
+
+const meta = {
+  title: 'Landing/HeroSection',
+  component: HeroSection,
+  parameters: {
+    layout: 'fullscreen',
+  },
+  tags: ['autodocs'],
+} satisfies Meta<typeof HeroSection>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/**
+ * Default hero section with standard content.
+ */
+export const Default: Story = {};
+
+/**
+ * Hero section with custom content.
+ */
+export const CustomContent: Story = {
+  args: {
+    title: 'Custom title with intelligent insights',
+    subtitle: 'Custom subtitle describing the product',
+    ctaText: 'Get Started',
+    ctaLink: '/custom-link',
+  },
+};
+
+/**
+ * Hero section in dark mode.
+ */
+export const DarkMode: Story = {
+  parameters: {
+    backgrounds: { default: 'dark' },
+  },
+};
+```
+
+#### Rule 5: Animations with Framer Motion
+
+When adding animations, use Framer Motion with design system components:
+
+```tsx
+// Good: Animated component with Framer Motion
+'use client';
+
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export function FeaturesGrid() {
+  return (
+    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        variants={fadeInUp}
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                variants={fadeInUp}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                      {feature.icon}
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+```
+
+**Animation best practices**:
+
+- Use `'use client'` directive for Framer Motion components
+- Define animation variants as constants outside component
+- Use `whileInView` for scroll-triggered animations
+- Add `viewport={{ once: true }}` to prevent re-triggering
+- Keep animations subtle and performant (0.3-0.5s duration)
+
+#### Rule 6: TypeScript and Props
+
+**Always use TypeScript with proper typing**:
+
+```tsx
+// Good: Well-typed component
+interface FeatureCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  variant?: 'default' | 'highlighted';
+  onClick?: () => void;
+}
+
+export function FeatureCard({
+  title,
+  description,
+  icon,
+  variant = 'default',
+  onClick,
+}: FeatureCardProps) {
+  // Component implementation
+}
+```
+
+**Props best practices**:
+
+- ✅ Define interface for all props
+- ✅ Use optional props with default values
+- ✅ Use union types for variants
+- ✅ Include React.ReactNode for children/icon props
+- ✅ Use proper event handler types (e.g., `onClick?: () => void`)
+
+#### Rule 7: Avoid Tailwind Class Overload
+
+When a component has 10+ Tailwind classes, consider:
+
+1. **Extracting to design system component** (preferred)
+2. **Using `cn()` utility with variants** (for design system components)
+3. **Breaking into smaller components**
+
+❌ **AVOID**: Component with excessive inline Tailwind classes
+
+```tsx
+// Bad: Too many inline classes
+export function ComplexCard() {
+  return (
+    <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-gray-200 p-8 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent to-blue-100 opacity-50 pointer-events-none" />
+      {/* More content */}
+    </div>
+  );
+}
+```
+
+✅ **PREFER**: Using Card component with composition
+
+```tsx
+// Good: Using design system Card
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+
+export function ComplexCard({ className }: { className?: string }) {
+  return (
+    <Card
+      className={cn(
+        'hover:shadow-3xl transition-all hover:scale-105',
+        className
+      )}
+    >
+      <CardContent className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50">
+        {/* Content */}
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### Component Development Workflow
+
+When asked to create a new feature or page:
+
+1. **Analyze the request** - Identify logical component boundaries
+2. **Check existing components** - Review `packages/ui` and existing feature components
+3. **Plan component structure** - Break down into composable pieces
+4. **Create feature components** - One file per logical section
+5. **Compose in page** - Import and compose feature components
+6. **Add stories (if needed)** - Create Storybook stories for reusable components
+7. **Test in Storybook** - Verify component works in isolation
+
+**Example workflow for Landing Page**:
+
+```
+Request: "Create a landing page with hero, features, and CTA"
+
+Step 1: Identify components needed
+- HeroSection (new)
+- FeaturesGrid (new)
+- FinalCTA (new)
+- Footer (check if exists)
+
+Step 2: Check design system
+- Button (exists in packages/ui)
+- Card (exists in packages/ui)
+- Use these instead of custom components
+
+Step 3: Create feature components
+- apps/web/src/components/landing/HeroSection.tsx
+- apps/web/src/components/landing/FeaturesGrid.tsx
+- apps/web/src/components/landing/FinalCTA.tsx
+
+Step 4: Compose in page
+- apps/web/src/app/page.tsx imports and composes all sections
+
+Step 5: Add stories (optional for highly reusable components)
+- apps/web/src/components/landing/HeroSection.stories.tsx
+
+Step 6: Test in Storybook
+- Run npm run storybook
+- Verify components render correctly
+```
+
+### Assistant UI Integration
+
+When using Assistant UI components:
+
+```tsx
+// Example: Using Assistant UI thread component
+import { Thread } from '@assistant-ui/react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+export function ChatInterface() {
+  return (
+    <Card className="h-[600px]">
+      <Thread
+      // Assistant UI handles the chat interface
+      // Compose with our design system components
+      />
+    </Card>
+  );
+}
+```
+
+**Assistant UI best practices**:
+
+- Wrap Assistant UI components in design system Card/Container components
+- Use design system Button variants for Assistant UI actions
+- Maintain consistent spacing and typography with our theme
+
+### Code Review Checklist
+
+Before considering a component complete:
+
+- [ ] Component is broken into logical, reusable pieces
+- [ ] Using design system components (Button, Card, Input, etc.) instead of custom ones
+- [ ] Props are properly typed with TypeScript interfaces
+- [ ] Component has sensible default props
+- [ ] JSDoc comments explain component purpose
+- [ ] Tailwind classes are organized by category (layout, spacing, colors, etc.)
+- [ ] No excessive inline Tailwind (10+ classes suggests refactoring needed)
+- [ ] Framer Motion animations use 'use client' directive
+- [ ] Storybook stories created for reusable components
+- [ ] Component location follows project structure conventions
+- [ ] Component is exported with named export (not default)
+
+### Common Patterns
+
+**Pattern 1: Section Wrapper**
+
+```tsx
+// Reusable section wrapper for consistent spacing
+export function Section({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn('py-20 px-4 sm:px-6 lg:px-8', className)}>
+      <div className="max-w-7xl mx-auto">{children}</div>
+    </section>
+  );
+}
+```
+
+**Pattern 2: Feature Card Grid**
+
+```tsx
+// Grid pattern for feature cards
+import { Card, CardContent } from '@/components/ui/card';
+
+export function FeatureGrid({ features }: { features: Feature[] }) {
+  return (
+    <div className="grid md:grid-cols-3 gap-8">
+      {features.map((feature) => (
+        <Card key={feature.id} className="hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              {feature.icon}
+            </div>
+            <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+            <p className="text-gray-600">{feature.description}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+```
+
+**Pattern 3: Animated Entrance**
+
+```tsx
+// Reusable fade-in animation wrapper
+'use client';
+
+import { motion } from 'framer-motion';
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export function FadeInUp({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay }}
+      variants={fadeInUp}
+    >
+      {children}
+    </motion.div>
+  );
+}
+```
+
 ## Environment Configuration
 
 ### Backend (.env in apps/api)
@@ -515,6 +1088,156 @@ npm run graphql:generate    # Generate TypeScript types
 ```
 
 Generated files are committed to version control for consistency.
+
+## MCP Server Configuration
+
+This project uses Model Context Protocol (MCP) servers to enhance Claude Code capabilities. The configuration follows a **hybrid approach**: global servers for universal tools, project-specific servers for project tools.
+
+### Project-Specific Servers (.mcp.json)
+
+These servers are automatically available when working in this project:
+
+```json
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "assistant-ui": {
+      "command": "npx",
+      "args": ["-y", "@assistant-ui/mcp-docs-server"]
+    },
+    "linear": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.linear.app/sse"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=mvqjahridaytxfsuzljy"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_72251866901920fec086e4fc7ff81ff4993b3f17"
+      }
+    }
+  }
+}
+```
+
+**Purpose**:
+
+- **shadcn**: Access to Shadcn UI component registry for adding/searching design system components
+- **assistant-ui**: Documentation for Assistant UI chat components
+- **linear**: Integration with Linear for issue tracking, project management, and task creation
+- **supabase**: Direct access to Supabase management API (database operations, auth, storage)
+
+**Setup**:
+
+- **shadcn** and **assistant-ui**: No additional configuration required
+- **linear**: Requires `LINEAR_API_KEY` environment variable (see setup instructions below)
+- **supabase**: Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (see setup instructions below)
+
+### Global Servers (Recommended Setup)
+
+These servers should be configured in your **global Claude Code config** (`~/.claude.json`):
+
+#### Required for Full Functionality
+
+**filesystem** (Enhanced file operations):
+
+```json
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/athena"]
+}
+```
+
+**memory** (Knowledge graph for project context):
+
+```json
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-memory"]
+}
+```
+
+**postgres** (Database query access for Olympus DB):
+
+```json
+{
+  "command": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-postgres",
+    "postgresql://olympus:password@localhost:5432/olympus_mvp"
+  ]
+}
+```
+
+**Note**: Replace database credentials with your local setup. Use `USE_LOCAL_DB=true` for Docker PostgreSQL or Supabase connection string for cloud database.
+
+#### Optional but Recommended
+
+**ide** (VS Code integration):
+
+- Usually auto-configured by Claude Code
+- Provides enhanced IDE integration (diagnostics, Jupyter kernel for notebooks)
+
+### Why Hybrid Configuration?
+
+| Configuration                      | Purpose                                                  | Location                           |
+| ---------------------------------- | -------------------------------------------------------- | ---------------------------------- |
+| **Project-specific** (`.mcp.json`) | Tools specific to Olympus project (shadcn, assistant-ui) | Committed to git, shared with team |
+| **Global** (`~/.claude.json`)      | Universal tools (filesystem, memory, postgres, ide)      | Personal config with credentials   |
+
+**Benefits**:
+
+- ✅ Team members automatically get project-specific tools (shadcn, assistant-ui)
+- ✅ Database credentials stay out of version control
+- ✅ Personal development setup (database, file paths) stays private
+- ✅ Universal tools (filesystem, memory) available across all projects
+
+### First-Time Setup
+
+**For new team members**:
+
+1. Project-specific servers (shadcn, assistant-ui) work automatically
+2. Configure global servers in `~/.claude.json`:
+   - Add **postgres** with your local database connection string
+   - Add **filesystem** with path to this repository
+   - Add **memory** for knowledge graph (no configuration needed)
+
+3. Verify setup:
+
+   ```bash
+   # Test postgres connection
+   # Claude Code should be able to query the database
+
+   # Test shadcn
+   # Claude Code should be able to search/add components
+   ```
+
+### Troubleshooting
+
+**"MCP server not found" error**:
+
+- Check that `~/.claude.json` exists and has correct server configuration
+- Restart Claude Code after modifying `.claude.json` or `.mcp.json`
+
+**Postgres connection issues**:
+
+- Verify database is running: `docker-compose ps` (if using Docker)
+- Check connection string matches your local setup
+- Ensure database exists: `olympus_mvp` for local Docker
+
+**Shadcn/Assistant UI not working**:
+
+- These should work automatically via `.mcp.json`
+- Try restarting Claude Code if just added
 
 ## Documentation
 
