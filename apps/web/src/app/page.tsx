@@ -3,6 +3,13 @@ import { FinalCTA } from '@/components/landing/FinalCTA';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { Footer } from '@/components/layout/Footer';
 import { LandingNav } from '@/components/layout/LandingNav';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Olympus MVP | AI-Native Operations Platform',
+  description:
+    'Collaborate with AI agents in real-time to analyze data, create documents, and accelerate strategic work. Built for teams who demand more.',
+};
 
 /**
  * Landing page composed of feature components.

@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@olympus/ui';
 import Link from 'next/link';
 
 interface HeroSectionProps {
@@ -14,9 +14,9 @@ interface HeroSectionProps {
  * Inspired by Hex's clean, data-focused aesthetic.
  */
 export function HeroSection({
-  title = 'Transform documents into intelligent insights',
-  subtitle = 'Olympus is an AI-powered document intelligence platform that helps teams analyze, query, and collaborate on complex documents using natural language.',
-  ctaText = 'Start for free',
+  title = 'The AI-Native Operations Platform',
+  subtitle = 'Collaborate with AI agents in real-time to analyze data, create documents, and accelerate strategic work. Built for teams who demand more.',
+  ctaText = 'Get Started Free',
   ctaLink = '/signup',
 }: HeroSectionProps) {
   return (
@@ -24,9 +24,9 @@ export function HeroSection({
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto">
           <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            {title.split(' into ')[0]} into{' '}
+            The AI-Native{' '}
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {title.split(' into ')[1] || 'intelligent insights'}
+              Operations Platform
             </span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 leading-relaxed">

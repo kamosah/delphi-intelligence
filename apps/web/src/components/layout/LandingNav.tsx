@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@olympus/ui';
 import Link from 'next/link';
 
 interface LandingNavProps {

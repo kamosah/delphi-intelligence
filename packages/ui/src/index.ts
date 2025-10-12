@@ -39,6 +39,14 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './components/dropdown-menu';
+export {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from './components/form';
 export { Input } from './components/input';
 export { Label } from './components/label';
 export { ScrollArea, ScrollBar } from './components/scroll-area';

@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@olympus/ui';
 import Link from 'next/link';
 
 interface FinalCTAProps {
@@ -14,9 +14,9 @@ interface FinalCTAProps {
  * Hex-inspired clean design with emphasis on action.
  */
 export function FinalCTA({
-  title = 'Ready to transform how you work with documents?',
-  subtitle = 'Join teams already using Olympus to unlock insights from their documents.',
-  ctaText = 'Get started for free',
+  title = 'Ready to accelerate your operations with AI?',
+  subtitle = 'Join teams already using Olympus to transform strategic work with intelligent automation.',
+  ctaText = 'Get started free',
   ctaLink = '/signup',
 }: FinalCTAProps) {
   return (
