@@ -120,7 +120,8 @@ export function SignupForm() {
         password: data.password,
         full_name: data.fullName,
       });
-      router.push('/dashboard');
+      // Redirect to verify-email page after successful signup
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create account';
