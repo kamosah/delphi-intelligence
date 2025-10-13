@@ -96,18 +96,19 @@ export function LoginForm() {
       // Redirect to original destination or dashboard
       router.push(redirectTo);
     } catch (error: any) {
-      // Check if error is email not verified (403)
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      // Check if error is email not verified
+      // Backend returns: "Login failed: Email not confirmed" or includes "verify"
       if (
-        error?.response?.status === 403 ||
-        error?.message?.includes('email') ||
-        error?.message?.includes('verify')
+        errorMsg.toLowerCase().includes('email not confirmed') ||
+        errorMsg.toLowerCase().includes('not verified') ||
+        errorMsg.toLowerCase().includes('verify')
       ) {
         setIsEmailNotVerified(true);
         setErrorMessage('Please verify your email address before logging in.');
       } else {
-        const message =
-          error instanceof Error ? error.message : 'Failed to sign in';
-        setErrorMessage(message);
+        setErrorMessage(errorMsg || 'Failed to sign in');
       }
     }
   };

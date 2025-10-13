@@ -83,16 +83,13 @@ export function useAuth() {
   const signUp = async (credentials: RegisterRequest) => {
     try {
       setLoading(true);
-      const tokenResponse = await authApi.register(credentials);
-      setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
-      setAuthToken(tokenResponse.access_token);
-      setAuthCookies(tokenResponse.access_token, tokenResponse.refresh_token);
+      // Register returns user profile, NOT tokens
+      // User must verify email before logging in
+      const userProfile = await authApi.register(credentials);
 
-      // Get user profile
-      const userProfile = await authApi.me(tokenResponse.access_token);
-      setUser(userProfile);
-
-      return { user: userProfile, session: tokenResponse };
+      // Don't set tokens - user needs to verify email first
+      // Return user profile for redirect to verify-email page
+      return { user: userProfile };
     } catch (error) {
       console.error('Sign up failed:', error);
       throw error;

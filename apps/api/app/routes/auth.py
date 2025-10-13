@@ -25,11 +25,14 @@ async def register(user_data: UserRegister) -> UserProfile:
     """
     Register a new user
 
+    Note: This endpoint returns the user profile, NOT tokens.
+    Users must verify their email before logging in.
+
     Args:
         user_data: User registration data
 
     Returns:
-        Created user profile
+        Created user profile with email_confirmed status
     """
     return await auth_service.register_user(
         email=user_data.email, password=user_data.password, full_name=user_data.full_name

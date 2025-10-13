@@ -1,5 +1,8 @@
+'use client';
+
 import { Button } from '@olympus/ui';
 import Link from 'next/link';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 interface LandingNavProps {
   logoText?: string;
@@ -9,8 +12,11 @@ interface LandingNavProps {
  * Navigation component for the landing page.
  * Fixed position navbar with auth CTAs.
  * Hex-inspired clean navigation with backdrop blur.
+ * Shows dashboard link for authenticated users.
  */
 export function LandingNav({ logoText = 'Olympus' }: LandingNavProps) {
+  const { isAuthenticated } = useAuthStore();
+
   return (
     <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-sm fixed w-full z-10 top-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,12 +28,20 @@ export function LandingNav({ logoText = 'Olympus' }: LandingNavProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button asChild variant="ghost">
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">Get started</Link>
-            </Button>
+            {isAuthenticated ? (
+              <Button asChild>
+                <Link href="/dashboard">Go to Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost">
+                  <Link href="/login">Sign in</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/signup">Get started</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

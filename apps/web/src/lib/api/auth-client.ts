@@ -27,6 +27,7 @@ export interface UserProfile {
   role: string;
   is_active: boolean;
   avatar_url?: string;
+  email_confirmed?: boolean; // Added for registration response
 }
 
 export interface RefreshRequest {
@@ -68,9 +69,9 @@ export const authApi = {
     });
   },
 
-  // Register user
-  register: async (userData: RegisterRequest): Promise<TokenResponse> => {
-    return apiRequest<TokenResponse>('/auth/register', {
+  // Register user (returns user profile, NOT tokens - user must verify email first)
+  register: async (userData: RegisterRequest): Promise<UserProfile> => {
+    return apiRequest<UserProfile>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });

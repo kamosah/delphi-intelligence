@@ -35,6 +35,24 @@ class AuthService:
             HTTPException: If registration fails
         """
         try:
+            # Check if user already exists (even if unverified)
+            try:
+                users_response = self.admin_client.auth.admin.list_users()
+                # Handle both list and object response types
+                users_list = users_response if isinstance(users_response, list) else users_response.data
+                if users_list:
+                    for user in users_list:
+                        if user.email == email:
+                            raise HTTPException(
+                                status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="User with this email already exists",
+                            )
+            except HTTPException:
+                raise
+            except Exception:
+                # If we can't check, proceed with signup (Supabase will handle it)
+                pass
+
             # Create user with Supabase Auth using sign_up
             user_client = get_user_client()
             response = user_client.auth.sign_up(
@@ -131,12 +149,13 @@ class AuthService:
             await redis_manager.store_refresh_token(user.id, refresh_token)
 
             # Store session data
+            import datetime
             await redis_manager.set_session(
                 f"session:{user.id}",
                 {
                     "user_id": user.id,
                     "email": user.email,
-                    "login_time": session.created_at,
+                    "login_time": datetime.datetime.now(datetime.UTC).isoformat(),
                     "supabase_session": session.access_token,
                 },
             )
@@ -150,6 +169,13 @@ class AuthService:
         except HTTPException:
             raise
         except Exception as e:
+            # Check if it's an authentication error from Supabase
+            error_msg = str(e).lower()
+            if "invalid login credentials" in error_msg or "invalid" in error_msg or "credentials" in error_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Login failed: {e!s}"
             )
@@ -259,7 +285,7 @@ class AuthService:
         Get user profile by ID
 
         Args:
-            user_id: User ID
+            user_id: User ID (Supabase Auth user ID)
 
         Returns:
             User profile
@@ -268,24 +294,41 @@ class AuthService:
             HTTPException: If user not found
         """
         try:
-            # Get user from Supabase
-            response = (
+            # Get user from Supabase Auth to get email confirmation status
+            auth_response = self.admin_client.auth.admin.get_user_by_id(user_id)
+
+            if not auth_response.user:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+            auth_user = auth_response.user
+
+            # Try to get additional profile data from users table
+            profile_response = (
                 self.admin_client.table("users").select("*").eq("auth_user_id", user_id).execute()
             )
 
-            if not response.data:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-            user_data = response.data[0]
-            return UserProfile(
-                id=user_data["id"],
-                email=user_data["email"],
-                full_name=user_data.get("full_name"),
-                role=user_data.get("role", "member"),
-                is_active=user_data.get("is_active", True),
-                avatar_url=user_data.get("avatar_url"),
-                email_confirmed=user_data.get("email_confirmed", False),
-            )
+            # Use profile data if available, otherwise use auth data
+            if profile_response.data:
+                user_data = profile_response.data[0]
+                return UserProfile(
+                    id=user_data["id"],
+                    email=auth_user.email or user_data["email"],
+                    full_name=user_data.get("full_name") or auth_user.user_metadata.get("full_name"),
+                    role=user_data.get("role", "member"),
+                    is_active=user_data.get("is_active", True),
+                    avatar_url=user_data.get("avatar_url"),
+                    email_confirmed=auth_user.email_confirmed_at is not None,
+                )
+            else:
+                # Fall back to auth user data only
+                return UserProfile(
+                    id=auth_user.id,
+                    email=auth_user.email or "",
+                    full_name=auth_user.user_metadata.get("full_name"),
+                    role="member",
+                    is_active=True,
+                    email_confirmed=auth_user.email_confirmed_at is not None,
+                )
 
         except HTTPException:
             raise
@@ -342,8 +385,11 @@ class AuthService:
         """
         try:
             user_client = get_user_client()
-            # Supabase password reset request
-            user_client.auth.reset_password_email(email)
+            # Supabase password reset request with redirect URL
+            user_client.auth.reset_password_email(
+                email,
+                {"redirect_to": "http://localhost:3000/auth/callback"}
+            )
 
             # Always return True to prevent email enumeration
             return True
@@ -357,7 +403,7 @@ class AuthService:
         Confirm password reset with token
 
         Args:
-            token: Password reset token
+            token: Password reset token (Supabase access token from password reset email)
             new_password: New password
 
         Returns:
@@ -368,7 +414,12 @@ class AuthService:
         """
         try:
             user_client = get_user_client()
-            # Verify token and update password
+
+            # Set the access token from the password reset link
+            # This creates an authenticated session for the password update
+            user_client.auth.set_session(token, token)
+
+            # Update password using the authenticated session
             response = user_client.auth.update_user({"password": new_password})
 
             if not response.user:

@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { ReactNode } from 'react';
+import { AuthenticatedRedirect } from './AuthenticatedRedirect';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -12,6 +15,7 @@ interface AuthLayoutProps {
  * Layout wrapper for authentication pages.
  * Provides consistent structure with centered card and branding.
  * Hex-inspired clean auth layout with subtle gradients.
+ * Redirects authenticated users to dashboard.
  */
 export function AuthLayout({
   children,
@@ -21,6 +25,7 @@ export function AuthLayout({
 }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <AuthenticatedRedirect />
       {showBackButton && (
         <div className="absolute top-4 left-4">
           <Link

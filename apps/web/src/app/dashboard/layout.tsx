@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
+import { UserMenu } from '@/components/layout/UserMenu';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -25,7 +26,7 @@ export default function DashboardLayout({
 
             <div className="flex items-center space-x-4">
               {/* Search */}
-              <div className="relative">
+              <div className="relative hidden md:block">
                 <input
                   type="search"
                   placeholder="Search..."
@@ -49,7 +50,7 @@ export default function DashboardLayout({
               </div>
 
               {/* Notifications */}
-              <button className="p-2 text-gray-400 hover:text-gray-500">
+              <button className="p-2 text-gray-400 hover:text-gray-500 rounded-lg hover:bg-gray-100">
                 <svg
                   className="h-5 w-5"
                   fill="none"
@@ -60,39 +61,13 @@ export default function DashboardLayout({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M15 17h5l-5 5v-5z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1.5-3s-1.12-1.5-2.5-1.5S4 7 4 8.5 4.5 11 6 12s2.12 1.5 2.5 1.5z"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                   />
                 </svg>
               </button>
 
               {/* User menu */}
-              <div className="relative">
-                <button className="flex items-center space-x-3 text-sm text-gray-700 hover:text-gray-900">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-medium">U</span>
-                  </div>
-                  <span>User Name</span>
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-              </div>
+              <UserMenu />
             </div>
           </div>
         </div>

@@ -16,7 +16,7 @@ def get_admin_client() -> Client:
     """
     return create_client(
         settings.supabase_url,
-        settings.supabase_service_role_key
+        settings.supabase_service_role_key,
     )
 
 
@@ -29,5 +29,5 @@ def get_user_client() -> Client:
     """
     return create_client(
         settings.supabase_url,
-        settings.supabase_anon_key
+        settings.supabase_anon_key,
     )
