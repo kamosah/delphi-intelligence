@@ -44,6 +44,7 @@ class UserProfile(BaseModel):
     role: str = "member"
     is_active: bool = True
     avatar_url: str | None = None
+    email_confirmed: bool = False
 
 
 class PasswordReset(BaseModel):
@@ -57,3 +58,24 @@ class PasswordChange(BaseModel):
 
     current_password: str
     new_password: str
+
+
+class PasswordResetConfirm(BaseModel):
+    """Schema for password reset confirmation"""
+
+    token: str
+    new_password: str
+
+
+class ResendVerification(BaseModel):
+    """Schema for resending verification email"""
+
+    email: EmailStr
+
+
+class AuthError(BaseModel):
+    """Schema for authentication error responses"""
+
+    error_code: str
+    message: str
+    email: str | None = None

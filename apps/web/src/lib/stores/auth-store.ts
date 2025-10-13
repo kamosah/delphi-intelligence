@@ -8,6 +8,7 @@ export interface User {
   role: string;
   is_active: boolean;
   avatar_url?: string;
+  email_confirmed: boolean;
 }
 
 interface AuthState {

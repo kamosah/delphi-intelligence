@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, status
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
     PasswordReset,
+    PasswordResetConfirm,
+    ResendVerification,
     TokenRefresh,
     TokenResponse,
     UserLogin,
@@ -101,9 +103,9 @@ async def forgot_password(password_reset: PasswordReset) -> dict[str, str]:
     Returns:
         Success message
     """
-    # This would typically trigger an email with a reset link
-    # For now, return a simple success message
-    return {"message": "Password reset email sent if account exists"}
+    await auth_service.request_password_reset(password_reset.email)
+    # Always return success to prevent email enumeration
+    return {"message": "If an account with that email exists, a password reset link has been sent"}
 
 
 @router.get("/verify-email/{token}")
@@ -122,16 +124,34 @@ async def verify_email(token: str) -> dict[str, str]:
     return {"message": "Email verified successfully"}
 
 
-@router.post("/resend-verification")
-async def resend_verification(current_user: dict = Depends(get_current_user)) -> dict[str, str]:
+@router.post("/resend-verification", status_code=status.HTTP_200_OK)
+async def resend_verification(data: ResendVerification) -> dict[str, str]:
     """
     Resend email verification
 
+    Note: This endpoint does not require authentication to allow unverified users
+    to resend their verification email.
+
     Args:
-        current_user: Current authenticated user
+        data: Email address to resend verification to
 
     Returns:
         Success message
     """
-    # This would resend the verification email
-    return {"message": "Verification email sent"}
+    await auth_service.resend_verification_email(data.email)
+    return {"message": "Verification email sent. Please check your inbox."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(data: PasswordResetConfirm) -> dict[str, str]:
+    """
+    Confirm password reset with token and new password
+
+    Args:
+        data: Password reset confirmation data
+
+    Returns:
+        Success message
+    """
+    await auth_service.confirm_password_reset(data.token, data.new_password)
+    return {"message": "Password has been reset successfully. You can now log in with your new password."}

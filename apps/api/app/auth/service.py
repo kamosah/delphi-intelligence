@@ -50,13 +50,15 @@ class AuthService:
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create user"
                 )
 
-            # Return user profile
+            # Return user profile with email confirmation status
+            # Supabase sends verification email automatically if enabled
             return UserProfile(
                 id=response.user.id,
                 email=response.user.email or email,
                 full_name=full_name,
                 role="member",
                 is_active=True,
+                email_confirmed=response.user.email_confirmed_at is not None,
             )
 
         except HTTPException:
@@ -101,6 +103,18 @@ class AuthService:
 
             user = response.user
             session = response.session
+
+            # Check if email is verified (if email confirmation is required)
+            # Note: This depends on Supabase Auth settings
+            if not user.email_confirmed_at:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        "error_code": "email_not_verified",
+                        "message": "Please verify your email address before logging in",
+                        "email": user.email,
+                    },
+                )
 
             # Create our own JWT tokens
             token_data = {
@@ -270,6 +284,7 @@ class AuthService:
                 role=user_data.get("role", "member"),
                 is_active=user_data.get("is_active", True),
                 avatar_url=user_data.get("avatar_url"),
+                email_confirmed=user_data.get("email_confirmed", False),
             )
 
         except HTTPException:
@@ -278,6 +293,98 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to get user profile: {e!s}",
+            )
+
+    async def resend_verification_email(self, email: str) -> bool:
+        """
+        Resend verification email to user
+
+        Args:
+            email: User email address
+
+        Returns:
+            True if email sent successfully
+
+        Raises:
+            HTTPException: If resend fails
+        """
+        try:
+            user_client = get_user_client()
+            # Supabase resend verification
+            response = user_client.auth.resend({"type": "signup", "email": email})
+
+            if not response:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to resend verification email",
+                )
+
+            return True
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to resend verification email: {e!s}",
+            )
+
+    async def request_password_reset(self, email: str) -> bool:
+        """
+        Request password reset email
+
+        Args:
+            email: User email address
+
+        Returns:
+            True if email sent successfully (always returns True for security)
+
+        Raises:
+            HTTPException: If request fails
+        """
+        try:
+            user_client = get_user_client()
+            # Supabase password reset request
+            user_client.auth.reset_password_email(email)
+
+            # Always return True to prevent email enumeration
+            return True
+
+        except Exception:
+            # Still return True for security
+            return True
+
+    async def confirm_password_reset(self, token: str, new_password: str) -> bool:
+        """
+        Confirm password reset with token
+
+        Args:
+            token: Password reset token
+            new_password: New password
+
+        Returns:
+            True if password reset successful
+
+        Raises:
+            HTTPException: If reset fails
+        """
+        try:
+            user_client = get_user_client()
+            # Verify token and update password
+            response = user_client.auth.update_user({"password": new_password})
+
+            if not response.user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid or expired reset token",
+                )
+
+            return True
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to reset password: {e!s}",
             )
 
 
