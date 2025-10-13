@@ -3,6 +3,8 @@
 import { useAuth } from '@/hooks/useAuth';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Alert,
+  AlertDescription,
   Button,
   Form,
   FormControl,
@@ -35,6 +37,9 @@ export function LoginForm() {
   const router = useRouter();
   const { signIn, isLoading } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -45,47 +50,99 @@ export function LoginForm() {
     },
   });
 
+  const handleResendVerification = async () => {
+    const email = form.getValues('email');
+    if (!email) return;
+
+    setIsResending(true);
+    setResendSuccess(false);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      if (response.ok) {
+        setResendSuccess(true);
+      }
+    } catch (error) {
+      // Fail silently - user can try again
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setErrorMessage('');
+      setIsEmailNotVerified(false);
+      setResendSuccess(false);
+
       await signIn({
         email: data.email,
         password: data.password,
       });
       router.push('/dashboard');
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to sign in';
-      setErrorMessage(message);
+    } catch (error: any) {
+      // Check if error is email not verified (403)
+      if (
+        error?.response?.status === 403 ||
+        error?.message?.includes('email') ||
+        error?.message?.includes('verify')
+      ) {
+        setIsEmailNotVerified(true);
+        setErrorMessage('Please verify your email address before logging in.');
+      } else {
+        const message =
+          error instanceof Error ? error.message : 'Failed to sign in';
+        setErrorMessage(message);
+      }
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {errorMessage && (
-          <div className="rounded-lg bg-red-50 p-4 border border-red-200">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
+        {errorMessage && !isEmailNotVerified && (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+
+        {isEmailNotVerified && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              <div className="space-y-3">
+                <p>{errorMessage}</p>
+                {resendSuccess && (
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    ✓ Verification email sent! Please check your inbox.
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResendVerification}
+                  disabled={isResending || resendSuccess}
+                  className="w-full"
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                  {isResending
+                    ? 'Sending...'
+                    : resendSuccess
+                      ? 'Email sent'
+                      : 'Resend verification email'}
+                </Button>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-red-800">
-                  {errorMessage}
-                </p>
-              </div>
-            </div>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         <FormField
@@ -150,7 +207,7 @@ export function LoginForm() {
           />
 
           <Link
-            href="/reset-password"
+            href="/forgot-password"
             className="text-sm font-medium text-blue-600 hover:text-blue-500"
           >
             Forgot password?

@@ -12,6 +12,7 @@ import {
   FormMessage,
   Input,
 } from '@olympus/ui';
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -48,45 +49,6 @@ const signupSchema = z
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 /**
- * Calculate password strength based on various criteria.
- * Returns strength level (0-4) and label.
- */
-function calculatePasswordStrength(password: string): {
-  strength: number;
-  label: string;
-  color: string;
-} {
-  if (!password) return { strength: 0, label: '', color: '' };
-
-  let strength = 0;
-
-  // Length
-  if (password.length >= 8) strength++;
-  if (password.length >= 12) strength++;
-
-  // Character types
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-  if (/\d/.test(password)) strength++;
-  if (/[^a-zA-Z\d]/.test(password)) strength++;
-
-  // Normalize to 0-4 scale
-  const normalizedStrength = Math.min(Math.floor((strength / 5) * 4), 4);
-
-  const strengthMap: Record<number, { label: string; color: string }> = {
-    0: { label: '', color: '' },
-    1: { label: 'Weak', color: 'bg-red-500' },
-    2: { label: 'Fair', color: 'bg-orange-500' },
-    3: { label: 'Good', color: 'bg-yellow-500' },
-    4: { label: 'Strong', color: 'bg-green-500' },
-  };
-
-  return {
-    strength: normalizedStrength,
-    ...strengthMap[normalizedStrength],
-  };
-}
-
-/**
  * Signup form component with Shadcn Form and Zod validation.
  * Includes password strength indicator and terms acceptance.
  * Uses design system Form components for consistency.
@@ -95,11 +57,6 @@ export function SignupForm() {
   const router = useRouter();
   const { signUp, isLoading } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [passwordStrength, setPasswordStrength] = useState({
-    strength: 0,
-    label: '',
-    color: '',
-  });
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -130,11 +87,6 @@ export function SignupForm() {
   };
 
   const watchPassword = form.watch('password');
-
-  // Update password strength when password changes
-  React.useEffect(() => {
-    setPasswordStrength(calculatePasswordStrength(watchPassword));
-  }, [watchPassword]);
 
   return (
     <Form {...form}>
@@ -216,30 +168,7 @@ export function SignupForm() {
                   {...field}
                 />
               </FormControl>
-              {watchPassword && passwordStrength.strength > 0 && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-600">
-                      Password strength:
-                    </span>
-                    <span className="text-xs font-medium text-gray-700">
-                      {passwordStrength.label}
-                    </span>
-                  </div>
-                  <div className="flex gap-1 h-1">
-                    {[1, 2, 3, 4].map((level) => (
-                      <div
-                        key={level}
-                        className={`flex-1 rounded-full transition-colors ${
-                          level <= passwordStrength.strength
-                            ? passwordStrength.color
-                            : 'bg-gray-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <PasswordStrengthIndicator password={watchPassword} />
               <FormMessage />
             </FormItem>
           )}
