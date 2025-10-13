@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -224,7 +225,10 @@ export default function DashboardLayout({
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-8">
+          <EmailVerificationBanner />
+          {children}
+        </main>
       </div>
     </div>
   );

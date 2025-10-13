@@ -15,7 +15,7 @@ import {
   Input,
 } from '@olympus/ui';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -35,11 +35,15 @@ type LoginFormValues = z.infer<typeof loginSchema>;
  */
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, isLoading } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+
+  // Get redirect URL from query params (set by middleware)
+  const redirectTo = searchParams?.get('redirect') || '/dashboard';
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -89,7 +93,8 @@ export function LoginForm() {
         email: data.email,
         password: data.password,
       });
-      router.push('/dashboard');
+      // Redirect to original destination or dashboard
+      router.push(redirectTo);
     } catch (error: any) {
       // Check if error is email not verified (403)
       if (
