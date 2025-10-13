@@ -1,20 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: olympus
-      POSTGRES_PASSWORD: olympus_dev
-      POSTGRES_DB: olympus_mvp
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U olympus -d olympus_mvp"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     ports:
@@ -36,15 +20,11 @@ services:
     volumes:
       - ./apps/api:/app
     environment:
-      - DATABASE_URL=postgresql://olympus:olympus_dev@postgres:5432/olympus_mvp
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  postgres_data:
   redis_data:

@@ -21,9 +21,11 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Create member role enum
-    member_role_enum = postgresql.ENUM("owner", "editor", "viewer", name="memberrole")
-    member_role_enum.create(op.get_bind())
+    # Create member role enum first
+    op.execute("CREATE TYPE memberrole AS ENUM ('owner', 'editor', 'viewer')")
+    
+    # Now reference the enum in table definitions
+    member_role_enum = postgresql.ENUM("owner", "editor", "viewer", name="memberrole", create_type=False)
 
     # Create users table
     op.create_table('users',
@@ -148,5 +150,4 @@ def downgrade() -> None:
     op.drop_table('users')
 
     # Drop custom enum
-    member_role_enum = postgresql.ENUM('owner', 'editor', 'viewer', name='memberrole')
-    member_role_enum.drop(op.get_bind())
+    op.execute("DROP TYPE IF EXISTS memberrole")

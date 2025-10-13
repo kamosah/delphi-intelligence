@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from app.auth.jwt_handler import jwt_manager
 from app.auth.redis_client import redis_manager
 from app.auth.schemas import TokenResponse, UserProfile
-from supabase_client import get_admin_client, get_user_client
+from app.supabase_client import get_admin_client, get_user_client
 
 
 class AuthService:
@@ -35,12 +35,13 @@ class AuthService:
             HTTPException: If registration fails
         """
         try:
-            # Create user with Supabase Auth
-            response = self.admin_client.auth.admin_create_user(
+            # Create user with Supabase Auth using sign_up
+            user_client = get_user_client()
+            response = user_client.auth.sign_up(
                 {
                     "email": email,
                     "password": password,
-                    "user_metadata": {"full_name": full_name} if full_name else {},
+                    "options": {"data": {"full_name": full_name} if full_name else {}},
                 }
             )
 
@@ -58,8 +59,11 @@ class AuthService:
                 is_active=True,
             )
 
+        except HTTPException:
+            raise
         except Exception as e:
-            if "already registered" in str(e).lower():
+            error_msg = str(e).lower()
+            if "already registered" in error_msg or "already exists" in error_msg:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="User with this email already exists",

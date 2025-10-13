@@ -1,153 +1,180 @@
-# Automated Alembic Migration Setup
+# Automated Alembic Migration Setup with Supabase
 
 ## Overview
 
-This setup provides automated migration generation for both local PostgreSQL and Supabase databases, eliminating the need to write migration scripts manually.
+This setup provides automated migration generation for Supabase PostgreSQL databases with full authentication integration, eliminating the need to write migration scripts manually.
 
 ## Features
 
-✅ **Automatic migration detection** - Alembic compares your SQLAlchemy models with the database schema  
-✅ **Environment-specific configuration** - Switch between local PostgreSQL and Supabase easily  
-✅ **Enhanced change detection** - Detects column types, defaults, and schema changes  
-✅ **Convenient scripts** - Simple commands for common migration operations  
-✅ **Connection testing** - Verify database connectivity before running migrations
+✅ **Automatic migration detection** - Alembic compares your SQLAlchemy models with the database schema
+✅ **Supabase integration** - Works with Supabase's connection pooler (Session Mode)
+✅ **Enhanced change detection** - Detects column types, defaults, and schema changes
+✅ **Docker-based development** - Run migrations via Docker containers
+✅ **PgBouncer compatibility** - Configured to work with Supabase's pooler
+
+## Architecture
+
+**Database**: Supabase PostgreSQL (Session Mode pooler)
+**Authentication**: Supabase Auth + Custom JWT tokens
+**Session Management**: Redis for token storage
+**Container Platform**: Docker Compose (Redis + FastAPI)
 
 ## Configuration
 
 ### Environment Variables
 
-Add to your `.env` file:
+Your `.env` file should contain:
 
 ```bash
-# Option 1: Use local PostgreSQL (recommended for development)
-USE_LOCAL_DB=true
-LOCAL_DATABASE_URL=postgresql+asyncpg://olympus:olympus_dev@localhost:5432/olympus_mvp
+# Supabase Configuration
+SUPABASE_URL=https://[PROJECT-REF].supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 
-# Option 2: Use Supabase database directly
-USE_LOCAL_DB=false
-SUPABASE_DB_URL=postgresql+asyncpg://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+# Database - Supabase Session Mode Pooler
+# Use Session Mode pooler (port 5432) which supports all database features
+SUPABASE_DB_URL=postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-X-us-east-X.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-X-us-east-X.pooler.supabase.com:5432/postgres
 
-# Option 3: Override with custom database URL
-DATABASE_URL=postgresql+asyncpg://user:password@host:port/database
+# Redis (for session management)
+REDIS_URL=redis://redis:6379/0
+
+# JWT Configuration
+JWT_SECRET=your-jwt-secret-here
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_HOURS=24
 ```
 
-### Database URL Priority
+### Connection Configuration
 
-The system chooses the database URL in this order:
+**Important**: The configuration uses Supabase's **Session Mode pooler**:
 
-1. `DATABASE_URL` (if set)
-2. Local database (if `USE_LOCAL_DB=true`)
-3. Supabase database (if `SUPABASE_DB_URL` is set)
-4. Fallback to local for development
+- **Port 5432** (Session Mode) - Supports all database features including migrations
+- **Host**: `aws-X-us-east-X.pooler.supabase.com` (region-specific)
+- **User**: `postgres.[PROJECT-REF]` (note the dot notation)
+
+**Why Session Mode?**
+
+- Transaction Mode (port 6543): Limited, doesn't support prepared statements well
+- Session Mode (port 5432): Full feature support, better for migrations
+- Direct Mode (port 5432 on `db.*`): Not publicly accessible
+
+### Alembic Configuration for Supabase
+
+The `alembic/env.py` is configured to disable prepared statement caching for PgBouncer compatibility:
+
+```python
+connect_args = {"statement_cache_size": 0}
+```
+
+This prevents `DuplicatePreparedStatementError` when running migrations through Supabase's pooler.
 
 ## Usage
 
-### Quick Commands (Shell Script)
+### Docker-Based Commands (Recommended)
+
+All migrations should be run through Docker to ensure consistent environment:
 
 ```bash
-# Check database connection
-./scripts/migrate.sh check
-
-# Initialize database with first migration
-./scripts/migrate.sh init
-
-# Generate migration from model changes
-./scripts/migrate.sh generate "Add user profile fields"
-
-# Apply pending migrations
-./scripts/migrate.sh apply
-
 # Check migration status
-./scripts/migrate.sh status
+docker-compose exec -T api alembic current
+
+# Show migration history
+docker-compose exec -T api alembic history
+
+# Generate new migration from model changes
+docker-compose exec -T api alembic revision --autogenerate -m "Add new feature"
+
+# Apply all pending migrations
+docker-compose exec -T api alembic upgrade head
 
 # Rollback one migration
-./scripts/migrate.sh rollback
+docker-compose exec -T api alembic downgrade -1
 
-# Use specific database
-./scripts/migrate.sh --supabase generate "Add new table"
-./scripts/migrate.sh --local apply
+# Stamp database with specific version (useful for existing databases)
+docker-compose exec -T api alembic stamp head
 ```
 
-### Python Scripts
+### Local Development (Outside Docker)
+
+If you need to run migrations locally:
 
 ```bash
-# Test database connection
-poetry run python scripts/db_util.py
+cd apps/api
 
-# Generate migration
-poetry run python scripts/migrate.py generate "Add new table"
+# Check migration status
+poetry run alembic current
 
-# Apply migrations
-poetry run python scripts/migrate.py apply
-
-# Check status
-poetry run python scripts/migrate.py status
-
-# Use specific database
-poetry run python scripts/migrate.py --local generate "Local changes"
-poetry run python scripts/migrate.py --supabase apply
-```
-
-### Direct Alembic Commands
-
-```bash
 # Generate migration
 poetry run alembic revision --autogenerate -m "Your migration message"
 
 # Apply migrations
 poetry run alembic upgrade head
 
-# Check current version
-poetry run alembic current
-
 # Show migration history
 poetry run alembic history --verbose
 ```
 
+### Important Notes
+
+- **Always use Docker commands** for consistency across team members
+- **Review generated migrations** before applying them
+- **Test migrations** on development database first
+- **Backup production data** before running migrations on Supabase
+
 ## Workflow Examples
 
-### 1. Local Development Workflow
+### 1. Adding a New Model or Field
 
 ```bash
-# 1. Make changes to your SQLAlchemy models
-# 2. Test the connection
-./scripts/migrate.sh check
+# 1. Update your SQLAlchemy models (e.g., app/models/user.py)
+#    Add a new field or create a new model class
 
-# 3. Generate migration
-./scripts/migrate.sh --local generate "Add user avatar field"
+# 2. Start Docker services if not running
+docker-compose up -d
 
-# 4. Review the generated migration file
-# 5. Apply the migration
-./scripts/migrate.sh --local apply
+# 3. Generate migration from model changes
+docker-compose exec -T api alembic revision --autogenerate -m "Add avatar_url to User model"
 
-# 6. Verify the changes
-./scripts/migrate.sh --local status
+# 4. Review the generated migration file in alembic/versions/
+#    Check that it correctly represents your changes
+
+# 5. Apply the migration to Supabase
+docker-compose exec -T api alembic upgrade head
+
+# 6. Verify the migration was applied
+docker-compose exec -T api alembic current
 ```
 
-### 2. Production Deployment Workflow
+### 2. Initial Setup for Existing Supabase Database
+
+If you have an existing Supabase database with tables already created:
 
 ```bash
-# 1. Switch to Supabase database
-# 2. Apply migrations to production
-./scripts/migrate.sh --supabase apply
+# 1. Ensure your models match the database schema
 
-# 3. Verify deployment
-./scripts/migrate.sh --supabase status
+# 2. Stamp the database with the current migration version
+docker-compose exec -T api alembic stamp head
+
+# 3. Verify the stamp
+docker-compose exec -T api alembic current
+# Should show: [revision_id] (head)
 ```
 
-### 3. Testing Model Changes
+### 3. Rolling Back a Migration
 
 ```bash
-# 1. Make a test change to a model
-# 2. Generate migration to see what Alembic detects
-./scripts/migrate.sh generate "Test change detection"
+# 1. Check current migration status
+docker-compose exec -T api alembic current
 
-# 3. Review the generated migration
-# 4. If it looks good, apply it
-./scripts/migrate.sh apply
+# 2. Rollback one migration
+docker-compose exec -T api alembic downgrade -1
 
-# 5. If not, rollback and adjust your models
-./scripts/migrate.sh rollback
+# 3. Or rollback to a specific version
+docker-compose exec -T api alembic downgrade [revision_id]
+
+# 4. Verify the rollback
+docker-compose exec -T api alembic current
 ```
 
 ## How Automatic Detection Works
@@ -191,94 +218,243 @@ def upgrade() -> None:
     # ### end Alembic commands ###
 ```
 
-## Database Setup
+## Supabase Setup
 
-### Local PostgreSQL
+### Getting Your Connection String
 
-```bash
-# Start PostgreSQL with Docker
-docker run --name olympus-postgres \
-  -e POSTGRES_DB=olympus_mvp \
-  -e POSTGRES_USER=olympus \
-  -e POSTGRES_PASSWORD=olympus_dev \
-  -p 5432:5432 \
-  -d postgres:15
+1. Go to Supabase Dashboard → **Settings** → **Database**
+2. Under **Connection String**, select **Session Mode** (not Transaction)
+3. Copy the connection string that uses **port 5432** on the pooler hostname
 
-# Set environment
-USE_LOCAL_DB=true
-```
+**Format**: `postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-X-us-east-X.pooler.supabase.com:5432/postgres`
 
-### Supabase Setup
+### Converting to AsyncPG Format
 
-1. Get your database URL from Supabase Dashboard → Settings → Database
-2. Look for "Connection string" under "Connection parameters"
-3. Use the format: `postgresql+asyncpg://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
+Add `postgresql+asyncpg://` prefix for SQLAlchemy:
 
 ```bash
-# Set environment
-USE_LOCAL_DB=false
-SUPABASE_DB_URL=postgresql+asyncpg://postgres:your_password@db.your_project.supabase.co:5432/postgres
+DATABASE_URL=postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-X-us-east-X.pooler.supabase.com:5432/postgres
 ```
+
+### Enabling IPv6 (Optional, for Direct Connection Attempts)
+
+If you need to enable IPv6 in Docker for potential direct connections:
+
+1. Edit `~/.docker/daemon.json`:
+
+```json
+{
+  "experimental": true,
+  "ipv6": true,
+  "fixed-cidr-v6": "2001:db8:1::/64",
+  "ip6tables": true
+}
+```
+
+2. Restart Docker Desktop:
+
+```bash
+osascript -e 'quit app "Docker"'
+open -a Docker
+```
+
+**Note**: Session Mode pooler works without IPv6, so this is usually not necessary.
 
 ## Troubleshooting
 
 ### Connection Issues
 
-```bash
-# Test database connection
-poetry run python scripts/db_util.py
+#### Error: "DuplicatePreparedStatementError"
 
-# Common issues:
-# 1. Wrong credentials
-# 2. Database not running
-# 3. Network/firewall issues
-# 4. Wrong URL format
+This occurs when using Transaction Mode pooler or missing statement cache configuration:
+
+**Solution**: Ensure you're using Session Mode pooler (port 5432) and `alembic/env.py` has:
+
+```python
+connect_args = {"statement_cache_size": 0}
+```
+
+#### Error: "Cannot assign requested address" or "Connection refused"
+
+This happens when trying to use Direct Connection (port 5432 on `db.*` hostname):
+
+**Solution**: Use Session Mode pooler instead:
+
+```bash
+# Wrong (Direct Connection):
+postgresql+asyncpg://postgres:pass@db.project.supabase.co:5432/postgres
+
+# Correct (Session Mode Pooler):
+postgresql+asyncpg://postgres.project:pass@aws-X-region.pooler.supabase.com:5432/postgres
+```
+
+#### Error: "relation already exists"
+
+This means tables exist but Alembic doesn't know about them:
+
+**Solution**: Stamp the database with the current version:
+
+```bash
+docker-compose exec -T api alembic stamp head
 ```
 
 ### Migration Issues
 
-```bash
-# Check current migration state
-./scripts/migrate.sh status
+#### Checking Migration State
 
-# If migrations are out of sync:
-./scripts/migrate.sh rollback    # Go back one step
-# Or reset completely (dangerous!):
-./scripts/migrate.sh reset
+```bash
+# Check current migration version
+docker-compose exec -T api alembic current
+
+# Show migration history
+docker-compose exec -T api alembic history
+
+# Check if there are pending migrations
+docker-compose exec -T api alembic heads
+```
+
+#### Out of Sync Migrations
+
+If local and database migrations are out of sync:
+
+```bash
+# Option 1: Rollback to a known good state
+docker-compose exec -T api alembic downgrade [revision_id]
+
+# Option 2: Stamp to match current state (if tables are correct)
+docker-compose exec -T api alembic stamp head
 ```
 
 ### Model Detection Issues
 
 If Alembic doesn't detect your model changes:
 
-1. **Check imports** - Make sure models are imported in `app/models/__init__.py`
+1. **Check imports** - Ensure models are imported in `app/models/__init__.py`
 2. **Check metadata** - Verify `target_metadata = Base.metadata` in `alembic/env.py`
 3. **Check table names** - Ensure `__tablename__` is set correctly
-4. **Run with verbose** - Use `poetry run alembic revision --autogenerate -m "test" --verbose`
+4. **Restart API container** - Let changes reload: `docker-compose restart api`
+5. **Run with verbose** - Check detection: `docker-compose exec -T api alembic revision --autogenerate -m "test" --verbose`
+
+### Authentication Issues
+
+#### Error: "Email not confirmed"
+
+Supabase requires email confirmation by default:
+
+**Development Solution**: In Supabase Dashboard → **Authentication** → **Providers** → **Email**:
+
+- Disable "Confirm email" for development
+- Or manually confirm users in Authentication → Users tab
+
+**Production**: Keep email confirmation enabled and use proper email templates
 
 ## Best Practices
 
 1. **Always review generated migrations** before applying them
-2. **Test migrations on local/staging** before production
-3. **Use descriptive migration messages**
-4. **Backup before running migrations** on production
-5. **Don't edit generated migration files** unless necessary
-6. **Use environment-specific configurations** appropriately
+2. **Use Docker commands** for consistency across the team
+3. **Test migrations on development Supabase** before production
+4. **Use descriptive migration messages** that explain the change
+5. **Backup Supabase** before major schema changes (use Supabase dashboard backups)
+6. **Commit migrations to git** as part of your feature branch
+7. **Run migrations as part of deployment** pipeline
 
-## Files Created
+## Key Files
 
-- `app/config.py` - Enhanced with database URL selection logic
-- `alembic/env.py` - Updated for better change detection
-- `scripts/db_util.py` - Database connection testing utility
-- `scripts/migrate.py` - Python migration workflow script
-- `scripts/migrate.sh` - Shell script for convenient operations
-- `.env.example` - Updated with new configuration options
+### Configuration Files
 
-## Next Steps
+- `app/config.py` - Supabase connection settings with PgBouncer support
+- `app/supabase_client.py` - Supabase client initialization for auth
+- `alembic/env.py` - Alembic configuration with `statement_cache_size=0`
+- `alembic/versions/` - Migration files (committed to git)
+- `.env` - Environment variables (NOT committed to git)
+- `.env.example` - Example environment configuration
 
-1. **Set up your database** (local PostgreSQL or configure Supabase URL)
-2. **Test the connection** with `./scripts/migrate.sh check`
-3. **Initialize migrations** with `./scripts/migrate.sh init`
-4. **Start using automated migrations** for your model changes!
+### Docker Files
 
-The days of manually writing migration scripts are over! 🎉
+- `docker-compose.yml` - Redis and API services
+- `Dockerfile` - API container configuration
+
+## Testing the Setup
+
+### 1. Verify Docker Services
+
+```bash
+# Check services are running
+docker-compose ps
+
+# Should show:
+# - athena_api_1 (Up)
+# - athena_redis_1 (Up, healthy)
+```
+
+### 2. Test Database Connection
+
+```bash
+# Check migration status (tests Supabase connection)
+docker-compose exec -T api alembic current
+
+# Should show current migration version without errors
+```
+
+### 3. Test Authentication
+
+```bash
+# Test signup
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"TestPass123","full_name":"Test User"}'
+
+# Should return user profile with ID
+```
+
+### 4. Test Health Endpoint
+
+```bash
+# Check API is running
+curl http://localhost:8000/health/
+
+# Should return {"status":"healthy",...}
+```
+
+## Production Deployment
+
+### Pre-Deployment Checklist
+
+- [ ] All migrations tested on development Supabase
+- [ ] Migration files committed to git
+- [ ] Production `.env` configured with correct Supabase credentials
+- [ ] Backup created in Supabase dashboard
+- [ ] Email confirmation settings configured in Supabase Auth
+- [ ] Redis connection configured for production
+
+### Deployment Steps
+
+```bash
+# 1. Deploy code with Docker
+docker-compose up -d
+
+# 2. Run migrations
+docker-compose exec -T api alembic upgrade head
+
+# 3. Verify migration
+docker-compose exec -T api alembic current
+
+# 4. Test API health
+curl https://your-api-domain.com/health/
+
+# 5. Monitor logs
+docker-compose logs -f api
+```
+
+## Summary
+
+This setup provides:
+
+- ✅ **Supabase integration** with Session Mode pooler
+- ✅ **Docker-based development** for consistency
+- ✅ **Automatic migration generation** from model changes
+- ✅ **PgBouncer compatibility** for Supabase's pooler
+- ✅ **Redis session management** for JWT tokens
+- ✅ **Production-ready authentication** with Supabase Auth
+
+Your migration workflow is now fully automated and integrated with Supabase! 🎉
