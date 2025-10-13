@@ -93,13 +93,14 @@ class AuthService:
                 detail=f"Registration failed: {e!s}",
             )
 
-    async def login_user(self, email: str, password: str) -> TokenResponse:
+    async def login_user(self, email: str, password: str, remember_me: bool = False) -> TokenResponse:
         """
         Login user and return JWT tokens
 
         Args:
             email: User email
             password: User password
+            remember_me: If True, extends session to 30 days; otherwise 24 hours
 
         Returns:
             Token response with access and refresh tokens
@@ -142,11 +143,19 @@ class AuthService:
                 "supabase_token": session.access_token,  # Store Supabase token for API calls
             }
 
+            # Set token expiration based on remember_me
+            # Remember me: 30 days, otherwise: 24 hours
+            token_expiry_hours = 720 if remember_me else 24  # 30 days = 720 hours
+
             access_token = jwt_manager.create_access_token(token_data)
             refresh_token = jwt_manager.create_refresh_token({"sub": user.id})
 
-            # Store refresh token in Redis
-            await redis_manager.store_refresh_token(user.id, refresh_token)
+            # Store refresh token in Redis with appropriate TTL
+            # Remember me: 30 days, otherwise: 24 hours
+            import datetime
+            ttl_seconds = token_expiry_hours * 3600
+            ttl_timedelta = datetime.timedelta(seconds=ttl_seconds)
+            await redis_manager.store_refresh_token(user.id, refresh_token, ttl_timedelta)
 
             # Store session data
             import datetime
@@ -163,7 +172,7 @@ class AuthService:
             return TokenResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
-                expires_in=3600 * 24,  # 24 hours
+                expires_in=ttl_seconds,  # 24 hours or 30 days based on remember_me
             )
 
         except HTTPException:
@@ -397,6 +406,76 @@ class AuthService:
         except Exception:
             # Still return True for security
             return True
+
+    async def exchange_supabase_token(self, supabase_access_token: str) -> TokenResponse:
+        """
+        Exchange Supabase access token for our backend tokens
+        Used for auto-login after email verification
+
+        Args:
+            supabase_access_token: Access token from Supabase verification callback
+
+        Returns:
+            Our backend JWT tokens
+
+        Raises:
+            HTTPException: If token exchange fails
+        """
+        try:
+            # Use Supabase token to get user info
+            user_client = get_user_client()
+            # Set the Supabase session
+            user_client.auth.set_session(supabase_access_token, supabase_access_token)
+
+            # Get the authenticated user
+            user_response = user_client.auth.get_user()
+            if not user_response.user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired Supabase token"
+                )
+
+            user = user_response.user
+
+            # Create our own JWT tokens
+            token_data = {
+                "sub": user.id,
+                "email": user.email,
+                "role": user.user_metadata.get("role", "member"),
+                "supabase_token": supabase_access_token,
+            }
+
+            access_token = jwt_manager.create_access_token(token_data)
+            refresh_token = jwt_manager.create_refresh_token({"sub": user.id})
+
+            # Store refresh token in Redis with 24 hour TTL (default)
+            import datetime
+            await redis_manager.store_refresh_token(user.id, refresh_token)
+
+            # Store session data
+            await redis_manager.set_session(
+                f"session:{user.id}",
+                {
+                    "user_id": user.id,
+                    "email": user.email,
+                    "login_time": datetime.datetime.now(datetime.UTC).isoformat(),
+                    "supabase_session": supabase_access_token,
+                },
+            )
+
+            return TokenResponse(
+                access_token=access_token,
+                refresh_token=refresh_token,
+                expires_in=3600 * 24,  # 24 hours
+            )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Token exchange failed: {e!s}",
+            )
 
     async def confirm_password_reset(self, token: str, new_password: str) -> bool:
         """

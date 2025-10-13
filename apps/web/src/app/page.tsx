@@ -1,23 +1,32 @@
+'use client';
+
 import { AuthenticatedRedirect } from '@/components/auth/AuthenticatedRedirect';
 import { FeaturesGrid } from '@/components/landing/FeaturesGrid';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { Footer } from '@/components/layout/Footer';
 import { LandingNav } from '@/components/layout/LandingNav';
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Olympus MVP | AI-Native Operations Platform',
-  description:
-    'Collaborate with AI agents in real-time to analyze data, create documents, and accelerate strategic work. Built for teams who demand more.',
-};
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 /**
  * Landing page composed of feature components.
  * Follows component composition best practices.
  * Redirects authenticated users to dashboard.
+ * Also handles Supabase auth callbacks (email verification)
  */
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if this is a Supabase auth callback (has hash parameters)
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      // Redirect to callback page with hash intact
+      router.push(`/auth/callback${hash}`);
+    }
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <AuthenticatedRedirect />

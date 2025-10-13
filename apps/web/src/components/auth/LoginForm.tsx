@@ -92,6 +92,7 @@ export function LoginForm() {
       await signIn({
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe,
       });
       // Redirect to original destination or dashboard
       router.push(redirectTo);

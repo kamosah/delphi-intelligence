@@ -5,6 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
@@ -65,7 +66,11 @@ export const authApi = {
   login: async (credentials: LoginRequest): Promise<TokenResponse> => {
     return apiRequest<TokenResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.password,
+        remember_me: credentials.rememberMe || false,
+      }),
     });
   },
 
