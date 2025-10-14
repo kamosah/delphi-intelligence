@@ -2,6 +2,7 @@
 Test script for document upload endpoint.
 This script creates a test user, space, and tests document upload.
 """
+
 import asyncio
 import io
 import httpx
@@ -15,9 +16,7 @@ async def setup_test_data():
     """Create test user and space."""
     async with async_session_maker() as db:
         # Check if test user exists
-        result = await db.execute(
-            select(User).where(User.email == "test@example.com")
-        )
+        result = await db.execute(select(User).where(User.email == "test@example.com"))
         user = result.scalar_one_or_none()
 
         if not user:
@@ -27,7 +26,7 @@ async def setup_test_data():
                 email="test@example.com",
                 username="testuser",
                 full_name="Test User",
-                hashed_password="$2b$12$test",  # Not a real hash, just for testing
+                hashed_password="$2b$12$test",  # noqa: S106 - Test fixture password
                 is_email_verified=True,
             )
             db.add(user)
@@ -38,9 +37,7 @@ async def setup_test_data():
             print(f"✓ Test user exists: {user.email}")
 
         # Check if test space exists
-        result = await db.execute(
-            select(Space).where(Space.name == "Test Space")
-        )
+        result = await db.execute(select(Space).where(Space.name == "Test Space"))
         space = result.scalar_one_or_none()
 
         if not space:
@@ -61,7 +58,7 @@ async def setup_test_data():
         return user, space
 
 
-async def test_document_upload(user_id: str, space_id: str):
+async def test_document_upload(user_id: str, space_id: str):  # noqa: ARG001
     """Test document upload endpoint."""
 
     # First, login to get a JWT token
@@ -72,7 +69,7 @@ async def test_document_upload(user_id: str, space_id: str):
             json={
                 "email": "test@example.com",
                 "password": "test123",  # This won't work with our fake hash
-            }
+            },
         )
 
         if response.status_code != 200:
@@ -83,7 +80,7 @@ async def test_document_upload(user_id: str, space_id: str):
 
         data = response.json()
         token = data["access_token"]
-        print(f"✓ Login successful, got token")
+        print("✓ Login successful, got token")
 
         # Now test document upload
         print("\n2. Uploading test document...")
@@ -92,27 +89,17 @@ async def test_document_upload(user_id: str, space_id: str):
         test_file_content = b"This is a test document for upload testing."
         test_file = io.BytesIO(test_file_content)
 
-        files = {
-            "file": ("test_document.txt", test_file, "text/plain")
-        }
-        data = {
-            "space_id": str(space_id),
-            "name": "Test Document Upload"
-        }
-        headers = {
-            "Authorization": f"Bearer {token}"
-        }
+        files = {"file": ("test_document.txt", test_file, "text/plain")}
+        data = {"space_id": str(space_id), "name": "Test Document Upload"}
+        headers = {"Authorization": f"Bearer {token}"}
 
         response = await client.post(
-            "http://localhost:8000/api/documents",
-            files=files,
-            data=data,
-            headers=headers
+            "http://localhost:8000/api/documents", files=files, data=data, headers=headers
         )
 
         if response.status_code == 200:
             result = response.json()
-            print(f"✓ Document uploaded successfully!")
+            print("✓ Document uploaded successfully!")
             print(f"  Document ID: {result['id']}")
             print(f"  Name: {result['name']}")
             print(f"  Size: {result['size_bytes']} bytes")

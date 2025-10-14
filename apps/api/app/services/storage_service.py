@@ -1,8 +1,6 @@
 """Storage service for managing file uploads to Supabase Storage."""
 
 import mimetypes
-from pathlib import Path
-from typing import BinaryIO
 from uuid import UUID
 
 from fastapi import HTTPException, UploadFile
@@ -56,7 +54,7 @@ class StorageService:
             content = await file.read()
 
             # Upload to Supabase Storage
-            response = self.client.storage.from_(self.BUCKET_NAME).upload(
+            self.client.storage.from_(self.BUCKET_NAME).upload(
                 path=file_path,
                 file=content,
                 file_options={

@@ -338,16 +338,15 @@ class AuthService:
                     avatar_url=user_data.get("avatar_url"),
                     email_confirmed=auth_user.email_confirmed_at is not None,
                 )
-            else:
-                # Fall back to auth user data only
-                return UserProfile(
-                    id=auth_user.id,
-                    email=auth_user.email or "",
-                    full_name=auth_user.user_metadata.get("full_name"),
-                    role="member",
-                    is_active=True,
-                    email_confirmed=auth_user.email_confirmed_at is not None,
-                )
+            # Fall back to auth user data only
+            return UserProfile(
+                id=auth_user.id,
+                email=auth_user.email or "",
+                full_name=auth_user.user_metadata.get("full_name"),
+                role="member",
+                is_active=True,
+                email_confirmed=auth_user.email_confirmed_at is not None,
+            )
 
         except HTTPException:
             raise

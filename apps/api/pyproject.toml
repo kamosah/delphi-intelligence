@@ -113,6 +113,7 @@ ignore = [
     "S110",    # try-except-pass (sometimes acceptable for optional features)
     "EM102",   # F-string in exception (acceptable for dynamic messages)
     "RUF012",  # Mutable class attributes (sometimes intentional for middleware)
+    "RUF010",  # Use explicit conversion flag (str(e) is clear and widely used)
 ]
 
 # Allow autofix for all enabled rules

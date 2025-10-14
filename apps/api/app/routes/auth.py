@@ -2,7 +2,7 @@
 Authentication routes for user registration, login, and token management
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
