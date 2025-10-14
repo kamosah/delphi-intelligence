@@ -14,8 +14,8 @@ interface FinalCTAProps {
  * Hex-inspired clean design with emphasis on action.
  */
 export function FinalCTA({
-  title = 'Ready to accelerate your operations with AI?',
-  subtitle = 'Join teams already using Olympus to transform strategic work with intelligent automation.',
+  title = 'Ready to transform your document workflows?',
+  subtitle = 'Join analysts and researchers using Olympus to extract insights from documents 10x faster.',
   ctaText = 'Get started free',
   ctaLink = '/signup',
 }: FinalCTAProps) {

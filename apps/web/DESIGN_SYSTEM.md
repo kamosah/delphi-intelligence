@@ -18,22 +18,12 @@ The design system uses CSS variables for theming, supporting both light and dark
 
 ```css
 /* Light Mode */
---background: 0 0% 100%
---foreground: 222.2 84% 4.9%
---primary: 222.2 47.4% 11.2%
---secondary: 210 40% 96.1%
---muted: 210 40% 96.1%
---accent: 210 40% 96.1%
---destructive: 0 84.2% 60.2%
-
-/* Dark Mode */
---background: 222.2 84% 4.9%
---foreground: 210 40% 98%
---primary: 210 40% 98%
---secondary: 217.2 32.6% 17.5%
---muted: 217.2 32.6% 17.5%
---accent: 217.2 32.6% 17.5%
---destructive: 0 62.8% 30.6%
+--background: 0 0% 100% --foreground: 222.2 84% 4.9% --primary: 222.2 47.4%
+  11.2% --secondary: 210 40% 96.1% --muted: 210 40% 96.1% --accent: 210 40%
+  96.1% --destructive: 0 84.2% 60.2% /* Dark Mode */ --background: 222.2 84%
+  4.9% --foreground: 210 40% 98% --primary: 210 40% 98% --secondary: 217.2 32.6%
+  17.5% --muted: 217.2 32.6% 17.5% --accent: 217.2 32.6% 17.5% --destructive: 0
+  62.8% 30.6%;
 ```
 
 ### AI-Specific Colors
@@ -80,16 +70,18 @@ Installed components (12+):
 Located: `src/components/layout/Header.tsx`
 
 Features:
+
 - Dark mode toggle (managed by Zustand)
 - User avatar with dropdown menu
 - Responsive mobile menu trigger
 - Sticky positioning with backdrop blur
 
 Usage:
+
 ```tsx
 import { Header } from '@/components/layout';
 
-<Header />
+<Header />;
 ```
 
 #### Sidebar
@@ -97,16 +89,18 @@ import { Header } from '@/components/layout';
 Located: `src/components/layout/Sidebar.tsx`
 
 Features:
+
 - Animated expand/collapse (Framer Motion)
 - Tooltips when collapsed
 - Navigation items with icons
 - Responsive design
 
 Usage:
+
 ```tsx
 import { Sidebar } from '@/components/layout';
 
-<Sidebar />
+<Sidebar />;
 ```
 
 ### Query Components (Assistant-UI)
@@ -116,19 +110,21 @@ import { Sidebar } from '@/components/layout';
 Located: `src/components/query/CustomMessage.tsx`
 
 Features:
+
 - Role-based rendering (user/assistant)
 - Avatar display
 - Markdown content support
 - Timestamp display
 
 Usage:
+
 ```tsx
 import { CustomMessage } from '@/components/query';
 
 // Used within Assistant-UI Thread
 <Thread>
   <CustomMessage />
-</Thread>
+</Thread>;
 ```
 
 #### ToolCallBadge
@@ -136,18 +132,20 @@ import { CustomMessage } from '@/components/query';
 Located: `src/components/query/ToolCallBadge.tsx`
 
 Features:
+
 - Status indicators (running/complete/error)
 - Tool-specific icons
 - Animated states
 - List component for multiple tools
 
 Usage:
+
 ```tsx
 import { ToolCallBadge, ToolCallList } from '@/components/query';
 
 <ToolCallBadge tool="search_documents" status="running" />
 
-<ToolCallList 
+<ToolCallList
   tools={[
     { name: 'search', status: 'complete' },
     { name: 'generate', status: 'running' }
@@ -162,17 +160,20 @@ import { ToolCallBadge, ToolCallList } from '@/components/query';
 Located: `src/store/ui-store.ts`
 
 Manages:
+
 - Dark mode state (persisted)
 - Sidebar open/closed state
 - Automatic dark mode class application
 
 Usage:
+
 ```tsx
 import { useUIStore } from '@/store/ui-store';
 
 function Component() {
-  const { isDarkMode, toggleDarkMode, sidebarOpen, toggleSidebar } = useUIStore();
-  
+  const { isDarkMode, toggleDarkMode, sidebarOpen, toggleSidebar } =
+    useUIStore();
+
   return (
     <button onClick={toggleDarkMode}>
       {isDarkMode ? 'Light' : 'Dark'} Mode
@@ -186,11 +187,13 @@ function Component() {
 ### Framer Motion
 
 Used for:
+
 - Sidebar expand/collapse
 - Page transitions
 - Component entrances
 
 Example:
+
 ```tsx
 import { motion } from 'framer-motion';
 
@@ -200,7 +203,7 @@ import { motion } from 'framer-motion';
   transition={{ duration: 0.3 }}
 >
   Content
-</motion.div>
+</motion.div>;
 ```
 
 ### CSS Animations
@@ -325,10 +328,11 @@ apps/web/
 ### Styling
 
 1. **Use `cn()` utility**: For conditional classes
+
    ```tsx
    import { cn } from '@/lib/utils';
-   
-   <div className={cn('base-class', condition && 'conditional-class')} />
+
+   <div className={cn('base-class', condition && 'conditional-class')} />;
    ```
 
 2. **Follow color system**: Use CSS variables, not hardcoded values
@@ -360,6 +364,7 @@ npx shadcn@latest add <component-name>
 ## Testing
 
 Components should be tested for:
+
 - Proper rendering in light/dark mode
 - Accessibility (keyboard navigation, screen readers)
 - Responsive behavior

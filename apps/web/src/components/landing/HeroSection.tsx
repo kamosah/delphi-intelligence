@@ -14,8 +14,8 @@ interface HeroSectionProps {
  * Inspired by Hex's clean, data-focused aesthetic.
  */
 export function HeroSection({
-  title = 'The AI-Native Operations Platform',
-  subtitle = 'Collaborate with AI agents in real-time to analyze data, create documents, and accelerate strategic work. Built for teams who demand more.',
+  title = 'Meet Athena, Your AI Analyst',
+  subtitle = 'The first artificial data analyst built for document intelligence. Athena analyzes documents, extracts insights, and answers questions—so you can focus on strategic work that matters.',
   ctaText = 'Get Started Free',
   ctaLink = '/signup',
 }: HeroSectionProps) {
@@ -24,9 +24,9 @@ export function HeroSection({
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto">
           <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            The AI-Native{' '}
+            Meet Athena, Your{' '}
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Operations Platform
+              AI Analyst
             </span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 leading-relaxed">

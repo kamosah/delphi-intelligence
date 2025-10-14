@@ -6,6 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Olympus MVP (codenamed "Athena") is an AI-powered document intelligence platform built as a Turborepo monorepo with a Next.js 14 frontend and FastAPI backend. The project follows a modern tech stack with hybrid authentication, GraphQL data layer, and a sophisticated state management architecture.
 
+## Project Context
+
+**Inspiration**: This project is a recreation of [Athena Intelligence](https://www.athenaintel.com/), an enterprise AI platform that provides:
+
+- **Olympus Platform**: AI-native infrastructure with integrated analysis tools
+- **Athena AI Agent**: An autonomous "artificial data analyst" that functions like a remote hire
+
+**Our Goal**: Build an MVP with ~70% feature parity, focusing on:
+
+1. Document intelligence (upload, processing, extraction)
+2. AI-powered natural language queries with citations
+3. Collaborative workspaces (Spaces)
+4. Enterprise-ready security and audit trails
+
+**Key References**:
+
+- [Product Requirements Document](./docs/PRODUCT_REQUIREMENTS.md)
+- [Feature Alignment](./docs/FEATURE_ALIGNMENT.md)
+- [Decisions to Make](./docs/DECISIONS_TO_MAKE.md)
+
+When working on features, refer to these documents to ensure alignment with Athena Intelligence's capabilities.
+
 ## Architecture
 
 ### Monorepo Structure
@@ -1053,6 +1075,12 @@ Husky + lint-staged automatically:
 2. Restart: `docker-compose restart api`
 
 ## Important Notes
+
+### Git Commit Guidelines
+
+- **Never add "Co-Authored-By: Claude" to commit messages**
+- Keep commit messages professional and project-focused
+- Follow conventional commit format when applicable (e.g., `feat:`, `fix:`, `docs:`)
 
 ### Database Migrations
 

@@ -18,7 +18,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        description="FastAPI backend for Olympus MVP - Document AI and Analysis Platform",
+        description="FastAPI backend for Olympus MVP - AI-native document intelligence platform inspired by Athena Intelligence. Provides document processing, AI-powered querying, and workspace collaboration.",
         version="0.1.0",
         docs_url="/docs" if settings.debug else None,
         redoc_url="/redoc" if settings.debug else None,

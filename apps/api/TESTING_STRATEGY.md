@@ -13,6 +13,7 @@ This document outlines our testing approach for the Supabase client, distinguish
 ## Unit Tests (Mock Everything External)
 
 ### What to Mock
+
 - `supabase.create_client()` - Returns a mock client
 - `os.getenv()` - Controls environment variables in tests
 - `dotenv.load_dotenv()` - Avoids file system dependency
@@ -20,6 +21,7 @@ This document outlines our testing approach for the Supabase client, distinguish
 - Database operations (`.table().select()`, etc.) - Not testing Supabase, testing our code
 
 ### What to Test
+
 - ✅ Configuration loading and validation
 - ✅ Environment variable handling (missing vars raise errors)
 - ✅ Client creation logic (correct keys used)
@@ -35,13 +37,13 @@ This document outlines our testing approach for the Supabase client, distinguish
 def test_get_admin_client_uses_service_role(mock_create_client):
     mock_client = Mock()
     mock_create_client.return_value = mock_client
-    
+
     config = SupabaseConfig()
     admin_client = config.get_admin_client()
-    
+
     # Verify correct key was used
     mock_create_client.assert_called_once_with(
-        'https://test.supabase.co', 
+        'https://test.supabase.co',
         'test_service_role_key'
     )
 ```
@@ -49,6 +51,7 @@ def test_get_admin_client_uses_service_role(mock_create_client):
 ## Integration Tests (Real Database)
 
 ### What NOT to Mock
+
 - Supabase client creation
 - Database connections
 - Actual database operations
@@ -56,6 +59,7 @@ def test_get_admin_client_uses_service_role(mock_create_client):
 - Authentication flows
 
 ### What to Test
+
 - ✅ Database connectivity
 - ✅ Schema exists (tables are accessible)
 - ✅ RLS policies work correctly
@@ -69,7 +73,7 @@ def test_get_admin_client_uses_service_role(mock_create_client):
 # Example integration test structure
 def test_admin_client_bypasses_rls():
     admin_client = get_admin_client()
-    
+
     # Should succeed even with RLS policies
     response = admin_client.table('users').select('*').execute()
     assert hasattr(response, 'data')
@@ -78,6 +82,7 @@ def test_admin_client_bypasses_rls():
 ## Test Environment Setup
 
 ### Local Development
+
 ```bash
 # Run unit tests (fast, no external dependencies)
 poetry run pytest test_supabase_client_unit.py -v
@@ -90,6 +95,7 @@ poetry run pytest -v
 ```
 
 ### Environment Variables for Integration Tests
+
 ```bash
 # Required for integration tests
 SUPABASE_URL=https://your-project.supabase.co
@@ -100,11 +106,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ## Test Data Strategy
 
 ### For Unit Tests
+
 - Use completely fake data
 - Mock all external responses
 - Focus on edge cases and error conditions
 
 ### For Integration Tests
+
 - Use a test Supabase project (not production)
 - Create and cleanup test data within tests
 - Test against real schema and RLS policies
@@ -113,12 +121,14 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ## CI/CD Considerations
 
 ### Unit Tests
+
 - Run on every commit
 - Fast execution (no external deps)
 - Should never fail due to external services
 - Part of pre-commit hooks
 
 ### Integration Tests
+
 - Run on pull requests
 - Require test environment setup
 - May be flaky due to network/service issues
@@ -140,12 +150,14 @@ apps/api/
 ## What We're NOT Testing
 
 ### In Unit Tests
+
 - ❌ Actual Supabase client library behavior
 - ❌ Network connectivity
 - ❌ Database operations
 - ❌ RLS policy logic (that's Supabase's responsibility)
 
 ### In Integration Tests
+
 - ❌ Supabase client library internals
 - ❌ Supabase server implementation
 - ❌ Network infrastructure
@@ -154,6 +166,7 @@ apps/api/
 ## Example Test Scenarios
 
 ### Unit Test Examples
+
 ```python
 def test_missing_env_vars_raises_error():
     # Mock missing environment variables
@@ -169,6 +182,7 @@ def test_convenience_functions_delegate():
 ```
 
 ### Integration Test Examples
+
 ```python
 def test_admin_can_create_user():
     # Create user with admin client

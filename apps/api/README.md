@@ -1,6 +1,18 @@
 # Olympus MVP API
 
-FastAPI backend for Olympus MVP - Document AI and Analysis Platform with GraphQL support.
+FastAPI backend for Olympus MVP - an AI-native document intelligence platform inspired by [Athena Intelligence](https://www.athenaintel.com/).
+
+**Core Features**:
+
+- Document processing pipeline (PDF, DOCX extraction)
+- AI-powered querying with LangChain + LangGraph
+- Natural language interface with source citations
+- GraphQL API for frontend integration
+- Workspace management and collaboration
+
+**Tech Stack**: FastAPI, Strawberry GraphQL, SQLAlchemy, LangChain, Supabase PostgreSQL
+
+See [../../docs/PRODUCT_REQUIREMENTS.md](../../docs/PRODUCT_REQUIREMENTS.md) for full feature specifications.
 
 ## Features
 

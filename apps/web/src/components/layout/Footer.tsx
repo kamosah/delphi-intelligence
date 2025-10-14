@@ -12,7 +12,7 @@ interface FooterProps {
  */
 export function Footer({
   companyName = 'Olympus',
-  description = 'AI-powered document intelligence for modern teams.',
+  description = 'An AI-native platform for document intelligence. Inspired by Athena Intelligence.',
 }: FooterProps) {
   const currentYear = new Date().getFullYear();
 

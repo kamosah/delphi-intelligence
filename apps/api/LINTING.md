@@ -186,6 +186,7 @@ Use exceptions sparingly and document why they're necessary.
 ## Benefits Over Previous Setup
 
 ### Before (Multiple Tools)
+
 - flake8 for linting
 - isort for imports
 - pyupgrade for syntax modernization
@@ -193,6 +194,7 @@ Use exceptions sparingly and document why they're necessary.
 - Slower execution
 
 ### After (Ruff Only)
+
 - Single tool for everything
 - One configuration section
 - 10-100x faster

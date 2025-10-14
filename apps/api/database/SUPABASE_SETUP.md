@@ -16,7 +16,7 @@ This guide walks through setting up Supabase for the Olympus MVP project.
 3. **Click "New Project"**
 4. **Fill in project details:**
    - **Organization**: Select or create one
-   - **Project Name**: `olympus-mvp` 
+   - **Project Name**: `olympus-mvp`
    - **Database Password**: Generate a strong password and **save it**
    - **Region**: Choose closest to your users
 5. **Click "Create new project"**
@@ -33,12 +33,14 @@ This guide walks through setting up Supabase for the Olympus MVP project.
 ### 3. Configure Environment Variables
 
 1. **Copy the example files:**
+
    ```bash
    cp apps/api/.env.example apps/api/.env
    cp apps/web/.env.example apps/web/.env.local
    ```
 
 2. **Update `apps/api/.env`:**
+
    ```bash
    SUPABASE_URL=https://your-project-ref.supabase.co
    SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12cWphaHJpZGF5dHhmc3V6bGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3ODUxMTQsImV4cCI6MjA3NTM2MTExNH0.I_yb04J9uV8N5HrmuW94kowF79Hfjnos61z8gYHoUUg
@@ -72,12 +74,14 @@ This guide walks through setting up Supabase for the Olympus MVP project.
 ### 6. Test the Setup
 
 1. **Install Python dependencies:**
+
    ```bash
    cd apps/api
    pip install -r requirements.txt
    ```
 
 2. **Run the test script:**
+
    ```bash
    cd apps/api
    python test_supabase.py
@@ -97,6 +101,7 @@ This guide walks through setting up Supabase for the Olympus MVP project.
 The schema includes these main tables:
 
 ### Core Tables
+
 - **`users`** - User profiles (extends Supabase auth.users)
 - **`spaces`** - Workspaces/organizations
 - **`space_members`** - User membership in spaces
@@ -105,6 +110,7 @@ The schema includes these main tables:
 - **`query_documents`** - Links between queries and relevant documents
 
 ### Key Features
+
 - **Full-text search** on document content
 - **Row Level Security (RLS)** for data protection
 - **Automatic timestamps** with triggers
@@ -113,13 +119,16 @@ The schema includes these main tables:
 ## 🔒 Security Features
 
 ### Row Level Security (RLS)
+
 All tables have RLS policies that ensure:
+
 - Users can only access data from spaces they belong to
 - Space owners have admin privileges
 - Public spaces are visible to all users
 - Service role bypasses RLS for backend operations
 
 ### Authentication
+
 - Email/password authentication enabled
 - JWT tokens for session management
 - User profiles automatically created on signup
@@ -127,11 +136,13 @@ All tables have RLS policies that ensure:
 ## 🔧 Development Workflow
 
 ### Local Development
+
 1. **Use Docker PostgreSQL** for development database
 2. **Use Supabase** for auth and real-time features
 3. **Test with both** local and remote databases
 
 ### Environment Setup
+
 ```bash
 # Development (local)
 SUPABASE_URL=https://your-project.supabase.co
@@ -145,6 +156,7 @@ SUPABASE_URL=https://your-project.supabase.co
 ## 🚀 Next Steps
 
 After completing Supabase setup:
+
 1. **Initialize FastAPI app** with Supabase integration
 2. **Set up Next.js app** with Supabase auth
 3. **Implement document upload** to Supabase Storage
@@ -155,22 +167,27 @@ After completing Supabase setup:
 ### Common Issues
 
 **"Missing required Supabase environment variables"**
+
 - Check your `.env` files have all required variables
 - Ensure no extra spaces or quotes around values
 
 **"Connection refused"**
+
 - Verify your Supabase project is active
 - Check the project URL is correct
 
 **"Row Level Security policy violation"**
+
 - Ensure you're using the correct client (admin vs user)
 - Check RLS policies are applied correctly
 
 **"Schema not found"**
+
 - Run the schema.sql file in Supabase SQL editor
 - Check for any SQL errors in the dashboard
 
 ### Getting Help
+
 - Check [Supabase documentation](https://supabase.com/docs)
 - Review the test_supabase.py output for specific errors
 - Verify environment variables are loaded correctly

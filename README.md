@@ -1,6 +1,22 @@
-# Athena - AI-Powered Document Intelligence Platform
+# Olympus MVP - AI-Powered Document Intelligence Platform
 
-A modern full-stack AI platform built with Turborepo, featuring Next.js frontend, FastAPI backend, Supabase database, and automated migration system.
+An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/), featuring an AI-native platform (Olympus) with autonomous AI analysts (Athena) for document intelligence and analysis.
+
+**Inspired by**: [Athena Intelligence](https://www.athenaintel.com/) - The first artificial data analyst
+**Tech Stack**: Next.js 14, FastAPI, Supabase PostgreSQL, LangChain + LangGraph
+
+## About This Project
+
+Olympus MVP is an educational recreation of Athena Intelligence's core capabilities:
+
+- **Document Intelligence**: Upload and analyze documents with AI extraction
+- **Natural Language Queries**: Ask questions across your document collection
+- **Olympus Platform**: AI-native workspace with audit trails and collaboration
+- **Athena AI Agent**: Autonomous analysis with source citations
+
+> **Disclaimer**: This project is not affiliated with, endorsed by, or connected to Athena Intelligence. It is created for educational and demonstrative purposes.
+
+📚 **Documentation**: See [Product Requirements](./docs/PRODUCT_REQUIREMENTS.md) for detailed feature specifications.
 
 ## 🏗️ Project Structure
 
@@ -20,6 +36,25 @@ athena/
 ├── .gitignore              # Git ignore rules
 └── README.md               # This file
 ```
+
+## Inspiration & Goals
+
+This project recreates the core features of [Athena Intelligence](https://www.athenaintel.com/):
+
+- **Olympus Platform**: AI-native infrastructure with integrated tools
+- **Athena AI Agent**: Autonomous document analysis and insights
+- **Use Cases**: Research analysis, legal document review, financial data extraction
+
+**MVP Goals** (see [docs/PRODUCT_REQUIREMENTS.md](./docs/PRODUCT_REQUIREMENTS.md)):
+
+- ✅ Authentication system (complete)
+- 🚧 Document upload and processing (in progress)
+- ⏳ AI-powered querying with LangChain/LangGraph
+- ⏳ Natural language interface with source citations
+- ⏳ Workspace collaboration features
+
+**Current Status**: ~30% feature parity with Athena Intelligence
+**Target**: 70% of core features for MVP launch
 
 ## 🏗️ Current Application Setup
 
