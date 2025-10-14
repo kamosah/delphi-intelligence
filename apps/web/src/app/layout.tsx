@@ -7,33 +7,46 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Olympus MVP',
-    default: 'Olympus MVP',
+    template: '%s | Olympus',
+    default: 'Olympus - AI-Powered Document Intelligence Platform',
   },
-  description: 'AI-powered document intelligence and query platform',
-  keywords: ['AI', 'document', 'intelligence', 'query', 'platform'],
+  description:
+    'The first artificial data analyst for document intelligence. Olympus analyzes documents, extracts insights, and answers questions using AI-powered natural language queries.',
+  keywords: [
+    'AI analyst',
+    'document intelligence',
+    'document analysis',
+    'natural language queries',
+    'AI-powered search',
+    'document processing',
+    'RAG',
+    'LangChain',
+    'enterprise AI',
+  ],
   authors: [{ name: 'Olympus Team' }],
   creator: 'Olympus Team',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://olympus.dev',
-    title: 'Olympus MVP',
-    description: 'AI-powered document intelligence and query platform',
-    siteName: 'Olympus MVP',
+    title: 'Olympus - AI-Powered Document Intelligence Platform',
+    description:
+      'The first artificial data analyst for document intelligence. Analyze documents, extract insights, and ask questions in natural language.',
+    siteName: 'Olympus',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Olympus MVP',
+        alt: 'Olympus - AI Document Intelligence',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Olympus MVP',
-    description: 'AI-powered document intelligence and query platform',
+    title: 'Olympus - AI-Powered Document Intelligence',
+    description:
+      'The first artificial data analyst for document intelligence. Analyze documents, extract insights, and ask questions in natural language.',
     images: ['/og-image.png'],
   },
   robots: {
