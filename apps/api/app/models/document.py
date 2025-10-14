@@ -1,9 +1,10 @@
-"""Document model for storing collaborative documents."""
+"""Document model for storing uploaded documents for AI analysis."""
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, LargeBinary, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -13,31 +14,60 @@ if TYPE_CHECKING:
     from .user import User
 
 
+class DocumentStatus(str, Enum):
+    """Document processing status."""
+
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+
+
 class Document(Base):
-    """Document model for storing collaborative documents with Yjs support."""
+    """Document model for storing uploaded files with AI processing metadata."""
 
     __tablename__ = "documents"
 
-    # Document fields
+    # Document identification
     space_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False, index=True
     )
 
-    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    content: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # File information
+    file_type: Mapped[str] = mapped_column(String(100), nullable=False)  # MIME type
 
-    yjs_state: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    file_path: Mapped[str] = mapped_column(String(500), nullable=False)  # Supabase Storage path
 
-    created_by: Mapped[UUID] = mapped_column(
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    # Processing status
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=DocumentStatus.UPLOADED, index=True
+    )
+
+    # Extracted content
+    extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Document metadata (page_count, word_count, etc.)
+    doc_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # Processing timestamps
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Creator
+    uploaded_by: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
     # Relationships
     space: Mapped["Space"] = relationship("Space", back_populates="documents")
 
-    creator: Mapped["User"] = relationship("User", back_populates="created_documents")
+    uploader: Mapped["User"] = relationship("User", back_populates="uploaded_documents")
 
     def __repr__(self) -> str:
         """String representation of the document."""
-        return f"<Document(id={self.id}, title={self.title})>"
+        return f"<Document(id={self.id}, name={self.name}, status={self.status})>"

@@ -1,7 +1,7 @@
 """Database models for the Olympus API."""
 
 from .base import Base
-from .document import Document
+from .document import Document, DocumentStatus
 from .query import Query
 from .space import MemberRole, Space, SpaceMember
 from .user import User
@@ -15,5 +15,6 @@ __all__ = [
     "SpaceMember",
     "MemberRole",
     "Document",
+    "DocumentStatus",
     "Query",
 ]

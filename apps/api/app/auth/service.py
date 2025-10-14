@@ -39,7 +39,9 @@ class AuthService:
             try:
                 users_response = self.admin_client.auth.admin.list_users()
                 # Handle both list and object response types
-                users_list = users_response if isinstance(users_response, list) else users_response.data
+                users_list = (
+                    users_response if isinstance(users_response, list) else users_response.data
+                )
                 if users_list:
                     for user in users_list:
                         if user.email == email:
@@ -93,7 +95,9 @@ class AuthService:
                 detail=f"Registration failed: {e!s}",
             )
 
-    async def login_user(self, email: str, password: str, remember_me: bool = False) -> TokenResponse:
+    async def login_user(
+        self, email: str, password: str, remember_me: bool = False
+    ) -> TokenResponse:
         """
         Login user and return JWT tokens
 
@@ -153,12 +157,14 @@ class AuthService:
             # Store refresh token in Redis with appropriate TTL
             # Remember me: 30 days, otherwise: 24 hours
             import datetime
+
             ttl_seconds = token_expiry_hours * 3600
             ttl_timedelta = datetime.timedelta(seconds=ttl_seconds)
             await redis_manager.store_refresh_token(user.id, refresh_token, ttl_timedelta)
 
             # Store session data
             import datetime
+
             await redis_manager.set_session(
                 f"session:{user.id}",
                 {
@@ -180,10 +186,13 @@ class AuthService:
         except Exception as e:
             # Check if it's an authentication error from Supabase
             error_msg = str(e).lower()
-            if "invalid login credentials" in error_msg or "invalid" in error_msg or "credentials" in error_msg:
+            if (
+                "invalid login credentials" in error_msg
+                or "invalid" in error_msg
+                or "credentials" in error_msg
+            ):
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid email or password"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
                 )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Login failed: {e!s}"
@@ -322,7 +331,8 @@ class AuthService:
                 return UserProfile(
                     id=user_data["id"],
                     email=auth_user.email or user_data["email"],
-                    full_name=user_data.get("full_name") or auth_user.user_metadata.get("full_name"),
+                    full_name=user_data.get("full_name")
+                    or auth_user.user_metadata.get("full_name"),
                     role=user_data.get("role", "member"),
                     is_active=user_data.get("is_active", True),
                     avatar_url=user_data.get("avatar_url"),
@@ -396,8 +406,7 @@ class AuthService:
             user_client = get_user_client()
             # Supabase password reset request with redirect URL
             user_client.auth.reset_password_email(
-                email,
-                {"redirect_to": "http://localhost:3000/auth/callback"}
+                email, {"redirect_to": "http://localhost:3000/auth/callback"}
             )
 
             # Always return True to prevent email enumeration
@@ -432,7 +441,7 @@ class AuthService:
             if not user_response.user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired Supabase token"
+                    detail="Invalid or expired Supabase token",
                 )
 
             user = user_response.user
@@ -450,6 +459,7 @@ class AuthService:
 
             # Store refresh token in Redis with 24 hour TTL (default)
             import datetime
+
             await redis_manager.store_refresh_token(user.id, refresh_token)
 
             # Store session data

@@ -51,9 +51,7 @@ async def login(credentials: UserLogin) -> TokenResponse:
         JWT tokens for authentication
     """
     return await auth_service.login_user(
-        email=credentials.email,
-        password=credentials.password,
-        remember_me=credentials.remember_me
+        email=credentials.email, password=credentials.password, remember_me=credentials.remember_me
     )
 
 
@@ -161,7 +159,9 @@ async def reset_password(data: PasswordResetConfirm) -> dict[str, str]:
         Success message
     """
     await auth_service.confirm_password_reset(data.token, data.new_password)
-    return {"message": "Password has been reset successfully. You can now log in with your new password."}
+    return {
+        "message": "Password has been reset successfully. You can now log in with your new password."
+    }
 
 
 @router.post("/exchange-token", response_model=TokenResponse)
@@ -179,7 +179,6 @@ async def exchange_token(data: dict[str, str]) -> TokenResponse:
     supabase_token = data.get("supabase_token")
     if not supabase_token:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="supabase_token is required"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="supabase_token is required"
         )
     return await auth_service.exchange_supabase_token(supabase_token)

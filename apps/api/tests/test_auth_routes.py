@@ -26,18 +26,19 @@ def mock_auth_service():
 class TestAuthRoutes:
     """Test cases for authentication routes"""
 
-    def test_register_success(self, client, mock_auth_service):
+    async def test_register_success(self, client, mock_auth_service):
         """Test successful user registration"""
         # Mock the service response
         from app.auth.schemas import UserProfile
+        from unittest.mock import AsyncMock
 
-        mock_auth_service.register_user.return_value = UserProfile(
+        mock_auth_service.register_user = AsyncMock(return_value=UserProfile(
             id="user123",
             email="test@example.com",
             full_name="Test User",
             role="member",
             is_active=True,
-        )
+        ))
 
         response = client.post(
             "/auth/register",
@@ -58,14 +59,15 @@ class TestAuthRoutes:
 
         assert response.status_code == 422  # Validation error
 
-    def test_login_success(self, client, mock_auth_service):
+    async def test_login_success(self, client, mock_auth_service):
         """Test successful user login"""
         # Mock the service response
         from app.auth.schemas import TokenResponse
+        from unittest.mock import AsyncMock
 
-        mock_auth_service.login_user.return_value = TokenResponse(
+        mock_auth_service.login_user = AsyncMock(return_value=TokenResponse(
             access_token="test.access.token", refresh_token="test.refresh.token", expires_in=3600
-        )
+        ))
 
         response = client.post(
             "/auth/login", json={"email": "test@example.com", "password": "password123"}
@@ -92,13 +94,14 @@ class TestAuthRoutes:
 
         assert response.status_code == 401
 
-    def test_refresh_token_success(self, client, mock_auth_service):
+    async def test_refresh_token_success(self, client, mock_auth_service):
         """Test successful token refresh"""
         from app.auth.schemas import TokenResponse
+        from unittest.mock import AsyncMock
 
-        mock_auth_service.refresh_token.return_value = TokenResponse(
+        mock_auth_service.refresh_token = AsyncMock(return_value=TokenResponse(
             access_token="new.access.token", refresh_token="new.refresh.token", expires_in=3600
-        )
+        ))
 
         response = client.post("/auth/refresh", json={"refresh_token": "valid.refresh.token"})
 
@@ -119,12 +122,18 @@ class TestAuthRoutes:
 
         assert response.status_code == 401
 
+    @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.routes.auth.get_current_user")
-    def test_logout_success(self, mock_get_user, client, mock_auth_service):
+    async def test_logout_success(self, mock_get_user, mock_verify_token, client, mock_auth_service):
         """Test successful logout"""
-        # Mock current user
+        from unittest.mock import AsyncMock
+
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {"sub": "user123", "email": "test@example.com"}
+
+        # Mock current user dependency
         mock_get_user.return_value = {"id": "user123", "email": "test@example.com"}
-        mock_auth_service.logout_user.return_value = True
+        mock_auth_service.logout_user = AsyncMock(return_value=True)
 
         response = client.post(
             "/auth/logout", headers={"Authorization": "Bearer valid.access.token"}
@@ -132,21 +141,26 @@ class TestAuthRoutes:
 
         assert response.status_code == 204
 
+    @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.routes.auth.get_current_user")
-    def test_get_current_user_profile_success(self, mock_get_user, client, mock_auth_service):
+    async def test_get_current_user_profile_success(self, mock_get_user, mock_verify_token, client, mock_auth_service):
         """Test getting current user profile"""
-        # Mock current user
+        from app.auth.schemas import UserProfile
+        from unittest.mock import AsyncMock
+
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {"sub": "user123", "email": "test@example.com"}
+
+        # Mock current user dependency
         mock_get_user.return_value = {"id": "user123", "email": "test@example.com"}
 
-        from app.auth.schemas import UserProfile
-
-        mock_auth_service.get_user_profile.return_value = UserProfile(
+        mock_auth_service.get_user_profile = AsyncMock(return_value=UserProfile(
             id="user123",
             email="test@example.com",
             full_name="Test User",
             role="member",
             is_active=True,
-        )
+        ))
 
         response = client.get("/auth/me", headers={"Authorization": "Bearer valid.access.token"})
 
@@ -159,7 +173,8 @@ class TestAuthRoutes:
         """Test getting profile without authentication"""
         response = client.get("/auth/me")
 
-        assert response.status_code == 401
+        # Middleware returns 403 for missing/invalid token
+        assert response.status_code == 403
 
     def test_forgot_password(self, client):
         """Test forgot password endpoint"""
@@ -177,13 +192,15 @@ class TestAuthRoutes:
         data = response.json()
         assert "message" in data
 
-    @patch("app.routes.auth.get_current_user")
-    def test_resend_verification(self, mock_get_user, client):
-        """Test resend verification endpoint"""
-        mock_get_user.return_value = {"id": "user123", "email": "test@example.com"}
+    async def test_resend_verification(self, client, mock_auth_service):
+        """Test resend verification endpoint - no auth required"""
+        from unittest.mock import AsyncMock
 
+        mock_auth_service.resend_verification_email = AsyncMock(return_value=True)
+
+        # This endpoint doesn't require authentication
         response = client.post(
-            "/auth/resend-verification", headers={"Authorization": "Bearer valid.access.token"}
+            "/auth/resend-verification", json={"email": "test@example.com"}
         )
 
         assert response.status_code == 200

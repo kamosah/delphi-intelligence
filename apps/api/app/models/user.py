@@ -38,8 +38,8 @@ class User(Base):
         "SpaceMember", back_populates="user", cascade="all, delete-orphan"
     )
 
-    created_documents: Mapped[list["Document"]] = relationship(
-        "Document", back_populates="creator", cascade="all, delete-orphan"
+    uploaded_documents: Mapped[list["Document"]] = relationship(
+        "Document", back_populates="uploader", cascade="all, delete-orphan"
     )
 
     created_queries: Mapped[list["Query"]] = relationship(
