@@ -38,6 +38,8 @@ class Mutation:
             except IntegrityError:
                 await session.rollback()
                 raise ValueError(f"User with email {input.email} already exists")
+        error_msg = "Failed to get database session"
+        raise RuntimeError(error_msg)
 
     @strawberry.mutation
     async def update_user(self, id: strawberry.ID, input: UpdateUserInput) -> User | None:
@@ -68,6 +70,7 @@ class Mutation:
             except ValueError:
                 # Invalid UUID format
                 return None
+        return None
 
     @strawberry.mutation
     async def delete_user(self, id: strawberry.ID) -> bool:
@@ -90,3 +93,4 @@ class Mutation:
             except ValueError:
                 # Invalid UUID format
                 return False
+        return False

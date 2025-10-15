@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
     app.add_middleware(AuthenticationMiddleware)
 
     # Create GraphQL router
-    graphql_app = GraphQLRouter(schema, graphiql=settings.debug)
+    graphql_app: GraphQLRouter = GraphQLRouter(schema, graphiql=settings.debug)
 
     # Include routers
     app.include_router(auth_router)
@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(graphql_app, prefix="/graphql")
 
     @app.get("/", tags=["root"])
-    async def root():
+    async def root() -> dict[str, str]:
         """Root endpoint"""
         return {
             "message": f"Welcome to {settings.app_name} API",

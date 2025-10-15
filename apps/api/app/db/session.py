@@ -45,6 +45,6 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def close_db():
+async def close_db() -> None:
     """Close database engine."""
     await engine.dispose()

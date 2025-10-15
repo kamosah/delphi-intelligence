@@ -28,7 +28,7 @@ async def basic_health() -> dict[str, Any]:
 async def detailed_health() -> dict[str, Any]:
     """Detailed health check with service dependencies"""
 
-    health_status = {
+    health_status: dict[str, Any] = {
         "status": "healthy",
         "service": "olympus-api",
         "version": "0.1.0",
@@ -36,6 +36,7 @@ async def detailed_health() -> dict[str, Any]:
         "environment": settings.env,
         "dependencies": {},
     }
+    dependencies: dict[str, Any] = {}
 
     # Check Supabase connection
     try:
@@ -45,13 +46,13 @@ async def detailed_health() -> dict[str, Any]:
         client = get_supabase_client()
         # Simple health check - attempt to authenticate
         _auth_health = client.auth.get_session()
-        health_status["dependencies"]["supabase"] = {
+        dependencies["supabase"] = {
             "status": "healthy",
             "url": settings.supabase_url,
             "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
-        health_status["dependencies"]["supabase"] = {
+        dependencies["supabase"] = {
             "status": "unhealthy",
             "error": str(e),
             "timestamp": datetime.now(UTC).isoformat(),
@@ -61,12 +62,14 @@ async def detailed_health() -> dict[str, Any]:
     # Check Redis connection (if configured)
     try:
         # This would be implemented when Redis is added
-        health_status["dependencies"]["redis"] = {
+        dependencies["redis"] = {
             "status": "not_configured",
             "message": "Redis health check not implemented yet",
         }
     except Exception as e:
-        health_status["dependencies"]["redis"] = {"status": "unhealthy", "error": str(e)}
+        dependencies["redis"] = {"status": "unhealthy", "error": str(e)}
+
+    health_status["dependencies"] = dependencies
 
     return health_status
 

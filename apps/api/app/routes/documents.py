@@ -21,7 +21,7 @@ async def upload_document(
     space_id: Annotated[str, Form(description="UUID of the space")],
     name: Annotated[str | None, Form(description="Optional custom name")] = None,
     db: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str | int]:
     """
     Upload a document to a space.
 
@@ -110,7 +110,7 @@ async def get_document(
     document_id: str,
     request: Request,
     db: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str | int | dict | None]:
     """
     Get document metadata by ID.
 
@@ -163,7 +163,7 @@ async def delete_document(
     document_id: str,
     request: Request,
     db: AsyncSession = Depends(get_session),
-):
+) -> dict[str, str]:
     """
     Delete a document.
 
@@ -209,10 +209,10 @@ async def delete_document(
 
 @router.get("")
 async def list_documents(
+    request: Request,
     space_id: str | None = None,
-    request: Request = None,
     db: AsyncSession = Depends(get_session),
-):
+) -> dict[str, list[dict] | int]:
     """
     List documents, optionally filtered by space.
 

@@ -92,7 +92,7 @@ async def get_optional_user(
         return None
 
 
-def require_roles(*required_roles: str):
+def require_roles(*required_roles: str):  # type: ignore[no-untyped-def]
     """
     Dependency factory to require specific user roles
 
@@ -122,7 +122,7 @@ require_admin = require_roles("admin")
 require_admin_or_member = require_roles("admin", "member")
 
 
-def get_supabase_user_client(current_user: dict[str, Any] = Depends(get_current_user)):
+def get_supabase_user_client(current_user: dict[str, Any] = Depends(get_current_user)):  # type: ignore[no-untyped-def]
     """
     Get Supabase client configured for the current user
 

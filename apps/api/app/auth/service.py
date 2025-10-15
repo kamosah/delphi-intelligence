@@ -281,10 +281,12 @@ class AuthService:
             True if successful
         """
         try:
+            from datetime import UTC, datetime
+
             # Blacklist the access token
             token_expiry = jwt_manager.get_token_expiry(access_token)
             if token_expiry:
-                expire_delta = token_expiry - jwt_manager.datetime.now(jwt_manager.UTC)
+                expire_delta = token_expiry - datetime.now(UTC)
                 await redis_manager.blacklist_token(access_token, expire_delta)
 
             # Revoke refresh token

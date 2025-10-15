@@ -104,8 +104,7 @@ jobs:
 
             - name: Run mypy
               run: |
-                  poetry run mypy app/ --ignore-missing-imports || true
-              continue-on-error: true
+                  poetry run mypy app/
 
     summary:
         name: Lint Summary
@@ -120,7 +119,13 @@ jobs:
                   echo "::error::Ruff linting or formatting failed. Please run 'poetry run ruff check . --fix' and 'poetry run ruff format .' locally."
                   exit 1
 
-            - name: Success message
-              if: needs.lint.result == 'success'
+            - name: Check type-check status
+              if: needs.type-check.result == 'failure'
               run: |
-                  echo "✅ All linting and formatting checks passed!"
+                  echo "::error::MyPy type checking failed. Please run 'poetry run mypy app/' locally to see errors."
+                  exit 1
+
+            - name: Success message
+              if: needs.lint.result == 'success' && needs.type-check.result == 'success'
+              run: |
+                  echo "✅ All linting, formatting, and type checking passed!"

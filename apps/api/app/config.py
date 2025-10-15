@@ -57,4 +57,5 @@ class Settings(BaseSettings):
 
 
 # Global settings instance
-settings = Settings()
+# Pydantic loads values from .env file automatically
+settings = Settings()  # type: ignore[call-arg]

@@ -32,13 +32,15 @@ class TestAuthRoutes:
         from app.auth.schemas import UserProfile
         from unittest.mock import AsyncMock
 
-        mock_auth_service.register_user = AsyncMock(return_value=UserProfile(
-            id="user123",
-            email="test@example.com",
-            full_name="Test User",
-            role="member",
-            is_active=True,
-        ))
+        mock_auth_service.register_user = AsyncMock(
+            return_value=UserProfile(
+                id="user123",
+                email="test@example.com",
+                full_name="Test User",
+                role="member",
+                is_active=True,
+            )
+        )
 
         response = client.post(
             "/auth/register",
@@ -65,9 +67,13 @@ class TestAuthRoutes:
         from app.auth.schemas import TokenResponse
         from unittest.mock import AsyncMock
 
-        mock_auth_service.login_user = AsyncMock(return_value=TokenResponse(
-            access_token="test.access.token", refresh_token="test.refresh.token", expires_in=3600
-        ))
+        mock_auth_service.login_user = AsyncMock(
+            return_value=TokenResponse(
+                access_token="test.access.token",
+                refresh_token="test.refresh.token",
+                expires_in=3600,
+            )
+        )
 
         response = client.post(
             "/auth/login", json={"email": "test@example.com", "password": "password123"}
@@ -99,9 +105,11 @@ class TestAuthRoutes:
         from app.auth.schemas import TokenResponse
         from unittest.mock import AsyncMock
 
-        mock_auth_service.refresh_token = AsyncMock(return_value=TokenResponse(
-            access_token="new.access.token", refresh_token="new.refresh.token", expires_in=3600
-        ))
+        mock_auth_service.refresh_token = AsyncMock(
+            return_value=TokenResponse(
+                access_token="new.access.token", refresh_token="new.refresh.token", expires_in=3600
+            )
+        )
 
         response = client.post("/auth/refresh", json={"refresh_token": "valid.refresh.token"})
 
@@ -124,7 +132,9 @@ class TestAuthRoutes:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.routes.auth.get_current_user")
-    async def test_logout_success(self, mock_get_user, mock_verify_token, client, mock_auth_service):
+    async def test_logout_success(
+        self, mock_get_user, mock_verify_token, client, mock_auth_service
+    ):
         """Test successful logout"""
         from unittest.mock import AsyncMock
 
@@ -143,7 +153,9 @@ class TestAuthRoutes:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.routes.auth.get_current_user")
-    async def test_get_current_user_profile_success(self, mock_get_user, mock_verify_token, client, mock_auth_service):
+    async def test_get_current_user_profile_success(
+        self, mock_get_user, mock_verify_token, client, mock_auth_service
+    ):
         """Test getting current user profile"""
         from app.auth.schemas import UserProfile
         from unittest.mock import AsyncMock
@@ -154,13 +166,15 @@ class TestAuthRoutes:
         # Mock current user dependency
         mock_get_user.return_value = {"id": "user123", "email": "test@example.com"}
 
-        mock_auth_service.get_user_profile = AsyncMock(return_value=UserProfile(
-            id="user123",
-            email="test@example.com",
-            full_name="Test User",
-            role="member",
-            is_active=True,
-        ))
+        mock_auth_service.get_user_profile = AsyncMock(
+            return_value=UserProfile(
+                id="user123",
+                email="test@example.com",
+                full_name="Test User",
+                role="member",
+                is_active=True,
+            )
+        )
 
         response = client.get("/auth/me", headers={"Authorization": "Bearer valid.access.token"})
 
@@ -199,9 +213,7 @@ class TestAuthRoutes:
         mock_auth_service.resend_verification_email = AsyncMock(return_value=True)
 
         # This endpoint doesn't require authentication
-        response = client.post(
-            "/auth/resend-verification", json={"email": "test@example.com"}
-        )
+        response = client.post("/auth/resend-verification", json={"email": "test@example.com"})
 
         assert response.status_code == 200
         data = response.json()

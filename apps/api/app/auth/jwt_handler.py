@@ -34,7 +34,10 @@ class JWTManager:
 
         to_encode.update({"exp": expire, "iat": datetime.now(UTC)})
 
-        return jose_jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+        token: str = jose_jwt.encode(
+            to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm
+        )
+        return token
 
     @staticmethod
     def create_refresh_token(data: dict[str, Any]) -> str:
@@ -51,7 +54,10 @@ class JWTManager:
         expire = datetime.now(UTC) + timedelta(days=30)  # Refresh tokens last 30 days
         to_encode.update({"exp": expire, "iat": datetime.now(UTC), "type": "refresh"})
 
-        return jose_jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+        token: str = jose_jwt.encode(
+            to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm
+        )
+        return token
 
     @staticmethod
     def verify_token(token: str) -> dict[str, Any] | None:
@@ -65,7 +71,7 @@ class JWTManager:
             Decoded token payload or None if invalid
         """
         try:
-            payload = jose_jwt.decode(
+            payload: dict[str, Any] = jose_jwt.decode(
                 token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
             )
             return payload
@@ -84,12 +90,13 @@ class JWTManager:
             Decoded token payload or None if invalid
         """
         try:
-            return jose_jwt.decode(
+            payload: dict[str, Any] = jose_jwt.decode(
                 token,
                 settings.jwt_secret,
                 algorithms=[settings.jwt_algorithm],
                 options={"verify_signature": False},
             )
+            return payload
         except JWTError:
             return None
 

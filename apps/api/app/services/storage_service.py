@@ -22,7 +22,7 @@ class StorageService:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # XLSX
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Supabase Storage client."""
         self.client: Client = create_client(
             settings.supabase_url, settings.supabase_service_role_key
@@ -101,7 +101,8 @@ class StorageService:
         response = self.client.storage.from_(self.BUCKET_NAME).create_signed_url(
             file_path, expires_in=3600
         )
-        return response.get("signedURL", "")
+        url: str = response.get("signedURL", "")
+        return url
 
     async def download_file(self, file_path: str) -> bytes:
         """
@@ -117,8 +118,8 @@ class StorageService:
             HTTPException: If download fails
         """
         try:
-            response = self.client.storage.from_(self.BUCKET_NAME).download(file_path)
-            return response
+            content: bytes = self.client.storage.from_(self.BUCKET_NAME).download(file_path)
+            return content
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
 

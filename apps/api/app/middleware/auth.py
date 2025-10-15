@@ -2,6 +2,8 @@
 Authentication middleware for FastAPI
 """
 
+from collections.abc import Awaitable, Callable
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -27,7 +29,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/auth/verify-email",
     }
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         """
         Process request and add authentication context
 
@@ -40,18 +44,21 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         """
         # Skip authentication for excluded paths
         if request.url.path in self.EXCLUDED_PATHS:
-            return await call_next(request)
+            response: Response = await call_next(request)
+            return response
 
         # Skip authentication for OPTIONS requests (CORS preflight)
         if request.method == "OPTIONS":
-            return await call_next(request)
+            response = await call_next(request)
+            return response
 
         # Check for Authorization header
         authorization = request.headers.get("Authorization")
         if not authorization or not authorization.startswith("Bearer "):
             # Let the route handler decide if authentication is required
             # Some routes might have optional authentication
-            return await call_next(request)
+            response = await call_next(request)
+            return response
 
         try:
             # Extract token
@@ -82,4 +89,5 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             # if authentication is required
             pass
 
-        return await call_next(request)
+        response = await call_next(request)
+        return response

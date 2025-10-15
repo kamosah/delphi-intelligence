@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import {
+  AnimatedPageLoader,
   Button,
   Card,
   CardContent,
@@ -13,14 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 type VerificationStatus = 'loading' | 'success' | 'error';
 
 /**
- * Email confirmation callback page.
- * Handles Supabase email verification redirects and displays success/error states.
+ * Email confirmation content component.
+ * Wrapped in Suspense to support useSearchParams.
  */
-export default function ConfirmPage() {
+function ConfirmContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<VerificationStatus>('loading');
@@ -142,5 +143,24 @@ export default function ConfirmPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+/**
+ * Email confirmation callback page.
+ * Handles Supabase email verification redirects and displays success/error states.
+ */
+export default function ConfirmPage() {
+  return (
+    <Suspense
+      fallback={
+        <AnimatedPageLoader
+          title="Verifying your email"
+          description="Please wait while we confirm your email address..."
+        />
+      }
+    >
+      <ConfirmContent />
+    </Suspense>
   );
 }

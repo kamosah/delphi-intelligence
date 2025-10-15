@@ -3,6 +3,7 @@
 import {
   Alert,
   AlertDescription,
+  AnimatedPageLoader,
   Button,
   Card,
   CardContent,
@@ -14,13 +15,13 @@ import {
 import { ArrowLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 
 /**
- * Email verification page shown after signup.
- * Displays instructions to check email and provides resend functionality.
+ * Email verification page content component.
+ * Wrapped in Suspense to support useSearchParams.
  */
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
   const [isResending, setIsResending] = useState(false);
@@ -143,5 +144,25 @@ export default function VerifyEmailPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Email verification page shown after signup.
+ * Displays instructions to check email and provides resend functionality.
+ */
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <AnimatedPageLoader
+          title="Loading verification page..."
+          description="Please wait while we load your email verification details"
+          icon={<Mail className="w-8 h-8 text-primary animate-pulse" />}
+        />
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

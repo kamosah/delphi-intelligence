@@ -31,6 +31,7 @@ class Query:
             except ValueError:
                 # Invalid UUID format
                 return None
+        return None
 
     @strawberry.field
     async def users(self, limit: int = 10, offset: int = 0) -> list[User]:
@@ -41,6 +42,7 @@ class Query:
             user_models = result.scalars().all()
 
             return [User.from_model(user) for user in user_models]
+        return []
 
     @strawberry.field
     async def user_by_email(self, email: str) -> User | None:
@@ -53,6 +55,7 @@ class Query:
             if user_model:
                 return User.from_model(user_model)
             return None
+        return None
 
     @strawberry.field
     async def health(self) -> str:

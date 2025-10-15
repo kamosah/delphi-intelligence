@@ -14,7 +14,7 @@ load_dotenv()
 class SupabaseConfig:
     """Supabase configuration and client management"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.url: str = os.getenv("SUPABASE_URL", "")
         self.anon_key: str = os.getenv("SUPABASE_ANON_KEY", "")
         self.service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")

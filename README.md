@@ -29,7 +29,7 @@ athena/
 │   ├── ui/                  # Shared UI components
 │   ├── types/               # Shared TypeScript types
 │   └── config/              # Shared configuration files
-├── .github/workflows/       # CI/CD workflows (future)
+├── .github/workflows/       # CI/CD workflows (API & Web linting)
 ├── docker-compose.yml       # Local development services
 ├── turbo.json              # Turborepo configuration
 ├── package.json            # Root package configuration
@@ -47,13 +47,14 @@ This project recreates the core features of [Athena Intelligence](https://www.at
 
 **MVP Goals** (see [docs/PRODUCT_REQUIREMENTS.md](./docs/PRODUCT_REQUIREMENTS.md)):
 
-- ✅ Authentication system (complete)
-- 🚧 Document upload and processing (in progress)
+- ✅ Authentication system (complete with email verification)
+- ✅ Document upload API with Supabase Storage (complete)
+- 🚧 Document processing and extraction (in progress)
 - ⏳ AI-powered querying with LangChain/LangGraph
 - ⏳ Natural language interface with source citations
 - ⏳ Workspace collaboration features
 
-**Current Status**: ~30% feature parity with Athena Intelligence
+**Current Status**: ~40% feature parity with Athena Intelligence
 **Target**: 70% of core features for MVP launch
 
 ## 🏗️ Current Application Setup
@@ -102,27 +103,38 @@ This project recreates the core features of [Athena Intelligence](https://www.at
 **API Endpoints**:
 
 ```
-GET    /                     # API information
-GET    /health               # Basic health check
-GET    /health/detailed      # Detailed health with dependencies
-GET    /health/protected     # Protected endpoint example
-POST   /auth/register        # User registration
-POST   /auth/login           # User authentication
-POST   /auth/refresh         # Token refresh
-POST   /auth/logout          # User logout
-GET    /auth/me              # Current user profile
-GET    /docs                 # OpenAPI documentation (dev)
-GET    /graphql              # GraphQL endpoint
+GET    /                          # API information
+GET    /health                    # Basic health check
+GET    /health/detailed           # Detailed health with dependencies
+GET    /health/protected          # Protected endpoint example
+POST   /auth/register             # User registration
+POST   /auth/login                # User authentication
+POST   /auth/refresh              # Token refresh
+POST   /auth/logout               # User logout
+GET    /auth/me                   # Current user profile
+POST   /auth/forgot-password      # Request password reset
+POST   /auth/reset-password       # Confirm password reset
+POST   /auth/resend-verification  # Resend email verification
+POST   /auth/exchange-token       # Exchange Supabase token for backend tokens
+POST   /api/documents             # Upload document to space
+GET    /api/documents             # List documents (optionally filtered by space)
+GET    /api/documents/{id}        # Get document metadata
+DELETE /api/documents/{id}        # Delete document
+GET    /docs                      # OpenAPI documentation (dev)
+GET    /graphql                   # GraphQL endpoint
 ```
 
 **Authentication Features**:
 
 - JWT token generation and validation
-- Refresh token mechanism (30-day lifetime)
+- Refresh token mechanism (30-day lifetime with remember me option)
 - Redis-based session management
 - Token blacklisting for secure logout
 - Role-based access control
 - Supabase Auth integration
+- Email verification with auto-login after confirmation
+- Password reset flow with secure token exchange
+- Resend verification email functionality
 
 ### 🗄️ **Database Infrastructure**
 
@@ -134,9 +146,16 @@ GET    /graphql              # GraphQL endpoint
 
 - **Users Table**: Extended Supabase auth.users with profile data
 - **Spaces Table**: Workspace organization with RLS policies
-- **Documents Table**: File metadata and processing status
+- **Documents Table**: File metadata, storage paths, and processing status
 - **Queries Table**: AI interaction history and results
 - **User Preferences**: Customizable user settings
+
+**Storage**:
+
+- **Supabase Storage**: Document file storage with organized buckets
+- **File Types**: PDF, DOCX, TXT, CSV, XLSX support
+- **File Size Limit**: 50MB per document
+- **File Paths**: Organized by space and document ID
 
 **Security Features**:
 
@@ -240,6 +259,30 @@ services:
 - Redis operations: All CRUD operations tested
 - API routes: Success and error cases
 
+### 🔄 **CI/CD Pipeline**
+
+**GitHub Actions Workflows**:
+
+- **API Linting & Formatting** (`api-lint.yml`):
+  - Ruff linting with comprehensive rule sets
+  - Ruff formatting checks
+  - MyPy type checking
+  - Runs on push/PR to main/develop branches
+
+- **Web Linting & Type Checking** (`web-lint.yml`):
+  - ESLint code quality checks
+  - TypeScript type checking
+  - Next.js build verification
+  - Prettier formatting validation
+  - Runs on push/PR to main/develop branches
+
+**Code Quality Standards**:
+
+- **Backend**: Ruff (comprehensive Python linting), MyPy (strict type checking)
+- **Frontend**: ESLint (Next.js recommended rules), TypeScript strict mode
+- **Formatting**: Ruff (Python), Prettier (TypeScript/JavaScript/CSS)
+- **Pre-commit**: Husky + lint-staged for local quality gates
+
 ### ⚙️ **Configuration Management**
 
 **Environment Variables**:
@@ -283,8 +326,12 @@ CORS_ORIGINS=["http://localhost:3000"]
 - Graceful error handling and logging
 - Scalable Redis session management
 
-**CI/CD Ready**:
+**CI/CD Active**:
 
+- ✅ GitHub Actions workflows for API and Web
+- ✅ Automated linting and formatting checks
+- ✅ TypeScript and MyPy type checking
+- ✅ Build verification on every push/PR
 - Dockerfile configurations prepared
 - Environment variable templates
 - Test suites for automated validation
@@ -435,9 +482,12 @@ This monorepo uses Turborepo for:
 
 ### Code Quality
 
-- **Prettier**: Code formatting
-- **Husky**: Git hooks
-- **lint-staged**: Pre-commit formatting
+- **Backend Linting**: Ruff with comprehensive rule sets (pycodestyle, pyflakes, isort, flake8-\*, pylint, security)
+- **Frontend Linting**: ESLint with Next.js recommended configuration
+- **Type Checking**: MyPy (backend), TypeScript strict mode (frontend)
+- **Formatting**: Ruff (Python), Prettier (TypeScript/JavaScript/CSS)
+- **Git Hooks**: Husky + lint-staged for pre-commit quality checks
+- **CI/CD**: Automated checks on GitHub Actions for every push/PR
 
 ### Database & Services
 
@@ -585,20 +635,23 @@ Pre-commit hooks automatically:
 - [x] **Database Integration** - Supabase PostgreSQL setup
 - [x] **Migration System** - Automated Alembic + MCP workflow
 - [x] **Development Environment** - Hot reload and tooling
+- [x] **Authentication System** - Email verification, password reset, remember me
+- [x] **Document Upload API** - Supabase Storage integration with validation
+- [x] **CI/CD Pipeline** - GitHub Actions for linting, type checking, and builds
 
 ### In Progress 🚧
 
-- [ ] **AI Integration** - Document processing and query system
-- [ ] **File Upload** - Document management with Supabase Storage
+- [ ] **Document Processing** - Text extraction and analysis
+- [ ] **AI Integration** - LangChain/LangGraph query system
 - [ ] **Search Functionality** - Vector search and semantic queries
 
 ### Upcoming 📋
 
 - [ ] **User Management** - Profile settings and team collaboration
-- [ ] **API Endpoints** - Document and query management APIs
-- [ ] **Testing Suite** - Comprehensive test coverage
-- [ ] **CI/CD Pipeline** - Automated testing and deployment
+- [ ] **GraphQL Mutations** - Document and query management via GraphQL
+- [ ] **Testing Suite** - Comprehensive E2E and integration tests
 - [ ] **Production Deployment** - Hosting and monitoring setup
+- [ ] **Real-time Collaboration** - WebSocket support for live updates
 
 ## 🤝 Contributing
 

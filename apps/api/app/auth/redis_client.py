@@ -52,7 +52,8 @@ class RedisManager:
         try:
             value = await self.redis.get(key)
             if value:
-                return json.loads(value)
+                data: dict[str, Any] = json.loads(value)
+                return data
             return None
         except Exception:
             return None
@@ -137,7 +138,8 @@ class RedisManager:
             Refresh token or None if not found
         """
         try:
-            return await self.redis.get(f"refresh_token:{user_id}")
+            result = await self.redis.get(f"refresh_token:{user_id}")
+            return str(result) if result else None
         except Exception:
             return None
 
