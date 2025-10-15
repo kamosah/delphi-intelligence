@@ -69,6 +69,9 @@ def do_run_migrations(connection: Connection) -> None:
         include_schemas=True,
         # Render item sorting for consistent migrations
         render_as_batch=True,
+        # Store alembic_version in _internal schema (not exposed via PostgREST)
+        # This resolves Supabase RLS linter warnings for system tables
+        version_table_schema="_internal",
     )
 
     with context.begin_transaction():
