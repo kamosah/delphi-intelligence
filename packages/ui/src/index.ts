@@ -51,6 +51,7 @@ export {
 } from './components/form';
 export { Input } from './components/input';
 export { Label } from './components/label';
+export { Progress } from './components/progress';
 export { ScrollArea, ScrollBar } from './components/scroll-area';
 export { Separator } from './components/separator';
 export { Skeleton } from './components/skeleton';

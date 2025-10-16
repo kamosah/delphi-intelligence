@@ -15,7 +15,9 @@
     "graphql:generate": "graphql-codegen --config codegen.yml",
     "graphql:watch": "graphql-codegen --config codegen.yml --watch",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test-storybook": "test-storybook",
+    "test-storybook:ci": "concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npm run build-storybook -- --quiet && npx http-server storybook-static --port 6006 --silent\" \"wait-on tcp:127.0.0.1:6006 && npm run test-storybook\""
   },
   "dependencies": {
     "@assistant-ui/react": "^0.11.28",
@@ -47,8 +49,11 @@
     "@graphql-codegen/typescript-operations": "^5.0.2",
     "@graphql-codegen/typescript-react-query": "^6.1.1",
     "@storybook/addon-docs": "^9.1.10",
+    "@storybook/addon-interactions": "^9.0.0-alpha.10",
     "@storybook/addon-onboarding": "^9.1.10",
     "@storybook/nextjs": "^9.1.10",
+    "@storybook/test": "^9.0.0-alpha.2",
+    "@storybook/test-runner": "^0.23.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/node": "^20.0.0",
