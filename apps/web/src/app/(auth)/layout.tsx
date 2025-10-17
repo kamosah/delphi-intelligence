@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Authentication',
   description:
     'Sign in to Olympus - Your AI-powered document intelligence platform. Access your workspaces, documents, and AI analyst.',
 };

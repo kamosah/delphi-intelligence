@@ -21,8 +21,13 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  email: z
+    .string()
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters' }),
   rememberMe: z.boolean(),
 });
 
@@ -116,7 +121,11 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+        className="space-y-6"
+      >
         {errorMessage && !isEmailNotVerified && (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>

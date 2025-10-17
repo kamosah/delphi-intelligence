@@ -41,15 +41,17 @@ export function PasswordStrengthIndicator({
           {passwordStrength.label}
         </span>
       </div>
-      <div className="flex gap-1 h-1">
+      <div className="flex gap-1">
         {[1, 2, 3, 4].map((level) => (
           <div
             key={level}
-            className={`flex-1 rounded-full transition-colors ${
-              level <= passwordStrength.strength
-                ? passwordStrength.color
-                : 'bg-gray-200'
-            }`}
+            className="flex-1 h-2 rounded-full transition-colors"
+            style={{
+              backgroundColor:
+                level <= passwordStrength.strength
+                  ? passwordStrength.color
+                  : '#e5e7eb', // gray-200
+            }}
           />
         ))}
       </div>

@@ -21,28 +21,31 @@ import * as z from 'zod';
 
 const signupSchema = z
   .object({
-    fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+    fullName: z
+      .string()
+      .min(2, { error: 'Full name must be at least 2 characters' }),
     email: z
       .string()
-      .min(1, 'Email is required')
-      .email('Invalid email address'),
+      .min(1, { error: 'Email is required' })
+      .email({ error: 'Invalid email address' }),
     password: z
       .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-      ),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+      .min(8, { error: 'Password must be at least 8 characters' })
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+        error:
+          'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      }),
+    confirmPassword: z
+      .string()
+      .min(1, { error: 'Please confirm your password' }),
     acceptTerms: z
       .boolean()
-      .refine(
-        (val) => val === true,
-        'You must accept the terms and conditions'
-      ),
+      .refine((val) => val === true, {
+        error: 'You must accept the terms and conditions',
+      }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    error: "Passwords don't match",
     path: ['confirmPassword'],
   });
 
@@ -90,7 +93,11 @@ export function SignupForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+        className="space-y-6"
+      >
         {errorMessage && (
           <div className="rounded-lg bg-red-50 p-4 border border-red-200">
             <div className="flex">
