@@ -3,12 +3,13 @@
 from typing import Annotated
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models import Document, DocumentStatus, Space, User
+from app.services.document_processor import process_document_background
 from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 @router.post("")
 async def upload_document(
     request: Request,
+    background_tasks: BackgroundTasks,
     file: Annotated[UploadFile, File(description="Document file to upload")],
     space_id: Annotated[str, Form(description="UUID of the space")],
     name: Annotated[str | None, Form(description="Optional custom name")] = None,
@@ -90,6 +92,9 @@ async def upload_document(
     db.add(document)
     await db.commit()
     await db.refresh(document)
+
+    # Trigger background processing
+    background_tasks.add_task(process_document_background, str(document.id))
 
     # Return document metadata
     return {

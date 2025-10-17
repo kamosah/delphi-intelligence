@@ -37,6 +37,10 @@ python-dotenv = "^1.0.0"
 httpx = "^0.27.0"
 email-validator = "^2.3.0"
 
+# Document Processing
+pymupdf = "^1.23.0"  # PDF extraction
+python-docx = "^1.1.0"  # DOCX extraction
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
@@ -107,11 +111,13 @@ ignore = [
     "B008",    # Do not perform function call in argument defaults (FastAPI pattern)
     "TRY300",  # Consider moving statement to else block (overly prescriptive)
     "TRY301",  # Abstract raise to inner function (overly prescriptive)
+    "TRY401",  # Redundant exception object in logging.exception (acceptable for clarity)
     "RET503",  # Missing explicit return (GraphQL resolvers can return None implicitly)
     "RET504",  # Unnecessary assignment before return (sometimes aids readability)
     "B904",    # Within except clause raise with from (not always necessary)
     "S110",    # try-except-pass (sometimes acceptable for optional features)
     "EM102",   # F-string in exception (acceptable for dynamic messages)
+    "G004",    # F-string in logging (acceptable for readability)
     "RUF012",  # Mutable class attributes (sometimes intentional for middleware)
     "RUF010",  # Use explicit conversion flag (str(e) is clear and widely used)
 ]
