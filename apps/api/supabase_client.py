@@ -63,21 +63,29 @@ class SupabaseConfig:
         return client
 
 
-# Global instance
-supabase_config = SupabaseConfig()
+# Module-level variable for lazy initialization
+_supabase_config: Optional[SupabaseConfig] = None
+
+
+def get_supabase_config() -> SupabaseConfig:
+    """Get or create the Supabase config (lazy initialization)."""
+    global _supabase_config
+    if _supabase_config is None:
+        _supabase_config = SupabaseConfig()
+    return _supabase_config
 
 
 # Convenience functions
 def get_supabase_client(use_service_role: bool = False) -> Client:
     """Get Supabase client"""
-    return supabase_config.get_client(use_service_role=use_service_role)
+    return get_supabase_config().get_client(use_service_role=use_service_role)
 
 
 def get_admin_client() -> Client:
     """Get admin Supabase client (service role)"""
-    return supabase_config.get_admin_client()
+    return get_supabase_config().get_admin_client()
 
 
 def get_user_client(user_token: Optional[str] = None) -> Client:
     """Get user Supabase client (anon key + optional auth)"""
-    return supabase_config.get_user_client(user_token)
+    return get_supabase_config().get_user_client(user_token)

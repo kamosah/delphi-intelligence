@@ -42,8 +42,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: apps/api/.venv
-                  key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+                  path: .venv
+                  key: venv-v2-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -95,8 +95,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: apps/api/.venv
-                  key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+                  path: .venv
+                  key: venv-v2-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'

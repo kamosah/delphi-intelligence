@@ -21,31 +21,6 @@ jobs:
             run:
                 working-directory: apps/api
 
-        services:
-            postgres:
-                image: postgres:15
-                env:
-                    POSTGRES_USER: olympus
-                    POSTGRES_PASSWORD: password
-                    POSTGRES_DB: olympus_mvp_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd pg_isready
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-
-            redis:
-                image: redis:7-alpine
-                ports:
-                    - 6379:6379
-                options: >-
-                    --health-cmd "redis-cli ping"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -67,21 +42,15 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: apps/api/.venv
-                  key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+                  path: .venv
+                  key: venv-v2-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
             - name: Install dependencies
-              if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
               run: poetry install --no-interaction --no-root
 
             - name: Run pytest
-              env:
-                  DATABASE_URL: postgresql+asyncpg://olympus:password@localhost:5432/olympus_mvp_test
-                  REDIS_URL: redis://localhost:6379
-                  JWT_SECRET: test-secret-key
-                  USE_LOCAL_DB: true
               run: |
-                  poetry run pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+                  poetry run pytest tests/ -v
 
             - name: Check test results
               if: failure()

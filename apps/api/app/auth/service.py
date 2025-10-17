@@ -3,6 +3,7 @@ Authentication service for handling user auth operations with Supabase
 """
 
 from fastapi import HTTPException, status
+from supabase import Client
 
 from app.auth.jwt_handler import jwt_manager
 from app.auth.redis_client import redis_manager
@@ -15,7 +16,14 @@ class AuthService:
 
     def __init__(self) -> None:
         """Initialize auth service"""
-        self.admin_client = get_admin_client()
+        self._admin_client: Client | None = None
+
+    @property
+    def admin_client(self) -> Client:
+        """Get Supabase admin client (lazy initialization)"""
+        if self._admin_client is None:
+            self._admin_client = get_admin_client()
+        return self._admin_client
 
     async def register_user(
         self, email: str, password: str, full_name: str | None = None
@@ -529,5 +537,13 @@ class AuthService:
             )
 
 
-# Global auth service instance
-auth_service = AuthService()
+# Module-level variable for lazy initialization
+_auth_service: AuthService | None = None
+
+
+def get_auth_service() -> AuthService:
+    """Get or create the auth service (lazy initialization)."""
+    global _auth_service
+    if _auth_service is None:
+        _auth_service = AuthService()
+    return _auth_service

@@ -15,8 +15,16 @@ class RedisManager:
     """Redis client for session and token management"""
 
     def __init__(self) -> None:
-        """Initialize Redis connection"""
-        self.redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+        """Initialize Redis manager (connection is created lazily)"""
+        self._redis: aioredis.Redis | None = None
+        self._redis_url = settings.redis_url
+
+    @property
+    def redis(self) -> aioredis.Redis:
+        """Get Redis connection, creating it lazily on first access"""
+        if self._redis is None:
+            self._redis = aioredis.from_url(self._redis_url, decode_responses=True)
+        return self._redis
 
     async def set_session(
         self, key: str, value: dict[str, Any], expire: timedelta = timedelta(hours=24)
@@ -160,8 +168,9 @@ class RedisManager:
             return False
 
     async def close(self) -> None:
-        """Close Redis connection"""
-        await self.redis.close()
+        """Close Redis connection if it was created"""
+        if self._redis is not None:
+            await self._redis.close()
 
 
 # Global Redis manager instance

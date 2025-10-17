@@ -21,7 +21,7 @@ class TestRedisManager:
             mock_redis.from_url.return_value = mock_client
 
             manager = RedisManager()
-            manager.redis = mock_client
+            manager._redis = mock_client  # Set the internal cached connection
             yield manager, mock_client
 
     @pytest.mark.asyncio()

@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session
 from app.models import Document, DocumentStatus, Space, User
 from app.services.document_processor import process_document_background
-from app.services.storage_service import storage_service
+from app.services.storage_service import get_storage_service
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -70,7 +70,7 @@ async def upload_document(
 
     # Upload file to Supabase Storage
     try:
-        file_path = await storage_service.upload_file(file, space_uuid, document_id)
+        file_path = await get_storage_service().upload_file(file, space_uuid, document_id)
     except HTTPException:
         raise
     except Exception as e:
@@ -209,7 +209,7 @@ async def delete_document(
 
     # Delete file from storage
     try:
-        await storage_service.delete_file(document.file_path)
+        await get_storage_service().delete_file(document.file_path)
     except Exception as e:
         # Log error but continue with database deletion
         print(f"Failed to delete file from storage: {e}")

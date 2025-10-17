@@ -23,10 +23,15 @@ class StorageService:
     }
 
     def __init__(self) -> None:
-        """Initialize Supabase Storage client."""
-        self.client: Client = create_client(
-            settings.supabase_url, settings.supabase_service_role_key
-        )
+        """Initialize Supabase Storage service."""
+        self._client: Client | None = None
+
+    @property
+    def client(self) -> Client:
+        """Get Supabase client (lazy initialization)."""
+        if self._client is None:
+            self._client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+        return self._client
 
     async def upload_file(self, file: UploadFile, space_id: UUID, document_id: UUID) -> str:
         """
@@ -166,5 +171,13 @@ class StorageService:
         return mime_type or "application/octet-stream"
 
 
-# Global storage service instance
-storage_service = StorageService()
+# Module-level variable for lazy initialization
+_storage_service: StorageService | None = None
+
+
+def get_storage_service() -> StorageService:
+    """Get or create the storage service (lazy initialization)."""
+    global _storage_service  # noqa: PLW0603
+    if _storage_service is None:
+        _storage_service = StorageService()
+    return _storage_service

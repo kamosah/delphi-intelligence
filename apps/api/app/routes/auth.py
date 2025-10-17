@@ -15,7 +15,7 @@ from app.auth.schemas import (
     UserProfile,
     UserRegister,
 )
-from app.auth.service import auth_service
+from app.auth.service import get_auth_service
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -34,7 +34,7 @@ async def register(user_data: UserRegister) -> UserProfile:
     Returns:
         Created user profile with email_confirmed status
     """
-    return await auth_service.register_user(
+    return await get_auth_service().register_user(
         email=user_data.email, password=user_data.password, full_name=user_data.full_name
     )
 
@@ -50,7 +50,7 @@ async def login(credentials: UserLogin) -> TokenResponse:
     Returns:
         JWT tokens for authentication
     """
-    return await auth_service.login_user(
+    return await get_auth_service().login_user(
         email=credentials.email, password=credentials.password, remember_me=credentials.remember_me
     )
 
@@ -66,7 +66,7 @@ async def refresh_token(token_data: TokenRefresh) -> TokenResponse:
     Returns:
         New JWT tokens
     """
-    return await auth_service.refresh_token(token_data.refresh_token)
+    return await get_auth_service().refresh_token(token_data.refresh_token)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -80,7 +80,7 @@ async def logout(current_user: dict = Depends(get_current_user)) -> None:
     # In a real implementation, you'd get the access token from the request
     # For now, we'll just use the user ID to revoke the refresh token
     user_id = current_user["id"]
-    await auth_service.logout_user(user_id, "")  # Empty token for now
+    await get_auth_service().logout_user(user_id, "")  # Empty token for now
 
 
 @router.get("/me", response_model=UserProfile)
@@ -94,7 +94,7 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
     Returns:
         User profile data
     """
-    return await auth_service.get_user_profile(current_user["id"])
+    return await get_auth_service().get_user_profile(current_user["id"])
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
@@ -108,7 +108,7 @@ async def forgot_password(password_reset: PasswordReset) -> dict[str, str]:
     Returns:
         Success message
     """
-    await auth_service.request_password_reset(password_reset.email)
+    await get_auth_service().request_password_reset(password_reset.email)
     # Always return success to prevent email enumeration
     return {"message": "If an account with that email exists, a password reset link has been sent"}
 
@@ -143,7 +143,7 @@ async def resend_verification(data: ResendVerification) -> dict[str, str]:
     Returns:
         Success message
     """
-    await auth_service.resend_verification_email(data.email)
+    await get_auth_service().resend_verification_email(data.email)
     return {"message": "Verification email sent. Please check your inbox."}
 
 
@@ -158,7 +158,7 @@ async def reset_password(data: PasswordResetConfirm) -> dict[str, str]:
     Returns:
         Success message
     """
-    await auth_service.confirm_password_reset(data.token, data.new_password)
+    await get_auth_service().confirm_password_reset(data.token, data.new_password)
     return {
         "message": "Password has been reset successfully. You can now log in with your new password."
     }
@@ -181,4 +181,4 @@ async def exchange_token(data: dict[str, str]) -> TokenResponse:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="supabase_token is required"
         )
-    return await auth_service.exchange_supabase_token(supabase_token)
+    return await get_auth_service().exchange_supabase_token(supabase_token)

@@ -21,12 +21,12 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, description="Server port")
 
     # Database Configuration - Supabase only
-    database_url: str = Field(description="Supabase database connection URL")
+    database_url: str = Field(default="", description="Supabase database connection URL")
 
     # Supabase Configuration
-    supabase_url: str = Field(description="Supabase project URL")
-    supabase_anon_key: str = Field(description="Supabase anon key")
-    supabase_service_role_key: str = Field(description="Supabase service role key")
+    supabase_url: str = Field(default="", description="Supabase project URL")
+    supabase_anon_key: str = Field(default="", description="Supabase anon key")
+    supabase_service_role_key: str = Field(default="", description="Supabase service role key")
     supabase_db_url: str | None = Field(default=None, description="Direct Supabase database URL")
 
     # Redis Configuration
@@ -38,7 +38,9 @@ class Settings(BaseSettings):
     )
 
     # JWT Configuration
-    jwt_secret: str = Field(description="JWT secret key")
+    jwt_secret: str = Field(
+        default="test-secret-key-change-in-production", description="JWT secret key"
+    )
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expiration_hours: int = Field(default=24, description="JWT expiration time in hours")
 

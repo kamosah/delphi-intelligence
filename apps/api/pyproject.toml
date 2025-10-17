@@ -7,7 +7,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.104.0"
+fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
 python-multipart = "^0.0.7"
 
@@ -44,6 +44,7 @@ python-docx = "^1.1.0"  # DOCX extraction
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.1.0"
 ruff = "^0.4.4"
 mypy = "^1.5.0"
 pre-commit = "^3.4.0"
@@ -162,6 +163,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "app/config.py" = ["S105", "S106", "S104", "EM101"]
 # Auth files deal with tokens and may have security warnings
 "app/auth/*.py" = ["S105", "S106", "B904", "EM101", "EM102"]
+# Auth service uses global for lazy initialization
+"app/auth/service.py" = ["PLW0603"]
 # Route files may have unused arguments for future implementation
 "app/routes/*.py" = ["ARG001"]
 # Scripts can have print statements and subprocess calls for utility purposes
@@ -185,8 +188,10 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "PLR0912", # Too many branches (utility scripts)
     "I001",    # Import sorting
 ]
-# Supabase client can have specific patterns
-"supabase_client.py" = ["EM101", "UP007"]
+# Supabase client can have specific patterns and uses global for lazy initialization
+"supabase_client.py" = ["EM101", "UP007", "PLW0603"]  # Global statement for lazy initialization
+# Database session module uses global for lazy initialization pattern
+"app/db/session.py" = ["PLW0603"]  # Global statement for lazy initialization
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
@@ -227,3 +232,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+filterwarnings = [
+    "ignore::DeprecationWarning:importlib._bootstrap",  # PyMuPDF/SwigPy internal warnings
+]

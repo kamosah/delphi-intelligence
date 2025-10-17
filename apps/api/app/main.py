@@ -39,7 +39,9 @@ def create_app() -> FastAPI:
     app.add_middleware(AuthenticationMiddleware)
 
     # Create GraphQL router
-    graphql_app: GraphQLRouter = GraphQLRouter(schema, graphiql=settings.debug)
+    graphql_app: GraphQLRouter = GraphQLRouter(
+        schema, graphql_ide="graphiql" if settings.debug else None
+    )
 
     # Include routers
     app.include_router(auth_router)

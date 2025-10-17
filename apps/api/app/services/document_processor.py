@@ -6,7 +6,7 @@ from datetime import datetime, UTC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import async_session_factory
+from app.db.session import get_session_factory
 from app.models.document import Document, DocumentStatus
 from app.services.extractors import BaseExtractor, DOCXExtractor, PDFExtractor, TextExtractor
 
@@ -150,5 +150,5 @@ async def process_document_background(
     Args:
         document_id: UUID of the document to process
     """
-    async with async_session_factory() as db:
+    async with get_session_factory()() as db:
         await processor.process_document(document_id, db)

@@ -19,8 +19,8 @@ def client():
 @pytest.fixture()
 def mock_auth_service():
     """Mock authentication service"""
-    with patch("app.routes.auth.auth_service") as mock:
-        yield mock
+    with patch("app.routes.auth.get_auth_service") as mock:
+        yield mock.return_value
 
 
 class TestAuthRoutes:
