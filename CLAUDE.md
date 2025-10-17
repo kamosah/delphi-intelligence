@@ -476,9 +476,18 @@ export default function LandingPage() {
 **Priority order for creating components**:
 
 1. Check if component exists in `packages/ui` (Shadcn/Design System)
-2. Check if component exists in Assistant UI library
+2. **Check if component exists in Assistant UI library** (`@assistant-ui/react`)
+   - Use Assistant UI MCP server to search documentation and find components
+   - Particularly useful for AI chat interfaces, message threads, and conversational UI
+   - Examples: Thread, Message, AssistantMessage, UserMessage, ComposerPrimitive
 3. Compose existing components to create new ones
 4. Only create new primitive components if absolutely necessary
+
+**Accessing Assistant UI Components**:
+
+- Documentation: Use `mcp__assistant-ui__assistantUIDocs` tool with paths like `["getting-started"]`, `["api-reference/primitives/Thread"]`
+- Examples: Use `mcp__assistant-ui__assistantUIExamples` tool to find code examples (e.g., `"with-ai-sdk"`)
+- Component library: `@assistant-ui/react` is already installed in the project
 
 ❌ **AVOID**: Creating buttons with inline Tailwind classes
 

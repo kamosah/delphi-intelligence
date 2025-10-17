@@ -198,10 +198,12 @@ GET    /graphql                   # GraphQL endpoint
 
 **UI Package** (`/packages/ui`):
 
-- Reusable React components
-- Design system primitives
-- Consistent styling utilities
-- Component documentation ready
+- **Shadcn UI**: Design system primitives (Button, Card, Input, Badge, Progress, etc.)
+- **Assistant UI**: AI chat components (`@assistant-ui/react`)
+- Reusable React components built on top of Shadcn
+- Consistent styling with Tailwind CSS
+- Full Storybook documentation
+- Composable component architecture
 
 **Types Package** (`/packages/types`):
 
@@ -259,6 +261,41 @@ services:
 - Redis operations: All CRUD operations tested
 - API routes: Success and error cases
 
+**Frontend Testing**:
+
+- **Playwright**: End-to-end testing framework
+  - Authentication flow tests (login, signup, password reset)
+  - Mock API fixtures for isolated testing
+  - Headless and headed test modes
+  - Auto-wait for elements and network
+  - Visual regression testing ready
+
+- **Storybook**: Component development and testing
+  - Interactive component documentation
+  - Visual component library at http://localhost:6006
+  - Interaction tests with @storybook/test
+  - Accessibility checks ready
+  - Chromatic integration for visual regression
+
+**Running Frontend Tests**:
+
+```bash
+cd apps/web
+
+# Playwright E2E Tests
+npm run test:e2e                    # Run all e2e tests
+npm run test:e2e:ui                 # Run with UI mode
+npm run test:e2e:headed             # Run in headed mode
+npm run test:e2e:debug              # Debug mode
+npm run test:e2e:report             # View test report
+
+# Storybook
+npm run storybook                   # Start Storybook dev server
+npm run test-storybook              # Run interaction tests
+npm run test-storybook:ci           # Run in CI mode
+npm run build-storybook             # Build static Storybook
+```
+
 ### 🔄 **CI/CD Pipeline**
 
 **GitHub Actions Workflows**:
@@ -274,6 +311,8 @@ services:
   - TypeScript type checking
   - Next.js build verification
   - Prettier formatting validation
+  - Playwright E2E tests
+  - Storybook interaction tests
   - Runs on push/PR to main/develop branches
 
 **Code Quality Standards**:
@@ -637,7 +676,9 @@ Pre-commit hooks automatically:
 - [x] **Development Environment** - Hot reload and tooling
 - [x] **Authentication System** - Email verification, password reset, remember me
 - [x] **Document Upload API** - Supabase Storage integration with validation
-- [x] **CI/CD Pipeline** - GitHub Actions for linting, type checking, and builds
+- [x] **Document Upload UI Components** - Drag-and-drop with progress tracking
+- [x] **CI/CD Pipeline** - GitHub Actions for linting, type checking, builds, and tests
+- [x] **Testing Infrastructure** - Playwright E2E tests and Storybook interaction tests
 
 ### In Progress 🚧
 
