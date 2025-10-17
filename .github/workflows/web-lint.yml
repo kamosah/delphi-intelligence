@@ -136,7 +136,7 @@ jobs:
               run: npm ci
 
             - name: Check Prettier formatting
-              run: npx prettier --check "apps/web/**/*.{ts,tsx,js,jsx,json,css,md}"
+              run: npx prettier --check "apps/web/**/*.{ts,tsx,js,jsx,json,css,md}" --ignore-path .prettierignore
 
             - name: Format check failed
               if: failure()

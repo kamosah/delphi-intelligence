@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+test-results
+playwright-report
+playwright/.cache
+**/playwright-report/**
+**/test-results/**
+
+# Next.js
+.next
+out
+build
+
+# Storybook
+storybook-static
+
+# Misc
+.DS_Store
+*.pem
+
+# Local env files
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Build artifacts
+dist

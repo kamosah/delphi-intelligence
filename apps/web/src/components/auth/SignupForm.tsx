@@ -1,5 +1,6 @@
 'use client';
 
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { useAuth } from '@/hooks/useAuth';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,10 +13,9 @@ import {
   FormMessage,
   Input,
 } from '@olympus/ui';
-import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
@@ -38,11 +38,9 @@ const signupSchema = z
     confirmPassword: z
       .string()
       .min(1, { error: 'Please confirm your password' }),
-    acceptTerms: z
-      .boolean()
-      .refine((val) => val === true, {
-        error: 'You must accept the terms and conditions',
-      }),
+    acceptTerms: z.boolean().refine((val) => val === true, {
+      error: 'You must accept the terms and conditions',
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     error: "Passwords don't match",
