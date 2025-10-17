@@ -92,11 +92,12 @@ Create a simplified version of Athena Intelligence focusing on:
 - **Description**: Natural language interface for querying documents
 - **Features**:
   - Conversational query input
+  - Real-time streaming responses (SSE for ChatGPT-style typing effect)
   - Multi-document querying
   - Source citation for all responses
   - Query history and bookmarking
   - Follow-up question suggestions
-- **Technical**: LangChain for LLM integration, vector store for semantic search
+- **Technical**: LangChain for LLM integration, SSE for response streaming, vector store for semantic search
 
 #### 1.4 Activity Logging & Audit Trail
 
@@ -293,6 +294,7 @@ Based on Athena Intelligence's tech stack:
 - **Database**: Supabase PostgreSQL
 - **Session Store**: Redis
 - **Authentication**: JWT tokens with refresh mechanism
+- **Streaming**: Server-Sent Events (SSE) for AI response streaming
 - **File Storage**: Supabase Storage (or AWS S3)
 
 #### AI/ML Layer

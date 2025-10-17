@@ -3,8 +3,6 @@
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from app.services.extractors import DOCXExtractor, PDFExtractor, TextExtractor
 
 

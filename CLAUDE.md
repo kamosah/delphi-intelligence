@@ -274,6 +274,47 @@ class Query:
         user = request.state.user  # From middleware
 ```
 
+**Server-Sent Events (SSE)**: Streaming responses for AI queries
+
+```python
+from fastapi.responses import StreamingResponse
+import asyncio
+
+async def llm_stream_generator(query: str):
+    """Stream LLM response tokens for real-time UI updates."""
+    # Example: LangChain streaming
+    async for token in langchain_agent.stream(query):
+        yield f"data: {token}\n\n"
+        await asyncio.sleep(0)  # Allow other tasks to run
+
+@router.get("/api/query/stream")
+async def stream_query_response(query: str):
+    return StreamingResponse(
+        llm_stream_generator(query),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+```
+
+**Use cases for SSE**:
+
+- AI query response streaming (ChatGPT-style typing effect)
+- Document processing progress updates
+- Real-time status notifications
+
+**Frontend integration** (EventSource API):
+
+```typescript
+const eventSource = new EventSource(`/api/query/stream?query=${query}`);
+eventSource.onmessage = (event) => {
+  const token = event.data;
+  setResponse((prev) => prev + token);
+};
+```
+
 ### Testing Strategy
 
 Tests are located in `apps/api/tests/`:
@@ -346,6 +387,83 @@ queryKeys.documents.list('space-123'); // ['documents', 'list', 'space-123']
 - Input: `apps/api` GraphQL schema
 - Output: `apps/web/src/lib/api/generated.ts` (TypeScript types)
 - Config: `codegen.yml` and `codegen.introspect.yml`
+
+**SSE streaming with custom hook** (NOT React Query):
+
+```typescript
+// apps/web/src/hooks/useStreamingQuery.ts
+import { useState, useEffect, useCallback } from 'react';
+
+interface UseStreamingQueryOptions {
+  onComplete?: (fullResponse: string) => void;
+  onError?: (error: Error) => void;
+}
+
+export function useStreamingQuery(options?: UseStreamingQueryOptions) {
+  const [response, setResponse] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const startStreaming = useCallback((query: string) => {
+    setResponse('');
+    setError(null);
+    setIsStreaming(true);
+
+    const eventSource = new EventSource(
+      `/api/query/stream?query=${encodeURIComponent(query)}`
+    );
+
+    eventSource.onmessage = (event) => {
+      const token = event.data;
+      setResponse((prev) => prev + token);
+    };
+
+    eventSource.onerror = (err) => {
+      setIsStreaming(false);
+      eventSource.close();
+      const error = new Error('Stream error');
+      setError(error);
+      options?.onError?.(error);
+    };
+
+    // Custom "done" event from backend signals completion
+    eventSource.addEventListener('done', () => {
+      setIsStreaming(false);
+      eventSource.close();
+      options?.onComplete?.(response);
+    });
+
+    return () => {
+      eventSource.close();
+      setIsStreaming(false);
+    };
+  }, [options, response]);
+
+  return { response, isStreaming, error, startStreaming };
+}
+
+// Usage in component
+function QueryInterface() {
+  const { response, isStreaming, startStreaming } = useStreamingQuery({
+    onComplete: (fullResponse) => {
+      // Optionally save to React Query cache after streaming completes
+      queryClient.setQueryData(['query', queryId], fullResponse);
+    },
+  });
+
+  return (
+    <div>
+      <button onClick={() => startStreaming('What are the key risks?')}>
+        Ask Question
+      </button>
+      <div>{response}</div>
+      {isStreaming && <span>Typing...</span>}
+    </div>
+  );
+}
+```
+
+**Key principle**: React Query is for request/response patterns. Use custom hooks for streaming, then optionally cache results in React Query after streaming completes.
 
 ### Styling
 
@@ -1070,11 +1188,18 @@ Husky + lint-staged automatically:
 ### State Management Rules
 
 1. **Server data → React Query** (spaces, documents, users, queries)
-2. **UI state → Zustand** (theme, sidebar open/closed, current selections)
-3. **Form inputs → React Hook Form** (login form, document upload form)
-4. **Component state → useState** (dropdown open, hover state)
+2. **Streaming data → Custom hooks** (SSE streams for AI responses)
+3. **UI state → Zustand** (theme, sidebar open/closed, current selections)
+4. **Form inputs → React Hook Form** (login form, document upload form)
+5. **Component state → useState** (dropdown open, hover state)
 
-Never duplicate server data in Zustand. If it comes from the API, use React Query.
+**Important distinctions**:
+
+- **React Query**: Request/response patterns (fetch, mutations) - most API calls
+- **Custom hooks with EventSource**: Streaming patterns (SSE) - AI query responses, real-time updates
+- After SSE streaming completes, optionally cache result in React Query for history/persistence
+
+Never duplicate server data in Zustand. If it comes from the API, use React Query (or custom hook for streaming).
 
 ### GraphQL Code Generation
 

@@ -63,9 +63,7 @@ class DocumentProcessor:
         """
         try:
             # Fetch document from database
-            result = await db.execute(
-                select(Document).where(Document.id == document_id)
-            )
+            result = await db.execute(select(Document).where(Document.id == document_id))
             document = result.scalar_one_or_none()
 
             if not document:
@@ -99,8 +97,7 @@ class DocumentProcessor:
 
             if not result_data.success:
                 logger.error(
-                    f"Failed to extract text from document {document_id}: "
-                    f"{result_data.error}"
+                    f"Failed to extract text from document {document_id}: " f"{result_data.error}"
                 )
                 document.status = DocumentStatus.FAILED
                 document.processing_error = result_data.error
@@ -126,9 +123,7 @@ class DocumentProcessor:
 
             # Update document status to failed
             try:
-                result = await db.execute(
-                    select(Document).where(Document.id == document_id)
-                )
+                result = await db.execute(select(Document).where(Document.id == document_id))
                 document = result.scalar_one_or_none()
 
                 if document:
@@ -136,9 +131,7 @@ class DocumentProcessor:
                     document.processing_error = str(e)
                     await db.commit()
             except Exception as db_error:
-                logger.exception(
-                    f"Error updating document status after failure: {db_error}"
-                )
+                logger.exception(f"Error updating document status after failure: {db_error}")
 
 
 # Global processor instance

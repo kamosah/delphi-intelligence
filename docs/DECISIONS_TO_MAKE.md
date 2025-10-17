@@ -179,6 +179,97 @@ This document tracks important product, technical, and strategic decisions that 
 
 ---
 
+### Decision 2.4: Server-Sent Events for AI Response Streaming
+
+**Priority**: 🔴 High (Critical for AI query feature)
+**Impact**: User experience, streaming performance, implementation complexity
+
+**Question**: Should we use Server-Sent Events (SSE) for streaming LLM responses?
+
+**Context**:
+
+- AI query responses need "real-time streaming" (like ChatGPT typing effect)
+- LangChain supports streaming responses from LLMs
+- Users expect to see responses incrementally, not wait for entire response
+- SSE is purpose-built for server-to-client streaming
+
+**Options**:
+| Option | Pros | Cons | Best For |
+|--------|------|------|----------|
+| **Server-Sent Events (SSE)** | - Native browser support<br>- Simpler than WebSockets (one-way)<br>- FastAPI `StreamingResponse` built-in<br>- Perfect for LLM streaming<br>- Automatic reconnection | - One-way only (server → client)<br>- HTTP/1.1 connection limits | AI response streaming, progress updates |
+| **WebSockets** | - Two-way communication<br>- More flexible<br>- Can reuse for other features | - Overkill for one-way streaming<br>- More complex setup<br>- Connection management | When client needs to send data during streaming |
+| **Long Polling** | - Works everywhere<br>- Simple fallback | - Inefficient<br>- Higher latency<br>- Not real-time | Legacy browser support only |
+| **No Streaming (wait for full response)** | - Simplest implementation<br>- No complexity | - Poor UX (long wait times)<br>- Not modern AI experience<br>- No progress indication | Not recommended for AI queries |
+
+**Use Cases in Olympus MVP**:
+
+1. **AI Query Streaming** ✅ Perfect for SSE
+   - Stream LLM response tokens as they're generated
+   - Show "typing" effect like ChatGPT
+   - Display partial citations as they're found
+
+2. **Document Processing Updates** ✅ Good for SSE
+   - Stream processing progress (extracting page 5/100)
+   - Update status in real-time
+   - No need for client to poll
+
+3. **Real-Time Collaboration** ❌ Use WebSockets/Supabase Realtime
+   - Two-way communication needed
+   - Multiple users sending data
+
+**FastAPI Implementation Example**:
+
+```python
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import asyncio
+
+async def llm_stream_generator(query: str):
+    """Stream LLM response tokens."""
+    async for token in langchain_streaming_call(query):
+        yield f"data: {token}\n\n"
+        await asyncio.sleep(0)  # Allow other tasks to run
+
+@app.get("/api/query/stream")
+async def stream_query_response(query: str):
+    return StreamingResponse(
+        llm_stream_generator(query),
+        media_type="text/event-stream"
+    )
+```
+
+**Frontend Integration**:
+
+```typescript
+// Native EventSource API
+const eventSource = new EventSource(`/api/query/stream?query=${query}`);
+
+eventSource.onmessage = (event) => {
+  const token = event.data;
+  setResponse((prev) => prev + token); // Append to UI
+};
+
+eventSource.onerror = () => {
+  eventSource.close();
+};
+```
+
+**Recommendation**:
+
+- ✅ **Use SSE for AI query streaming** (high priority for good UX)
+- ✅ **Use SSE for document processing progress** (nice-to-have)
+- ❌ **Don't use SSE for collaboration features** (use Supabase Realtime/WebSockets)
+
+**Your Decision**: [ ] Use SSE [ ] Use WebSockets [ ] No streaming [ ] Decide later
+
+**Notes**:
+
+```
+[Space for your notes]
+```
+
+---
+
 ## 3. MVP Feature Priorities
 
 ### Decision 3.1: First Feature to Build
@@ -391,21 +482,22 @@ This project is created for educational and demonstrative purposes.
 
 ## Decision Summary (Quick Reference)
 
-| #   | Decision                 | Priority  | Status     | Notes                            |
-| --- | ------------------------ | --------- | ---------- | -------------------------------- |
-| 1.1 | Product Name             | 🔴 High   | ⏳ Pending | Keep "Olympus" or rename?        |
-| 1.2 | Public Positioning       | 🔴 High   | ⏳ Pending | Explicit attribution or subtle?  |
-| 1.3 | Tagline                  | 🟡 Medium | ⏳ Pending | "Your AI Analyst" or unique?     |
-| 2.1 | Vector Database          | 🔴 High   | ⏳ Pending | pgvector vs Pinecone             |
-| 2.2 | LLM Provider             | 🟡 Medium | ⏳ Pending | OpenAI, Anthropic, or both?      |
-| 2.3 | Real-Time Infrastructure | 🟢 Low    | ⏳ Pending | Supabase Realtime or WebSockets? |
-| 3.1 | First Feature            | 🔴 High   | ⏳ Pending | Document upload first?           |
-| 3.2 | MVP Scope                | 🟡 Medium | ⏳ Pending | What features required?          |
-| 4.1 | Target User              | 🟡 Medium | ⏳ Pending | Research analysts or general?    |
-| 4.2 | Deployment               | 🟢 Low    | ⏳ Pending | Vercel + Render?                 |
-| 4.3 | Monetization             | 🟢 Low    | ⏳ Pending | Open source or commercial?       |
-| 5.1 | License                  | 🟡 Medium | ⏳ Pending | MIT, Apache, GPL?                |
-| 5.2 | Disclaimer               | 🔴 High   | ⏳ Pending | Add attribution disclaimer?      |
+| #   | Decision                 | Priority  | Status     | Notes                               |
+| --- | ------------------------ | --------- | ---------- | ----------------------------------- |
+| 1.1 | Product Name             | 🔴 High   | ⏳ Pending | Keep "Olympus" or rename?           |
+| 1.2 | Public Positioning       | 🔴 High   | ⏳ Pending | Explicit attribution or subtle?     |
+| 1.3 | Tagline                  | 🟡 Medium | ⏳ Pending | "Your AI Analyst" or unique?        |
+| 2.1 | Vector Database          | 🔴 High   | ⏳ Pending | pgvector vs Pinecone                |
+| 2.2 | LLM Provider             | 🟡 Medium | ⏳ Pending | OpenAI, Anthropic, or both?         |
+| 2.3 | Real-Time Infrastructure | 🟢 Low    | ⏳ Pending | Supabase Realtime or WebSockets?    |
+| 2.4 | SSE for AI Streaming     | 🔴 High   | ⏳ Pending | Use SSE for LLM response streaming? |
+| 3.1 | First Feature            | 🔴 High   | ⏳ Pending | Document upload first?              |
+| 3.2 | MVP Scope                | 🟡 Medium | ⏳ Pending | What features required?             |
+| 4.1 | Target User              | 🟡 Medium | ⏳ Pending | Research analysts or general?       |
+| 4.2 | Deployment               | 🟢 Low    | ⏳ Pending | Vercel + Render?                    |
+| 4.3 | Monetization             | 🟢 Low    | ⏳ Pending | Open source or commercial?          |
+| 5.1 | License                  | 🟡 Medium | ⏳ Pending | MIT, Apache, GPL?                   |
+| 5.2 | Disclaimer               | 🔴 High   | ⏳ Pending | Add attribution disclaimer?         |
 
 ---
 
