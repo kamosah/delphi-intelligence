@@ -476,18 +476,8 @@ export default function LandingPage() {
 **Priority order for creating components**:
 
 1. Check if component exists in `packages/ui` (Shadcn/Design System)
-2. **Check if component exists in Assistant UI library** (`@assistant-ui/react`)
-   - Use Assistant UI MCP server to search documentation and find components
-   - Particularly useful for AI chat interfaces, message threads, and conversational UI
-   - Examples: Thread, Message, AssistantMessage, UserMessage, ComposerPrimitive
-3. Compose existing components to create new ones
-4. Only create new primitive components if absolutely necessary
-
-**Accessing Assistant UI Components**:
-
-- Documentation: Use `mcp__assistant-ui__assistantUIDocs` tool with paths like `["getting-started"]`, `["api-reference/primitives/Thread"]`
-- Examples: Use `mcp__assistant-ui__assistantUIExamples` tool to find code examples (e.g., `"with-ai-sdk"`)
-- Component library: `@assistant-ui/react` is already installed in the project
+2. Compose existing components to create new ones
+3. Only create new primitive components if absolutely necessary
 
 ❌ **AVOID**: Creating buttons with inline Tailwind classes
 
@@ -825,34 +815,6 @@ Step 6: Test in Storybook
 - Verify components render correctly
 ```
 
-### Assistant UI Integration
-
-When using Assistant UI components:
-
-```tsx
-// Example: Using Assistant UI thread component
-import { Thread } from '@assistant-ui/react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-
-export function ChatInterface() {
-  return (
-    <Card className="h-[600px]">
-      <Thread
-      // Assistant UI handles the chat interface
-      // Compose with our design system components
-      />
-    </Card>
-  );
-}
-```
-
-**Assistant UI best practices**:
-
-- Wrap Assistant UI components in design system Card/Container components
-- Use design system Button variants for Assistant UI actions
-- Maintain consistent spacing and typography with our theme
-
 ### Code Review Checklist
 
 Before considering a component complete:
@@ -1141,10 +1103,6 @@ These servers are automatically available when working in this project:
       "command": "npx",
       "args": ["shadcn@latest", "mcp"]
     },
-    "assistant-ui": {
-      "command": "npx",
-      "args": ["-y", "@assistant-ui/mcp-docs-server"]
-    },
     "linear": {
       "type": "stdio",
       "command": "npx",
@@ -1168,13 +1126,12 @@ These servers are automatically available when working in this project:
 **Purpose**:
 
 - **shadcn**: Access to Shadcn UI component registry for adding/searching design system components
-- **assistant-ui**: Documentation for Assistant UI chat components
 - **linear**: Integration with Linear for issue tracking, project management, and task creation
 - **supabase**: Direct access to Supabase management API (database operations, auth, storage)
 
 **Setup**:
 
-- **shadcn** and **assistant-ui**: No additional configuration required
+- **shadcn**: No additional configuration required
 - **linear**: Requires `LINEAR_API_KEY` environment variable (see setup instructions below)
 - **supabase**: Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (see setup instructions below)
 
@@ -1226,14 +1183,14 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
 ### Why Hybrid Configuration?
 
-| Configuration                      | Purpose                                                  | Location                           |
-| ---------------------------------- | -------------------------------------------------------- | ---------------------------------- |
-| **Project-specific** (`.mcp.json`) | Tools specific to Olympus project (shadcn, assistant-ui) | Committed to git, shared with team |
-| **Global** (`~/.claude.json`)      | Universal tools (filesystem, memory, postgres, ide)      | Personal config with credentials   |
+| Configuration                      | Purpose                                                      | Location                           |
+| ---------------------------------- | ------------------------------------------------------------ | ---------------------------------- |
+| **Project-specific** (`.mcp.json`) | Tools specific to Olympus project (shadcn, linear, supabase) | Committed to git, shared with team |
+| **Global** (`~/.claude.json`)      | Universal tools (filesystem, memory, postgres, ide)          | Personal config with credentials   |
 
 **Benefits**:
 
-- ✅ Team members automatically get project-specific tools (shadcn, assistant-ui)
+- ✅ Team members automatically get project-specific tools (shadcn, linear, supabase)
 - ✅ Database credentials stay out of version control
 - ✅ Personal development setup (database, file paths) stays private
 - ✅ Universal tools (filesystem, memory) available across all projects
@@ -1242,7 +1199,7 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
 **For new team members**:
 
-1. Project-specific servers (shadcn, assistant-ui) work automatically
+1. Project-specific servers (shadcn, linear, supabase) work automatically
 2. Configure global servers in `~/.claude.json`:
    - Add **postgres** with your local database connection string
    - Add **filesystem** with path to this repository
@@ -1271,9 +1228,9 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 - Check connection string matches your local setup
 - Ensure database exists: `olympus_mvp` for local Docker
 
-**Shadcn/Assistant UI not working**:
+**Shadcn not working**:
 
-- These should work automatically via `.mcp.json`
+- This should work automatically via `.mcp.json`
 - Try restarting Claude Code if just added
 
 ## Documentation

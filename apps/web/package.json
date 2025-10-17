@@ -25,7 +25,6 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@assistant-ui/react": "^0.11.28",
     "@hookform/resolvers": "^5.2.2",
     "@olympus/ui": "*",
     "@radix-ui/react-label": "^2.1.7",

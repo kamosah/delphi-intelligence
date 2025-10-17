@@ -199,7 +199,6 @@ GET    /graphql                   # GraphQL endpoint
 **UI Package** (`/packages/ui`):
 
 - **Shadcn UI**: Design system primitives (Button, Card, Input, Badge, Progress, etc.)
-- **Assistant UI**: AI chat components (`@assistant-ui/react`)
 - Reusable React components built on top of Shadcn
 - Consistent styling with Tailwind CSS
 - Full Storybook documentation

@@ -103,30 +103,6 @@ import { Sidebar } from '@/components/layout';
 <Sidebar />;
 ```
 
-### Query Components (Assistant-UI)
-
-#### CustomMessage
-
-Located: `src/components/query/CustomMessage.tsx`
-
-Features:
-
-- Role-based rendering (user/assistant)
-- Avatar display
-- Markdown content support
-- Timestamp display
-
-Usage:
-
-```tsx
-import { CustomMessage } from '@/components/query';
-
-// Used within Assistant-UI Thread
-<Thread>
-  <CustomMessage />
-</Thread>;
-```
-
 #### ToolCallBadge
 
 Located: `src/components/query/ToolCallBadge.tsx`
