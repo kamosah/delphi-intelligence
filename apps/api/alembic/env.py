@@ -57,7 +57,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def include_object(object, name, type_, reflected, compare_to):
+def include_object(object, name, type_, reflected, compare_to):  # noqa: ARG001
     """
     Filter objects to include/exclude from autogenerate.
 
@@ -66,15 +66,22 @@ def include_object(object, name, type_, reflected, compare_to):
     # Exclude Supabase internal schemas
     if type_ == "table":
         # Get schema name
-        schema = object.schema if hasattr(object, 'schema') else None
+        schema = object.schema if hasattr(object, "schema") else None
 
         # Exclude Supabase internal schemas
-        supabase_schemas = {'auth', 'storage', 'realtime', 'vault', 'supabase_migrations', 'extensions'}
+        supabase_schemas = {
+            "auth",
+            "storage",
+            "realtime",
+            "vault",
+            "supabase_migrations",
+            "extensions",
+        }
         if schema in supabase_schemas:
             return False
 
     # Exclude Supabase internal tables in public schema
-    if type_ == "table" and name in ['schema_migrations', 'supabase_migrations']:
+    if type_ == "table" and name in ["schema_migrations", "supabase_migrations"]:
         return False
 
     # Include everything else

@@ -26,7 +26,10 @@ class DocumentChunk(Base):
 
     # Document relationship
     document_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     # Chunk content

@@ -6,13 +6,13 @@ import pytest
 from uuid import uuid4
 
 from app.models.document import Document
-from app.services.chunking_service import ChunkingService, Chunk
+from app.services.chunking_service import ChunkingService
 
 
 class TestChunkingService:
     """Test cases for chunking service"""
 
-    @pytest.fixture
+    @pytest.fixture()
     def chunking_service(self):
         """Create a chunking service instance with default settings"""
         return ChunkingService(
@@ -22,7 +22,7 @@ class TestChunkingService:
             max_chunk_size=1000,
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def mock_document(self):
         """Create a mock document for testing"""
         document = Document()
@@ -159,8 +159,11 @@ class TestChunkingService:
         for chunk in chunks:
             chunk_text = chunk.text.strip()
             # Should end with proper punctuation
-            assert chunk_text[-1] in ['.', '!', '?'], \
-                f"Chunk {chunk.index} doesn't end with sentence terminator: '{chunk_text[-20:]}'"
+            assert chunk_text[-1] in [
+                ".",
+                "!",
+                "?",
+            ], f"Chunk {chunk.index} doesn't end with sentence terminator: '{chunk_text[-20:]}'"
 
     def test_empty_text(self, chunking_service, mock_document):
         """Test handling of empty text"""
@@ -229,7 +232,7 @@ class TestChunkingService:
             if i > 0:
                 # Next chunk should start at or before previous chunk's end
                 # (due to overlap)
-                assert chunk.start_char <= chunks[i-1].end_char
+                assert chunk.start_char <= chunks[i - 1].end_char
 
     def test_custom_chunk_sizes(self):
         """Test chunking with custom size parameters"""
@@ -288,7 +291,7 @@ class TestChunkingService:
 class TestChunkingServiceDatabase:
     """Test cases for chunking service with database operations"""
 
-    @pytest.fixture
+    @pytest.fixture()
     def mock_document_async(self):
         """Create a mock document for async tests"""
         document = Document()

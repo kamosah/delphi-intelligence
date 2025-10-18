@@ -82,7 +82,7 @@ class ChunkingService:
             List of sentences
         """
         # Use NLTK's punkt tokenizer for sentence splitting
-        sentences = nltk.sent_tokenize(text)
+        sentences: list[str] = nltk.sent_tokenize(text)
         return sentences
 
     def chunk_text(
@@ -175,19 +175,17 @@ class ChunkingService:
                     document=document,
                 )
                 chunks.append(chunk)
-            else:
-                # Append to last chunk if too small
-                if chunks:
-                    last_chunk = chunks[-1]
-                    combined_text = last_chunk.text + " " + " ".join(current_sentences)
-                    chunks[-1] = Chunk(
-                        text=combined_text,
-                        index=last_chunk.index,
-                        token_count=self.count_tokens(combined_text),
-                        start_char=last_chunk.start_char,
-                        end_char=char_position,
-                        metadata=last_chunk.metadata,
-                    )
+            elif chunks:
+                last_chunk = chunks[-1]
+                combined_text = last_chunk.text + " " + " ".join(current_sentences)
+                chunks[-1] = Chunk(
+                    text=combined_text,
+                    index=last_chunk.index,
+                    token_count=self.count_tokens(combined_text),
+                    start_char=last_chunk.start_char,
+                    end_char=char_position,
+                    metadata=last_chunk.metadata,
+                )
 
         logger.info(
             f"Created {len(chunks)} chunks for document {document.id} "
