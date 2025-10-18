@@ -3,6 +3,7 @@
 An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/), featuring an AI-native platform (Olympus) with autonomous AI analysts (Athena) for document intelligence and analysis.
 
 **Inspired by**: [Athena Intelligence](https://www.athenaintel.com/) - The first artificial data analyst
+
 **Tech Stack**: Next.js 14, FastAPI, Supabase PostgreSQL, LangChain + LangGraph
 
 ## About This Project
@@ -453,32 +454,34 @@ CORS_ORIGINS=["http://localhost:3000"]
 
 ## 🛠️ Database Migrations
 
-### Automated Migration System
+### Migration System
 
-The project includes a sophisticated migration system that supports both local PostgreSQL and Supabase:
+The project uses a hybrid migration system that supports both local PostgreSQL and Supabase:
 
 ```bash
 # Navigate to API directory
 cd apps/api
 
-# Check database connection
-./scripts/migrate.sh check
+# Using Docker (recommended for local development)
+docker-compose exec api poetry run alembic upgrade head      # Apply migrations
+docker-compose exec api poetry run alembic current           # Show current version
+docker-compose exec api poetry run alembic history           # Show all migrations
+docker-compose exec api poetry run alembic downgrade -1      # Rollback one migration
+docker-compose exec api poetry run alembic revision --autogenerate -m "Description"
 
-# Generate new migration (manual creation recommended)
-./scripts/migrate.sh --supabase generate "Add new feature"
-
-# Apply migrations via MCP server (recommended for Supabase)
-# Migrations are applied automatically via Supabase MCP integration
-
-# Check migration status
-./scripts/migrate.sh status
+# Using Alembic directly (local environment without Docker)
+poetry run alembic upgrade head                              # Apply migrations
+poetry run alembic revision --autogenerate -m "Description"  # Generate migration
+poetry run alembic current                                   # Show current version
+poetry run alembic history                                   # Show all migrations
 ```
 
 ### Migration Workflow
 
-1. **Create migration file** manually in `alembic/versions/`
-2. **Apply via Supabase MCP server** (bypasses pooler issues)
-3. **Track in Alembic** by inserting into `alembic_version` table
+1. **Create migration file** manually in `alembic/versions/` or use `--autogenerate`
+2. **Review migration** to ensure correctness before applying
+3. **Apply via Supabase MCP server** (for Supabase database, bypasses pooler issues)
+4. **Track in Alembic** by updating `alembic_version` table
 
 See `apps/api/MIGRATION_AUTOMATION.md` for detailed documentation.
 
@@ -533,7 +536,7 @@ This monorepo uses Turborepo for:
 - **Redis 7**: Caching and sessions
 - **Docker Compose**: Local service orchestration
 
-## 🏃‍♂️ Application Details
+## 🌐 Application Details
 
 ### Frontend (`/apps/web`)
 
@@ -542,13 +545,13 @@ This monorepo uses Turborepo for:
 - **Styling**: Tailwind CSS
 - **Authentication**: Supabase Auth integration
 - **Features**:
-- Landing page with navigation
-- Authentication flow (login/signup/reset)
-- Dashboard with sidebar navigation
-- Document management interface
-- Query interface for AI interactions
-- Settings and profile management
-- JWT authentication with React Query state management**Available Routes**:
+  - Landing page with navigation
+  - Authentication flow (login/signup/reset)
+  - Dashboard with sidebar navigation
+  - Document management interface
+  - Query interface for AI interactions
+  - Settings and profile management
+  - JWT authentication with React Query state management**Available Routes**:
 
 - `/` - Landing page
 - `/login` - User authentication
