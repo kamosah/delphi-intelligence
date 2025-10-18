@@ -2,6 +2,8 @@
 Tests for document chunking service
 """
 
+import time
+
 import pytest
 from uuid import uuid4
 
@@ -285,6 +287,76 @@ class TestChunkingService:
         # Verify no data loss (approximately)
         total_chunk_length = sum(len(chunk.text) for chunk in chunks)
         assert total_chunk_length > 0
+
+    @pytest.mark.benchmark
+    def test_chunk_100_page_document_performance(self, chunking_service, mock_document):
+        """
+        Performance benchmark: Test chunking a 100-page document completes in < 60 seconds.
+
+        This test simulates a realistic large document (100 pages, ~50,000 tokens)
+        and verifies that chunking performance meets the requirement of < 1 minute.
+        """
+        # Generate a 100-page document
+        # Average page: ~500 tokens (~3000 characters with spaces)
+        # 100 pages = ~50,000 tokens = ~300,000 characters
+
+        # Create realistic-looking text with varied sentence structures
+        paragraphs = [
+            "This is a comprehensive analysis of the quarterly financial performance. "
+            "The results demonstrate significant growth across all key metrics. "
+            "Revenue increased by twenty-five percent compared to the previous quarter. "
+            "Operating expenses remained well-controlled despite market volatility. "
+            "The management team has implemented several strategic initiatives. ",
+            "Market conditions presented both challenges and opportunities during this period. "
+            "Consumer demand showed resilience in the face of economic headwinds. "
+            "Our product portfolio continues to gain traction in target demographics. "
+            "Customer satisfaction scores reached all-time highs according to recent surveys. "
+            "The competitive landscape remains dynamic with new entrants and innovations. ",
+            "Looking ahead, we anticipate continued momentum in our core business segments. "
+            "Investment in research and development will accelerate in the coming months. "
+            "Strategic partnerships are being explored to expand our market reach. "
+            "Operational efficiency initiatives are expected to yield additional savings. "
+            "The board of directors remains confident in our long-term strategy and execution. ",
+        ]
+
+        # Generate ~100 pages worth of text
+        # Each paragraph ~500 characters, need ~600 paragraphs for 300k characters
+        page_text = " ".join(paragraphs)
+        large_text = (page_text + "\n\n") * 200  # ~50,000 tokens
+
+        mock_document.extracted_text = large_text
+        mock_document.doc_metadata = {"page_count": 100}
+
+        # Measure chunking performance
+        start_time = time.time()
+        chunks = chunking_service.chunk_text(large_text, mock_document)
+        elapsed_time = time.time() - start_time
+
+        # Performance assertion: must complete in < 60 seconds
+        assert elapsed_time < 60.0, (
+            f"Chunking took {elapsed_time:.2f}s, expected < 60s. "
+            f"Performance requirement not met for 100-page document."
+        )
+
+        # Verify reasonable chunk count (roughly 50-70 chunks for 50k tokens)
+        assert len(chunks) >= 40, f"Expected at least 40 chunks, got {len(chunks)}"
+        assert len(chunks) <= 100, f"Expected at most 100 chunks, got {len(chunks)}"
+
+        # Verify all chunks are within size limits
+        for chunk in chunks:
+            assert 500 <= chunk.token_count <= 1000 or chunk == chunks[-1]
+
+        # Log performance metrics
+        print("\n=== Chunking Performance Benchmark ===")
+        print(f"Document size: ~{len(large_text):,} characters")
+        print(f"Token count: ~{chunking_service.count_tokens(large_text):,} tokens")
+        print(f"Chunks created: {len(chunks)}")
+        print(f"Time elapsed: {elapsed_time:.2f}s")
+        print(
+            f"Throughput: {chunking_service.count_tokens(large_text) / elapsed_time:.0f} tokens/sec"
+        )
+        print(f"Performance: {'✓ PASS' if elapsed_time < 60 else '✗ FAIL'}")
+        print("=======================================")
 
 
 @pytest.mark.asyncio

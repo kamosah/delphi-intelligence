@@ -3,7 +3,8 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,8 +43,8 @@ class DocumentChunk(Base):
     token_count: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Vector embedding (populated by embedding service)
-    # Using BYTEA for now - will be converted to pgvector type when embedding is implemented
-    embedding: Mapped[bytes | None] = mapped_column(String, nullable=True)
+    # Using pgvector for 1536-dimensional embeddings (text-embedding-3-small)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
 
     # Chunk metadata: {page_num, start_char, end_char, document_title, space_id, ...}
     chunk_metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)

@@ -42,6 +42,9 @@ pymupdf = "^1.23.0"  # PDF extraction
 python-docx = "^1.1.0"  # DOCX extraction
 tiktoken = "^0.5.0"  # Token counting for OpenAI models
 nltk = "^3.8.0"  # Sentence splitting and NLP
+openai = "^1.3.0"  # OpenAI API client for embeddings
+tenacity = "^8.2.0"  # Retry logic for API calls
+pgvector = "^0.2.0"  # PostgreSQL vector extension support
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
@@ -169,6 +172,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "app/auth/service.py" = ["PLW0603"]
 # Route files may have unused arguments for future implementation
 "app/routes/*.py" = ["ARG001"]
+# Document processor has complex pipeline orchestration
+"app/services/document_processor.py" = ["PLR0915"]  # Too many statements (pipeline orchestration)
 # Scripts can have print statements and subprocess calls for utility purposes
 "scripts/**/*.py" = [
     "T201",    # Print statements

@@ -44,6 +44,20 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expiration_hours: int = Field(default=24, description="JWT expiration time in hours")
 
+    # OpenAI Configuration
+    openai_api_key: str = Field(
+        default="", description="OpenAI API key for embeddings and AI features"
+    )
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small", description="OpenAI embedding model"
+    )
+    openai_embedding_batch_size: int = Field(
+        default=100, description="Batch size for embedding generation"
+    )
+    openai_max_retries: int = Field(
+        default=3, description="Maximum retry attempts for OpenAI API calls"
+    )
+
     @property
     def db_url(self) -> str:
         """Get the database URL."""

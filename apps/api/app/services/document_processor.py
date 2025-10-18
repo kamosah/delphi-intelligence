@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session_factory
 from app.models.document import Document, DocumentStatus
 from app.services.chunking_service import chunk_document
+from app.services.embedding_service import embed_document
 from app.services.extractors import BaseExtractor, DOCXExtractor, PDFExtractor, TextExtractor
 
 logger = logging.getLogger(__name__)
@@ -108,7 +109,6 @@ class DocumentProcessor:
             # Update document with extracted text and metadata
             document.extracted_text = result_data.text
             document.doc_metadata = result_data.metadata
-            document.status = DocumentStatus.PROCESSED
             document.processed_at = datetime.now(UTC)
             document.processing_error = None
 
@@ -123,10 +123,34 @@ class DocumentProcessor:
             try:
                 chunks = await chunk_document(document, db)
                 logger.info(f"Created {len(chunks)} chunks for document {document_id}")
+
+                # Generate embeddings for chunks
+                try:
+                    embedded_count = await embed_document(document, db)
+                    logger.info(
+                        f"Generated embeddings for {embedded_count} chunks of document {document_id}"
+                    )
+
+                    # Mark document as fully processed (with embeddings)
+                    document.status = DocumentStatus.PROCESSED
+                    await db.commit()
+
+                except Exception as embed_error:
+                    logger.exception(
+                        f"Error generating embeddings for document {document_id}: {embed_error}"
+                    )
+                    # Set document as processed but note the embedding error
+                    document.status = DocumentStatus.PROCESSED
+                    document.processing_error = f"Embeddings failed: {embed_error}"
+                    await db.commit()
+
             except Exception as chunk_error:
                 logger.exception(f"Error chunking document {document_id}: {chunk_error}")
                 # Don't fail the entire processing if chunking fails
                 # Document text extraction was successful
+                document.status = DocumentStatus.PROCESSED
+                document.processing_error = f"Chunking failed: {chunk_error}"
+                await db.commit()
 
         except Exception as e:
             logger.exception(f"Error processing document {document_id}: {e}")
