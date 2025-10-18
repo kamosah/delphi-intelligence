@@ -267,7 +267,7 @@ class EmbeddingService:
         test_embedding = await self.generate_embedding("test")
         return len(test_embedding)
 
-    async def estimate_cost(
+    def estimate_cost(
         self,
         token_count: int,
         model: str | None = None,
