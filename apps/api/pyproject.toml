@@ -40,6 +40,8 @@ email-validator = "^2.3.0"
 # Document Processing
 pymupdf = "^1.23.0"  # PDF extraction
 python-docx = "^1.1.0"  # DOCX extraction
+tiktoken = "^0.5.0"  # Token counting for OpenAI models
+nltk = "^3.8.0"  # Sentence splitting and NLP
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

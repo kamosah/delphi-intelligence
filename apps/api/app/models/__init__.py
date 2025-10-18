@@ -2,6 +2,7 @@
 
 from .base import Base
 from .document import Document, DocumentStatus
+from .document_chunk import DocumentChunk
 from .query import Query
 from .space import MemberRole, Space, SpaceMember
 from .user import User
@@ -16,5 +17,6 @@ __all__ = [
     "MemberRole",
     "Document",
     "DocumentStatus",
+    "DocumentChunk",
     "Query",
 ]

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
+    from .document_chunk import DocumentChunk
     from .space import Space
     from .user import User
 
@@ -67,6 +68,10 @@ class Document(Base):
     space: Mapped["Space"] = relationship("Space", back_populates="documents")
 
     uploader: Mapped["User"] = relationship("User", back_populates="uploaded_documents")
+
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """String representation of the document."""

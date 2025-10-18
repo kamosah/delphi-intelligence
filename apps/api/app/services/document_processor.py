@@ -1,13 +1,14 @@
 """Document processing service for text extraction."""
 
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session_factory
 from app.models.document import Document, DocumentStatus
+from app.services.chunking_service import chunk_document
 from app.services.extractors import BaseExtractor, DOCXExtractor, PDFExtractor, TextExtractor
 
 logger = logging.getLogger(__name__)
@@ -117,6 +118,15 @@ class DocumentProcessor:
                 f"Successfully processed document {document_id}: "
                 f"{result_data.metadata.get('word_count', 0)} words extracted"
             )
+
+            # Create text chunks for embedding
+            try:
+                chunks = await chunk_document(document, db)
+                logger.info(f"Created {len(chunks)} chunks for document {document_id}")
+            except Exception as chunk_error:
+                logger.exception(f"Error chunking document {document_id}: {chunk_error}")
+                # Don't fail the entire processing if chunking fails
+                # Document text extraction was successful
 
         except Exception as e:
             logger.exception(f"Error processing document {document_id}: {e}")
