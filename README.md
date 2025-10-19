@@ -4,7 +4,7 @@ An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/)
 
 **Inspired by**: [Athena Intelligence](https://www.athenaintel.com/) - The first artificial data analyst
 
-**Tech Stack**: Next.js 14, FastAPI, Supabase PostgreSQL, LangChain + LangGraph
+**Tech Stack**: Next.js 14, FastAPI, Supabase PostgreSQL, LangChain + LangGraph + CrewAI
 
 ## About This Project
 
@@ -50,8 +50,10 @@ This project recreates the core features of [Athena Intelligence](https://www.at
 
 - ✅ Authentication system (complete with email verification)
 - ✅ Document upload API with Supabase Storage (complete)
+- ✅ LangChain + LangGraph simple query agent (complete - LOG-136)
 - 🚧 Document processing and extraction (in progress)
-- ⏳ AI-powered querying with LangChain/LangGraph
+- 🚧 AI-powered querying with RAG and citations (in progress)
+- ⏳ Multi-agent workflows with CrewAI (Phase 3-4)
 - ⏳ Natural language interface with source citations
 - ⏳ Workspace collaboration features
 
@@ -684,15 +686,31 @@ Pre-commit hooks automatically:
 
 ### In Progress 🚧
 
-- [ ] **Document Processing** - Text extraction and analysis
-- [ ] **AI Integration** - LangChain/LangGraph query system
-- [ ] **Search Functionality** - Vector search and semantic queries
+- [ ] **Document Processing** - Text extraction and chunking pipeline
+- [x] **AI Agent Foundation** - LangGraph simple query agent (LOG-136 complete)
+- [ ] **Vector Search** - pgvector integration for semantic search
+- [ ] **RAG Pipeline** - Document retrieval and citation tracking
+- [x] **Architecture Decision** - ADR-002 hybrid LangGraph + CrewAI (complete)
 
 ### Upcoming 📋
 
+**Phase 3: Multi-Agent Orchestration**
+
+- [ ] **CrewAI Integration** - Multi-agent workflow orchestration
+- [ ] **Financial Analysis Crew** - Specialized agents for SEC filings and earnings reports
+- [ ] **Legal Review Crew** - Contract analysis and compliance checking
+- [ ] **Research Synthesis** - Multi-document analysis with domain expertise
+
+**Phase 4: Workflow Automation**
+
+- [ ] **User-Defined Workflows** - Custom agent teams and task automation
+- [ ] **Scheduled Research** - Daily/weekly automated analysis tasks
+- [ ] **Trigger-Based Actions** - Document upload → crew processing pipelines
+
+**General**
+
 - [ ] **User Management** - Profile settings and team collaboration
 - [ ] **GraphQL Mutations** - Document and query management via GraphQL
-- [ ] **Testing Suite** - Comprehensive E2E and integration tests
 - [ ] **Production Deployment** - Hosting and monitoring setup
 - [ ] **Real-time Collaboration** - WebSocket support for live updates
 

@@ -270,10 +270,15 @@ Create a simplified version of Athena Intelligence focusing on:
 
 Based on Athena Intelligence's tech stack:
 
-- **Agent Framework**: LangChain + LangGraph for multi-agent workflows
+- **Agent Framework**: Hybrid approach (see ADR-002)
+  - LangChain (foundation layer)
+  - LangGraph (simple RAG queries)
+  - CrewAI (multi-agent orchestration - Phase 3+)
 - **Observability**: LangSmith for development and production monitoring
 - **Model Agnostic**: Support multiple LLM providers (OpenAI, Anthropic, etc.)
-- **Stateful Agents**: LangGraph for complex, stateful agent orchestration
+- **Orchestration Strategy**: Best tool for each complexity level
+  - Simple queries → LangGraph (fast, deterministic)
+  - Complex research → CrewAI (specialized agent teams)
 
 ### MVP Tech Stack (Current Implementation)
 
@@ -299,11 +304,14 @@ Based on Athena Intelligence's tech stack:
 
 #### AI/ML Layer
 
-- **LLM Framework**: LangChain + LangGraph (to be integrated)
-- **Vector Database**: Pinecone or pgvector (PostgreSQL extension)
+- **LLM Framework**:
+  - LangChain (foundation - implemented)
+  - LangGraph (simple RAG queries - implemented)
+  - CrewAI (multi-agent orchestration - Phase 3+)
+- **Vector Database**: pgvector (PostgreSQL extension)
 - **LLM Providers**: OpenAI GPT-4, Anthropic Claude (multi-provider support)
 - **Observability**: LangSmith for agent debugging and monitoring
-- **Document Processing**: PyMuPDF, python-docx, pandas
+- **Document Processing**: PyMuPDF, python-docx, pandas, tiktoken
 
 ---
 
@@ -481,25 +489,35 @@ SpaceMembership (for collaboration)
 ### Phase 2: Document Intelligence (4 weeks)
 
 - [ ] Document processing pipeline (text extraction, chunking)
-- [ ] Vector database integration (pgvector or Pinecone)
-- [ ] LangChain + LangGraph agent setup
+- [ ] Vector database integration (pgvector)
+- [x] LangChain + LangGraph agent setup (LOG-136 complete)
 - [ ] Basic query interface with RAG
 - [ ] Citation tracking and source attribution
+- [x] ADR-002: Hybrid LangGraph + CrewAI architecture (complete)
+- [ ] CrewAI dependency integration and proof-of-concept
 
-### Phase 3: AI Agent (4 weeks)
+### Phase 3: AI Agent & Multi-Agent Orchestration (4 weeks)
 
 - [ ] Multi-document query support
 - [ ] Advanced reasoning with LangGraph
 - [ ] Query history and bookmarking
 - [ ] LangSmith observability integration
 - [ ] Confidence scoring for responses
+- [ ] CrewAI financial analysis crew (first specialized team)
+- [ ] Multi-document research synthesis endpoint
+- [ ] Crew result caching for performance
+- [ ] Domain-specific agent teams (legal review, market research)
 
-### Phase 4: Collaboration (3 weeks)
+### Phase 4: Collaboration & Workflow Automation (4 weeks)
 
 - [ ] Space sharing and permissions
 - [ ] Real-time presence indicators
 - [ ] Comments and annotations
 - [ ] Activity feed and notifications
+- [ ] User-defined workflow creation UI
+- [ ] Scheduled crew execution (daily/weekly research tasks)
+- [ ] Trigger-based workflows (document upload → crew processing)
+- [ ] Workflow template library (financial, legal, research)
 
 ### Phase 5: Polish & Launch (3 weeks)
 
@@ -509,7 +527,9 @@ SpaceMembership (for collaboration)
 - [ ] Documentation and help center
 - [ ] Beta launch
 
-**Total Timeline**: ~18 weeks (4.5 months) to MVP launch
+**Total Timeline**: ~19 weeks (4.75 months) to MVP launch
+
+_Updated to include CrewAI multi-agent workflows and automation in Phase 3-4_
 
 ---
 
@@ -522,7 +542,7 @@ SpaceMembership (for collaboration)
 | AI-powered document analysis           | ✅                  | ✅                   | ⏳ Planned     |
 | Natural language querying              | ✅                  | ✅                   | ⏳ Planned     |
 | Source citations                       | ✅                  | ✅                   | ⏳ Planned     |
-| Multi-agent workflows                  | ✅                  | ❌                   | Future         |
+| Multi-agent workflows                  | ✅                  | ✅ (CrewAI)          | 🚧 Phase 3-4   |
 | Real-time collaboration                | ✅                  | ✅                   | ⏳ Planned     |
 | Audit trails & logging                 | ✅                  | ✅                   | ⏳ Planned     |
 | Slack/email integration                | ✅                  | ❌                   | Future         |

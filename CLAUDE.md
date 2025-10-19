@@ -1163,6 +1163,57 @@ Husky + lint-staged automatically:
 1. Update `apps/api/.env`: `USE_LOCAL_DB=true`
 2. Restart: `docker-compose restart api`
 
+### Choosing Between LangGraph and CrewAI for AI Agents
+
+**Decision Framework** (see ADR-002 for full details):
+
+**Use LangGraph when:**
+
+- Single-document Q&A query
+- User expects response in < 10 seconds
+- Simple retrieve → generate → cite pattern
+- Need granular control over agent state and transitions
+- Direct SSE streaming for real-time UI updates
+
+**Use CrewAI when:**
+
+- Multi-document research synthesis across sources
+- Domain-specific analysis (financial, legal, market research)
+- Complex workflows with multiple specialized agent roles
+- User-defined automation workflows (triggers, scheduled tasks)
+- Need built-in orchestration patterns (sequential, parallel, hierarchical)
+
+**Examples:**
+
+```python
+# LangGraph - Simple query (already implemented)
+from app.agents.query_agent import create_query_agent
+
+agent = create_query_agent()
+result = await agent.ainvoke({
+    "query": "What are the key risks in this 10-K?",
+    "context": [],
+    "response": None,
+    "citations": []
+})
+
+# CrewAI - Complex multi-agent workflow (Phase 3+)
+from app.services.crew_orchestrator import ResearchOrchestrator
+
+orchestrator = ResearchOrchestrator()
+result = await orchestrator.run_research_workflow(
+    workflow_type='financial_analysis',
+    documents=quarterly_earnings_reports
+)
+# Returns: Multi-document analysis with specialized agent insights
+```
+
+**Shared Infrastructure:**
+
+- Both use `app/services/langchain_config.py` for LLM configuration
+- Both integrated with LangSmith for observability
+- Both use same pgvector database for document retrieval
+
 ## Important Notes
 
 ### Git Commit Guidelines
@@ -1370,6 +1421,7 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
 **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS, Shadcn-ui, React Query, Zustand, GraphQL Request
 **Backend**: FastAPI, Strawberry GraphQL, SQLAlchemy, Alembic, Redis, Pydantic
+**AI/ML Layer**: LangChain (foundation), LangGraph (simple queries), CrewAI (multi-agent workflows - Phase 3+), pgvector (vector search), LangSmith (observability)
 **Database**: Supabase PostgreSQL (or Docker PostgreSQL for local dev)
 **Testing**: Pytest (backend), Vitest/Playwright (frontend - planned)
 **Tooling**: Turborepo, Poetry, Docker, Ruff, ESLint, Prettier
