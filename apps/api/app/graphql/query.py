@@ -7,8 +7,9 @@ import strawberry
 
 from app.db.session import get_session
 from app.models.user import User as UserModel
+from app.services.vector_search_service import get_vector_search_service
 
-from .types import User
+from .types import SearchDocumentsInput, SearchResult, User
 
 
 @strawberry.type
@@ -61,3 +62,61 @@ class Query:
     async def health(self) -> str:
         """Health check endpoint for GraphQL."""
         return "GraphQL API is healthy!"
+
+    @strawberry.field
+    async def search_documents(self, input: SearchDocumentsInput) -> list[SearchResult]:
+        """
+        Perform semantic search across document chunks.
+
+        Args:
+            input: Search parameters including query text and filters
+
+        Returns:
+            List of search results ordered by relevance
+
+        Example query:
+            query {
+              searchDocuments(input: {
+                query: "What are the key risks?",
+                spaceId: "space-uuid",
+                limit: 5,
+                similarityThreshold: 0.7
+              }) {
+                chunk {
+                  chunkText
+                  chunkIndex
+                  tokenCount
+                }
+                document {
+                  name
+                  fileType
+                }
+                similarityScore
+                distance
+              }
+            }
+        """
+        async for session in get_session():
+            # Get vector search service
+            search_service = get_vector_search_service()
+
+            # Convert strawberry.ID to UUID for space_id and document_ids
+            space_id = UUID(str(input.space_id)) if input.space_id else None
+            document_ids = (
+                [UUID(str(doc_id)) for doc_id in input.document_ids] if input.document_ids else None
+            )
+
+            # Perform search
+            results = await search_service.search_similar_chunks(
+                query=input.query,
+                db=session,
+                space_id=space_id,
+                document_ids=document_ids,
+                limit=input.limit,
+                similarity_threshold=input.similarity_threshold,
+            )
+
+            # Convert service results to GraphQL types
+            return [SearchResult.from_service_result(result) for result in results]
+
+        return []
