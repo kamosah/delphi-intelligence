@@ -58,6 +58,28 @@ class Settings(BaseSettings):
         default=3, description="Maximum retry attempts for OpenAI API calls"
     )
 
+    # LangChain LLM Configuration
+    openai_chat_model: str = Field(
+        default="gpt-4-turbo-preview", description="OpenAI chat model for AI agent"
+    )
+    openai_temperature: float = Field(
+        default=0.0, description="Temperature for LLM responses (0.0 = deterministic)"
+    )
+    openai_max_tokens: int = Field(
+        default=2000, description="Maximum tokens in LLM response"
+    )
+
+    # LangSmith Configuration (Optional Observability)
+    langchain_tracing_v2: bool = Field(
+        default=False, description="Enable LangSmith tracing"
+    )
+    langchain_api_key: str = Field(
+        default="", description="LangSmith API key for observability"
+    )
+    langchain_project: str = Field(
+        default="olympus-mvp", description="LangSmith project name"
+    )
+
     @property
     def db_url(self) -> str:
         """Get the database URL."""

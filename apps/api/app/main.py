@@ -12,6 +12,7 @@ from app.middleware.auth import AuthenticationMiddleware
 from app.routes import health
 from app.routes.auth import router as auth_router
 from app.routes.documents import router as documents_router
+from app.routes.query_stream import router as query_stream_router
 
 
 def create_app() -> FastAPI:
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(auth_router)
     app.include_router(documents_router)
+    app.include_router(query_stream_router)
     app.include_router(health.router)
     app.include_router(graphql_app, prefix="/graphql")
 
