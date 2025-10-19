@@ -1,7 +1,7 @@
 """GraphQL types for the application."""
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Any
 
 import strawberry
 
@@ -67,7 +67,7 @@ class Document:
     size_bytes: int
     status: str
     extracted_text: str | None
-    doc_metadata: strawberry.scalars.JSON | None
+    doc_metadata: strawberry.scalars.JSON | None  # type: ignore[valid-type]
     processed_at: datetime | None
     processing_error: str | None
     uploaded_by: strawberry.ID
@@ -104,7 +104,7 @@ class DocumentChunk:
     chunk_text: str
     chunk_index: int
     token_count: int
-    chunk_metadata: strawberry.scalars.JSON
+    chunk_metadata: strawberry.scalars.JSON  # type: ignore[valid-type]
     start_char: int
     end_char: int
     created_at: datetime
