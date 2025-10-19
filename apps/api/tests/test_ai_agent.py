@@ -186,7 +186,7 @@ class TestAIAgentService:
         events = []
 
         # Mock the streaming response
-        async def mock_generate_streaming(state):  # noqa: ARG001
+        async def mock_generate_streaming(state):
             yield "Hello "
             yield "world!"
 
