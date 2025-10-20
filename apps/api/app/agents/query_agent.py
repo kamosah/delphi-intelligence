@@ -5,58 +5,103 @@ This module implements a stateful agent for processing natural language queries
 with document context retrieval and citation support.
 """
 
+import logging
 import re
 from typing import Any, TypedDict
+from uuid import UUID
 from collections.abc import AsyncGenerator
 
 from langchain.schema import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.langchain_config import get_llm
+from app.services.vector_search_service import SearchResult, get_vector_search_service
+
+logger = logging.getLogger(__name__)
 
 
-class AgentState(TypedDict):
+class AgentState(TypedDict, total=False):
     """
     State for the query processing agent.
 
     Attributes:
         query: User's natural language question
-        context: Retrieved document chunks for context
+        context: Retrieved document chunks for context (text only)
         response: Generated response from the LLM
         citations: List of source citations with metadata
+        db: Database session for vector search (optional)
+        space_id: Space ID to filter search results (optional)
+        search_results: Full search results with metadata (optional)
     """
 
     query: str
     context: list[str]
     response: str | None
     citations: list[dict[str, Any]]
+    db: AsyncSession | None
+    space_id: UUID | None
+    search_results: list[SearchResult] | None
 
 
 async def retrieve_context(state: AgentState) -> AgentState:
     """
-    Retrieve relevant document chunks for the query.
+    Retrieve relevant document chunks for the query using vector similarity search.
 
-    This is a placeholder that will be integrated with the vector search service.
-    For now, it returns empty context to allow basic agent testing.
+    Uses the vector search service to find the top-k most relevant chunks
+    based on semantic similarity to the query.
 
     Args:
-        state: Current agent state
+        state: Current agent state with query and optional db/space_id
 
     Returns:
-        Updated state with context
+        Updated state with context and search_results metadata
     """
-    # TODO: Integrate with vector search service once available
-    # query = state["query"]
-    # embedding = await embedding_service.generate_embedding(query)
-    # results = await vector_search_service.search_similar_chunks(
-    #     query_embedding=embedding,
-    #     limit=5
-    # )
-    # state["context"] = [chunk.text for chunk in results]
+    query = state["query"]
+    db = state.get("db")
+    space_id = state.get("space_id")
 
-    # For now, return empty context to allow basic testing
-    state["context"] = []
+    # If no database session, return empty context
+    if db is None:
+        logger.warning("No database session provided, skipping vector retrieval")
+        state["context"] = []
+        state["search_results"] = []
+        return state
+
+    try:
+        # Get vector search service
+        vector_search = get_vector_search_service()
+
+        # Perform semantic search
+        search_results = await vector_search.search_similar_chunks(
+            query=query,
+            db=db,
+            space_id=space_id,
+            limit=5,  # Top 5 most relevant chunks
+            similarity_threshold=0.3,  # Filter out low-relevance results
+        )
+
+        logger.info(
+            f"Retrieved {len(search_results)} chunks for query: '{query[:50]}...' "
+            f"(space_id={space_id})"
+        )
+
+        # Extract text for context and store full results for citation
+        state["context"] = [result.chunk.chunk_text for result in search_results]
+        state["search_results"] = search_results
+
+        # Log relevance scores
+        if search_results:
+            scores = [f"{r.similarity_score:.3f}" for r in search_results[:3]]
+            logger.debug(f"Top 3 similarity scores: {scores}")
+
+    except Exception as e:
+        logger.exception(f"Error during vector retrieval: {e}")
+        # Fallback to empty context on error
+        state["context"] = []
+        state["search_results"] = []
+
     return state
 
 
@@ -76,16 +121,23 @@ async def generate_response(state: AgentState) -> AgentState:
 
     # Build prompt with context
     if state["context"]:
-        context_text = "\n\n".join(state["context"])
+        # Number each context chunk for citations
+        numbered_contexts = [
+            f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])
+        ]
+        context_text = "\n\n".join(numbered_contexts)
         prompt = f"""You are an AI assistant that answers questions based on provided context.
 
-Context:
+Context (with source numbers):
 {context_text}
 
 Question: {state["query"]}
 
-Please provide a clear and accurate answer based on the context. If the context doesn't contain
-enough information, acknowledge this and provide what you can."""
+Instructions:
+- Provide a clear and accurate answer based on the context above
+- When making claims or stating facts, cite the source using [N] notation (e.g., [1], [2])
+- If the context doesn't contain enough information, acknowledge this
+- Be precise and only use information from the provided context"""
     else:
         prompt = f"""You are an AI assistant. Answer the following question clearly and concisely.
 
@@ -121,16 +173,23 @@ async def generate_response_streaming(state: AgentState) -> AsyncGenerator[str, 
 
     # Build prompt with context
     if state["context"]:
-        context_text = "\n\n".join(state["context"])
+        # Number each context chunk for citations
+        numbered_contexts = [
+            f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])
+        ]
+        context_text = "\n\n".join(numbered_contexts)
         prompt = f"""You are an AI assistant that answers questions based on provided context.
 
-Context:
+Context (with source numbers):
 {context_text}
 
 Question: {state["query"]}
 
-Please provide a clear and accurate answer based on the context. If the context doesn't contain
-enough information, acknowledge this and provide what you can."""
+Instructions:
+- Provide a clear and accurate answer based on the context above
+- When making claims or stating facts, cite the source using [N] notation (e.g., [1], [2])
+- If the context doesn't contain enough information, acknowledge this
+- Be precise and only use information from the provided context"""
     else:
         prompt = f"""You are an AI assistant. Answer the following question clearly and concisely.
 
@@ -149,19 +208,24 @@ Question: {state["query"]}"""
             yield content
 
 
-def extract_citations(response: str, context: list[str]) -> list[dict[str, Any]]:
+def extract_citations(
+    response: str,
+    context: list[str],
+    search_results: list[SearchResult] | None = None,
+) -> list[dict[str, Any]]:
     """
-    Extract citations from the response.
+    Extract citations from the response with document metadata.
 
-    This is a simple implementation that looks for references in the response.
-    Will be enhanced when integrated with actual document metadata.
+    Matches citation markers in the response (e.g., [1], [2]) to the
+    context chunks and enriches them with document metadata from search results.
 
     Args:
         response: Generated response text
         context: Context chunks used for generation
+        search_results: Search results with document metadata (optional)
 
     Returns:
-        List of citation dictionaries
+        List of citation dictionaries with document metadata
     """
     citations = []
 
@@ -173,31 +237,51 @@ def extract_citations(response: str, context: list[str]) -> list[dict[str, Any]]
     for match in matches:
         citation_num = int(match)
         if 0 < citation_num <= len(context):
-            citations.append(
-                {
-                    "index": citation_num,
-                    "text": context[citation_num - 1],
-                    # TODO: Add document metadata when integrated with vector search
-                    # "document_id": chunk.document_id,
-                    # "page": chunk.page_number,
-                }
-            )
+            citation_data = {
+                "index": citation_num,
+                "text": context[citation_num - 1],
+            }
+
+            # Add rich metadata if search results available
+            if search_results and citation_num <= len(search_results):
+                result = search_results[citation_num - 1]
+                chunk = result.chunk
+                document = result.document
+
+                citation_data.update(
+                    {
+                        "document_id": str(chunk.document_id),
+                        "document_title": document.name,
+                        "chunk_index": chunk.chunk_index,
+                        "similarity_score": round(result.similarity_score, 4),
+                        # Extract metadata from chunk
+                        "page_number": chunk.chunk_metadata.get("page_num"),
+                        "start_char": chunk.start_char,
+                        "end_char": chunk.end_char,
+                    }
+                )
+
+            citations.append(citation_data)
 
     return citations
 
 
 async def add_citations(state: AgentState) -> AgentState:
     """
-    Extract and add citations to the agent state.
+    Extract and add citations to the agent state with document metadata.
 
     Args:
-        state: Current agent state
+        state: Current agent state with response, context, and optional search_results
 
     Returns:
-        Updated state with citations
+        Updated state with enriched citations
     """
     if state["response"] and state["context"]:
-        state["citations"] = extract_citations(state["response"], state["context"])
+        search_results = state.get("search_results")
+        state["citations"] = extract_citations(
+            state["response"], state["context"], search_results
+        )
+        logger.debug(f"Extracted {len(state['citations'])} citations from response")
     else:
         state["citations"] = []
 

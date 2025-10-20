@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Text
+from sqlalchemy import Float, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,7 +14,16 @@ if TYPE_CHECKING:
 
 
 class Query(Base):
-    """Query model for storing AI agent queries and their results."""
+    """
+    Query model for storing AI agent queries and their results.
+
+    Stores the complete RAG pipeline output including:
+    - User query text
+    - Generated response
+    - Source citations with metadata
+    - Confidence scoring
+    - Agent reasoning steps
+    """
 
     __tablename__ = "queries"
 
@@ -27,8 +36,16 @@ class Query(Base):
 
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Confidence score for the response (0.0-1.0)
+    # Based on similarity scores, citation quality, and coverage
+    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Agent reasoning steps and intermediate state
+    # Stores LangGraph agent state transitions for debugging
     agent_steps: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
+    # Source citations with rich metadata
+    # Structure: {"citations": [{"index": 1, "document_title": "...", ...}], "count": N}
     sources: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     created_by: Mapped[UUID] = mapped_column(
@@ -42,4 +59,5 @@ class Query(Base):
 
     def __repr__(self) -> str:
         """String representation of the query."""
-        return f"<Query(id={self.id}, query_text={self.query_text[:50]}...)>"
+        confidence = f", confidence={self.confidence_score:.2f}" if self.confidence_score else ""
+        return f"<Query(id={self.id}, query_text={self.query_text[:50]}...{confidence})>"

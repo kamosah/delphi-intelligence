@@ -2,32 +2,50 @@
 AI Agent service for query processing and response generation.
 
 Provides a high-level interface for using the LangGraph query agent with
-streaming support for real-time responses.
+streaming support for real-time responses, confidence scoring, and database storage.
 """
 
+import logging
 from typing import Any
+from uuid import UUID
 from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.query_agent import (
     AgentState,
     create_query_agent,
     generate_response_streaming,
 )
+from app.models.query import Query
+from app.services.citation_service import get_citation_service
+
+logger = logging.getLogger(__name__)
 
 
 class AIAgentService:
     """
     Service for AI agent operations.
 
-    Handles query processing, response generation, and citation extraction
-    using the LangGraph query agent.
+    Handles query processing, response generation, citation extraction,
+    confidence scoring, and database storage using the LangGraph query agent.
     """
 
     def __init__(self) -> None:
         """Initialize the AI agent service with compiled workflow."""
         self.agent = create_query_agent()
+        self.citation_service = get_citation_service()
+        logger.info("Initialized AIAgentService with LangGraph agent")
 
-    async def process_query(self, query: str, context: list[str] | None = None) -> dict[str, Any]:
+    async def process_query(
+        self,
+        query: str,
+        db: AsyncSession | None = None,
+        space_id: UUID | None = None,
+        user_id: UUID | None = None,
+        context: list[str] | None = None,
+        save_to_db: bool = False,
+    ) -> dict[str, Any]:
         """
         Process a query and return complete response with citations.
 
@@ -35,15 +53,26 @@ class AIAgentService:
 
         Args:
             query: User's natural language question
-            context: Optional pre-retrieved document chunks
+            db: Database session for vector search and storage
+            space_id: Space ID to filter search results
+            user_id: User ID for query attribution (required if save_to_db=True)
+            context: Optional pre-retrieved document chunks (bypasses vector search)
+            save_to_db: Whether to save query and results to database
 
         Returns:
-            Dictionary with response and citations
+            Dictionary with response, citations, and confidence score
 
         Example:
             >>> service = AIAgentService()
-            >>> result = await service.process_query("What is AI?")
-            >>> print(result["response"])
+            >>> async with get_db() as db:
+            ...     result = await service.process_query(
+            ...         "What is AI?",
+            ...         db=db,
+            ...         space_id=space_uuid,
+            ...         user_id=user_uuid,
+            ...         save_to_db=True,
+            ...     )
+            ...     print(result["response"])
         """
         # Initialize state
         state: AgentState = {
@@ -51,19 +80,107 @@ class AIAgentService:
             "context": context or [],
             "response": None,
             "citations": [],
+            "db": db,
+            "space_id": space_id,
+            "search_results": None,
         }
 
         # Execute agent workflow
         result = await self.agent.ainvoke(state)
 
-        return {
+        # Calculate confidence score
+        confidence_score = 0.0
+        search_results = result.get("search_results")
+        if search_results:
+            confidence_score = self.citation_service.calculate_overall_confidence(
+                search_results, len(result["citations"])
+            )
+            logger.info(f"Calculated confidence score: {confidence_score:.3f}")
+
+        num_sources = len(search_results) if search_results else 0
+        response_data = {
             "response": result["response"],
             "citations": result["citations"],
+            "confidence_score": confidence_score,
             "context_used": len(result["context"]) > 0,
+            "num_sources": num_sources,
         }
 
+        # Save to database if requested
+        if save_to_db and db and space_id and user_id:
+            query_record = await self._save_query_to_db(
+                db=db,
+                query_text=query,
+                space_id=space_id,
+                user_id=user_id,
+                result_text=result["response"],
+                citations=result["citations"],
+                confidence_score=confidence_score,
+                agent_state=dict(result),
+            )
+            response_data["query_id"] = str(query_record.id)
+
+        return response_data
+
+    async def _save_query_to_db(
+        self,
+        db: AsyncSession,
+        query_text: str,
+        space_id: UUID,
+        user_id: UUID,
+        result_text: str | None,
+        citations: list[dict[str, Any]],
+        confidence_score: float,
+        agent_state: dict[str, Any],
+    ) -> Query:
+        """
+        Save query and results to the database.
+
+        Args:
+            db: Database session
+            query_text: Original query text
+            space_id: Space ID
+            user_id: User ID
+            result_text: Generated response text
+            citations: Citation metadata
+            confidence_score: Overall confidence score
+            agent_state: Complete agent state for debugging
+
+        Returns:
+            Saved Query record
+        """
+        query_record = Query(
+            query_text=query_text,
+            space_id=space_id,
+            created_by=user_id,
+            result=result_text,
+            confidence_score=confidence_score,
+            sources={"citations": citations, "count": len(citations)},
+            agent_steps={
+                "context_count": len(agent_state.get("context", [])),
+                "search_results_count": len(agent_state.get("search_results", [])),
+            },
+        )
+
+        db.add(query_record)
+        await db.commit()
+        await db.refresh(query_record)
+
+        logger.info(
+            f"Saved query to database: id={query_record.id}, "
+            f"confidence={confidence_score:.3f}, citations={len(citations)}"
+        )
+
+        return query_record
+
     async def process_query_stream(
-        self, query: str, context: list[str] | None = None
+        self,
+        query: str,
+        db: AsyncSession | None = None,
+        space_id: UUID | None = None,
+        user_id: UUID | None = None,
+        context: list[str] | None = None,
+        save_to_db: bool = False,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process query with streaming support for real-time token delivery.
@@ -72,16 +189,26 @@ class AIAgentService:
 
         Args:
             query: User's natural language question
-            context: Optional pre-retrieved document chunks
+            db: Database session for vector search and storage
+            space_id: Space ID to filter search results
+            user_id: User ID for query attribution (required if save_to_db=True)
+            context: Optional pre-retrieved document chunks (bypasses vector search)
+            save_to_db: Whether to save query and results to database
 
         Yields:
-            Event dictionaries with types: 'token', 'citations', 'done'
+            Event dictionaries with types: 'token', 'citations', 'confidence', 'done'
 
         Example:
             >>> service = AIAgentService()
-            >>> async for event in service.process_query_stream("What is AI?"):
-            ...     if event["type"] == "token":
-            ...         print(event["content"], end="", flush=True)
+            >>> async with get_db() as db:
+            ...     async for event in service.process_query_stream(
+            ...         "What is AI?",
+            ...         db=db,
+            ...         space_id=space_uuid,
+            ...         save_to_db=True,
+            ...     ):
+            ...         if event["type"] == "token":
+            ...             print(event["content"], end="", flush=True)
         """
         # Initialize state
         state: AgentState = {
@@ -89,6 +216,9 @@ class AIAgentService:
             "context": context or [],
             "response": None,
             "citations": [],
+            "db": db,
+            "space_id": space_id,
+            "search_results": None,
         }
 
         # Step 1: Retrieve context (if not provided)
@@ -110,14 +240,46 @@ class AIAgentService:
 
         state = await add_citations(state)
 
-        # Yield citations
+        # Step 4: Calculate confidence score
+        confidence_score = 0.0
+        search_results = state.get("search_results")
+        if search_results:
+            confidence_score = self.citation_service.calculate_overall_confidence(
+                search_results, len(state["citations"])
+            )
+            logger.info(f"Streaming query confidence score: {confidence_score:.3f}")
+
+        # Yield citations with confidence
         if state["citations"]:
-            yield {"type": "citations", "sources": state["citations"]}
+            yield {
+                "type": "citations",
+                "sources": state["citations"],
+                "confidence_score": confidence_score,
+            }
+
+        # Step 5: Save to database if requested
+        query_id = None
+        if save_to_db and db and space_id and user_id:
+            query_record = await self._save_query_to_db(
+                db=db,
+                query_text=query,
+                space_id=space_id,
+                user_id=user_id,
+                result_text=full_response,
+                citations=state["citations"],
+                confidence_score=confidence_score,
+                agent_state=dict(state),
+            )
+            query_id = str(query_record.id)
 
         # Signal completion
+        num_sources = len(search_results) if search_results else 0
         yield {
             "type": "done",
             "context_used": len(state["context"]) > 0,
+            "num_sources": num_sources,
+            "confidence_score": confidence_score,
+            "query_id": query_id,
         }
 
 
