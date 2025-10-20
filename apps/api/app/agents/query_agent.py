@@ -122,9 +122,7 @@ async def generate_response(state: AgentState) -> AgentState:
     # Build prompt with context
     if state["context"]:
         # Number each context chunk for citations
-        numbered_contexts = [
-            f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])
-        ]
+        numbered_contexts = [f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])]
         context_text = "\n\n".join(numbered_contexts)
         prompt = f"""You are an AI assistant that answers questions based on provided context.
 
@@ -174,9 +172,7 @@ async def generate_response_streaming(state: AgentState) -> AsyncGenerator[str, 
     # Build prompt with context
     if state["context"]:
         # Number each context chunk for citations
-        numbered_contexts = [
-            f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])
-        ]
+        numbered_contexts = [f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])]
         context_text = "\n\n".join(numbered_contexts)
         prompt = f"""You are an AI assistant that answers questions based on provided context.
 
@@ -278,9 +274,7 @@ async def add_citations(state: AgentState) -> AgentState:
     """
     if state["response"] and state["context"]:
         search_results = state.get("search_results")
-        state["citations"] = extract_citations(
-            state["response"], state["context"], search_results
-        )
+        state["citations"] = extract_citations(state["response"], state["context"], search_results)
         logger.debug(f"Extracted {len(state['citations'])} citations from response")
     else:
         state["citations"] = []

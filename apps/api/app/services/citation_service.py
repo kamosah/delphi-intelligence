@@ -156,9 +156,9 @@ class CitationService:
 
         # Weighted confidence score
         confidence = (
-            avg_similarity * 0.5 +  # 50% weight on similarity
-            quality_ratio * 0.3 +  # 30% weight on quality ratio
-            coverage * 0.2  # 20% weight on coverage
+            avg_similarity * 0.5  # 50% weight on similarity
+            + quality_ratio * 0.3  # 30% weight on quality ratio
+            + coverage * 0.2  # 20% weight on coverage
         )
 
         logger.debug(

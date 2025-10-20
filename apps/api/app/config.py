@@ -65,20 +65,12 @@ class Settings(BaseSettings):
     openai_temperature: float = Field(
         default=0.0, description="Temperature for LLM responses (0.0 = deterministic)"
     )
-    openai_max_tokens: int = Field(
-        default=2000, description="Maximum tokens in LLM response"
-    )
+    openai_max_tokens: int = Field(default=2000, description="Maximum tokens in LLM response")
 
     # LangSmith Configuration (Optional Observability)
-    langchain_tracing_v2: bool = Field(
-        default=False, description="Enable LangSmith tracing"
-    )
-    langchain_api_key: str = Field(
-        default="", description="LangSmith API key for observability"
-    )
-    langchain_project: str = Field(
-        default="olympus-mvp", description="LangSmith project name"
-    )
+    langchain_tracing_v2: bool = Field(default=False, description="Enable LangSmith tracing")
+    langchain_api_key: str = Field(default="", description="LangSmith API key for observability")
+    langchain_project: str = Field(default="olympus-mvp", description="LangSmith project name")
 
     @property
     def db_url(self) -> str:

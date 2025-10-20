@@ -73,9 +73,7 @@ async def stream_query_response(
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
     ] = None,
-    user_id: Annotated[
-        UUID | None, QueryParam(description="User ID for query attribution")
-    ] = None,
+    user_id: Annotated[UUID | None, QueryParam(description="User ID for query attribution")] = None,
     save_to_db: Annotated[
         bool, QueryParam(description="Save query and results to database")
     ] = False,
@@ -168,9 +166,7 @@ async def stream_query_response(
         raise HTTPException(status_code=400, detail="Query parameter is required")
 
     if save_to_db and not user_id:
-        raise HTTPException(
-            status_code=400, detail="user_id is required when save_to_db=true"
-        )
+        raise HTTPException(status_code=400, detail="user_id is required when save_to_db=true")
 
     return StreamingResponse(
         generate_sse_events(
