@@ -412,7 +412,7 @@ CORS_ORIGINS=["http://localhost:3000"]
    ```bash
    # Start complete Docker environment (PostgreSQL + Redis + API)
    cd apps/api
-   docker-compose up -d
+   docker compose up -d
 
    # The API will run at http://localhost:8000
    # Configure frontend to use Docker API
@@ -422,7 +422,7 @@ CORS_ORIGINS=["http://localhost:3000"]
 
    ```bash
    # Start only Redis for session management
-   docker-compose up -d redis
+   docker compose up -d redis
 
    # API will connect to Supabase database
    ```
@@ -465,11 +465,11 @@ The project uses a hybrid migration system that supports both local PostgreSQL a
 cd apps/api
 
 # Using Docker (recommended for local development)
-docker-compose exec api poetry run alembic upgrade head      # Apply migrations
-docker-compose exec api poetry run alembic current           # Show current version
-docker-compose exec api poetry run alembic history           # Show all migrations
-docker-compose exec api poetry run alembic downgrade -1      # Rollback one migration
-docker-compose exec api poetry run alembic revision --autogenerate -m "Description"
+docker compose exec api poetry run alembic upgrade head      # Apply migrations
+docker compose exec api poetry run alembic current           # Show current version
+docker compose exec api poetry run alembic history           # Show all migrations
+docker compose exec api poetry run alembic downgrade -1      # Rollback one migration
+docker compose exec api poetry run alembic revision --autogenerate -m "Description"
 
 # Using Alembic directly (local environment without Docker)
 poetry run alembic upgrade head                              # Apply migrations
@@ -637,17 +637,17 @@ The `docker-compose.yml` provides optional local development services if you pre
 
 ```bash
 # Start services (if using local database)
-docker-compose up -d
+docker compose up -d
 
 # Stop services
-docker-compose down
+docker compose down
 
 # View logs
-docker-compose logs -f postgres
-docker-compose logs -f redis
+docker compose logs -f postgres
+docker compose logs -f redis
 
 # Reset data (⚠️ destroys all data)
-docker-compose down -v
+docker compose down -v
 ```
 
 **Note**: Most development uses Supabase directly, so Docker services are optional.
@@ -778,8 +778,8 @@ lsof -i :5432  # PostgreSQL
 lsof -i :6379  # Redis
 
 # Restart with fresh volumes
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 **Husky hooks not working**

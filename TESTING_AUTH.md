@@ -204,7 +204,7 @@ Even though Redis is cleared, your browser still has the cookie, so middleware t
 - Check Supabase email settings (may be disabled in development)
 - Check spam folder
 - Use Supabase dashboard to manually confirm emails
-- Check API logs: `docker-compose logs -f api`
+- Check API logs: `docker compose logs -f api`
 
 ### Issue: Token Expired
 
@@ -227,16 +227,16 @@ Even though Redis is cleared, your browser still has the cookie, so middleware t
 
 ```bash
 # Check services
-cd apps/api && docker-compose ps
+cd apps/api && docker compose ps
 
 # View API logs
-docker-compose logs -f api
+docker compose logs -f api
 
 # Clear Redis
 docker exec athena_redis_1 redis-cli FLUSHALL
 
 # Restart services
-docker-compose restart
+docker compose restart
 ```
 
 ### Frontend

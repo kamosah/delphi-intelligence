@@ -36,13 +36,13 @@ We've created a migration to enable RLS on the `user_preferences` table with app
 cd apps/api
 
 # Start Docker services
-docker-compose up -d
+docker compose up -d
 
 # Apply migration
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Verify
-docker-compose exec api poetry run alembic current
+docker compose exec api poetry run alembic current
 ```
 
 #### Option 2: Using Supabase MCP (Supabase Cloud)
@@ -237,10 +237,10 @@ def run_migrations_online() -> None:
 
 ```bash
 cd apps/api
-docker-compose up -d
+docker compose up -d
 
 # Verify Alembic can still see the version table
-docker-compose exec api poetry run alembic current
+docker compose exec api poetry run alembic current
 
 # Expected output:
 # 20251014_220000 (head)

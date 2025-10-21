@@ -77,22 +77,22 @@ All migrations should be run through Docker to ensure consistent environment:
 
 ```bash
 # Check migration status
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 
 # Show migration history
-docker-compose exec -T api alembic history
+docker compose exec -T api alembic history
 
 # Generate new migration from model changes
-docker-compose exec -T api alembic revision --autogenerate -m "Add new feature"
+docker compose exec -T api alembic revision --autogenerate -m "Add new feature"
 
 # Apply all pending migrations
-docker-compose exec -T api alembic upgrade head
+docker compose exec -T api alembic upgrade head
 
 # Rollback one migration
-docker-compose exec -T api alembic downgrade -1
+docker compose exec -T api alembic downgrade -1
 
 # Stamp database with specific version (useful for existing databases)
-docker-compose exec -T api alembic stamp head
+docker compose exec -T api alembic stamp head
 ```
 
 ### Local Development (Outside Docker)
@@ -131,19 +131,19 @@ poetry run alembic history --verbose
 #    Add a new field or create a new model class
 
 # 2. Start Docker services if not running
-docker-compose up -d
+docker compose up -d
 
 # 3. Generate migration from model changes
-docker-compose exec -T api alembic revision --autogenerate -m "Add avatar_url to User model"
+docker compose exec -T api alembic revision --autogenerate -m "Add avatar_url to User model"
 
 # 4. Review the generated migration file in alembic/versions/
 #    Check that it correctly represents your changes
 
 # 5. Apply the migration to Supabase
-docker-compose exec -T api alembic upgrade head
+docker compose exec -T api alembic upgrade head
 
 # 6. Verify the migration was applied
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 ```
 
 ### 2. Initial Setup for Existing Supabase Database
@@ -154,10 +154,10 @@ If you have an existing Supabase database with tables already created:
 # 1. Ensure your models match the database schema
 
 # 2. Stamp the database with the current migration version
-docker-compose exec -T api alembic stamp head
+docker compose exec -T api alembic stamp head
 
 # 3. Verify the stamp
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 # Should show: [revision_id] (head)
 ```
 
@@ -165,16 +165,16 @@ docker-compose exec -T api alembic current
 
 ```bash
 # 1. Check current migration status
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 
 # 2. Rollback one migration
-docker-compose exec -T api alembic downgrade -1
+docker compose exec -T api alembic downgrade -1
 
 # 3. Or rollback to a specific version
-docker-compose exec -T api alembic downgrade [revision_id]
+docker compose exec -T api alembic downgrade [revision_id]
 
 # 4. Verify the rollback
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 ```
 
 ## How Automatic Detection Works
@@ -295,7 +295,7 @@ This means tables exist but Alembic doesn't know about them:
 **Solution**: Stamp the database with the current version:
 
 ```bash
-docker-compose exec -T api alembic stamp head
+docker compose exec -T api alembic stamp head
 ```
 
 ### Migration Issues
@@ -304,13 +304,13 @@ docker-compose exec -T api alembic stamp head
 
 ```bash
 # Check current migration version
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 
 # Show migration history
-docker-compose exec -T api alembic history
+docker compose exec -T api alembic history
 
 # Check if there are pending migrations
-docker-compose exec -T api alembic heads
+docker compose exec -T api alembic heads
 ```
 
 #### Out of Sync Migrations
@@ -319,10 +319,10 @@ If local and database migrations are out of sync:
 
 ```bash
 # Option 1: Rollback to a known good state
-docker-compose exec -T api alembic downgrade [revision_id]
+docker compose exec -T api alembic downgrade [revision_id]
 
 # Option 2: Stamp to match current state (if tables are correct)
-docker-compose exec -T api alembic stamp head
+docker compose exec -T api alembic stamp head
 ```
 
 ### Model Detection Issues
@@ -332,8 +332,8 @@ If Alembic doesn't detect your model changes:
 1. **Check imports** - Ensure models are imported in `app/models/__init__.py`
 2. **Check metadata** - Verify `target_metadata = Base.metadata` in `alembic/env.py`
 3. **Check table names** - Ensure `__tablename__` is set correctly
-4. **Restart API container** - Let changes reload: `docker-compose restart api`
-5. **Run with verbose** - Check detection: `docker-compose exec -T api alembic revision --autogenerate -m "test" --verbose`
+4. **Restart API container** - Let changes reload: `docker compose restart api`
+5. **Run with verbose** - Check detection: `docker compose exec -T api alembic revision --autogenerate -m "test" --verbose`
 
 ### Authentication Issues
 
@@ -371,7 +371,7 @@ Supabase requires email confirmation by default:
 
 ### Docker Files
 
-- `docker-compose.yml` - Redis and API services
+- `docker compose.yml` - Redis and API services
 - `Dockerfile` - API container configuration
 
 ## Testing the Setup
@@ -380,7 +380,7 @@ Supabase requires email confirmation by default:
 
 ```bash
 # Check services are running
-docker-compose ps
+docker compose ps
 
 # Should show:
 # - athena_api_1 (Up)
@@ -391,7 +391,7 @@ docker-compose ps
 
 ```bash
 # Check migration status (tests Supabase connection)
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 
 # Should show current migration version without errors
 ```
@@ -431,19 +431,19 @@ curl http://localhost:8000/health/
 
 ```bash
 # 1. Deploy code with Docker
-docker-compose up -d
+docker compose up -d
 
 # 2. Run migrations
-docker-compose exec -T api alembic upgrade head
+docker compose exec -T api alembic upgrade head
 
 # 3. Verify migration
-docker-compose exec -T api alembic current
+docker compose exec -T api alembic current
 
 # 4. Test API health
 curl https://your-api-domain.com/health/
 
 # 5. Monitor logs
-docker-compose logs -f api
+docker compose logs -f api
 ```
 
 ## Summary

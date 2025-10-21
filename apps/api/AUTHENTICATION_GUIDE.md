@@ -62,7 +62,7 @@ REDIS_URL=redis://localhost:6379
 Start Redis and PostgreSQL:
 
 ```bash
-docker-compose up -d redis postgres
+docker compose up -d redis postgres
 ```
 
 ### 3. Install Dependencies
@@ -244,7 +244,7 @@ poetry run pytest tests/test_auth* -v
 
 ### Common Issues
 
-1. **Redis connection errors**: Ensure Redis is running (`docker-compose up -d redis`)
+1. **Redis connection errors**: Ensure Redis is running (`docker compose up -d redis`)
 2. **Supabase auth errors**: Check your Supabase keys and URL
 3. **JWT errors**: Verify JWT_SECRET is set and consistent
 4. **Import errors**: Run `poetry install` to install dependencies

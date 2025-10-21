@@ -12,7 +12,7 @@ Tests should be run in the Docker container to ensure consistent environment and
 
 ```bash
 # Ensure dependencies are installed in the container
-docker-compose exec -T api sh -c "poetry install --no-root"
+docker compose exec -T api sh -c "poetry install --no-root"
 ```
 
 This installs all development dependencies including:
@@ -28,23 +28,23 @@ This installs all development dependencies including:
 
 ```bash
 # Run all tests with verbose output
-docker-compose exec -T api sh -c "poetry run pytest tests/ -v --tb=short"
+docker compose exec -T api sh -c "poetry run pytest tests/ -v --tb=short"
 
 # Run specific test file
-docker-compose exec -T api sh -c "poetry run pytest tests/test_auth_routes.py -v"
+docker compose exec -T api sh -c "poetry run pytest tests/test_auth_routes.py -v"
 
 # Run specific test
-docker-compose exec -T api sh -c "poetry run pytest tests/test_auth_routes.py::TestAuthRoutes::test_login_success -v"
+docker compose exec -T api sh -c "poetry run pytest tests/test_auth_routes.py::TestAuthRoutes::test_login_success -v"
 ```
 
 ### Test Coverage
 
 ```bash
 # Run tests with coverage report
-docker-compose exec -T api sh -c "poetry run pytest --cov=app tests/"
+docker compose exec -T api sh -c "poetry run pytest --cov=app tests/"
 
 # Generate HTML coverage report
-docker-compose exec -T api sh -c "poetry run pytest --cov=app --cov-report=html tests/"
+docker compose exec -T api sh -c "poetry run pytest --cov=app --cov-report=html tests/"
 ```
 
 ### Current Test Status (as of Oct 14, 2025)
@@ -70,33 +70,33 @@ These are pre-existing test failures not related to the document upload feature 
 
 ```bash
 # Format all Python files in app/
-docker-compose exec -T api sh -c "poetry run ruff format app/"
+docker compose exec -T api sh -c "poetry run ruff format app/"
 
 # Check what would be formatted (dry run)
-docker-compose exec -T api sh -c "poetry run ruff format app/ --check"
+docker compose exec -T api sh -c "poetry run ruff format app/ --check"
 ```
 
 ### Ruff Linting
 
 ```bash
 # Run linter and show all issues
-docker-compose exec -T api sh -c "poetry run ruff check app/"
+docker compose exec -T api sh -c "poetry run ruff check app/"
 
 # Run linter and auto-fix issues
-docker-compose exec -T api sh -c "poetry run ruff check app/ --fix"
+docker compose exec -T api sh -c "poetry run ruff check app/ --fix"
 
 # Show diff of what would be fixed
-docker-compose exec -T api sh -c "poetry run ruff check app/ --diff"
+docker compose exec -T api sh -c "poetry run ruff check app/ --diff"
 ```
 
 ### Type Checking (MyPy)
 
 ```bash
 # Run type checker on app/
-docker-compose exec -T api sh -c "poetry run mypy app/"
+docker compose exec -T api sh -c "poetry run mypy app/"
 
 # Type check specific file
-docker-compose exec -T api sh -c "poetry run mypy app/routes/documents.py"
+docker compose exec -T api sh -c "poetry run mypy app/routes/documents.py"
 ```
 
 ## Pre-Commit Workflow
@@ -105,30 +105,30 @@ Before committing changes, run this sequence:
 
 ```bash
 # 1. Format code
-docker-compose exec -T api sh -c "poetry run ruff format app/"
+docker compose exec -T api sh -c "poetry run ruff format app/"
 
 # 2. Run linter with auto-fix
-docker-compose exec -T api sh -c "poetry run ruff check app/ --fix"
+docker compose exec -T api sh -c "poetry run ruff check app/ --fix"
 
 # 3. Run tests
-docker-compose exec -T api sh -c "poetry run pytest tests/ -v --tb=short"
+docker compose exec -T api sh -c "poetry run pytest tests/ -v --tb=short"
 
 # 4. (Optional) Type check
-docker-compose exec -T api sh -c "poetry run mypy app/"
+docker compose exec -T api sh -c "poetry run mypy app/"
 ```
 
 ## Common Issues and Solutions
 
 ### Issue 1: "Command not found: ruff"
 
-**Problem**: Running `docker-compose exec -T api poetry run ruff` gives "command not found"
+**Problem**: Running `docker compose exec -T api poetry run ruff` gives "command not found"
 
 **Cause**: Dependencies not installed in the Docker container's virtual environment
 
 **Solution**:
 
 ```bash
-docker-compose exec -T api sh -c "poetry install --no-root"
+docker compose exec -T api sh -c "poetry install --no-root"
 ```
 
 ### Issue 2: "No module named pytest"
@@ -295,13 +295,13 @@ When setting up CI/CD, use this workflow:
 
 | Task                 | Command                                                                                 |
 | -------------------- | --------------------------------------------------------------------------------------- |
-| Install dependencies | `docker-compose exec -T api sh -c "poetry install --no-root"`                           |
-| Run all tests        | `docker-compose exec -T api sh -c "poetry run pytest tests/ -v"`                        |
-| Format code          | `docker-compose exec -T api sh -c "poetry run ruff format app/"`                        |
-| Lint code            | `docker-compose exec -T api sh -c "poetry run ruff check app/ --fix"`                   |
-| Type check           | `docker-compose exec -T api sh -c "poetry run mypy app/"`                               |
-| Test coverage        | `docker-compose exec -T api sh -c "poetry run pytest --cov=app tests/"`                 |
-| Specific test        | `docker-compose exec -T api sh -c "poetry run pytest tests/test_file.py::test_name -v"` |
+| Install dependencies | `docker compose exec -T api sh -c "poetry install --no-root"`                           |
+| Run all tests        | `docker compose exec -T api sh -c "poetry run pytest tests/ -v"`                        |
+| Format code          | `docker compose exec -T api sh -c "poetry run ruff format app/"`                        |
+| Lint code            | `docker compose exec -T api sh -c "poetry run ruff check app/ --fix"`                   |
+| Type check           | `docker compose exec -T api sh -c "poetry run mypy app/"`                               |
+| Test coverage        | `docker compose exec -T api sh -c "poetry run pytest --cov=app tests/"`                 |
+| Specific test        | `docker compose exec -T api sh -c "poetry run pytest tests/test_file.py::test_name -v"` |
 
 ## Test Organization
 
@@ -342,7 +342,7 @@ tests/
 
 ### Database-related test failures
 
-- Run migrations: `docker-compose exec -T api poetry run alembic upgrade head`
+- Run migrations: `docker compose exec -T api poetry run alembic upgrade head`
 - Check database connection string
 - Verify Docker PostgreSQL is healthy
 

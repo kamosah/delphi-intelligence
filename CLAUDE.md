@@ -39,8 +39,8 @@ When working on features, refer to these documents to ensure alignment with Athe
 npm run dev
 
 # Or start individually
-cd apps/web && npm run dev              # Frontend (port 3000)
-cd apps/api && docker-compose up -d     # Backend (port 8000)
+cd apps/web && npm run dev           # Frontend (port 3000)
+cd apps/api && docker compose up -d  # Backend (port 8000)
 ```
 
 ### Common Commands
@@ -54,9 +54,9 @@ npm run storybook              # Component development (port 6006)
 
 # Backend
 cd apps/api
-docker-compose up -d                                    # Start services
-docker-compose exec api poetry run pytest              # Run tests
-docker-compose exec api poetry run alembic upgrade head # Apply migrations
+docker compose up -d                                 # Start services
+docker compose exec api poetry run pytest           # Run tests
+docker compose exec api poetry run alembic upgrade head # Apply migrations
 ```
 
 See [Development Commands Guide](./docs/guides/development-commands.md) for complete reference.
@@ -332,10 +332,10 @@ npm run type-check && npm run lint && npm run format
 
 ```bash
 cd apps/api
-docker-compose exec api poetry run ruff format && \
-docker-compose exec api poetry run ruff check --fix && \
-docker-compose exec api poetry run mypy app/ && \
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run ruff format && \
+docker compose exec api poetry run ruff check --fix && \
+docker compose exec api poetry run mypy app/ && \
+docker compose exec api poetry run pytest
 ```
 
 **GraphQL schema changed?** Regenerate types: `npm run graphql:generate`

@@ -178,7 +178,7 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
 **Postgres connection issues**:
 
-- Verify database is running: `docker-compose ps` (if using Docker)
+- Verify database is running: `docker compose ps` (if using Docker)
 - Check connection string matches your local setup
 - Ensure database exists: `olympus_mvp` for local Docker
 

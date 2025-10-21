@@ -126,7 +126,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...  # ⚠️ Required for uploads
 cd apps/api
 
 # Start API server
-docker-compose up -d
+docker compose up -d
 
 # Run upload test
 python test_document_upload.py

@@ -23,13 +23,13 @@ The Docker setup provides a complete development environment with:
 
    ```bash
    cd apps/api
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Verify services are running:**
 
    ```bash
-   docker-compose ps
+   docker compose ps
    ```
 
 3. **Access the API:**
@@ -39,7 +39,7 @@ The Docker setup provides a complete development environment with:
 
 4. **View logs:**
    ```bash
-   docker-compose logs -f api
+   docker compose logs -f api
    ```
 
 ## Services
@@ -73,13 +73,13 @@ The Docker setup provides a complete development environment with:
 
 ```bash
 # Start all services in detached mode
-docker-compose up -d
+docker compose up -d
 
 # Watch logs in real-time
-docker-compose logs -f api
+docker compose logs -f api
 
 # Stop services when done
-docker-compose down
+docker compose down
 ```
 
 ### Code Changes
@@ -97,46 +97,46 @@ The API supports **hot reload** - any changes to Python files will automatically
 
 ```bash
 # Run Alembic migrations
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Create new migration
-docker-compose exec api poetry run alembic revision --autogenerate -m "description"
+docker compose exec api poetry run alembic revision --autogenerate -m "description"
 ```
 
 #### Database Access
 
 ```bash
 # Connect to PostgreSQL directly
-docker-compose exec postgres psql -U olympus -d olympus_mvp
+docker compose exec postgres psql -U olympus -d olympus_mvp
 
 # Connect to Redis CLI
-docker-compose exec redis redis-cli
+docker compose exec redis redis-cli
 ```
 
 ### Installing New Dependencies
 
 ```bash
 # Add a new dependency
-docker-compose exec api poetry add package-name
+docker compose exec api poetry add package-name
 
 # Add development dependency
-docker-compose exec api poetry add --group dev package-name
+docker compose exec api poetry add --group dev package-name
 
 # Rebuild container after dependency changes
-docker-compose up --build -d api
+docker compose up --build -d api
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run pytest
 
 # Run specific test file
-docker-compose exec api poetry run pytest tests/test_file.py
+docker compose exec api poetry run pytest tests/test_file.py
 
 # Run with coverage
-docker-compose exec api poetry run pytest --cov=app tests/
+docker compose exec api poetry run pytest --cov=app tests/
 ```
 
 ## Configuration
@@ -187,28 +187,28 @@ SUPABASE_DB_URL=postgresql+asyncpg://your-supabase-connection-string
 
 ```bash
 # Check container status
-docker-compose ps
+docker compose ps
 
 # View logs for specific service
-docker-compose logs api
-docker-compose logs postgres
-docker-compose logs redis
+docker compose logs api
+docker compose logs postgres
+docker compose logs redis
 
 # Restart specific service
-docker-compose restart api
+docker compose restart api
 ```
 
 #### Database Connection Issues
 
 ```bash
 # Verify PostgreSQL is healthy
-docker-compose ps
+docker compose ps
 
 # Check database logs
-docker-compose logs postgres
+docker compose logs postgres
 
 # Test connection manually
-docker-compose exec postgres psql -U olympus -d olympus_mvp -c "SELECT 1;"
+docker compose exec postgres psql -U olympus -d olympus_mvp -c "SELECT 1;"
 ```
 
 #### Port Conflicts
@@ -216,7 +216,7 @@ docker-compose exec postgres psql -U olympus -d olympus_mvp -c "SELECT 1;"
 If ports 5432, 6379, or 8000 are in use:
 
 ```yaml
-# In docker-compose.yml, change port mappings:
+# In docker compose.yml, change port mappings:
 services:
   postgres:
     ports:
@@ -236,7 +236,7 @@ services:
 docker system prune
 
 # Rebuild without cache
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Check resource usage
 docker stats
@@ -246,20 +246,20 @@ docker stats
 
 ```bash
 # Stop and remove all containers, networks, and volumes
-docker-compose down -v
+docker compose down -v
 
 # Remove all images
-docker-compose down --rmi all
+docker compose down --rmi all
 
 # Start fresh
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ## File Structure
 
 ```
 apps/api/
-├── docker-compose.yml          # Service definitions
+├── docker compose.yml          # Service definitions
 ├── Dockerfile                  # API container build instructions
 ├── .dockerignore              # Files excluded from build context
 ├── .env                       # Environment variables
@@ -276,9 +276,9 @@ apps/api/
 
 ### Development
 
-- Always use `docker-compose logs -f api` to monitor application startup
+- Always use `docker compose logs -f api` to monitor application startup
 - Make sure all services are healthy before testing
-- Use `docker-compose restart api` for quick API restarts during development
+- Use `docker compose restart api` for quick API restarts during development
 - Keep `.env` file secure and never commit sensitive credentials
 
 ### Database

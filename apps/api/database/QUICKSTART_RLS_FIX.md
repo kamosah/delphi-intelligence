@@ -112,8 +112,8 @@ The table might not be created yet. Run migrations first:
 
 ```bash
 cd apps/api
-docker-compose up -d
-docker-compose exec api poetry run alembic upgrade head
+docker compose up -d
+docker compose exec api poetry run alembic upgrade head
 ```
 
 Then run the SQL script.

@@ -87,70 +87,70 @@ cd apps/api
 
 ```bash
 # Start all services (PostgreSQL + Redis + API)
-docker-compose up -d
+docker compose up -d
 
 # View API logs
-docker-compose logs -f api
+docker compose logs -f api
 
 # Stop services
-docker-compose down
+docker compose down
 ```
 
 **Run tests:**
 
 ```bash
 # Run all tests
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run pytest
 
 # Run specific test file
-docker-compose exec api poetry run pytest tests/test_auth.py
+docker compose exec api poetry run pytest tests/test_auth.py
 
 # Run specific test
-docker-compose exec api poetry run pytest tests/test_auth.py::test_login
+docker compose exec api poetry run pytest tests/test_auth.py::test_login
 
 # Run with coverage
-docker-compose exec api poetry run pytest --cov=app tests/
+docker compose exec api poetry run pytest --cov=app tests/
 ```
 
 **Linting and formatting:**
 
 ```bash
 # Format code with Ruff
-docker-compose exec api poetry run ruff format
+docker compose exec api poetry run ruff format
 
 # Check code with Ruff
-docker-compose exec api poetry run ruff check
+docker compose exec api poetry run ruff check
 
 # Auto-fix issues
-docker-compose exec api poetry run ruff check --fix
+docker compose exec api poetry run ruff check --fix
 ```
 
 **Type checking:**
 
 ```bash
-docker-compose exec api poetry run mypy app/
+docker compose exec api poetry run mypy app/
 ```
 
 **Database operations:**
 
 ```bash
 # Apply migrations
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Generate new migration
-docker-compose exec api poetry run alembic revision --autogenerate -m "description"
+docker compose exec api poetry run alembic revision --autogenerate -m "description"
 
 # Rollback one migration
-docker-compose exec api poetry run alembic downgrade -1
+docker compose exec api poetry run alembic downgrade -1
 
 # Show current migration version
-docker-compose exec api poetry run alembic current
+docker compose exec api poetry run alembic current
 
 # Show migration history
-docker-compose exec api poetry run alembic history
+docker compose exec api poetry run alembic history
 
 # Access PostgreSQL directly
-docker-compose exec postgres psql -U olympus -d olympus_mvp
+docker compose exec postgres psql -U olympus -d olympus_mvp
 ```
 
 ### Local Development (Without Docker)
@@ -209,16 +209,16 @@ poetry run alembic revision --autogenerate -m "description"
 cd apps/api
 
 # Apply migrations
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Rollback one migration
-docker-compose exec api poetry run alembic downgrade -1
+docker compose exec api poetry run alembic downgrade -1
 
 # Show current version
-docker-compose exec api poetry run alembic current
+docker compose exec api poetry run alembic current
 
 # Show all migrations
-docker-compose exec api poetry run alembic history
+docker compose exec api poetry run alembic history
 ```
 
 **Using convenience script:**
@@ -252,12 +252,12 @@ python scripts/migrate.py --supabase status
 
 1. Update `apps/api/.env`: `USE_LOCAL_DB=false`
 2. Ensure `SUPABASE_DB_URL` is set
-3. Restart: `docker-compose restart api`
+3. Restart: `docker compose restart api`
 
 **Switch from Supabase to Docker:**
 
 1. Update `apps/api/.env`: `USE_LOCAL_DB=true`
-2. Restart: `docker-compose restart api`
+2. Restart: `docker compose restart api`
 
 ## Quick Reference
 
@@ -270,8 +270,8 @@ python scripts/migrate.py --supabase status
 npm run dev                              # Start all services
 
 # Or start individually
-cd apps/web && npm run dev              # Frontend only
-cd apps/api && docker-compose up -d     # Backend only
+cd apps/web && npm run dev           # Frontend only
+cd apps/api && docker compose up -d  # Backend only
 ```
 
 **Run tests:**
@@ -281,7 +281,7 @@ cd apps/api && docker-compose up -d     # Backend only
 cd apps/web && npm run test
 
 # Backend
-cd apps/api && docker-compose exec api poetry run pytest
+cd apps/api && docker compose exec api poetry run pytest
 ```
 
 **Lint and format:**
@@ -295,7 +295,7 @@ npm run format
 cd apps/web && npm run lint
 
 # Backend
-cd apps/api && docker-compose exec api poetry run ruff check --fix
+cd apps/api && docker compose exec api poetry run ruff check --fix
 ```
 
 **Database migrations:**
@@ -304,10 +304,10 @@ cd apps/api && docker-compose exec api poetry run ruff check --fix
 cd apps/api
 
 # Apply latest migrations
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Generate new migration
-docker-compose exec api poetry run alembic revision --autogenerate -m "Add feature"
+docker compose exec api poetry run alembic revision --autogenerate -m "Add feature"
 ```
 
 **GraphQL type generation:**
@@ -360,16 +360,16 @@ Run these commands from `apps/api/`:
 
 ```bash
 # 1. Format code with Ruff
-docker-compose exec api poetry run ruff format
+docker compose exec api poetry run ruff format
 
 # 2. Lint with Ruff
-docker-compose exec api poetry run ruff check --fix
+docker compose exec api poetry run ruff check --fix
 
 # 3. Type checking with MyPy
-docker-compose exec api poetry run mypy app/
+docker compose exec api poetry run mypy app/
 
 # 4. Run tests
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run pytest
 ```
 
 **Using local Poetry:**
@@ -394,10 +394,10 @@ poetry run pytest
 
 ```bash
 cd apps/api
-docker-compose exec api poetry run ruff format && \
-docker-compose exec api poetry run ruff check --fix && \
-docker-compose exec api poetry run mypy app/ && \
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run ruff format && \
+docker compose exec api poetry run ruff check --fix && \
+docker compose exec api poetry run mypy app/ && \
+docker compose exec api poetry run pytest
 ```
 
 ### GraphQL Schema Changes
@@ -406,7 +406,7 @@ If you modified GraphQL schema on backend:
 
 ```bash
 # 1. Ensure backend is running
-cd apps/api && docker-compose up -d
+cd apps/api && docker compose up -d
 
 # 2. Regenerate types on frontend
 cd apps/web
@@ -430,10 +430,10 @@ npm run type-check && npm run lint && npm run format && npm run build
 
 ```bash
 cd apps/api
-docker-compose exec api poetry run ruff format && \
-docker-compose exec api poetry run ruff check --fix && \
-docker-compose exec api poetry run mypy app/ && \
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run ruff format && \
+docker compose exec api poetry run ruff check --fix && \
+docker compose exec api poetry run mypy app/ && \
+docker compose exec api poetry run pytest
 ```
 
 **For full-stack changes:**
@@ -441,10 +441,10 @@ docker-compose exec api poetry run pytest
 ```bash
 # Backend checks
 cd apps/api
-docker-compose exec api poetry run ruff format
-docker-compose exec api poetry run ruff check --fix
-docker-compose exec api poetry run mypy app/
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run ruff format
+docker compose exec api poetry run ruff check --fix
+docker compose exec api poetry run mypy app/
+docker compose exec api poetry run pytest
 
 # Frontend checks
 cd ../web
@@ -498,7 +498,7 @@ Before committing, ensure:
 cd apps/web && npm run clean
 
 # Backend (remove containers and volumes)
-cd apps/api && docker-compose down -v
+cd apps/api && docker compose down -v
 ```
 
 **Reset database:**
@@ -507,8 +507,8 @@ cd apps/api && docker-compose down -v
 cd apps/api
 
 # Docker environment
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 
 # Local environment
 dropdb olympus_mvp && createdb olympus_mvp

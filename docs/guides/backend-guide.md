@@ -138,12 +138,12 @@ See [Environment Setup Guide](./environment-setup.md) for detailed configuration
 1. **Create model** in `apps/api/app/models/`
 2. **Generate migration**:
    ```bash
-   docker-compose exec api poetry run alembic revision --autogenerate -m "Add table"
+   docker compose exec api poetry run alembic revision --autogenerate -m "Add table"
    ```
 3. **Review migration** in `apps/api/alembic/versions/`
 4. **Apply migration**:
    ```bash
-   docker-compose exec api poetry run alembic upgrade head
+   docker compose exec api poetry run alembic upgrade head
    ```
 5. **Add GraphQL types and resolvers** if needed
 
@@ -224,7 +224,7 @@ result = await orchestrator.run_research_workflow(
 
 - Configuration: `apps/api/pyproject.toml` (comprehensive rule set)
 - Enabled rules: pycodestyle, pyflakes, isort, pep8-naming, flake8-\*, pylint, security
-- Run: `poetry run ruff check --fix` or `docker-compose exec api poetry run ruff check --fix`
+- Run: `poetry run ruff check --fix` or `docker compose exec api poetry run ruff check --fix`
 
 ### Type Checking
 

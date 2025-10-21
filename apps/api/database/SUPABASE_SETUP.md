@@ -255,7 +255,7 @@ After setting up the Storage bucket, you can test the document upload feature:
 
    ```bash
    cd apps/api
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Run the document upload test script:**

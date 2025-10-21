@@ -18,18 +18,18 @@ The Olympus API supports two primary development workflows:
 cd apps/api
 
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Verify everything is running
-docker-compose ps
+docker compose ps
 ```
 
 ### Daily Development Cycle
 
 ```bash
 # 1. Start your development session
-docker-compose up -d
-docker-compose logs -f api
+docker compose up -d
+docker compose logs -f api
 
 # 2. Make code changes in your editor
 # Files automatically sync via volume mounts
@@ -42,29 +42,29 @@ curl http://localhost:8000/
 open http://localhost:8000/docs
 
 # 5. Run tests
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run pytest
 
 # 6. End development session
-docker-compose down
+docker compose down
 ```
 
 ### Database Operations in Docker
 
 ```bash
 # Run migrations
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Create new migration
-docker-compose exec api poetry run alembic revision --autogenerate -m "Add new table"
+docker compose exec api poetry run alembic revision --autogenerate -m "Add new table"
 
 # Access PostgreSQL directly
-docker-compose exec postgres psql -U olympus -d olympus_mvp
+docker compose exec postgres psql -U olympus -d olympus_mvp
 
 # Backup database
-docker-compose exec postgres pg_dump -U olympus olympus_mvp > backup.sql
+docker compose exec postgres pg_dump -U olympus olympus_mvp > backup.sql
 
 # Restore database
-docker-compose exec -T postgres psql -U olympus -d olympus_mvp < backup.sql
+docker compose exec -T postgres psql -U olympus -d olympus_mvp < backup.sql
 ```
 
 ### Switching Between Database Configurations
@@ -87,7 +87,7 @@ DATABASE_URL=postgresql+asyncpg://your-supabase-connection-string
 SUPABASE_DB_URL=postgresql+asyncpg://your-supabase-connection-string
 
 # Restart API to pick up new configuration
-docker-compose restart api
+docker compose restart api
 ```
 
 ## Local Development Workflow
@@ -232,13 +232,13 @@ poetry run alembic upgrade head
 
 ```bash
 # Add runtime dependency
-docker-compose exec api poetry add fastapi-users
+docker compose exec api poetry add fastapi-users
 
 # Add development dependency
-docker-compose exec api poetry add --group dev pytest-mock
+docker compose exec api poetry add --group dev pytest-mock
 
 # Rebuild container to persist changes
-docker-compose up --build -d api
+docker compose up --build -d api
 ```
 
 #### Local Environment
@@ -255,22 +255,22 @@ poetry add --group dev pytest-mock
 
 ```bash
 # Run all tests
-docker-compose exec api poetry run pytest
+docker compose exec api poetry run pytest
 
 # Run specific test
-docker-compose exec api poetry run pytest tests/test_main.py::test_read_main
+docker compose exec api poetry run pytest tests/test_main.py::test_read_main
 
 # Run with coverage
-docker-compose exec api poetry run pytest --cov=app tests/
+docker compose exec api poetry run pytest --cov=app tests/
 
 # Run tests with database reset
-docker-compose exec api poetry run pytest --database-reset
+docker compose exec api poetry run pytest --database-reset
 ```
 
 #### Local Environment
 
 ```bash
-# Same commands without docker-compose exec
+# Same commands without docker compose exec
 poetry run pytest
 poetry run pytest tests/test_main.py::test_read_main
 poetry run pytest --cov=app tests/
@@ -282,7 +282,7 @@ poetry run pytest --cov=app tests/
 
 ```bash
 # Docker
-docker-compose exec api poetry run alembic revision --autogenerate -m "Add user table"
+docker compose exec api poetry run alembic revision --autogenerate -m "Add user table"
 
 # Local
 poetry run alembic revision --autogenerate -m "Add user table"
@@ -292,7 +292,7 @@ poetry run alembic revision --autogenerate -m "Add user table"
 
 ```bash
 # Docker
-docker-compose exec api poetry run alembic upgrade head
+docker compose exec api poetry run alembic upgrade head
 
 # Local
 poetry run alembic upgrade head
@@ -312,19 +312,19 @@ poetry run alembic upgrade head
 
 ```bash
 # Format code
-docker-compose exec api poetry run ruff format
+docker compose exec api poetry run ruff format
 
 # Lint code
-docker-compose exec api poetry run ruff check
+docker compose exec api poetry run ruff check
 
 # Type checking
-docker-compose exec api poetry run mypy app/
+docker compose exec api poetry run mypy app/
 ```
 
 #### Local Environment
 
 ```bash
-# Same commands without docker-compose exec
+# Same commands without docker compose exec
 poetry run ruff format
 poetry run ruff check
 poetry run mypy app/
@@ -344,12 +344,12 @@ poetry run mypy app/
 2. **Restart API:**
 
    ```bash
-   docker-compose restart api
+   docker compose restart api
    ```
 
 3. **Run migrations on Supabase:**
    ```bash
-   docker-compose exec api poetry run alembic upgrade head
+   docker compose exec api poetry run alembic upgrade head
    ```
 
 ### From Supabase to Docker
@@ -364,12 +364,12 @@ poetry run mypy app/
 2. **Restart services:**
 
    ```bash
-   docker-compose restart api
+   docker compose restart api
    ```
 
 3. **Run migrations on local DB:**
    ```bash
-   docker-compose exec api poetry run alembic upgrade head
+   docker compose exec api poetry run alembic upgrade head
    ```
 
 ### From Local to Docker
@@ -384,7 +384,7 @@ poetry run mypy app/
 2. **Start Docker services:**
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. **Update .env for Docker:**
@@ -405,7 +405,7 @@ lsof -i :5432
 # Kill process using port
 kill -9 $(lsof -t -i:8000)
 
-# Use different port in docker-compose.yml
+# Use different port in docker compose.yml
 services:
   api:
     ports:
@@ -416,14 +416,14 @@ services:
 
 ```bash
 # Test database connection
-docker-compose exec api python -c "from app.db.session import engine; print('Connected!')"
+docker compose exec api python -c "from app.db.session import engine; print('Connected!')"
 
 # Check database is accessible
-docker-compose exec postgres psql -U olympus -d olympus_mvp -c "SELECT 1;"
+docker compose exec postgres psql -U olympus -d olympus_mvp -c "SELECT 1;"
 
 # Reset database completely
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ### Dependency Issues
@@ -436,7 +436,7 @@ poetry cache clear --all pypi
 poetry install --sync
 
 # Rebuild Docker containers
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
 ## Best Practices
@@ -451,8 +451,8 @@ docker-compose build --no-cache
 
 ### Docker Development
 
-- Use `docker-compose logs -f api` to monitor startup
-- Restart API container for quick changes: `docker-compose restart api`
+- Use `docker compose logs -f api` to monitor startup
+- Restart API container for quick changes: `docker compose restart api`
 - Clean up regularly: `docker system prune`
 - Use volume mounts for source code hot reloading
 

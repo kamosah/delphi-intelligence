@@ -31,10 +31,10 @@ The fastest way to get started is using Docker, which provides a complete develo
 
 ```bash
 # Start all services (PostgreSQL, Redis, API)
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f api
+docker compose logs -f api
 
 # Access the API
 open http://localhost:8000
