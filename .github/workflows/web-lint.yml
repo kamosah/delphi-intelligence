@@ -48,7 +48,7 @@ jobs:
                   exit 1
 
     type-check:
-        name: TypeScript Type Check
+        name: TypeScript Type Check (Web)
         runs-on: ubuntu-latest
 
         defaults:
@@ -77,6 +77,38 @@ jobs:
                   echo "❌ TypeScript type checking failed!"
                   echo "Run the following command locally to see errors:"
                   echo "  npm run type-check --workspace=apps/web"
+                  exit 1
+
+    type-check-ui:
+        name: TypeScript Type Check (UI Package)
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: .
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run TypeScript type check for UI package
+              run: npm run type-check --workspace=packages/ui
+
+            - name: Type check failed
+              if: failure()
+              run: |
+                  echo "❌ TypeScript type checking failed for UI package!"
+                  echo "Run the following command locally to see errors:"
+                  echo "  npm run type-check --workspace=packages/ui"
                   exit 1
 
     build:
@@ -149,7 +181,7 @@ jobs:
     summary:
         name: Web Lint Summary
         runs-on: ubuntu-latest
-        needs: [lint, type-check, build, format-check]
+        needs: [lint, type-check, type-check-ui, build, format-check]
         if: always()
 
         steps:
@@ -157,6 +189,7 @@ jobs:
               run: |
                   if [ "${{ needs.lint.result }}" == "failure" ] || \
                      [ "${{ needs.type-check.result }}" == "failure" ] || \
+                     [ "${{ needs.type-check-ui.result }}" == "failure" ] || \
                      [ "${{ needs.build.result }}" == "failure" ] || \
                      [ "${{ needs.format-check.result }}" == "failure" ]; then
                     echo "::error::One or more checks failed. Please review the logs above."

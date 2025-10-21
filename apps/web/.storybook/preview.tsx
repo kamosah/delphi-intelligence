@@ -1,7 +1,14 @@
 import type { Preview } from '@storybook/nextjs';
+import { initialize, mswLoader } from 'msw-storybook-addon';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '../src/app/globals.css';
+import 'highlight.js/styles/atom-one-dark.css';
+
+// Initialize MSW
+initialize();
 
 const preview: Preview = {
+  loaders: [mswLoader],
   parameters: {
     controls: {
       matchers: {
@@ -56,6 +63,23 @@ const preview: Preview = {
       }
 
       return <Story />;
+    },
+    (Story) => {
+      // Create a new QueryClient for each story to avoid cache conflicts
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+            staleTime: Infinity,
+          },
+        },
+      });
+
+      return (
+        <QueryClientProvider client={queryClient}>
+          <Story />
+        </QueryClientProvider>
+      );
     },
   ],
 };

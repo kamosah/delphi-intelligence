@@ -55,6 +55,7 @@ export { Progress } from './components/progress';
 export { ScrollArea, ScrollBar } from './components/scroll-area';
 export { Separator } from './components/separator';
 export { Skeleton } from './components/skeleton';
+export { Textarea, type TextareaProps } from './components/textarea';
 export {
   Tooltip,
   TooltipContent,

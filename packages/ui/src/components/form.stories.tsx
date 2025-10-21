@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from './button';
@@ -180,12 +180,13 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+type RenderOnlyStory = Omit<Story, 'args'>;
 
 /**
  * A complete profile form with username, email, and bio fields.
  * Demonstrates form validation with Zod schema and error messages.
  */
-export const ProfileFormExample: Story = {
+export const ProfileFormExample: RenderOnlyStory = {
   render: () => (
     <div className="w-[500px]">
       <ProfileForm />
@@ -197,7 +198,7 @@ export const ProfileFormExample: Story = {
  * A simple login form with email and password fields.
  * Shows minimal form setup with validation.
  */
-export const LoginFormExample: Story = {
+export const LoginFormExample: RenderOnlyStory = {
   render: () => (
     <div className="w-[400px]">
       <LoginForm />
@@ -209,7 +210,7 @@ export const LoginFormExample: Story = {
  * Single form field demonstrating the basic structure.
  * Shows FormItem, FormLabel, FormControl, and FormMessage components.
  */
-export const SingleField: Story = {
+export const SingleField: RenderOnlyStory = {
   render: () => {
     const form = useForm({
       defaultValues: {
@@ -246,7 +247,7 @@ export const SingleField: Story = {
  * Form field with validation error displayed.
  * Shows how error messages appear below the input.
  */
-export const WithError: Story = {
+export const WithError: RenderOnlyStory = {
   render: () => {
     const form = useForm({
       resolver: zodResolver(
@@ -294,7 +295,7 @@ export const WithError: Story = {
  * Form field with description text.
  * Demonstrates FormDescription component usage.
  */
-export const WithDescription: Story = {
+export const WithDescription: RenderOnlyStory = {
   render: () => {
     const form = useForm({
       defaultValues: {
@@ -334,7 +335,7 @@ export const WithDescription: Story = {
  * Disabled form field.
  * Shows how disabled state appears.
  */
-export const Disabled: Story = {
+export const Disabled: RenderOnlyStory = {
   render: () => {
     const form = useForm({
       defaultValues: {

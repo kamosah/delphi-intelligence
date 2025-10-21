@@ -9,9 +9,10 @@ This guide covers component architecture, creation rules, and best practices for
 **Component Hierarchy**:
 
 1. **Design System Components** (`packages/ui/src/components/`) - Base primitives (Button, Input, Card, etc.)
-2. **Layout Components** (`apps/web/src/components/layout/`) - Application structure (Header, Sidebar, Footer)
-3. **Feature Components** (`apps/web/src/components/[feature]/`) - Domain-specific components
-4. **Page Components** (`apps/web/src/app/`) - Composition of all above
+2. **Common/Shared Components** (`apps/web/src/components/common/`) - App-level reusable utilities (MarkdownContent, ErrorBoundary, etc.)
+3. **Layout Components** (`apps/web/src/components/layout/`) - Application structure (Header, Sidebar, Footer)
+4. **Feature Components** (`apps/web/src/components/[feature]/`) - Domain-specific components
+5. **Page Components** (`apps/web/src/app/`) - Composition of all above
 
 ## Component Location Strategy
 
@@ -26,6 +27,11 @@ packages/ui/src/components/     # Shadcn + Design System primitives
 
 apps/web/src/components/
 ├── ui/                         # App-specific UI overrides (if needed)
+├── common/                     # App-level reusable utilities
+│   ├── MarkdownContent.tsx     # Markdown rendering for rich text
+│   ├── ErrorBoundary.tsx       # Error handling wrapper
+│   ├── LoadingSpinner.tsx      # Loading states
+│   └── EmptyState.tsx          # Empty state messages
 ├── layout/                     # Layout components (Header, Sidebar, Footer)
 │   ├── Header.tsx
 │   ├── Header.stories.tsx      # Include stories for layout components

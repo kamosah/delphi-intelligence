@@ -6,8 +6,8 @@ const config: Config = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    // Include packages for shared components
-    '../../packages/ui/**/*.{js,ts,jsx,tsx}',
+    // Include packages for shared components (only src to avoid node_modules)
+    '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
