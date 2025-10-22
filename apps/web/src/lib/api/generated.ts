@@ -26,6 +26,7 @@ export type Scalars = {
   Int: { input: number; output: number };
   Float: { input: number; output: number };
   DateTime: { input: string; output: string };
+  JSON: { input: any; output: any };
 };
 
 export type CreateUserInput = {
@@ -33,6 +34,37 @@ export type CreateUserInput = {
   bio?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
   fullName?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type Document = {
+  __typename?: 'Document';
+  createdAt: Scalars['DateTime']['output'];
+  docMetadata?: Maybe<Scalars['JSON']['output']>;
+  extractedText?: Maybe<Scalars['String']['output']>;
+  filePath: Scalars['String']['output'];
+  fileType: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  processedAt?: Maybe<Scalars['DateTime']['output']>;
+  processingError?: Maybe<Scalars['String']['output']>;
+  sizeBytes: Scalars['Int']['output'];
+  spaceId: Scalars['ID']['output'];
+  status: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  uploadedBy: Scalars['ID']['output'];
+};
+
+export type DocumentChunk = {
+  __typename?: 'DocumentChunk';
+  chunkIndex: Scalars['Int']['output'];
+  chunkMetadata: Scalars['JSON']['output'];
+  chunkText: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  documentId: Scalars['ID']['output'];
+  endChar: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
+  startChar: Scalars['Int']['output'];
+  tokenCount: Scalars['Int']['output'];
 };
 
 export type Mutation = {
@@ -58,9 +90,14 @@ export type MutationUpdateUserArgs = {
 export type Query = {
   __typename?: 'Query';
   health: Scalars['String']['output'];
+  searchDocuments: Array<SearchResult>;
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
   users: Array<User>;
+};
+
+export type QuerySearchDocumentsArgs = {
+  input: SearchDocumentsInput;
 };
 
 export type QueryUserArgs = {
@@ -74,6 +111,22 @@ export type QueryUserByEmailArgs = {
 export type QueryUsersArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
+};
+
+export type SearchDocumentsInput = {
+  documentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  limit?: Scalars['Int']['input'];
+  query: Scalars['String']['input'];
+  similarityThreshold?: Scalars['Float']['input'];
+  spaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type SearchResult = {
+  __typename?: 'SearchResult';
+  chunk: DocumentChunk;
+  distance: Scalars['Float']['output'];
+  document: Document;
+  similarityScore: Scalars['Float']['output'];
 };
 
 export type UpdateUserInput = {
@@ -92,6 +145,10 @@ export type User = {
   id: Scalars['ID']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
+
+export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
+
+export type HealthCheckQuery = { __typename?: 'Query'; health: string };
 
 export type GetUserQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -147,7 +204,3 @@ export type GetUserByEmailQuery = {
     updatedAt: string;
   } | null;
 };
-
-export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
-
-export type HealthCheckQuery = { __typename?: 'Query'; health: string };

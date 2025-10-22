@@ -120,14 +120,17 @@ apps/web/src/
 │   ├── queries/              # GraphQL query documents by entity
 │   │   ├── spaces.graphql
 │   │   ├── documents.graphql
-│   │   ├── user-queries.graphql  # Renamed to avoid conflict with "query"
-│   │   └── users.graphql
+│   │   ├── users.graphql
+│   │   ├── query-history.graphql
+│   │   └── health.graphql
 │   ├── mutations/            # GraphQL mutation documents by entity
 │   │   ├── spaces.graphql
 │   │   ├── documents.graphql
-│   │   └── user-queries.graphql
+│   │   ├── users.graphql
+│   │   └── query-history.graphql
 │   └── fragments/            # Shared GraphQL fragments
 │       ├── space.graphql
+│       ├── user.graphql
 │       └── document.graphql
 ├── lib/
 │   └── api/
@@ -141,10 +144,21 @@ apps/web/src/
 │   └── queries/              # Level 2: React Query hooks (imports from generated & ui types)
 │       ├── useSpaces.ts
 │       ├── useDocuments.ts
-│       ├── useUserQueries.ts
+│       ├── useQueryHistory.ts
 │       └── index.ts
 └── components/               # Level 3: Components (can import from all levels)
 ```
+
+**Naming Convention:**
+
+- **Entity files**: Use kebab-case for multi-word entity names
+  - ✅ `query-history.graphql` (not `queryHistory.graphql` or `user-queries.graphql`)
+  - ✅ `user-preferences.graphql` (not `userPreferences.graphql`)
+  - ✅ `users.graphql` (single word entity)
+  - ✅ `health.graphql` (system/diagnostic queries)
+- **Directory separation**: Queries, mutations, and fragments in separate folders
+  - No need for `.queries.graphql` or `.mutations.graphql` suffixes (directory already indicates type)
+- **Fragment files**: Use singular entity name (e.g., `user.graphql`, not `users.graphql`)
 
 ### Dependency Flow (Safe from Cycles)
 

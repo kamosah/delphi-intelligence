@@ -1,0 +1,12 @@
+# ============================================
+# User GraphQL Fragments
+# ============================================
+
+# Placeholder for shared user fragments
+# Example:
+# fragment UserBasicInfo on User {
+#   id
+#   email
+#   fullName
+#   avatarUrl
+# }

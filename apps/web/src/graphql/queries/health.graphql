@@ -1,0 +1,7 @@
+# ============================================
+# System Health Query Operations
+# ============================================
+
+query HealthCheck {
+  health
+}
