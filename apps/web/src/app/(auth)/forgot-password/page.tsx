@@ -7,13 +7,10 @@ export const metadata: Metadata = {
 };
 
 /**
- * Forgot password page - Request password reset email.
- * Server Component that renders the ForgotPasswordForm client component.
+ * Forgot password page - Wrapped by (auth)/layout.tsx
+ * ForgotPasswordForm handles its own Card wrapper and title/subtitle
+ * due to dual states (form vs success confirmation).
  */
 export default function ForgotPasswordPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
-      <ForgotPasswordForm />
-    </div>
-  );
+  return <ForgotPasswordForm />;
 }

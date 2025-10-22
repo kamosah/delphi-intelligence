@@ -325,8 +325,10 @@ npm run graphql:generate    # Generate TypeScript types
 
 ```bash
 cd apps/web
-npm run type-check && npm run lint && npm run format
+npm run type-check && npm run lint
 ```
+
+> **Note:** Formatting is handled automatically by lint-staged on commit.
 
 **Backend:**
 

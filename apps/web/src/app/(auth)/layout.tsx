@@ -1,50 +1,58 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { AuthenticatedRedirect } from '@/components/auth/AuthenticatedRedirect';
 
 export const metadata: Metadata = {
   description:
     'Sign in to Olympus - Your AI-powered document intelligence platform. Access your workspaces, documents, and AI analyst.',
 };
 
+/**
+ * Auth layout - Provides shared chrome for all authentication pages.
+ * Each page provides its own title, subtitle, and form as children.
+ */
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Branding/Image */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 p-12 items-center justify-center">
-        <div className="text-center text-white">
-          <h1 className="text-4xl font-bold mb-4">Olympus</h1>
-          <p className="text-xl opacity-90 mb-8">
-            Your AI analyst for document intelligence
-          </p>
-          <div className="text-left max-w-md">
-            <div className="flex items-center mb-4">
-              <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
-              <span>Upload and organize documents</span>
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
-              <span>Ask questions about your content</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-white rounded-full mr-3"></div>
-              <span>Get AI-powered insights</span>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <AuthenticatedRedirect />
+
+      {/* Back button */}
+      <div className="absolute top-4 left-4">
+        <Link
+          href="/"
+          className="flex items-center text-muted-foreground hover:text-foreground transition-colors font-medium"
+        >
+          <svg
+            className="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+          Back to home
+        </Link>
       </div>
 
-      {/* Right side - Form */}
-      <div className="flex-1 lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile branding */}
-          <div className="lg:hidden text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Olympus</h1>
-            <p className="text-gray-600">Welcome back</p>
-          </div>
+      {/* Logo */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <Link href="/" className="flex justify-center">
+          <h1 className="text-3xl font-bold text-foreground">Olympus</h1>
+        </Link>
+      </div>
 
+      {/* Content card */}
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-card py-8 px-4 shadow-xl shadow-muted/20 sm:rounded-xl sm:px-10 border border-border">
           {children}
         </div>
       </div>

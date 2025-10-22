@@ -24,13 +24,13 @@ export function AuthLayout({
   showBackButton = true,
 }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <AuthenticatedRedirect />
       {showBackButton && (
         <div className="absolute top-4 left-4">
           <Link
             href="/"
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors font-medium"
+            className="flex items-center text-muted-foreground hover:text-foreground transition-colors font-medium"
           >
             <svg
               className="w-5 h-5 mr-2"
@@ -52,16 +52,18 @@ export function AuthLayout({
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center">
-          <h1 className="text-3xl font-bold text-gray-900">Olympus</h1>
+          <h1 className="text-3xl font-bold text-foreground">Olympus</h1>
         </Link>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-bold text-foreground">
           {title}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">{subtitle}</p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          {subtitle}
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 sm:rounded-xl sm:px-10 border border-gray-200">
+        <div className="bg-card py-8 px-4 shadow-xl shadow-muted/20 sm:rounded-xl sm:px-10 border border-border">
           {children}
         </div>
       </div>

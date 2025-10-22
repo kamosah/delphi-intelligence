@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { AuthLayout } from '@/components/auth/AuthLayout';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 // Mark as dynamic to support useSearchParams in LoginForm
@@ -12,16 +11,21 @@ export const metadata: Metadata = {
 };
 
 /**
- * Login page composed using AuthLayout and LoginForm components.
- * Follows component composition best practices.
+ * Login page - Title and form content wrapped by (auth)/layout.tsx
  */
 export default function LoginPage() {
   return (
-    <AuthLayout
-      title="Sign in"
-      subtitle="Welcome back! Please sign in to your account"
-    >
+    <div className="space-y-6">
+      {/* Page-specific title and subtitle */}
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-foreground">Sign in</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Welcome back! Please sign in to your account
+        </p>
+      </div>
+
+      {/* Form content */}
       <LoginForm />
-    </AuthLayout>
+    </div>
   );
 }

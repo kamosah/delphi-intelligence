@@ -18,11 +18,7 @@ async function ResetPasswordContent({
 }) {
   const token = searchParams.token || null;
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
-      <ResetPasswordForm token={token} />
-    </div>
-  );
+  return <ResetPasswordForm token={token} />;
 }
 
 /**
@@ -37,7 +33,7 @@ export default function ResetPasswordPage({
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center justify-center py-12">
           <div className="text-muted-foreground">Loading...</div>
         </div>
       }

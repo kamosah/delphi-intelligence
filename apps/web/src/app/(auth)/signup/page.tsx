@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { AuthLayout } from '@/components/auth/AuthLayout';
 import { SignupForm } from '@/components/auth/SignupForm';
 
 export const metadata: Metadata = {
@@ -9,16 +8,21 @@ export const metadata: Metadata = {
 };
 
 /**
- * Signup page composed using AuthLayout and SignupForm components.
- * Follows component composition best practices.
+ * Signup page - Title and form content wrapped by (auth)/layout.tsx
  */
 export default function SignupPage() {
   return (
-    <AuthLayout
-      title="Create account"
-      subtitle="Get started with your Olympus account"
-    >
+    <div className="space-y-6">
+      {/* Page-specific title and subtitle */}
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-foreground">Create account</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Get started with your Olympus account
+        </p>
+      </div>
+
+      {/* Form content */}
       <SignupForm />
-    </AuthLayout>
+    </div>
   );
 }
