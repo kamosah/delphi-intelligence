@@ -9,8 +9,6 @@ import {
   useGetSpacesQuery,
   useUpdateSpaceMutation,
 } from '@/lib/api/hooks.generated';
-import { setAuthToken } from '@/lib/api/graphql-client';
-import { useEffect } from 'react';
 
 // Re-export generated types for convenience
 export type {
@@ -24,18 +22,13 @@ export type {
 /**
  * React Query hook for listing all spaces.
  *
+ * Auth token is automatically injected via GraphQL client middleware.
+ *
  * @example
  * const { spaces, isLoading, error } = useSpaces();
  */
 export function useSpaces(options?: { limit?: number; offset?: number }) {
   const { accessToken } = useAuthStore();
-
-  // Set auth token in GraphQL client
-  useEffect(() => {
-    if (accessToken) {
-      setAuthToken(accessToken);
-    }
-  }, [accessToken]);
 
   const query = useGetSpacesQuery(
     {
@@ -58,18 +51,13 @@ export function useSpaces(options?: { limit?: number; offset?: number }) {
 /**
  * React Query hook for getting a single space by ID.
  *
+ * Auth token is automatically injected via GraphQL client middleware.
+ *
  * @example
  * const { space, isLoading } = useSpace(spaceId);
  */
 export function useSpace(id: string) {
   const { accessToken } = useAuthStore();
-
-  // Set auth token in GraphQL client
-  useEffect(() => {
-    if (accessToken) {
-      setAuthToken(accessToken);
-    }
-  }, [accessToken]);
 
   const query = useGetSpaceQuery(
     { id },
@@ -89,6 +77,8 @@ export function useSpace(id: string) {
 /**
  * React Query hook for creating a new space.
  *
+ * Auth token is automatically injected via GraphQL client middleware.
+ *
  * @example
  * const { createSpace, isCreating } = useCreateSpace();
  *
@@ -102,14 +92,6 @@ export function useSpace(id: string) {
  */
 export function useCreateSpace() {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
-
-  // Set auth token in GraphQL client
-  useEffect(() => {
-    if (accessToken) {
-      setAuthToken(accessToken);
-    }
-  }, [accessToken]);
 
   const mutation = useCreateSpaceMutation({
     onSuccess: () => {
@@ -129,6 +111,8 @@ export function useCreateSpace() {
 /**
  * React Query hook for updating a space.
  *
+ * Auth token is automatically injected via GraphQL client middleware.
+ *
  * @example
  * const { updateSpace, isUpdating } = useUpdateSpace();
  *
@@ -141,14 +125,6 @@ export function useCreateSpace() {
  */
 export function useUpdateSpace() {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
-
-  // Set auth token in GraphQL client
-  useEffect(() => {
-    if (accessToken) {
-      setAuthToken(accessToken);
-    }
-  }, [accessToken]);
 
   const mutation = useUpdateSpaceMutation({
     onSuccess: (data, variables) => {
@@ -172,6 +148,8 @@ export function useUpdateSpace() {
 /**
  * React Query hook for deleting a space.
  *
+ * Auth token is automatically injected via GraphQL client middleware.
+ *
  * @example
  * const { deleteSpace, isDeleting } = useDeleteSpace();
  *
@@ -181,14 +159,6 @@ export function useUpdateSpace() {
  */
 export function useDeleteSpace() {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
-
-  // Set auth token in GraphQL client
-  useEffect(() => {
-    if (accessToken) {
-      setAuthToken(accessToken);
-    }
-  }, [accessToken]);
 
   const mutation = useDeleteSpaceMutation({
     onSuccess: (data, variables) => {

@@ -1,7 +1,6 @@
 'use client';
 
 import { authApi } from '@/lib/api/auth-client';
-import { setAuthToken } from '@/lib/api/graphql-client';
 import { setAuthCookies } from '@/lib/auth-cookies';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useRouter } from 'next/navigation';
@@ -61,11 +60,11 @@ export default function AuthCallbackPage() {
 
             // Auto-login: Set our backend tokens
             setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
-            setAuthToken(tokenResponse.access_token);
             setAuthCookies(
               tokenResponse.access_token,
               tokenResponse.refresh_token
             );
+            // Token auto-injected via GraphQL client middleware
 
             // Get user profile with our backend token
             const userProfile = await authApi.me(tokenResponse.access_token);
