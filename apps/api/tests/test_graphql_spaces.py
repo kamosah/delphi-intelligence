@@ -55,18 +55,25 @@ def mock_space_model(mock_user):
 class TestSpacesQuery:
     """Test cases for spaces GraphQL query"""
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
-    async def test_get_spaces_success(
-        self, mock_dispatch, client, auth_headers, mock_user
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    def test_get_spaces_success(
+        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
     ):
         """Test successfully fetching user's spaces"""
 
-        # Mock the authentication middleware to inject user into request state
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         query = """
             query GetSpaces {
@@ -95,15 +102,25 @@ class TestSpacesQuery:
         assert "spaces" in data["data"]
         assert isinstance(data["data"]["spaces"], list)
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
-    async def test_get_spaces_with_pagination(self, mock_dispatch, client, auth_headers, mock_user):
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    def test_get_spaces_with_pagination(
+        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
+    ):
         """Test fetching spaces with pagination parameters"""
 
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         query = """
             query GetSpaces($limit: Int, $offset: Int) {
@@ -149,17 +166,25 @@ class TestSpacesQuery:
 class TestSpaceQuery:
     """Test cases for single space GraphQL query"""
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
-    async def test_get_space_by_id(
-        self, mock_dispatch, client, auth_headers, mock_user
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    def test_get_space_by_id(
+        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
     ):
         """Test fetching a single space by ID"""
 
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         query = """
             query GetSpace($id: ID!) {
@@ -210,18 +235,33 @@ class TestSpaceQuery:
 class TestCreateSpaceMutation:
     """Test cases for createSpace GraphQL mutation"""
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.mutation.get_session")
-    async def test_create_space_success(
-        self, mock_get_session, mock_dispatch, client, auth_headers, mock_user, mock_space_model
+    def test_create_space_success(
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
+        mock_space_model,
     ):
         """Test successfully creating a new space"""
 
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
@@ -318,17 +358,25 @@ class TestCreateSpaceMutation:
 class TestUpdateSpaceMutation:
     """Test cases for updateSpace GraphQL mutation"""
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
-    async def test_update_space_as_owner(
-        self, mock_dispatch, client, auth_headers, mock_user
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    def test_update_space_as_owner(
+        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
     ):
         """Test updating a space as the owner"""
 
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         mutation = """
             mutation UpdateSpace($id: ID!, $input: UpdateSpaceInput!) {
@@ -389,17 +437,25 @@ class TestUpdateSpaceMutation:
 class TestDeleteSpaceMutation:
     """Test cases for deleteSpace GraphQL mutation"""
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
-    async def test_delete_space_as_owner(
-        self, mock_dispatch, client, auth_headers, mock_user
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    def test_delete_space_as_owner(
+        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
     ):
         """Test deleting a space as the owner"""
 
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         mutation = """
             mutation DeleteSpace($id: ID!) {
@@ -442,18 +498,33 @@ class TestDeleteSpaceMutation:
 class TestSpaceIdempotency:
     """Test cases for space creation idempotency"""
 
-    @patch("app.middleware.auth.AuthenticationMiddleware.dispatch")
+    @patch("app.middleware.auth.jwt_manager.verify_token")
+    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.mutation.get_session")
-    async def test_duplicate_space_name_same_user(
-        self, mock_get_session, mock_dispatch, client, auth_headers, mock_user, mock_space_model
+    def test_duplicate_space_name_same_user(
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
+        mock_space_model,
     ):
         """Test creating two spaces with the same name for the same user returns same space"""
 
-        async def mock_dispatch_impl(request, call_next):
-            request.state.user = mock_user
-            return await call_next(request)
+        # Mock JWT verification to bypass middleware
+        mock_verify_token.return_value = {
+            "sub": mock_user["id"],
+            "email": mock_user["email"],
+            "role": mock_user["role"],
+        }
 
-        mock_dispatch.side_effect = mock_dispatch_impl
+        # Async mock for Redis check
+        async def mock_blacklist_check(token):
+            return False
+
+        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
