@@ -162,9 +162,8 @@ class Mutation:
                 if "unique_constraint" in str(e).lower() or "slug" in str(e).lower():
                     # Query for existing space with same slug owned by this user
                     # Relationships eager loaded via lazy='selectin' in model
-                    existing_stmt = (
-                        select(SpaceModel)
-                        .where((SpaceModel.slug == slug) & (SpaceModel.owner_id == user_id))
+                    existing_stmt = select(SpaceModel).where(
+                        (SpaceModel.slug == slug) & (SpaceModel.owner_id == user_id)
                     )
                     existing_result = await session.execute(existing_stmt)
                     existing_space = existing_result.scalar_one_or_none()

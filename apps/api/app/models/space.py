@@ -3,9 +3,17 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum as SQLEnum, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
+from sqlalchemy import (
+    Boolean,
+    Enum as SQLEnum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
@@ -52,21 +60,21 @@ class Space(Base):
         "SpaceMember",
         back_populates="space",
         lazy="selectin",  # Always eager load to avoid async lazy-loading issues
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     documents: Mapped[list["Document"]] = relationship(
         "Document",
         back_populates="space",
         lazy="selectin",  # Always eager load to avoid async lazy-loading issues
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     queries: Mapped[list["Query"]] = relationship(
         "Query",
         back_populates="space",
         lazy="selectin",  # Always eager load to avoid async lazy-loading issues
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     # Computed properties - safe to use because relationships are eager loaded
