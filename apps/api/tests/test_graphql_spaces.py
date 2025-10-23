@@ -141,8 +141,17 @@ class TestSpacesQuery:
         data = response.json()
         assert "data" in data
 
-    def test_get_spaces_unauthorized(self, client):
+    @patch("app.graphql.query.get_session")
+    def test_get_spaces_unauthorized(self, mock_get_session, client):
         """Test fetching spaces without authentication"""
+        # Mock database session
+        mock_session = AsyncMock()
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
+
         query = """
             query GetSpaces {
                 spaces {
@@ -210,8 +219,17 @@ class TestSpaceQuery:
         data = response.json()
         assert "data" in data
 
-    def test_get_space_unauthorized(self, client):
+    @patch("app.graphql.query.get_session")
+    def test_get_space_unauthorized(self, mock_get_session, client):
         """Test fetching a space without authentication"""
+        # Mock database session
+        mock_session = AsyncMock()
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
+
         query = """
             query GetSpace($id: ID!) {
                 space(id: $id) {
@@ -328,8 +346,17 @@ class TestCreateSpaceMutation:
         assert "ownerId" in space
         assert space["memberCount"] >= 0  # May vary based on implementation
 
-    def test_create_space_unauthorized(self, client):
+    @patch("app.graphql.mutation.get_session")
+    def test_create_space_unauthorized(self, mock_get_session, client):
         """Test creating a space without authentication"""
+        # Mock database session
+        mock_session = AsyncMock()
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
+
         mutation = """
             mutation CreateSpace($input: CreateSpaceInput!) {
                 createSpace(input: $input) {
@@ -409,8 +436,17 @@ class TestUpdateSpaceMutation:
         data = response.json()
         assert "data" in data
 
-    def test_update_space_unauthorized(self, client):
+    @patch("app.graphql.mutation.get_session")
+    def test_update_space_unauthorized(self, mock_get_session, client):
         """Test updating a space without authentication"""
+        # Mock database session
+        mock_session = AsyncMock()
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
+
         mutation = """
             mutation UpdateSpace($id: ID!, $input: UpdateSpaceInput!) {
                 updateSpace(id: $id, input: $input) {
@@ -476,8 +512,17 @@ class TestDeleteSpaceMutation:
         data = response.json()
         assert "data" in data
 
-    def test_delete_space_unauthorized(self, client):
+    @patch("app.graphql.mutation.get_session")
+    def test_delete_space_unauthorized(self, mock_get_session, client):
         """Test deleting a space without authentication"""
+        # Mock database session
+        mock_session = AsyncMock()
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
+
         mutation = """
             mutation DeleteSpace($id: ID!) {
                 deleteSpace(id: $id)
