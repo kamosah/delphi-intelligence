@@ -1,4 +1,22 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button, Skeleton } from '@olympus/ui';
+import { useSpaces } from '@/hooks/useSpaces';
+import { SpaceGrid } from '@/components/spaces/SpaceGrid';
+import { SpaceListEmpty } from '@/components/spaces/SpaceListEmpty';
+import { CreateSpaceDialog } from '@/components/spaces/CreateSpaceDialog';
+
 export default function SpacesPage() {
+  const router = useRouter();
+  const { spaces, isLoading, error } = useSpaces();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  const handleSpaceClick = (space: { id: string }) => {
+    router.push(`/dashboard/spaces/${space.id}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -8,69 +26,41 @@ export default function SpacesPage() {
             Organize your documents into collaborative workspaces.
           </p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
           Create Space
-        </button>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-blue-600 font-semibold">M</span>
+      {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-32 w-full" />
             </div>
-            <span className="text-xs text-gray-500">3 members</span>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Marketing Team
-          </h3>
-          <p className="text-gray-600 text-sm mb-4">
-            Marketing strategies, campaigns, and analytics documents.
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">12 documents</span>
-            <span className="text-xs text-blue-600">Active</span>
-          </div>
+          ))}
         </div>
+      )}
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-green-600 font-semibold">P</span>
-            </div>
-            <span className="text-xs text-gray-500">5 members</span>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Product Team
-          </h3>
-          <p className="text-gray-600 text-sm mb-4">
-            Product requirements, specifications, and roadmaps.
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-800">
+            Failed to load spaces. Please try again.
           </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">8 documents</span>
-            <span className="text-xs text-green-600">Active</span>
-          </div>
         </div>
+      )}
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-purple-600 font-semibold">E</span>
-            </div>
-            <span className="text-xs text-gray-500">2 members</span>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Engineering
-          </h3>
-          <p className="text-gray-600 text-sm mb-4">
-            Technical docs, architecture, and development guides.
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">15 documents</span>
-            <span className="text-xs text-purple-600">Active</span>
-          </div>
-        </div>
-      </div>
+      {!isLoading && !error && spaces.length === 0 && (
+        <SpaceListEmpty onCreateClick={() => setIsCreateDialogOpen(true)} />
+      )}
+
+      {!isLoading && !error && spaces.length > 0 && (
+        <SpaceGrid spaces={spaces} onSpaceClick={handleSpaceClick} />
+      )}
+
+      <CreateSpaceDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </div>
   );
 }

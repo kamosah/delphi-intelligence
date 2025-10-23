@@ -1,0 +1,32 @@
+"""add_member_role_enum
+
+Revision ID: 0420e85cda0d
+Revises: d85bb89d035b
+Create Date: 2025-10-22 23:24:51.268973
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '0420e85cda0d'
+down_revision: Union[str, Sequence[str], None] = 'd85bb89d035b'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Create MemberRole enum type for space_members table."""
+    # Create the enum type
+    op.execute("""
+        CREATE TYPE member_role AS ENUM ('owner', 'editor', 'viewer');
+    """)
+
+
+def downgrade() -> None:
+    """Drop MemberRole enum type."""
+    # Drop the enum type
+    op.execute("DROP TYPE IF EXISTS member_role;")

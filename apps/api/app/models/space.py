@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum as SQLEnum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Enum as SQLEnum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,7 +31,15 @@ class Space(Base):
     # Space fields
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
+    slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    icon_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    max_members: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     owner_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
@@ -52,6 +60,16 @@ class Space(Base):
         "Query", back_populates="space", cascade="all, delete-orphan"
     )
 
+    @property
+    def member_count(self) -> int:
+        """Get the number of members in this space."""
+        return len(self.members) if self.members else 0
+
+    @property
+    def document_count(self) -> int:
+        """Get the number of documents in this space."""
+        return len(self.documents) if self.documents else 0
+
     def __repr__(self) -> str:
         """String representation of the space."""
         return f"<Space(id={self.id}, name={self.name})>"
@@ -71,8 +89,11 @@ class SpaceMember(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
-    role: Mapped[MemberRole] = mapped_column(
-        SQLEnum(MemberRole), nullable=False, default=MemberRole.VIEWER
+    member_role: Mapped[MemberRole] = mapped_column(
+        SQLEnum(MemberRole, name="member_role", values_callable=lambda x: [e.value for e in x]),
+        name="member_role",
+        nullable=False,
+        default=MemberRole.VIEWER,
     )
 
     # Relationships
@@ -85,4 +106,4 @@ class SpaceMember(Base):
 
     def __repr__(self) -> str:
         """String representation of the space member."""
-        return f"<SpaceMember(space_id={self.space_id}, user_id={self.user_id}, role={self.role})>"
+        return f"<SpaceMember(space_id={self.space_id}, user_id={self.user_id}, role={self.member_role})>"
