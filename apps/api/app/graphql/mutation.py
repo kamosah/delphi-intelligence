@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
 import strawberry
 
 from app.db.session import get_session
@@ -150,11 +149,8 @@ class Mutation:
                 session.add(space_member)
                 await session.commit()
 
-                # Refresh with eager loading to avoid lazy-load in async context
-                await session.refresh(
-                    space_model,
-                    attribute_names=["members", "documents"]
-                )
+                # Refresh the model (relationships eager loaded via lazy='selectin')
+                await session.refresh(space_model)
 
                 return Space.from_model(space_model)
 
@@ -165,10 +161,10 @@ class Mutation:
                 # If slug already exists, return the existing space for this user
                 if "unique_constraint" in str(e).lower() or "slug" in str(e).lower():
                     # Query for existing space with same slug owned by this user
+                    # Relationships eager loaded via lazy='selectin' in model
                     existing_stmt = (
                         select(SpaceModel)
                         .where((SpaceModel.slug == slug) & (SpaceModel.owner_id == user_id))
-                        .options(selectinload(SpaceModel.members), selectinload(SpaceModel.documents))
                     )
                     existing_result = await session.execute(existing_stmt)
                     existing_space = existing_result.scalar_one_or_none()
@@ -247,11 +243,8 @@ class Mutation:
 
                 await session.commit()
 
-                # Refresh with eager loading to avoid lazy-load in async context
-                await session.refresh(
-                    space_model,
-                    attribute_names=["members", "documents"]
-                )
+                # Refresh the model (relationships eager loaded via lazy='selectin')
+                await session.refresh(space_model)
 
                 return Space.from_model(space_model)
 

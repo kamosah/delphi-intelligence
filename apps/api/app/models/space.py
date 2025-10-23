@@ -3,9 +3,9 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Enum as SQLEnum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Enum as SQLEnum, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from .base import Base
 
@@ -45,29 +45,45 @@ class Space(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
-    # Relationships
+    # Relationships - use selectin for automatic eager loading
     owner: Mapped["User"] = relationship("User", back_populates="owned_spaces")
 
     members: Mapped[list["SpaceMember"]] = relationship(
-        "SpaceMember", back_populates="space", cascade="all, delete-orphan"
+        "SpaceMember",
+        back_populates="space",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan"
     )
 
     documents: Mapped[list["Document"]] = relationship(
-        "Document", back_populates="space", cascade="all, delete-orphan"
+        "Document",
+        back_populates="space",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan"
     )
 
     queries: Mapped[list["Query"]] = relationship(
-        "Query", back_populates="space", cascade="all, delete-orphan"
+        "Query",
+        back_populates="space",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan"
     )
 
+    # Computed properties - safe to use because relationships are eager loaded
     @property
     def member_count(self) -> int:
-        """Get the number of members in this space."""
+        """Get the number of members in this space.
+
+        Safe in async context because members relationship uses lazy='selectin'.
+        """
         return len(self.members) if self.members else 0
 
     @property
     def document_count(self) -> int:
-        """Get the number of documents in this space."""
+        """Get the number of documents in this space.
+
+        Safe in async context because documents relationship uses lazy='selectin'.
+        """
         return len(self.documents) if self.documents else 0
 
     def __repr__(self) -> str:

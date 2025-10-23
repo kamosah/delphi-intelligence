@@ -3,7 +3,6 @@
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 import strawberry
 
 from app.db.session import get_session
@@ -148,12 +147,11 @@ class Query:
             user_id = UUID(str(user["id"]))
 
             # Get spaces where user is owner or member
-            # Eagerly load relationships to avoid lazy-loading in async context
+            # Relationships are eager loaded via lazy='selectin' in model
             stmt = (
                 select(SpaceModel)
                 .outerjoin(SpaceMemberModel)
                 .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
-                .options(selectinload(SpaceModel.members), selectinload(SpaceModel.documents))
                 .distinct()
                 .limit(limit)
                 .offset(offset)
@@ -190,7 +188,7 @@ class Query:
                 space_id = UUID(str(id))
 
                 # Get space and verify user has access (owner or member)
-                # Eagerly load relationships to avoid lazy-loading in async context
+                # Relationships are eager loaded via lazy='selectin' in model
                 stmt = (
                     select(SpaceModel)
                     .outerjoin(SpaceMemberModel)
@@ -198,7 +196,6 @@ class Query:
                         (SpaceModel.id == space_id)
                         & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
                     )
-                    .options(selectinload(SpaceModel.members), selectinload(SpaceModel.documents))
                 )
 
                 result = await session.execute(stmt)
