@@ -57,8 +57,15 @@ class TestSpacesQuery:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    @patch("app.graphql.query.get_session")
     def test_get_spaces_success(
-        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
     ):
         """Test successfully fetching user's spaces"""
 
@@ -74,6 +81,18 @@ class TestSpacesQuery:
             return False
 
         mock_is_blacklisted.side_effect = mock_blacklist_check
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
 
         query = """
             query GetSpaces {
@@ -104,8 +123,15 @@ class TestSpacesQuery:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    @patch("app.graphql.query.get_session")
     def test_get_spaces_with_pagination(
-        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
     ):
         """Test fetching spaces with pagination parameters"""
 
@@ -121,6 +147,18 @@ class TestSpacesQuery:
             return False
 
         mock_is_blacklisted.side_effect = mock_blacklist_check
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_session.execute.return_value = mock_result
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
 
         query = """
             query GetSpaces($limit: Int, $offset: Int) {
@@ -177,8 +215,15 @@ class TestSpaceQuery:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    @patch("app.graphql.query.get_session")
     def test_get_space_by_id(
-        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
     ):
         """Test fetching a single space by ID"""
 
@@ -194,6 +239,18 @@ class TestSpaceQuery:
             return False
 
         mock_is_blacklisted.side_effect = mock_blacklist_check
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_result
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
 
         query = """
             query GetSpace($id: ID!) {
@@ -387,8 +444,15 @@ class TestUpdateSpaceMutation:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    @patch("app.graphql.mutation.get_session")
     def test_update_space_as_owner(
-        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
     ):
         """Test updating a space as the owner"""
 
@@ -404,6 +468,18 @@ class TestUpdateSpaceMutation:
             return False
 
         mock_is_blacklisted.side_effect = mock_blacklist_check
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_result
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
 
         mutation = """
             mutation UpdateSpace($id: ID!, $input: UpdateSpaceInput!) {
@@ -475,8 +551,15 @@ class TestDeleteSpaceMutation:
 
     @patch("app.middleware.auth.jwt_manager.verify_token")
     @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
+    @patch("app.graphql.mutation.get_session")
     def test_delete_space_as_owner(
-        self, mock_is_blacklisted, mock_verify_token, client, auth_headers, mock_user
+        self,
+        mock_get_session,
+        mock_is_blacklisted,
+        mock_verify_token,
+        client,
+        auth_headers,
+        mock_user,
     ):
         """Test deleting a space as the owner"""
 
@@ -492,6 +575,18 @@ class TestDeleteSpaceMutation:
             return False
 
         mock_is_blacklisted.side_effect = mock_blacklist_check
+
+        # Mock database session
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_result
+
+        async def mock_session_generator():
+            yield mock_session
+
+        mock_get_session.return_value = mock_session_generator()
 
         mutation = """
             mutation DeleteSpace($id: ID!) {
