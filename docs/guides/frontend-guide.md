@@ -727,6 +727,79 @@ className="
 3. **Export from index**: `apps/web/src/lib/stores/index.ts`
 4. **Never store server data** - use React Query instead
 
+## Visual Design Implementation
+
+When implementing UI features, always reference **[VISUAL_REFERENCES.md](../VISUAL_REFERENCES.md)** for accurate visual recreation of Athena Intelligence's interface.
+
+### Quick Reference by Feature
+
+| Feature Being Built      | Visual Assets                               | Reference Link                                                                    |
+| ------------------------ | ------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Dashboard Layout**     | Main dashboard, workspace views             | [Platform Overview](../VISUAL_REFERENCES.md#platform-overview--dashboard)         |
+| **Chat/Query Interface** | Chat UI, toolkits, personas, context panels | [Chat Interface](../VISUAL_REFERENCES.md#chat-application-interface)              |
+| **Notebook UI**          | AI sidebar, code cells, SQL queries         | [Notebooks](../VISUAL_REFERENCES.md#notebooks--query-interface)                   |
+| **Document Upload**      | Drag-and-drop, file types, citations        | [Document Intelligence](../VISUAL_REFERENCES.md#document-intelligence--citations) |
+| **Navigation/Sidebar**   | Spaces, workbench, settings                 | [Workbench](../VISUAL_REFERENCES.md#workbench--context-management)                |
+
+### Integration with React Query
+
+When building data-driven UI components, combine visual references with React Query patterns:
+
+```tsx
+// STEP 1: Review visual reference (e.g., chat-step3-toolkits.png)
+// STEP 2: Create React Query hook for data
+import { useQuery } from '@tanstack/react-query';
+
+export function useToolkits() {
+  return useQuery({
+    queryKey: ['toolkits'],
+    queryFn: () => fetchToolkits(),
+  });
+}
+
+// STEP 3: Build UI component matching visual reference
+import { Button, Card } from '@olympus/ui';
+import { useToolkits } from '@/hooks/queries/useToolkits';
+
+export function ToolkitSelector() {
+  const { data: toolkits, isLoading } = useToolkits();
+
+  // Match layout from screenshot: 2-column grid with outline buttons
+  return (
+    <Card className="p-4">
+      <h3 className="text-sm font-medium mb-2">Select Toolkit</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {isLoading ? <Skeleton count={4} /> : null}
+        {toolkits?.map((toolkit) => (
+          <Button key={toolkit.id} variant="outline" size="sm">
+            {toolkit.name}
+          </Button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+```
+
+### Extracting Design Tokens from Screenshots
+
+Use browser DevTools on [Athena docs](https://resources.athenaintel.com/docs/) to extract:
+
+- **Colors**: Primary blues/purples, grays, accent colors
+- **Spacing**: Padding/margin values (likely 4px/8px/16px/24px scale)
+- **Border Radius**: Card rounding, button shapes
+- **Typography**: Font families, sizes, weights
+- **Shadows**: Card elevations, dropdown shadows
+
+Store extracted values in your Tailwind config or CSS variables for consistency.
+
+### Visual Reference Workflow
+
+1. **Before coding**: Find relevant screenshots in VISUAL_REFERENCES.md
+2. **During coding**: Keep screenshots open for reference
+3. **After coding**: Compare your implementation side-by-side with screenshots
+4. **Missing screenshots**: Visit [Athena docs](https://resources.athenaintel.com/docs/) directly
+
 ## Code Quality
 
 ### Linting

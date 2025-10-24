@@ -602,6 +602,26 @@ _Updated to include CrewAI multi-agent workflows and automation in Phase 3-4_
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [LangSmith Documentation](https://docs.smith.langchain.com/)
 
+### Visual References
+
+For UI/UX implementation guidance, see **[VISUAL_REFERENCES.md](./VISUAL_REFERENCES.md)** - a comprehensive catalog of 50+ screenshots, diagrams, and videos from Athena Intelligence including:
+
+- **Platform Screenshots**: Dashboard, login flow, workspace layouts
+- **Chat Interface**: All interaction modes, toolkits, agent personas, context controls
+- **Notebooks**: AI integration, code execution, dataset loading workflows
+- **Document Intelligence**: File upload, citations, PDF highlighting
+- **Architecture Diagrams**: Data integrations, memory graphs, entity relationships
+- **Demo Videos**: Feature walkthroughs, product tours, team interviews
+
+**Key Documentation Pages** (for manual screenshot capture):
+
+- [Chat Application](https://resources.athenaintel.com/docs/applications/chat)
+- [Notebooks](https://resources.athenaintel.com/docs/applications/notebooks)
+- [Workbench](https://resources.athenaintel.com/docs/contextual-knowledge/workbench)
+- [Getting Started Guide](https://resources.athenaintel.com/docs/getting-started/using-athena)
+
+See the visual references document for direct download URLs and detailed descriptions of each asset.
+
 ### Change Log
 
 - **2025-10-14**: Initial PRD created based on Athena Intelligence research
