@@ -33,7 +33,7 @@ export function SpaceCard({ space, onClick }: SpaceCardProps) {
   const getIconStyle = (color: string) => {
     // Extract color for background with opacity
     return {
-      backgroundColor: `${color}20`, // 20 is hex for 12.5% opacity
+      backgroundColor: `${color}20`, // '20' is hex for 32 (out of 255), which is approximately 12.5% opacity
       color: color,
     };
   };

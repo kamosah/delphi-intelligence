@@ -115,7 +115,6 @@ class SpaceMember(Base):
 
     member_role: Mapped[MemberRole] = mapped_column(
         SQLEnum(MemberRole, name="member_role", values_callable=lambda x: [e.value for e in x]),
-        name="member_role",
         nullable=False,
         default=MemberRole.VIEWER,
     )
