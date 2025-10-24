@@ -27,6 +27,7 @@ generates:
       exposeQueryKeys: true
       addInfiniteQuery: false
       reactQueryVersion: 5
+      errorType: "Error"
       scalars:
         ID: string
         DateTime: string

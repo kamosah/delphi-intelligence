@@ -3,7 +3,15 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum as SQLEnum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Enum as SQLEnum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,26 +39,60 @@ class Space(Base):
     # Space fields
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
+    slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    icon_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    max_members: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     owner_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
-    # Relationships
+    # Relationships - use selectin for automatic eager loading
     owner: Mapped["User"] = relationship("User", back_populates="owned_spaces")
 
     members: Mapped[list["SpaceMember"]] = relationship(
-        "SpaceMember", back_populates="space", cascade="all, delete-orphan"
+        "SpaceMember",
+        back_populates="space",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan",
     )
 
     documents: Mapped[list["Document"]] = relationship(
-        "Document", back_populates="space", cascade="all, delete-orphan"
+        "Document",
+        back_populates="space",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan",
     )
 
     queries: Mapped[list["Query"]] = relationship(
-        "Query", back_populates="space", cascade="all, delete-orphan"
+        "Query",
+        back_populates="space",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan",
     )
+
+    # Computed properties - safe to use because relationships are eager loaded
+    @property
+    def member_count(self) -> int:
+        """Get the number of members in this space.
+
+        Safe in async context because members relationship uses lazy='selectin'.
+        """
+        return len(self.members) if self.members else 0
+
+    @property
+    def document_count(self) -> int:
+        """Get the number of documents in this space.
+
+        Safe in async context because documents relationship uses lazy='selectin'.
+        """
+        return len(self.documents) if self.documents else 0
 
     def __repr__(self) -> str:
         """String representation of the space."""
@@ -71,8 +113,10 @@ class SpaceMember(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
-    role: Mapped[MemberRole] = mapped_column(
-        SQLEnum(MemberRole), nullable=False, default=MemberRole.VIEWER
+    member_role: Mapped[MemberRole] = mapped_column(
+        SQLEnum(MemberRole, name="member_role", values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=MemberRole.VIEWER,
     )
 
     # Relationships
@@ -85,4 +129,4 @@ class SpaceMember(Base):
 
     def __repr__(self) -> str:
         """String representation of the space member."""
-        return f"<SpaceMember(space_id={self.space_id}, user_id={self.user_id}, role={self.role})>"
+        return f"<SpaceMember(space_id={self.space_id}, user_id={self.user_id}, role={self.member_role})>"

@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Custom types
 CREATE TYPE user_role AS ENUM ('admin', 'member', 'viewer');
+CREATE TYPE member_role AS ENUM ('owner', 'editor', 'viewer');
 CREATE TYPE document_type AS ENUM ('text', 'pdf', 'image', 'url', 'code');
 CREATE TYPE query_status AS ENUM ('pending', 'processing', 'completed', 'failed');
 
@@ -62,11 +63,12 @@ CREATE TABLE public.space_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     space_id UUID REFERENCES public.spaces(id) ON DELETE CASCADE,
     user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-    role user_role DEFAULT 'member',
-    
+    member_role member_role DEFAULT 'editor',
+
     -- Timestamps
-    joined_at TIMESTAMPTZ DEFAULT NOW(),
-    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
     -- Ensure unique membership
     UNIQUE(space_id, user_id)
 );

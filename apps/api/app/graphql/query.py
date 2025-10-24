@@ -6,10 +6,11 @@ from sqlalchemy import select
 import strawberry
 
 from app.db.session import get_session
+from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
-from .types import SearchDocumentsInput, SearchResult, User
+from .types import SearchDocumentsInput, SearchResult, Space, User
 
 
 @strawberry.type
@@ -120,3 +121,92 @@ class Query:
             return [SearchResult.from_service_result(result) for result in results]
 
         return []
+
+    @strawberry.field
+    async def spaces(
+        self, info: strawberry.types.Info, limit: int = 10, offset: int = 0
+    ) -> list[Space]:
+        """
+        Get a list of spaces the authenticated user owns or is a member of.
+
+        Args:
+            limit: Maximum number of spaces to return
+            offset: Number of spaces to skip for pagination
+
+        Returns:
+            List of spaces
+        """
+        async for session in get_session():
+            # Get the authenticated user from the request context
+            request = info.context["request"]
+            user = getattr(request.state, "user", None)
+
+            if not user:
+                return []
+
+            user_id = UUID(str(user["id"]))
+
+            # Get spaces where user is owner or member
+            # Relationships are eager loaded via lazy='selectin' in model
+            stmt = (
+                select(SpaceModel)
+                .outerjoin(SpaceMemberModel)
+                .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                .distinct()
+                .limit(limit)
+                .offset(offset)
+            )
+
+            result = await session.execute(stmt)
+            space_models = result.scalars().all()
+
+            return [Space.from_model(space) for space in space_models]
+
+        return []
+
+    @strawberry.field
+    async def space(self, info: strawberry.types.Info, id: strawberry.ID) -> Space | None:
+        """
+        Get a space by ID.
+
+        Args:
+            id: The space ID
+
+        Returns:
+            The space if found and user has access, None otherwise
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    return None
+
+                user_id = UUID(str(user["id"]))
+                space_id = UUID(str(id))
+
+                # Get space and verify user has access (owner or member)
+                # Relationships are eager loaded via lazy='selectin' in model
+                stmt = (
+                    select(SpaceModel)
+                    .outerjoin(SpaceMemberModel)
+                    .where(
+                        (SpaceModel.id == space_id)
+                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    )
+                )
+
+                result = await session.execute(stmt)
+                space_model = result.scalar_one_or_none()
+
+                if space_model:
+                    return Space.from_model(space_model)
+                return None
+
+            except ValueError:
+                # Invalid UUID format
+                return None
+
+        return None

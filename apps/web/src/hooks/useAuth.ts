@@ -5,7 +5,6 @@ import {
   type LoginRequest,
   type RegisterRequest,
 } from '@/lib/api/auth-client';
-import { setAuthToken } from '@/lib/api/graphql-client';
 import { clearAuthCookies, setAuthCookies } from '@/lib/auth-cookies';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useEffect } from 'react';
@@ -29,9 +28,7 @@ export function useAuth() {
       if (accessToken && !user) {
         try {
           setLoading(true);
-          // Set the token for GraphQL requests
-          setAuthToken(accessToken);
-          // Get user profile
+          // Get user profile (auth token auto-injected via GraphQL client middleware)
           const userProfile = await authApi.me(accessToken);
           setUser(userProfile);
         } catch (error) {
@@ -46,7 +43,6 @@ export function useAuth() {
                 tokenResponse.access_token,
                 tokenResponse.refresh_token
               );
-              setAuthToken(tokenResponse.access_token);
               // Get user profile with new token
               const userProfile = await authApi.me(tokenResponse.access_token);
               setUser(userProfile);
@@ -61,8 +57,7 @@ export function useAuth() {
           setLoading(false);
         }
       } else if (accessToken) {
-        // Token exists and user is loaded, set it for GraphQL
-        setAuthToken(accessToken);
+        // Token exists and user is loaded
         setLoading(false);
       } else {
         setLoading(false);
@@ -103,10 +98,9 @@ export function useAuth() {
       setLoading(true);
       const tokenResponse = await authApi.login(credentials);
       setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
-      setAuthToken(tokenResponse.access_token);
       setAuthCookies(tokenResponse.access_token, tokenResponse.refresh_token);
 
-      // Get user profile
+      // Get user profile (auth token auto-injected via GraphQL client middleware)
       const userProfile = await authApi.me(tokenResponse.access_token);
       setUser(userProfile);
 
@@ -129,7 +123,6 @@ export function useAuth() {
       // Continue with local logout even if API call fails
     } finally {
       storeLogout();
-      setAuthToken('');
       clearAuthCookies();
     }
   };
@@ -144,7 +137,7 @@ export function useAuth() {
         refresh_token: refreshToken,
       });
       setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
-      setAuthToken(tokenResponse.access_token);
+      // Token auto-injected via GraphQL client middleware
       return tokenResponse;
     } catch (error) {
       console.error('Token refresh failed:', error);

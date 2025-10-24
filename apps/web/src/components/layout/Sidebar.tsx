@@ -28,11 +28,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard' },
-  { icon: Search, label: 'Query', href: '/query' },
-  { icon: FileText, label: 'Documents', href: '/documents' },
-  { icon: Database, label: 'Spaces', href: '/spaces' },
-  { icon: Settings, label: 'Settings', href: '/settings' },
+  { icon: Database, label: 'Spaces', href: '/dashboard/spaces' },
+  { icon: FileText, label: 'Documents', href: '/dashboard/documents' },
+  { icon: Search, label: 'Queries', href: '/dashboard/queries' },
+  { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
 export function Sidebar() {

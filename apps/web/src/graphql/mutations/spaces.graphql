@@ -1,0 +1,41 @@
+# ============================================
+# Space Mutation Operations
+# ============================================
+
+mutation CreateSpace($input: CreateSpaceInput!) {
+  createSpace(input: $input) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateSpace($id: ID!, $input: UpdateSpaceInput!) {
+  updateSpace(id: $id, input: $input) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteSpace($id: ID!) {
+  deleteSpace(id: $id)
+}
