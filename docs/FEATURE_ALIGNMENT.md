@@ -588,4 +588,33 @@ Document Processing: PyMuPDF, python-docx, pandas ⏳ To implement
 3. Integrate LangChain for AI queries (Priority 1)
 4. Build query interface (Priority 1)
 
+---
+
+## Visual Reference Guide
+
+For UI/UX implementation of features listed above, see **[VISUAL_REFERENCES.md](./VISUAL_REFERENCES.md)** which provides 50+ screenshots and diagrams organized by feature area:
+
+### Feature-to-Visual Mapping
+
+| Feature Area           | Visual Assets Available                                    | Reference Section                                                                |
+| ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Platform Dashboard** | Login screens, main dashboard, workspace overview          | [Platform Overview](./VISUAL_REFERENCES.md#platform-overview--dashboard)         |
+| **Chat Interface**     | 7 screenshots showing toolkits, personas, context controls | [Chat Application](./VISUAL_REFERENCES.md#chat-application-interface)            |
+| **Notebooks**          | 11 screenshots of AI integration, SQL workflows, datasets  | [Notebooks & Query](./VISUAL_REFERENCES.md#notebooks--query-interface)           |
+| **Workbench**          | 4 screenshots of asset management, spaces navigation       | [Workbench](./VISUAL_REFERENCES.md#workbench--context-management)                |
+| **Voice Features**     | 4 screenshots of voice activation workflow                 | [Voice Features](./VISUAL_REFERENCES.md#voice-features)                          |
+| **Document Upload**    | File type diagram, upload videos, citation UI              | [Document Intelligence](./VISUAL_REFERENCES.md#document-intelligence--citations) |
+| **Architecture**       | Data integration diagrams, memory graphs                   | [Architecture](./VISUAL_REFERENCES.md#architecture--integration-diagrams)        |
+
+### Quick Access to Athena Docs
+
+For capturing additional screenshots during development:
+
+- [Chat App Docs](https://resources.athenaintel.com/docs/applications/chat)
+- [Notebooks Docs](https://resources.athenaintel.com/docs/applications/notebooks)
+- [Workbench Docs](https://resources.athenaintel.com/docs/contextual-knowledge/workbench)
+- [Getting Started](https://resources.athenaintel.com/docs/getting-started/using-athena)
+
+---
+
 This document will be updated as features are implemented and new gaps are identified.

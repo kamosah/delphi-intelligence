@@ -411,6 +411,83 @@ export function ComplexCard({ className }: { className?: string }) {
 }
 ```
 
+## Visual Design References
+
+Before implementing any UI component, **always reference visual examples from Athena Intelligence** to ensure accurate feature recreation.
+
+### Using VISUAL_REFERENCES.md
+
+See **[VISUAL_REFERENCES.md](../VISUAL_REFERENCES.md)** for 50+ screenshots and diagrams organized by feature:
+
+| Component Type          | Visual Reference Section                                                          | What You'll Find                                               |
+| ----------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Dashboard/Layout**    | [Platform Overview](../VISUAL_REFERENCES.md#platform-overview--dashboard)         | Login screens, main dashboard (3420x1892px), workspace layouts |
+| **Chat Components**     | [Chat Interface](../VISUAL_REFERENCES.md#chat-application-interface)              | Toolkits menu, agent personas, context panels, file upload UI  |
+| **Notebook Components** | [Notebooks](../VISUAL_REFERENCES.md#notebooks--query-interface)                   | AI sidebar, code cells, SQL query workflows, dataset loading   |
+| **Document Upload**     | [Document Intelligence](../VISUAL_REFERENCES.md#document-intelligence--citations) | Drag-and-drop UI, file type support, citation overlays         |
+| **Navigation/Sidebar**  | [Workbench](../VISUAL_REFERENCES.md#workbench--context-management)                | Spaces navigation, asset management panels                     |
+
+### Pre-Implementation Checklist
+
+**Before writing code, review the visual references**:
+
+- [ ] Identify the feature area (Chat, Notebooks, Documents, etc.)
+- [ ] Find relevant screenshots in VISUAL_REFERENCES.md
+- [ ] Note UI patterns: colors, spacing, layout structure
+- [ ] Screenshot missing? Visit [Athena docs](https://resources.athenaintel.com/docs/) directly
+- [ ] Identify which `@olympus/ui` components to use (Button, Card, Input, etc.)
+
+### Example: Building a Chat Interface Component
+
+```tsx
+// STEP 1: Review visual references
+// See: VISUAL_REFERENCES.md#chat-application-interface
+// Reference: chat-step3-toolkits.png shows toolkit selection menu
+
+// STEP 2: Identify design system components
+import { Button, Card } from '@olympus/ui';
+
+// STEP 3: Implement based on visual reference
+export function ToolkitSelector() {
+  const toolkits = [
+    { name: 'Document', icon: 'file-text' },
+    { name: 'Spreadsheet', icon: 'table' },
+    { name: 'Notebook', icon: 'book' },
+    // ... from screenshot
+  ];
+
+  return (
+    <Card className="p-4">
+      <h3 className="text-sm font-medium mb-2">Select Toolkit</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {toolkits.map((toolkit) => (
+          <Button key={toolkit.name} variant="outline" size="sm">
+            {toolkit.name}
+          </Button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+```
+
+### When Visual References Are Missing
+
+If you can't find a visual reference:
+
+1. **Check Athena docs directly**: Visit [resources.athenaintel.com/docs](https://resources.athenaintel.com/docs/)
+2. **Use browser DevTools**: Inspect live documentation pages for UI patterns
+3. **Capture screenshots**: Add to `docs/visual-references/` for future reference
+4. **Propose design**: Document your UI decision in PR description
+
+### Maintaining Visual Consistency
+
+- **Colors**: Extract from screenshots (use DevTools color picker)
+- **Spacing**: Observe padding/margins in reference images
+- **Typography**: Note font sizes, weights from screenshots
+- **Layout**: Match grid structures, card arrangements
+- **Interactions**: Note hover states, transitions from demo videos
+
 ## Component Development Workflow
 
 When asked to create a new feature or page:
