@@ -1,0 +1,37 @@
+# ============================================
+# Space Query Operations
+# ============================================
+
+query GetSpaces($limit: Int, $offset: Int) {
+  spaces(limit: $limit, offset: $offset) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+
+query GetSpace($id: ID!) {
+  space(id: $id) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}

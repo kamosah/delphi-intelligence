@@ -107,7 +107,7 @@ export default function DashboardLayout({
               </li>
               <li>
                 <a
-                  href="/spaces"
+                  href="/dashboard/spaces"
                   className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900"
                 >
                   <svg
@@ -128,7 +128,7 @@ export default function DashboardLayout({
               </li>
               <li>
                 <a
-                  href="/documents"
+                  href="/dashboard/documents"
                   className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900"
                 >
                   <svg
@@ -149,7 +149,7 @@ export default function DashboardLayout({
               </li>
               <li>
                 <a
-                  href="/queries"
+                  href="/dashboard/queries"
                   className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900"
                 >
                   <svg
@@ -170,7 +170,7 @@ export default function DashboardLayout({
               </li>
               <li>
                 <a
-                  href="/settings"
+                  href="/dashboard/settings"
                   className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900"
                 >
                   <svg

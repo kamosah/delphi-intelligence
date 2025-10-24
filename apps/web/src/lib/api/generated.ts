@@ -29,6 +29,12 @@ export type Scalars = {
   JSON: { input: any; output: any };
 };
 
+export type CreateSpaceInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  iconColor?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
 export type CreateUserInput = {
   avatarUrl?: InputMaybe<Scalars['String']['input']>;
   bio?: InputMaybe<Scalars['String']['input']>;
@@ -69,17 +75,33 @@ export type DocumentChunk = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  createSpace: Space;
   createUser: User;
+  deleteSpace: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  updateSpace?: Maybe<Space>;
   updateUser?: Maybe<User>;
+};
+
+export type MutationCreateSpaceArgs = {
+  input: CreateSpaceInput;
 };
 
 export type MutationCreateUserArgs = {
   input: CreateUserInput;
 };
 
+export type MutationDeleteSpaceArgs = {
+  id: Scalars['ID']['input'];
+};
+
 export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type MutationUpdateSpaceArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateSpaceInput;
 };
 
 export type MutationUpdateUserArgs = {
@@ -91,6 +113,8 @@ export type Query = {
   __typename?: 'Query';
   health: Scalars['String']['output'];
   searchDocuments: Array<SearchResult>;
+  space?: Maybe<Space>;
+  spaces: Array<Space>;
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
   users: Array<User>;
@@ -98,6 +122,15 @@ export type Query = {
 
 export type QuerySearchDocumentsArgs = {
   input: SearchDocumentsInput;
+};
+
+export type QuerySpaceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QuerySpacesArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
 };
 
 export type QueryUserArgs = {
@@ -129,6 +162,28 @@ export type SearchResult = {
   similarityScore: Scalars['Float']['output'];
 };
 
+export type Space = {
+  __typename?: 'Space';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  documentCount: Scalars['Int']['output'];
+  iconColor?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isPublic: Scalars['Boolean']['output'];
+  maxMembers?: Maybe<Scalars['Int']['output']>;
+  memberCount: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+  ownerId: Scalars['ID']['output'];
+  slug: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type UpdateSpaceInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  iconColor?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateUserInput = {
   avatarUrl?: InputMaybe<Scalars['String']['input']>;
   bio?: InputMaybe<Scalars['String']['input']>;
@@ -146,9 +201,112 @@ export type User = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type CreateSpaceMutationVariables = Exact<{
+  input: CreateSpaceInput;
+}>;
+
+export type CreateSpaceMutation = {
+  __typename?: 'Mutation';
+  createSpace: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type UpdateSpaceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateSpaceInput;
+}>;
+
+export type UpdateSpaceMutation = {
+  __typename?: 'Mutation';
+  updateSpace?: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type DeleteSpaceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type DeleteSpaceMutation = {
+  __typename?: 'Mutation';
+  deleteSpace: boolean;
+};
+
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
+
+export type GetSpacesQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetSpacesQuery = {
+  __typename?: 'Query';
+  spaces: Array<{
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetSpaceQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type GetSpaceQuery = {
+  __typename?: 'Query';
+  space?: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
 
 export type GetUserQueryVariables = Exact<{
   id: Scalars['ID']['input'];

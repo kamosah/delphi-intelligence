@@ -7,6 +7,7 @@ import strawberry
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
+from app.models.space import Space as SpaceModel
 from app.models.user import User as UserModel
 
 
@@ -157,3 +158,57 @@ class SearchDocumentsInput:
     document_ids: list[strawberry.ID] | None = None
     limit: int = 10
     similarity_threshold: float = 0.0
+
+
+@strawberry.type
+class Space:
+    """GraphQL Space type."""
+
+    id: strawberry.ID
+    name: str
+    slug: str
+    description: str | None
+    icon_color: str | None
+    is_public: bool
+    max_members: int | None
+    owner_id: strawberry.ID
+    member_count: int
+    document_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, space: SpaceModel) -> "Space":
+        """Convert SQLAlchemy Space model to GraphQL Space type."""
+        return cls(
+            id=strawberry.ID(str(space.id)),
+            name=space.name,
+            slug=space.slug,
+            description=space.description,
+            icon_color=space.icon_color,
+            is_public=space.is_public,
+            max_members=space.max_members,
+            owner_id=strawberry.ID(str(space.owner_id)),
+            member_count=space.member_count,
+            document_count=space.document_count,
+            created_at=space.created_at,
+            updated_at=space.updated_at,
+        )
+
+
+@strawberry.input
+class CreateSpaceInput:
+    """Input type for creating a new space."""
+
+    name: str
+    description: str | None = None
+    icon_color: str | None = None
+
+
+@strawberry.input
+class UpdateSpaceInput:
+    """Input type for updating an existing space."""
+
+    name: str | None = None
+    description: str | None = None
+    icon_color: str | None = None

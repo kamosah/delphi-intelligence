@@ -1,4 +1,9 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  UseMutationOptions,
+  UseQueryOptions,
+} from '@tanstack/react-query';
 import { graphqlRequestFetcher } from './graphql-client';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -29,6 +34,12 @@ export type Scalars = {
   Float: { input: number; output: number };
   DateTime: { input: string; output: string };
   JSON: { input: any; output: any };
+};
+
+export type CreateSpaceInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  iconColor?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
 };
 
 export type CreateUserInput = {
@@ -71,17 +82,33 @@ export type DocumentChunk = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  createSpace: Space;
   createUser: User;
+  deleteSpace: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  updateSpace?: Maybe<Space>;
   updateUser?: Maybe<User>;
+};
+
+export type MutationCreateSpaceArgs = {
+  input: CreateSpaceInput;
 };
 
 export type MutationCreateUserArgs = {
   input: CreateUserInput;
 };
 
+export type MutationDeleteSpaceArgs = {
+  id: Scalars['ID']['input'];
+};
+
 export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type MutationUpdateSpaceArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateSpaceInput;
 };
 
 export type MutationUpdateUserArgs = {
@@ -93,6 +120,8 @@ export type Query = {
   __typename?: 'Query';
   health: Scalars['String']['output'];
   searchDocuments: Array<SearchResult>;
+  space?: Maybe<Space>;
+  spaces: Array<Space>;
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
   users: Array<User>;
@@ -100,6 +129,15 @@ export type Query = {
 
 export type QuerySearchDocumentsArgs = {
   input: SearchDocumentsInput;
+};
+
+export type QuerySpaceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QuerySpacesArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
 };
 
 export type QueryUserArgs = {
@@ -131,6 +169,28 @@ export type SearchResult = {
   similarityScore: Scalars['Float']['output'];
 };
 
+export type Space = {
+  __typename?: 'Space';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  documentCount: Scalars['Int']['output'];
+  iconColor?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isPublic: Scalars['Boolean']['output'];
+  maxMembers?: Maybe<Scalars['Int']['output']>;
+  memberCount: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+  ownerId: Scalars['ID']['output'];
+  slug: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type UpdateSpaceInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  iconColor?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateUserInput = {
   avatarUrl?: InputMaybe<Scalars['String']['input']>;
   bio?: InputMaybe<Scalars['String']['input']>;
@@ -148,9 +208,112 @@ export type User = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type CreateSpaceMutationVariables = Exact<{
+  input: CreateSpaceInput;
+}>;
+
+export type CreateSpaceMutation = {
+  __typename?: 'Mutation';
+  createSpace: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type UpdateSpaceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateSpaceInput;
+}>;
+
+export type UpdateSpaceMutation = {
+  __typename?: 'Mutation';
+  updateSpace?: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type DeleteSpaceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type DeleteSpaceMutation = {
+  __typename?: 'Mutation';
+  deleteSpace: boolean;
+};
+
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
+
+export type GetSpacesQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetSpacesQuery = {
+  __typename?: 'Query';
+  spaces: Array<{
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetSpaceQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type GetSpaceQuery = {
+  __typename?: 'Query';
+  space?: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
 
 export type GetUserQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -207,13 +370,159 @@ export type GetUserByEmailQuery = {
   } | null;
 };
 
+export const CreateSpaceDocument = `
+    mutation CreateSpace($input: CreateSpaceInput!) {
+  createSpace(input: $input) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useCreateSpaceMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    CreateSpaceMutation,
+    TError,
+    CreateSpaceMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    CreateSpaceMutation,
+    TError,
+    CreateSpaceMutationVariables,
+    TContext
+  >({
+    mutationKey: ['CreateSpace'],
+    mutationFn: (variables?: CreateSpaceMutationVariables) =>
+      graphqlRequestFetcher<CreateSpaceMutation, CreateSpaceMutationVariables>(
+        CreateSpaceDocument,
+        variables
+      )(),
+    ...options,
+  });
+};
+
+useCreateSpaceMutation.fetcher = (
+  variables: CreateSpaceMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<CreateSpaceMutation, CreateSpaceMutationVariables>(
+    CreateSpaceDocument,
+    variables,
+    options
+  );
+
+export const UpdateSpaceDocument = `
+    mutation UpdateSpace($id: ID!, $input: UpdateSpaceInput!) {
+  updateSpace(id: $id, input: $input) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useUpdateSpaceMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    UpdateSpaceMutation,
+    TError,
+    UpdateSpaceMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    UpdateSpaceMutation,
+    TError,
+    UpdateSpaceMutationVariables,
+    TContext
+  >({
+    mutationKey: ['UpdateSpace'],
+    mutationFn: (variables?: UpdateSpaceMutationVariables) =>
+      graphqlRequestFetcher<UpdateSpaceMutation, UpdateSpaceMutationVariables>(
+        UpdateSpaceDocument,
+        variables
+      )(),
+    ...options,
+  });
+};
+
+useUpdateSpaceMutation.fetcher = (
+  variables: UpdateSpaceMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<UpdateSpaceMutation, UpdateSpaceMutationVariables>(
+    UpdateSpaceDocument,
+    variables,
+    options
+  );
+
+export const DeleteSpaceDocument = `
+    mutation DeleteSpace($id: ID!) {
+  deleteSpace(id: $id)
+}
+    `;
+
+export const useDeleteSpaceMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    DeleteSpaceMutation,
+    TError,
+    DeleteSpaceMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    DeleteSpaceMutation,
+    TError,
+    DeleteSpaceMutationVariables,
+    TContext
+  >({
+    mutationKey: ['DeleteSpace'],
+    mutationFn: (variables?: DeleteSpaceMutationVariables) =>
+      graphqlRequestFetcher<DeleteSpaceMutation, DeleteSpaceMutationVariables>(
+        DeleteSpaceDocument,
+        variables
+      )(),
+    ...options,
+  });
+};
+
+useDeleteSpaceMutation.fetcher = (
+  variables: DeleteSpaceMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<DeleteSpaceMutation, DeleteSpaceMutationVariables>(
+    DeleteSpaceDocument,
+    variables,
+    options
+  );
+
 export const HealthCheckDocument = `
     query HealthCheck {
   health
 }
     `;
 
-export const useHealthCheckQuery = <TData = HealthCheckQuery, TError = unknown>(
+export const useHealthCheckQuery = <TData = HealthCheckQuery, TError = Error>(
   variables?: HealthCheckQueryVariables,
   options?: Omit<
     UseQueryOptions<HealthCheckQuery, TError, TData>,
@@ -246,6 +555,105 @@ useHealthCheckQuery.fetcher = (
     options
   );
 
+export const GetSpacesDocument = `
+    query GetSpaces($limit: Int, $offset: Int) {
+  spaces(limit: $limit, offset: $offset) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetSpacesQuery = <TData = GetSpacesQuery, TError = Error>(
+  variables?: GetSpacesQueryVariables,
+  options?: Omit<UseQueryOptions<GetSpacesQuery, TError, TData>, 'queryKey'> & {
+    queryKey?: UseQueryOptions<GetSpacesQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<GetSpacesQuery, TError, TData>({
+    queryKey:
+      variables === undefined ? ['GetSpaces'] : ['GetSpaces', variables],
+    queryFn: graphqlRequestFetcher<GetSpacesQuery, GetSpacesQueryVariables>(
+      GetSpacesDocument,
+      variables
+    ),
+    ...options,
+  });
+};
+
+useGetSpacesQuery.getKey = (variables?: GetSpacesQueryVariables) =>
+  variables === undefined ? ['GetSpaces'] : ['GetSpaces', variables];
+
+useGetSpacesQuery.fetcher = (
+  variables?: GetSpacesQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetSpacesQuery, GetSpacesQueryVariables>(
+    GetSpacesDocument,
+    variables,
+    options
+  );
+
+export const GetSpaceDocument = `
+    query GetSpace($id: ID!) {
+  space(id: $id) {
+    id
+    name
+    slug
+    description
+    iconColor
+    isPublic
+    maxMembers
+    ownerId
+    memberCount
+    documentCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetSpaceQuery = <TData = GetSpaceQuery, TError = Error>(
+  variables: GetSpaceQueryVariables,
+  options?: Omit<UseQueryOptions<GetSpaceQuery, TError, TData>, 'queryKey'> & {
+    queryKey?: UseQueryOptions<GetSpaceQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<GetSpaceQuery, TError, TData>({
+    queryKey: ['GetSpace', variables],
+    queryFn: graphqlRequestFetcher<GetSpaceQuery, GetSpaceQueryVariables>(
+      GetSpaceDocument,
+      variables
+    ),
+    ...options,
+  });
+};
+
+useGetSpaceQuery.getKey = (variables: GetSpaceQueryVariables) => [
+  'GetSpace',
+  variables,
+];
+
+useGetSpaceQuery.fetcher = (
+  variables: GetSpaceQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetSpaceQuery, GetSpaceQueryVariables>(
+    GetSpaceDocument,
+    variables,
+    options
+  );
+
 export const GetUserDocument = `
     query GetUser($id: ID!) {
   user(id: $id) {
@@ -260,7 +668,7 @@ export const GetUserDocument = `
 }
     `;
 
-export const useGetUserQuery = <TData = GetUserQuery, TError = unknown>(
+export const useGetUserQuery = <TData = GetUserQuery, TError = Error>(
   variables: GetUserQueryVariables,
   options?: Omit<UseQueryOptions<GetUserQuery, TError, TData>, 'queryKey'> & {
     queryKey?: UseQueryOptions<GetUserQuery, TError, TData>['queryKey'];
@@ -305,7 +713,7 @@ export const GetUsersDocument = `
 }
     `;
 
-export const useGetUsersQuery = <TData = GetUsersQuery, TError = unknown>(
+export const useGetUsersQuery = <TData = GetUsersQuery, TError = Error>(
   variables?: GetUsersQueryVariables,
   options?: Omit<UseQueryOptions<GetUsersQuery, TError, TData>, 'queryKey'> & {
     queryKey?: UseQueryOptions<GetUsersQuery, TError, TData>['queryKey'];
@@ -350,7 +758,7 @@ export const GetUserByEmailDocument = `
 
 export const useGetUserByEmailQuery = <
   TData = GetUserByEmailQuery,
-  TError = unknown,
+  TError = Error,
 >(
   variables: GetUserByEmailQueryVariables,
   options?: Omit<

@@ -221,29 +221,6 @@ docker compose exec api poetry run alembic current
 docker compose exec api poetry run alembic history
 ```
 
-**Using convenience script:**
-
-```bash
-# Check migration status
-./scripts/migrate.sh status
-
-# Generate migration for local DB
-./scripts/migrate.sh --local generate "Add new feature"
-
-# Generate migration for Supabase
-./scripts/migrate.sh --supabase generate "Add feature"
-```
-
-**Using Python utility:**
-
-```bash
-# Upgrade local database
-python scripts/migrate.py --local upgrade head
-
-# Check Supabase migration status
-python scripts/migrate.py --supabase status
-```
-
 **Important**: Migrations for Supabase use MCP server to bypass connection pooler limitations. See `apps/api/MIGRATION_AUTOMATION.md` for details.
 
 ### Environment Switching
