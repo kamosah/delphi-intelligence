@@ -41,6 +41,10 @@ class Mutation:
                 await session.rollback()
                 raise ValueError(f"User with email {input.email} already exists")
 
+        # Fallback if session doesn't yield for my MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
     @strawberry.mutation
     async def update_user(self, id: strawberry.ID, input: UpdateUserInput) -> User | None:
         """Update an existing user."""
@@ -173,6 +177,10 @@ class Mutation:
                 # For other integrity errors, raise generic error
                 msg = "Failed to create space due to database constraint"
                 raise ValueError(msg)
+
+        # Fallback if session doesn't yield for my MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
 
     @strawberry.mutation
     async def update_space(
