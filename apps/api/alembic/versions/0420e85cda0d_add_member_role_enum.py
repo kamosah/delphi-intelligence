@@ -20,9 +20,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Create MemberRole enum type for space_members table."""
-    # Create the enum type
+    # Create the enum type (with existence check to prevent conflicts)
     op.execute("""
-        CREATE TYPE member_role AS ENUM ('owner', 'editor', 'viewer');
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'member_role') THEN
+                CREATE TYPE member_role AS ENUM ('owner', 'editor', 'viewer');
+            END IF;
+        END
+        $$;
     """)
 
 
