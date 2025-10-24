@@ -82,20 +82,21 @@ async def generate_unique_slug(
     if not existing:
         return base_slug
 
-    # If it exists, append a number
+    # If it exists, find all matching slugs in a single query
+    # Query for all slugs that start with base_slug (including numbered variants)
+    stmt = select(getattr(model_class, slug_field)).where(
+        getattr(model_class, slug_field).like(f"{base_slug}%")
+    )
+    result = await db.execute(stmt)
+    existing_slugs = {row[0] for row in result.fetchall()}
+
+    # Find the next available counter by checking which numbers are taken
     counter = 1
-    while True:
+    while counter <= 1000:
         candidate_slug = f"{base_slug}-{counter}"
-        stmt = select(model_class).where(getattr(model_class, slug_field) == candidate_slug)
-        result = await db.execute(stmt)
-        existing = result.scalar_one_or_none()
-
-        if not existing:
+        if candidate_slug not in existing_slugs:
             return candidate_slug
-
         counter += 1
 
-        # Safety check to prevent infinite loops
-        if counter > 1000:
-            # Fallback to UUID if we can't find a unique slug
-            return f"{base_slug}-{uuid.uuid4().hex[:6]}"
+    # Fallback to UUID if we can't find a unique slug after 1000 attempts
+    return f"{base_slug}-{uuid.uuid4().hex[:6]}"
