@@ -93,8 +93,17 @@ async function captureScreenshots() {
         timeout: 30000,
       });
 
-      // Wait for content to load
-      await page.waitForTimeout(pageConfig.waitFor);
+      // Wait for at least one mintcdn image to load (or timeout)
+      await page
+        .waitForSelector('img[src*="mintcdn.com"]', {
+          timeout: pageConfig.waitFor,
+        })
+        .catch(() => {
+          // Ignore timeout errors - page may not have mintcdn images
+          console.log(
+            `   ⚠️  No mintcdn images found within ${pageConfig.waitFor}ms, continuing...`
+          );
+        });
 
       // Take full page screenshot
       const screenshotPath = path.join(
