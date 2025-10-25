@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Boolean, ForeignKey, String
+from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,10 @@ class UserPreferences(Base):
     """User preferences model for storing user settings."""
 
     __tablename__ = "user_preferences"
+
+    # Override id from Base to use Integer (legacy Supabase schema)
+    # Note: Supabase uses integer ID for this table, not UUID
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # type: ignore[assignment]
 
     # Foreign key to user
     user_id: Mapped[UUID] = mapped_column(

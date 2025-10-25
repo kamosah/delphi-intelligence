@@ -1,8 +1,11 @@
 """User model for authentication and user management."""
 
+from datetime import datetime
+from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -14,10 +17,23 @@ if TYPE_CHECKING:
     from .user_preferences import UserPreferences
 
 
+class UserRole(str, Enum):
+    """Enum for user roles (legacy, kept for Supabase compatibility)."""
+
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+
 class User(Base):
     """User model for storing user information."""
 
     __tablename__ = "users"
+
+    # Supabase Auth integration
+    auth_user_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True, unique=True
+    )
 
     # User fields
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
@@ -26,8 +42,19 @@ class User(Base):
 
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    # New field to test automated migration generation
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # User role (legacy field from Supabase, using user_role enum)
+    role: Mapped[UserRole | None] = mapped_column(
+        SQLEnum(UserRole, name="user_role", values_callable=lambda x: [e.value for e in x]),
+        nullable=True,
+        default=UserRole.MEMBER,
+    )
+
+    # Status fields
+    is_active: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=True)
+
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     owned_spaces: Mapped[list["Space"]] = relationship(
