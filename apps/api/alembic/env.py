@@ -117,7 +117,11 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
             return False  # Assume match, migration will handle if needed
 
     # Handle numeric types - compare precision
-    if isinstance(metadata_type, postgresql.NUMERIC) and hasattr(inspected_type, "precision") and hasattr(metadata_type, "precision"):
+    if (
+        isinstance(metadata_type, postgresql.NUMERIC)
+        and hasattr(inspected_type, "precision")
+        and hasattr(metadata_type, "precision")
+    ):
         if inspected_type.precision != metadata_type.precision:
             return True
         if inspected_type.scale != metadata_type.scale:
@@ -125,7 +129,11 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
         return False
 
     # Handle timestamp with/without timezone
-    if isinstance(metadata_type, postgresql.TIMESTAMP) and hasattr(inspected_type, "timezone") and hasattr(metadata_type, "timezone"):
+    if (
+        isinstance(metadata_type, postgresql.TIMESTAMP)
+        and hasattr(inspected_type, "timezone")
+        and hasattr(metadata_type, "timezone")
+    ):
         if inspected_type.timezone != metadata_type.timezone:
             return True
         return False
