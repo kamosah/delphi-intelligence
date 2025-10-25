@@ -19,7 +19,7 @@ class UserPreferences(Base):
 
     # Override id from Base to use Integer (legacy Supabase schema)
     # Note: Supabase uses integer ID for this table, not UUID
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, index=True)  # type: ignore[assignment]
 
     # Foreign key to user
     user_id: Mapped[UUID] = mapped_column(

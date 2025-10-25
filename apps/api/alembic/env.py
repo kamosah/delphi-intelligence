@@ -88,7 +88,7 @@ def include_object(object, name, type_, reflected, compare_to):  # noqa: ARG001
     return True
 
 
-def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):
+def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):  # noqa: PLR0911, ARG001
     """
     Custom type comparison for better enum and type detection.
 
@@ -113,30 +113,28 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
 
         # If inspected is string but metadata is enum, they match if enum exists in DB
         # (Alembic sometimes reflects enums as strings)
-        if isinstance(inspected_type, (postgresql.VARCHAR, str)):
+        if isinstance(inspected_type, postgresql.VARCHAR | str):
             return False  # Assume match, migration will handle if needed
 
     # Handle numeric types - compare precision
-    if isinstance(metadata_type, postgresql.NUMERIC):
-        if hasattr(inspected_type, "precision") and hasattr(metadata_type, "precision"):
-            if inspected_type.precision != metadata_type.precision:
-                return True
-            if inspected_type.scale != metadata_type.scale:
-                return True
-            return False
+    if isinstance(metadata_type, postgresql.NUMERIC) and hasattr(inspected_type, "precision") and hasattr(metadata_type, "precision"):
+        if inspected_type.precision != metadata_type.precision:
+            return True
+        if inspected_type.scale != metadata_type.scale:
+            return True
+        return False
 
     # Handle timestamp with/without timezone
-    if isinstance(metadata_type, postgresql.TIMESTAMP):
-        if hasattr(inspected_type, "timezone") and hasattr(metadata_type, "timezone"):
-            if inspected_type.timezone != metadata_type.timezone:
-                return True
-            return False
+    if isinstance(metadata_type, postgresql.TIMESTAMP) and hasattr(inspected_type, "timezone") and hasattr(metadata_type, "timezone"):
+        if inspected_type.timezone != metadata_type.timezone:
+            return True
+        return False
 
     # Default: let Alembic handle the comparison
     return None
 
 
-def render_item(type_, obj, autogen_context):
+def render_item(type_, obj, autogen_context):  # noqa: ARG001
     """
     Custom rendering for PostgreSQL types to avoid duplicate enum creation.
 
