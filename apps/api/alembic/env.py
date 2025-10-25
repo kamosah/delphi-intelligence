@@ -81,11 +81,80 @@ def include_object(object, name, type_, reflected, compare_to):  # noqa: ARG001
             return False
 
     # Exclude Supabase internal tables in public schema
-    if type_ == "table" and name in ["schema_migrations", "supabase_migrations"]:
+    if type_ == "table" and name in ["schema_migrations", "supabase_migrations", "alembic_version"]:
         return False
 
     # Include everything else
     return True
+
+
+def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):
+    """
+    Custom type comparison for better enum and type detection.
+
+    This helps Alembic properly detect:
+    - Enum type changes
+    - PostgreSQL-specific type differences
+    - Supabase pooler type variations
+    """
+    from sqlalchemy import Enum as SQLEnum
+    from sqlalchemy.dialects import postgresql
+
+    # Handle PostgreSQL Enum types
+    if isinstance(metadata_type, SQLEnum):
+        # If both are enums, compare their values
+        if hasattr(inspected_type, "enums"):
+            # Compare enum values
+            metadata_values = set(metadata_type.enums)
+            inspected_values = set(inspected_type.enums)
+            if metadata_values != inspected_values:
+                return True  # Types differ
+            return False  # Types match
+
+        # If inspected is string but metadata is enum, they match if enum exists in DB
+        # (Alembic sometimes reflects enums as strings)
+        if isinstance(inspected_type, (postgresql.VARCHAR, str)):
+            return False  # Assume match, migration will handle if needed
+
+    # Handle numeric types - compare precision
+    if isinstance(metadata_type, postgresql.NUMERIC):
+        if hasattr(inspected_type, "precision") and hasattr(metadata_type, "precision"):
+            if inspected_type.precision != metadata_type.precision:
+                return True
+            if inspected_type.scale != metadata_type.scale:
+                return True
+            return False
+
+    # Handle timestamp with/without timezone
+    if isinstance(metadata_type, postgresql.TIMESTAMP):
+        if hasattr(inspected_type, "timezone") and hasattr(metadata_type, "timezone"):
+            if inspected_type.timezone != metadata_type.timezone:
+                return True
+            return False
+
+    # Default: let Alembic handle the comparison
+    return None
+
+
+def render_item(type_, obj, autogen_context):
+    """
+    Custom rendering for PostgreSQL types to avoid duplicate enum creation.
+
+    This ensures that when Alembic generates migrations, it uses create_type=False
+    for existing enum types to prevent "type already exists" errors.
+    """
+    from sqlalchemy import Enum as SQLEnum
+
+    # Handle Enum types - use create_type=False to reference existing enums
+    if isinstance(obj, SQLEnum):
+        enum_values = ", ".join(repr(e) for e in obj.enums)
+        enum_name = obj.name
+        # Always use create_type=False to reference existing enums
+        # The alignment migration will create the actual enum types
+        return f"sa.Enum({enum_values}, name={enum_name!r}, create_type=False)"
+
+    # Default rendering
+    return False
 
 
 def do_run_migrations(connection: Connection) -> None:
@@ -93,13 +162,15 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        # Enable better change detection
-        compare_type=True,
+        # Enable better change detection with custom comparators
+        compare_type=compare_type,  # Use our custom type comparison
         compare_server_default=True,
         # Include schemas if needed
         include_schemas=True,
         # Filter out Supabase internal objects
         include_object=include_object,
+        # Custom rendering for enums
+        render_item=render_item,
         # Render item sorting for consistent migrations
         render_as_batch=True,
         # Store alembic_version in _internal schema (not exposed via PostgREST)

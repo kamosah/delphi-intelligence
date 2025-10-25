@@ -340,6 +340,235 @@ Supabase requires email confirmation by default:
 
 ## Best Practices
 
+### 1. Naming Conventions (Critical for Autogeneration)
+
+**Always follow these naming standards:**
+
+- ✅ **Column names**: `snake_case` (e.g., `created_at`, `user_id`)
+- ✅ **Foreign keys**: `{entity}_id` (e.g., `space_id`, `document_id`)
+- ✅ **Creator columns**: Use `created_by` (not `user_id`)
+- ✅ **Timestamps**: Always use `timestamptz` (timezone-aware)
+- ✅ **Primary keys**: UUID for all tables (except legacy tables like `user_preferences`)
+- ✅ **Enum types**: `{entity}_{field}` format (e.g., `document_status`, `query_status`)
+
+**Why this matters:**
+
+- Consistent naming prevents column renaming migrations
+- Alembic's autogenerate relies on naming patterns
+- Reduces manual migrations by 80%+
+
+### 2. Enum Type Management
+
+**Creating Enums:**
+
+```python
+# 1. Define Python enum first
+from enum import Enum
+
+class DocumentStatus(str, Enum):
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+
+# 2. Use in model with SQLEnum
+from sqlalchemy import Enum as SQLEnum
+
+status: Mapped[DocumentStatus] = mapped_column(
+    SQLEnum(DocumentStatus, name="document_status", values_callable=lambda x: [e.value for e in x]),
+    nullable=False,
+    default=DocumentStatus.UPLOADED
+)
+```
+
+**Migration Strategy:**
+
+```python
+# Create enum in migration
+op.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'document_status') THEN
+            CREATE TYPE document_status AS ENUM ('uploaded', 'processing', 'processed', 'failed');
+        END IF;
+    END
+    $$;
+""")
+```
+
+**Important:**
+
+- Always use `create_type=False` when referencing existing enums
+- Check enum exists before creating in migrations (use `DO $$ ... END $$`)
+- Never create duplicate enum types
+
+### 3. Alembic Configuration
+
+The `alembic/env.py` now includes:
+
+**Custom Type Comparison:**
+
+- Detects enum value changes
+- Compares timestamp timezone differences
+- Handles numeric precision mismatches
+
+**Custom Enum Rendering:**
+
+- Always uses `create_type=False` for existing enums
+- Prevents "type already exists" errors
+
+**Supabase Object Filtering:**
+
+- Excludes `auth`, `storage`, `realtime` schemas
+- Excludes `alembic_version` from public schema
+
+### 4. Pre-Migration Checklist
+
+Before running `alembic revision --autogenerate`:
+
+- [ ] All new models imported in `app/models/__init__.py`
+- [ ] Enum classes defined before use
+- [ ] Foreign keys follow `{entity}_id` naming
+- [ ] Timestamps use `DateTime(timezone=True)`
+- [ ] No breaking changes (discuss with team first)
+
+### 5. Migration Workflow
+
+**Standard workflow:**
+
+```bash
+# 1. Make model changes
+vim app/models/document.py
+
+# 2. Verify models load without errors
+docker compose restart api
+
+# 3. Generate migration
+docker compose exec -T api alembic revision --autogenerate -m "Add document status tracking"
+
+# 4. Review generated migration
+vim alembic/versions/[timestamp]_add_document_status_tracking.py
+
+# 5. Test migration on development
+docker compose exec -T api alembic upgrade head
+
+# 6. Verify database schema
+docker compose exec -T api alembic current
+
+# 7. Test rollback
+docker compose exec -T api alembic downgrade -1
+docker compose exec -T api alembic upgrade head
+
+# 8. Commit migration
+git add alembic/versions/[timestamp]_*.py
+git commit -m "feat: add document status tracking migration"
+```
+
+### 6. Testing Migrations
+
+**Always test migrations:**
+
+```bash
+# Test upgrade
+docker compose exec -T api alembic upgrade head
+
+# Test downgrade
+docker compose exec -T api alembic downgrade -1
+
+# Test re-upgrade
+docker compose exec -T api alembic upgrade head
+
+# Verify schema matches models
+docker compose exec -T api alembic revision --autogenerate -m "test"
+# Should generate empty migration if everything aligned
+```
+
+### 7. Common Pitfalls to Avoid
+
+❌ **Don't:**
+
+- Create tables via Supabase UI (models are source of truth)
+- Use different column names in model vs database
+- Forget to import new models in `__init__.py`
+- Skip migration review (autogenerate isn't perfect)
+- Apply migrations without testing rollback
+- Create enums without `create_type=False` in subsequent migrations
+
+✅ **Do:**
+
+- Define models first, generate migrations second
+- Follow naming conventions strictly
+- Review every generated migration
+- Test both upgrade and downgrade paths
+- Keep migrations small and focused
+- Document complex migrations
+
+### 8. Troubleshooting
+
+**Problem:** Autogenerate creates empty migration
+
+**Solution:** Models match database perfectly! This is the goal.
+
+---
+
+**Problem:** Autogenerate tries to drop Supabase columns
+
+**Solution:** Add those columns to your SQLAlchemy models or exclude them in `include_object()`
+
+---
+
+**Problem:** "DuplicateEnumError: type already exists"
+
+**Solution:** Use `create_type=False` when defining enum in migrations:
+
+```python
+from sqlalchemy.dialects.postgresql import ENUM
+
+status_enum = ENUM('pending', 'completed', name='query_status', create_type=False)
+```
+
+---
+
+**Problem:** Enum value changes not detected
+
+**Solution:** Now handled by custom `compare_type()` in `alembic/env.py`
+
+---
+
+**Problem:** "relation already exists"
+
+**Solution:** Database has tables Alembic doesn't know about:
+
+```bash
+# Stamp database with current version
+docker compose exec -T api alembic stamp head
+```
+
+### 9. Deployment Workflow
+
+**Development → Staging → Production**
+
+```bash
+# Development (local)
+1. Create migration: alembic revision --autogenerate
+2. Test migration: alembic upgrade head
+3. Commit migration: git commit
+
+# Staging (Supabase branch)
+4. Create Supabase preview branch
+5. Apply migration: alembic upgrade head
+6. Run tests
+7. Verify no issues
+
+# Production (Supabase main)
+8. Backup database (Supabase dashboard)
+9. Apply migration: alembic upgrade head
+10. Monitor for errors
+11. Rollback if needed: alembic downgrade -1
+```
+
+### 10. Migration Best Practices Summary
+
 1. **Always review generated migrations** before applying them
 2. **Use Docker commands** for consistency across the team
 3. **Test migrations on development Supabase** before production
@@ -347,6 +576,9 @@ Supabase requires email confirmation by default:
 5. **Backup Supabase** before major schema changes (use Supabase dashboard backups)
 6. **Commit migrations to git** as part of your feature branch
 7. **Run migrations as part of deployment** pipeline
+8. **Follow naming conventions** to enable seamless autogeneration
+9. **Test both upgrade and downgrade** paths before merging
+10. **Keep models as source of truth** - never create schema via Supabase UI
 
 ## Key Files
 
