@@ -1,16 +1,28 @@
 """Query model for storing AI agent queries and results."""
 
+from datetime import datetime
+from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, Enum as SQLEnum, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
 if TYPE_CHECKING:
+    from .query_document import QueryDocument
     from .space import Space
     from .user import User
+
+
+class QueryStatus(str, PyEnum):
+    """Query processing status."""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class Query(Base):
@@ -61,7 +73,12 @@ class Query(Base):
     # Metadata fields from Supabase
     model_used: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Status using query_status enum from Supabase
+    status: Mapped[QueryStatus | None] = mapped_column(
+        SQLEnum(QueryStatus, name="query_status", values_callable=lambda x: [e.value for e in x]),
+        nullable=True,
+        default=QueryStatus.PENDING,
+    )
 
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -71,12 +88,17 @@ class Query(Base):
 
     cost_usd: Mapped[float | None] = mapped_column(Numeric(10, 6), nullable=True)
 
-    completed_at: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Fixed: completed_at should be DateTime not Text
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     space: Mapped["Space"] = relationship("Space", back_populates="queries")
 
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+
+    query_documents: Mapped[list["QueryDocument"]] = relationship(
+        "QueryDocument", back_populates="query", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """String representation of the query."""

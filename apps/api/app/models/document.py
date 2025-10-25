@@ -1,9 +1,10 @@
 """Document model for storing uploaded documents for AI analysis."""
 
 from datetime import datetime
+from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import BigInteger, DateTime, Enum as SQLEnum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,11 +12,12 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .document_chunk import DocumentChunk
+    from .query_document import QueryDocument
     from .space import Space
     from .user import User
 
 
-class DocumentStatus(str, Enum):
+class DocumentStatus(str, PyEnum):
     """Document processing status."""
 
     UPLOADED = "uploaded"
@@ -43,19 +45,21 @@ class Document(Base):
 
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    # Processing status
+    # Processing status - will be migrated to use document_status enum
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default=DocumentStatus.UPLOADED, index=True
+        String(20), nullable=False, default=DocumentStatus.UPLOADED.value, index=True
     )
 
-    # Extracted content
-    extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Content fields - keeping both for Supabase compatibility
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)  # Original content
+
+    extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)  # AI-extracted text
 
     # Document metadata (page_count, word_count, etc.)
     doc_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Processing timestamps
-    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
 
     processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -71,6 +75,10 @@ class Document(Base):
 
     chunks: Mapped[list["DocumentChunk"]] = relationship(
         "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+    )
+
+    query_documents: Mapped[list["QueryDocument"]] = relationship(
+        "QueryDocument", back_populates="document", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
