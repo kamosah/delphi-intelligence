@@ -1,7 +1,7 @@
 """add_member_role_enum
 
 Revision ID: 0420e85cda0d
-Revises: d85bb89d035b
+Revises: 20251022_add_icon_color
 Create Date: 2025-10-22 23:24:51.268973
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '0420e85cda0d'
-down_revision: Union[str, Sequence[str], None] = 'd85bb89d035b'
+down_revision: Union[str, Sequence[str], None] = '20251022_add_icon_color'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
