@@ -10,25 +10,37 @@ Olympus MVP (codenamed "Athena") is an AI-powered document intelligence platform
 
 ## Project Context
 
-**Inspiration**: This project is a recreation of [Athena Intelligence](https://www.athenaintel.com/), an enterprise AI platform that provides:
+**Inspiration**: This project combines two enterprise AI platforms:
 
-- **Olympus Platform**: AI-native infrastructure with integrated analysis tools
-- **Athena AI Agent**: An autonomous "artificial data analyst" that functions like a remote hire
+1. **[Athena Intelligence](https://www.athenaintel.com/)** - Document intelligence and AI-powered analysis
+   - **Olympus Platform**: AI-native infrastructure with integrated analysis tools
+   - **Athena AI Agent**: An autonomous "artificial data analyst"
 
-**Our Goal**: Build an MVP with ~70% feature parity, focusing on:
+2. **[Hex](https://hex.tech/)** - Data analytics and notebook platform (UI/UX inspiration)
+   - **Threads**: Conversational analytics interface
+   - **Notebook Agent**: AI-assisted SQL and Python notebooks
+   - **Semantic Modeling**: Business logic layer for databases
 
-1. Document intelligence (upload, processing, extraction)
-2. AI-powered natural language queries with citations
-3. Collaborative workspaces (Spaces)
-4. Enterprise-ready security and audit trails
+**Our Goal**: Build a **hybrid intelligence platform** that combines:
+
+1. **Document Intelligence** (Athena-inspired): Upload, processing, extraction, Q&A
+2. **Database Analytics** (Hex-inspired): SQL queries, data visualization, semantic modeling
+3. **Unified AI Agent**: Single conversational interface for both SQL and document queries
+4. **Collaborative Workspaces** (Spaces): Team collaboration with access controls
+5. **Enterprise Security**: Audit trails, RLS, credential encryption
+
+**Design Direction**: **100% Hex aesthetic** across all features (document + database) for a unified, professional, data-first user experience.
 
 **Key References**:
 
-- [Product Requirements Document](./docs/PRODUCT_REQUIREMENTS.md)
-- [Feature Alignment](./docs/FEATURE_ALIGNMENT.md)
-- [Decisions to Make](./docs/DECISIONS_TO_MAKE.md)
+- [Product Requirements Document](./docs/PRODUCT_REQUIREMENTS.md) - Full product spec with hybrid approach
+- [Hybrid Architecture](./docs/HYBRID_ARCHITECTURE.md) - Technical architecture for unified platform
+- [Feature Alignment](./docs/FEATURE_ALIGNMENT.md) - 3-way comparison (Athena/Hex/Olympus)
+- [Database Integration](./docs/DATABASE_INTEGRATION.md) - Connector roadmap and implementation
+- [HEX_DESIGN_SYSTEM.md](./docs/HEX_DESIGN_SYSTEM.md) - Complete design patterns reference
+- [hex-component-mapping.md](./docs/guides/hex-component-mapping.md) - Component implementation guide
 
-When working on features, refer to these documents to ensure alignment with Athena Intelligence's capabilities.
+When working on features, refer to these documents to ensure alignment with both platforms' capabilities and the unified design aesthetic.
 
 ## Quick Start
 
@@ -119,39 +131,58 @@ See [Environment Setup Guide](./docs/guides/environment-setup.md) for configurat
 
 ## Component Development Philosophy
 
-**Core Principle**: Build composable, reusable components rather than monolithic page components.
+**Core Principle**: Build composable, reusable components following the Hex design aesthetic rather than monolithic page components.
+
+**Design System**: All UI components follow **100% Hex aesthetic** for a unified, professional, data-first user experience. See:
+
+- **[HEX_DESIGN_SYSTEM.md](./docs/HEX_DESIGN_SYSTEM.md)** - Complete design patterns and visual reference
+- **[hex-component-mapping.md](./docs/guides/hex-component-mapping.md)** - Component implementation guide
+- **[apps/web/DESIGN_SYSTEM.md](./apps/web/DESIGN_SYSTEM.md)** - Frontend design system documentation
 
 **Component Hierarchy**:
 
-1. **Design System Components** (`packages/ui`) - Base primitives imported as `@olympus/ui`
-2. **Layout Components** (`apps/web/src/components/layout/`) - Application structure
-3. **Feature Components** (`apps/web/src/components/[feature]/`) - Domain-specific components
+1. **Design System Components** (`packages/ui`) - Shadcn-ui base components styled with Hex aesthetic, imported as `@olympus/ui`
+2. **Layout Components** (`apps/web/src/components/layout/`) - Application structure (Threads chat, notebook cells, etc.)
+3. **Feature Components** (`apps/web/src/components/[feature]/`) - Domain-specific components (database connections, source badges, etc.)
 4. **Page Components** (`apps/web/src/app/`) - Composition of all above
 
 **Key Rules**:
 
 - ✅ **Always import design system components from `@olympus/ui`** (Button, Card, Input, etc.)
+- ✅ **Check [hex-component-mapping.md](./docs/guides/hex-component-mapping.md) before building new components** to ensure Hex aesthetic alignment
+- ✅ Use Hex design patterns (gradients for primary actions, source badges for SQL/document results, rounded corners, etc.)
 - ✅ Prefer composition over monolithic components
 - ✅ Use TypeScript with proper interfaces
 - ✅ Create Storybook stories for reusable components
-- ❌ Never create custom buttons/cards when design system components exist
+- ❌ Never create custom primitives when design system components exist
+- ❌ Never deviate from Hex aesthetic without explicit user approval
 
 **Example**:
 
 ```tsx
-// Good: Using design system component
-import { Button, Card } from '@olympus/ui';
+// Good: Using design system components with Hex aesthetic
+import { Button, Card, Badge } from '@olympus/ui';
 
-export function FeatureSection() {
+export function DatabaseConnectionCard({ connection }) {
   return (
-    <Card>
-      <Button size="lg">Get Started</Button>
+    <Card className="hover:shadow-md transition-shadow">
+      {' '}
+      {/* Hex: shadow on hover */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">{connection.name}</h3>
+        <Badge className="bg-green-100 text-green-700">Connected</Badge>
+      </div>
+      <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+        {' '}
+        {/* Hex: gradient */}
+        Test Connection
+      </Button>
     </Card>
   );
 }
 ```
 
-See [Component Development Guide](./docs/guides/component-development.md) for complete best practices.
+See [Component Development Guide](./docs/guides/component-development.md) and [hex-component-mapping.md](./docs/guides/hex-component-mapping.md) for complete best practices.
 
 ## Backend Development
 
@@ -240,6 +271,27 @@ For in-depth information, refer to these topic-specific guides:
 - GraphQL playground: http://localhost:8000/graphql (when `DEBUG=true`)
 
 **Production**: Documentation endpoints disabled when `DEBUG=false`
+
+## Linear Workspace
+
+**Team**: Logarithmic
+**Team ID**: `c82a64d5-68cb-4728-bf2f-7567c5a27777`
+
+**Project**: Olympus MVP
+**Project ID**: `f38a33af-fdc7-42c8-aa23-dd3ddc6f4e4c`
+
+**Story Point Scale**: Modified Fibonacci (0.5, 1, 2, 3, 5, 8, 13, 20)
+
+- 0.5 points = ~1 hour
+- 1 point = ~2 hours
+- 2 points = ~3-4 hours
+- 3 points = ~4-6 hours
+- 5 points = ~6-10 hours
+- 8 points = ~10-15 hours
+- 13 points = ~15-20 hours
+- 20 points = 20+ hours (should break down)
+
+**Usage**: When creating Linear tickets, use the team ID and project ID for proper organization. All tickets should use story points for estimation following the Modified Fibonacci scale.
 
 ## Important Reminders
 
