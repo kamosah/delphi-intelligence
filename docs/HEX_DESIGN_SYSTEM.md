@@ -2,7 +2,7 @@
 
 > **Purpose**: Document Hex's UI/UX patterns for design alignment across Olympus platform
 >
-> **Last Updated**: 2025-10-25
+> **Last Updated**: 2025-10-26
 >
 > **Project Decision**: Adopt 100% Hex aesthetic for all features (document intelligence + database analytics)
 
@@ -54,27 +54,29 @@
 
 ## Color Palette
 
-### Primary Colors (To Extract from Screenshots)
+### Primary Colors (Extracted from Visual References)
 
 **Action & Interactive**
 
-- Primary Blue: `#[TO_EXTRACT]` (CTA buttons, links, active states)
-- Accent Purple: `#[TO_EXTRACT]` (highlights, special features)
+- Primary Blue: `#4B7FFF` (CTA buttons, links, active states)
+- Primary Blue Hover: `#3366FF` (hover states, pressed buttons)
+- Accent Purple: `#8B5CF6` (AI features, highlights, special features)
 
 **Neutrals**
 
-- Background: `#FFFFFF` (white canvas)
-- Panel Gray: `#F8F9FA` (secondary backgrounds)
-- Border Gray: `#E1E4E8` (dividers, borders)
-- Text Primary: `#24292E` (main content)
-- Text Secondary: `#586069` (labels, meta)
+- Background White: `#FFFFFF` (white canvas)
+- Panel Gray: `#F9FAFB` (secondary backgrounds, subtle fills)
+- Border Gray: `#E5E7EB` (dividers, borders, separators)
+- Text Primary: `#1F2937` (main content, headings)
+- Text Secondary: `#6B7280` (labels, meta, de-emphasized content)
+- Text Tertiary: `#9CA3AF` (placeholder text)
 
 **Semantic Colors**
 
-- Success Green: `#[TO_EXTRACT]` (successful operations)
-- Error Red: `#[TO_EXTRACT]` (errors, destructive actions)
-- Warning Orange: `#[TO_EXTRACT]` (warnings, caution)
-- Info Blue: `#[TO_EXTRACT]` (informational messages)
+- Success Green: `#10B981` (successful operations, ready status)
+- Error Red: `#EF4444` (errors, destructive actions)
+- Warning Orange: `#F97316` (warnings, caution states)
+- Info Blue: `#4B7FFF` (informational messages, same as primary)
 
 **Code & Data**
 
@@ -84,14 +86,16 @@
 - String: `#032F62`
 - Number: `#005CC5`
 
-### Source-Type Indicators
+### Source-Type Indicators (Gradients)
 
 **For Hybrid Queries (SQL + Documents):**
 
-- SQL Result Badge: Blue gradient
-- Document Citation Badge: Green/teal gradient
-- Computation Badge: Purple gradient
-- Combined Result Badge: Multi-color gradient
+- SQL Result Badge: `linear-gradient(to right, #4B7FFF, #3366FF)` - Blue gradient
+- Document Citation Badge: `linear-gradient(to right, #10B981, #0D9488)` - Green to teal gradient
+- Computation Badge: `linear-gradient(to right, #8B5CF6, #7C3AED)` - Purple gradient
+- Combined Result Badge: Multi-color gradient (context-dependent)
+
+**Complete Color Reference**: See [DESIGN_TOKENS.md](./DESIGN_TOKENS.md) for full primitive and semantic color palettes.
 
 ---
 
