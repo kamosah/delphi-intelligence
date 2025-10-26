@@ -49,45 +49,81 @@ All components follow the Hex aesthetic, located in `packages/ui/`:
 
 ### Primary Color Palette
 
-**Status**: Colors to be extracted from screenshots. See [HEX_DESIGN_SYSTEM.md - Color Palette](../../docs/HEX_DESIGN_SYSTEM.md#color-palette) for complete reference.
+**Status**: Colors extracted from Hex visual references. See [DESIGN_TOKENS.md](../../docs/DESIGN_TOKENS.md) for complete color system.
 
 **Color Tokens**:
 
 ```typescript
-// To be updated with exact values from screenshot extraction
 colors: {
-  // Primary actions
+  // Primary actions (Hex blue)
   blue: {
-    500: '#3b82f6',  // Primary action color (placeholder)
-    600: '#2563eb',  // Primary hover state
+    50: '#EBF2FF',
+    100: '#D6E4FF',
+    200: '#ADC9FF',
+    300: '#85AEFF',
+    400: '#5C93FF',
+    500: '#4B7FFF',  // Primary action color
+    600: '#3366FF',  // Primary hover state
+    700: '#2952CC',  // Active/pressed state
+    800: '#1F3D99',
+    900: '#142966',
   },
 
-  // Neutrals
+  // Neutrals (Hex grays)
   gray: {
-    50: '#f8f9fa',   // Panel backgrounds
-    200: '#e1e4e8',  // Borders
-    600: '#586069',  // Secondary text
-    900: '#24292e',  // Primary text
+    50: '#F9FAFB',   // Panel backgrounds
+    100: '#F3F4F6',  // Hover backgrounds
+    200: '#E5E7EB',  // Borders
+    300: '#D1D5DB',  // Input borders
+    400: '#9CA3AF',  // Placeholder text
+    500: '#6B7280',  // Secondary text, icons
+    600: '#4B5563',  // Body text
+    700: '#374151',  // Headings
+    800: '#1F2937',  // Primary text
+    900: '#111827',  // Darkest text
+  },
+
+  // Accent purple (AI features)
+  purple: {
+    500: '#8B5CF6',  // AI/Magic features
+    600: '#7C3AED',  // Hover state
+  },
+
+  // Semantic colors
+  green: {
+    500: '#10B981',  // Success
+    600: '#059669',  // Document badges
+  },
+  red: {
+    500: '#EF4444',  // Error
+    600: '#DC2626',  // Error hover
+  },
+  orange: {
+    500: '#F97316',  // Warning
+  },
+  teal: {
+    600: '#0D9488',  // Document badges (gradient)
   },
 
   // Source-type badges (gradient backgrounds)
   badges: {
-    sql: 'linear-gradient(to right, #3b82f6, #2563eb)',      // Blue gradient
-    document: 'linear-gradient(to right, #10b981, #0d9488)', // Green/teal gradient
+    sql: 'linear-gradient(to right, #4B7FFF, #3366FF)',      // Blue gradient
+    document: 'linear-gradient(to right, #10B981, #0D9488)', // Green/teal gradient
+    computation: 'linear-gradient(to right, #8B5CF6, #7C3AED)', // Purple gradient
   },
 
-  // Code syntax
+  // Code syntax highlighting
   code: {
-    background: '#f6f8fa',
-    keyword: '#d73a49',   // SQL keywords
-    string: '#032f62',    // String literals
-    number: '#005cc5',    // Numeric values
-    function: '#6f42c1',  // Function calls
+    background: '#F6F8FA',
+    keyword: '#D73A49',   // SQL keywords
+    string: '#032F62',    // String literals
+    number: '#005CC5',    // Numeric values
+    function: '#6F42C1',  // Function calls
   },
 }
 ```
 
-**Action Required**: Use design tools to extract exact color values from screenshots in `docs/visual-references/hex/screenshots/`.
+**Reference**: Complete design token documentation available in [DESIGN_TOKENS.md](../../docs/DESIGN_TOKENS.md).
 
 ### CSS Variables
 
