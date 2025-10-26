@@ -25,46 +25,49 @@ echo ""
 
 # Hex YouTube Channel: https://www.youtube.com/@_hex_tech/videos
 #
-# TODO: Replace these placeholder URLs with actual Hex demo videos
-# Focus on videos showing:
-#   - Threads conversational interface
-#   - Notebook Agent in action
-#   - SQL cells and polyglot notebooks
-#   - Database connections
-#   - Semantic modeling
-#   - General product demos
+# Videos identified for UI/UX reference (6 total):
+# 1. Notebook Agent demo
+# 2. Fall 2025 launch (Agents + Semantic Model)
+# 3. Threads conversational interface demo
+# 4. SQL cells and polyglot notebooks
+# 5. Database connections (Cube integration)
+# 6. Database connections (setup walkthrough)
 
-# Example video downloads (update with actual video IDs from channel)
-# Format: yt-dlp <VIDEO_URL> -o <OUTPUT_PATH>
+# Download videos at 1080p max resolution for optimal frame extraction
+# Format: best video+audio up to 1080p, merge into mp4
 
-echo "⚠️  Video URLs need to be added"
-echo ""
-echo "To add videos, browse https://www.youtube.com/@_hex_tech/videos"
-echo "and update this script with relevant demo video URLs"
-echo ""
-echo "Example usage:"
-echo "  yt-dlp https://youtube.com/watch?v=VIDEO_ID -o $OUTPUT_DIR/hex-threads-demo.mp4"
-echo ""
+echo "📹 Downloading: Notebook Agent Demo..."
+yt-dlp "https://www.youtube.com/watch?v=utOLApsGvrU" \
+  -f "best[height<=1080]" \
+  -o "$OUTPUT_DIR/01-notebook-agent-demo.%(ext)s"
 
-# Uncomment and update with actual video IDs when found:
-#
-# echo "📹 Downloading: Hex Threads Demo..."
-# yt-dlp https://youtube.com/watch?v=THREADS_VIDEO_ID \
-#   -o "$OUTPUT_DIR/hex-threads-demo.mp4"
-#
-# echo "📹 Downloading: Hex Notebook Agent Demo..."
-# yt-dlp https://youtube.com/watch?v=NOTEBOOK_VIDEO_ID \
-#   -o "$OUTPUT_DIR/hex-notebook-agent-demo.mp4"
-#
-# echo "📹 Downloading: Hex SQL Notebooks..."
-# yt-dlp https://youtube.com/watch?v=SQL_VIDEO_ID \
-#   -o "$OUTPUT_DIR/hex-sql-notebooks-demo.mp4"
-#
-# echo "📹 Downloading: Hex Product Overview..."
-# yt-dlp https://youtube.com/watch?v=OVERVIEW_VIDEO_ID \
-#   -o "$OUTPUT_DIR/hex-product-overview.mp4"
+echo "📹 Downloading: Fall 2025 Launch (Agents + Semantic Model)..."
+yt-dlp "https://www.youtube.com/watch?v=oYpizZJtvOo" \
+  -f "best[height<=1080]" \
+  -o "$OUTPUT_DIR/02-fall-2025-launch-agents.%(ext)s"
+
+echo "📹 Downloading: Threads Conversational Interface (Agentic AI)..."
+yt-dlp "https://www.youtube.com/watch?v=hUiXdjrsu8E" \
+  -f "best[height<=1080]" \
+  -o "$OUTPUT_DIR/03-threads-agentic-ai.%(ext)s"
+
+echo "📹 Downloading: SQL Cells - Chained SQL Demo..."
+yt-dlp "https://www.youtube.com/watch?v=Zrq_n-_ntrc" \
+  -f "best[height<=1080]" \
+  -o "$OUTPUT_DIR/04-sql-cells-chained-queries.%(ext)s"
+
+echo "📹 Downloading: Database Connections - Cube Integration..."
+yt-dlp "https://www.youtube.com/watch?v=yt6YbDirnJI" \
+  -f "best[height<=1080]" \
+  -o "$OUTPUT_DIR/05-database-connections-cube.%(ext)s"
+
+echo "📹 Downloading: Database Connections - Setup Walkthrough..."
+yt-dlp "https://www.youtube.com/watch?v=wIUnMHk7cms" \
+  -f "best[height<=1080]" \
+  -o "$OUTPUT_DIR/06-database-connections-setup.%(ext)s"
 
 echo ""
-echo "✅ Script ready for video downloads"
-echo "📝 Next step: Identify relevant videos from Hex's YouTube channel"
+echo "✅ All 6 Hex demo videos downloaded successfully"
+echo "📁 Location: $OUTPUT_DIR"
+echo "📝 Next step: Run ./scripts/extract-hex-video-frames.sh to extract UI frames"
 echo ""
