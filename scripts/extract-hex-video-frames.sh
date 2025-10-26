@@ -49,40 +49,40 @@ extract_frames() {
 # Extract frames from each Hex video
 # Adjust FPS based on video type (higher FPS for UI-focused demos, lower for overviews)
 
-# Threads demo - UI-focused (1 frame every 2 seconds)
+# 01 - Notebook Agent demo - UI-focused (1 frame every 2 seconds)
 extract_frames \
-    "docs/visual-references/hex/videos/hex-threads-demo.mp4" \
-    "threads-demo" \
+    "docs/visual-references/hex/videos/01-notebook-agent-demo.mp4" \
+    "01-notebook-agent" \
     0.5
 
-# Notebook Agent demo - UI-focused (1 frame every 2 seconds)
+# 02 - Fall 2025 Launch (Agents + Semantic Model) - Overview (1 frame every 3 seconds)
 extract_frames \
-    "docs/visual-references/hex/videos/hex-notebook-agent-demo.mp4" \
-    "notebook-agent" \
-    0.5
-
-# SQL Notebooks - UI-focused (1 frame every 2 seconds)
-extract_frames \
-    "docs/visual-references/hex/videos/hex-sql-notebooks-demo.mp4" \
-    "sql-notebooks" \
-    0.5
-
-# Product overview - Broader view (1 frame every 3 seconds)
-extract_frames \
-    "docs/visual-references/hex/videos/hex-product-overview.mp4" \
-    "product-overview" \
+    "docs/visual-references/hex/videos/02-fall-2025-launch-agents.mp4" \
+    "02-fall-2025-agents" \
     0.33
 
-# Database connections demo - UI-focused (1 frame every 2 seconds)
+# 03 - Threads Conversational Interface - UI-focused (1 frame every 2 seconds)
 extract_frames \
-    "docs/visual-references/hex/videos/hex-database-connections.mp4" \
-    "database-connections" \
+    "docs/visual-references/hex/videos/03-threads-agentic-ai.mp4" \
+    "03-threads-agentic-ai" \
     0.5
 
-# Semantic modeling demo - UI-focused (1 frame every 2 seconds)
+# 04 - SQL Cells (Chained Queries) - UI-focused (1 frame every 2 seconds)
 extract_frames \
-    "docs/visual-references/hex/videos/hex-semantic-modeling.mp4" \
-    "semantic-modeling" \
+    "docs/visual-references/hex/videos/04-sql-cells-chained-queries.mp4" \
+    "04-sql-cells" \
+    0.5
+
+# 05 - Database Connections (Cube) - UI-focused (1 frame every 2 seconds)
+extract_frames \
+    "docs/visual-references/hex/videos/05-database-connections-cube.mp4" \
+    "05-db-connections-cube" \
+    0.5
+
+# 06 - Database Connections (Setup) - UI-focused (1 frame every 2 seconds)
+extract_frames \
+    "docs/visual-references/hex/videos/06-database-connections-setup.mp4" \
+    "06-db-connections-setup" \
     0.5
 
 echo "✅ Frame extraction complete!"

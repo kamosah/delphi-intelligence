@@ -424,24 +424,132 @@ User typing: "Show me revenue from @cus[▼]"
 
 ### 3. Hover States
 
-**Interactive Elements**:
+**Card Hover**:
 
-- Cards: Lift shadow on hover
-- Buttons: Slight color shift
-- Table rows: Highlight background
-- Code: Show edit/copy icons
+```css
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 200ms ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+```
+
+**Button Hover**:
+
+```css
+/* Primary Button */
+background: linear-gradient(to right, #4b7fff, #3366ff);
+transition: background-color 200ms ease-in-out;
+
+/* On Hover */
+background: linear-gradient(to right, #3366ff, #2952cc);
+```
+
+**Link Hover**:
+
+```css
+color: #4b7fff; /* blue-500 */
+text-decoration: none;
+transition: color 150ms ease-in-out;
+
+/* On Hover */
+color: #3366ff; /* blue-600 */
+```
+
+**Table Row Hover**:
+
+```css
+background: transparent;
+transition: background-color 150ms ease-in-out;
+
+/* On Hover */
+background: #f9fafb; /* gray-50 */
+```
 
 ### 4. Loading States
 
-**Inline Loaders**:
+**Skeleton Loaders**:
 
-- Threads: Animated "..." bubble
-- SQL results: Skeleton table rows
-- Charts: Shimmer effect
+```css
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
 
-### 5. Error Handling
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+```
 
-**Inline Errors**:
+**Spinner**:
+
+```css
+.spinner {
+  border: 2px solid #e5e7eb; /* gray-200 */
+  border-top-color: #4b7fff; /* blue-500 */
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+```
+
+**Inline Streaming Indicator** (for AI responses):
+
+```css
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: #4b7fff;
+  margin-left: 2px;
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+```
+
+### 5. Error States
+
+**Input Error**:
+
+```css
+border-color: #ef4444; /* red-500 */
+box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); /* red focus ring */
+```
+
+**Error Message**:
+
+```tsx
+<div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
+  <div>
+    <p className="text-sm font-medium text-red-900">Error Title</p>
+    <p className="text-sm text-red-700">Error message details...</p>
+  </div>
+</div>
+```
+
+**SQL Error (Inline)**:
 
 ```
 ┌─────────────────────────────────────┐
@@ -450,6 +558,87 @@ User typing: "Show me revenue from @cus[▼]"
 │ Did you mean 'revenue'?             │
 │ [View Details]                      │
 └─────────────────────────────────────┘
+```
+
+### 6. Empty States
+
+**No Documents**:
+
+```tsx
+<div className="flex flex-col items-center justify-center py-12 text-center">
+  <FileIcon className="w-12 h-12 text-gray-300 mb-3" />
+  <h3 className="text-lg font-semibold text-gray-900 mb-1">No documents yet</h3>
+  <p className="text-sm text-gray-500 mb-4">
+    Upload PDFs or Word documents to get started
+  </p>
+  <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+    Upload Document
+  </Button>
+</div>
+```
+
+**No Data / Empty Query Results**:
+
+```tsx
+<div className="flex flex-col items-center justify-center py-8 text-center">
+  <DatabaseIcon className="w-12 h-12 text-gray-300 mb-3" />
+  <h3 className="text-lg font-semibold text-gray-900 mb-1">No results found</h3>
+  <p className="text-sm text-gray-500">Try adjusting your query or filters</p>
+</div>
+```
+
+### 7. Disabled States
+
+**Disabled Button**:
+
+```css
+background: #e5e7eb; /* gray-200 */
+color: #9ca3af; /* gray-400 */
+cursor: not-allowed;
+opacity: 0.6;
+pointer-events: none;
+```
+
+**Disabled Input**:
+
+```css
+background: #f9fafb; /* gray-50 */
+border-color: #e5e7eb; /* gray-200 */
+color: #9ca3af; /* gray-400 */
+cursor: not-allowed;
+pointer-events: none;
+```
+
+### 8. Focus States
+
+**Input Focus**:
+
+```css
+border-color: #4b7fff; /* blue-500 */
+outline: none;
+box-shadow: 0 0 0 3px rgba(75, 127, 255, 0.2); /* blue-500 at 20% */
+```
+
+**Button Focus** (keyboard navigation):
+
+```css
+outline: 2px solid #4b7fff;
+outline-offset: 2px;
+```
+
+**Accessible Focus** (visible on tab, hidden on click):
+
+```css
+/* Reset browser default */
+*:focus {
+  outline: none;
+}
+
+/* Show focus ring only for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #4b7fff;
+  outline-offset: 2px;
+}
 ```
 
 ---

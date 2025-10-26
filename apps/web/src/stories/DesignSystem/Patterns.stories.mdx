@@ -1,0 +1,410 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Design System/Interaction Patterns" />
+
+# Interaction Patterns & States
+
+Complete reference for all UI interaction patterns and component states.
+
+---
+
+## Hover States
+
+### Card Hover
+
+Cards should lift on hover with a subtle shadow transition:
+
+```css
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 200ms ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <div className="p-6 bg-white rounded-lg shadow transition-shadow hover:shadow-md cursor-pointer max-w-sm">
+    <h4 className="font-semibold text-gray-900 mb-2">Connection Card</h4>
+    <p className="text-sm text-gray-600">Hover to see shadow lift effect</p>
+  </div>
+</div>
+
+### Button Hover
+
+Primary buttons use gradient transitions:
+
+```css
+/* Base state */
+background: linear-gradient(to right, #4B7FFF, #3366FF);
+transition: background-color 200ms ease-in-out;
+
+/* Hover state */
+background: linear-gradient(to right, #3366FF, #2952CC);
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-md transition-all">
+    Hover Me
+  </button>
+</div>
+
+### Link Hover
+
+Links transition from blue-500 to blue-600:
+
+```css
+color: #4B7FFF; /* blue-500 */
+text-decoration: none;
+transition: color 150ms ease-in-out;
+
+/* On Hover */
+color: #3366FF; /* blue-600 */
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <a href="#" className="text-blue-500 hover:text-blue-600 transition-colors">
+    Click this link
+  </a>
+</div>
+
+### Table Row Hover
+
+Table rows highlight with subtle gray background:
+
+```css
+background: transparent;
+transition: background-color 150ms ease-in-out;
+
+/* On Hover */
+background: #F9FAFB; /* gray-50 */
+```
+
+---
+
+## Loading States
+
+### Skeleton Loaders
+
+Animated shimmer effect for loading content:
+
+```css
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #F3F4F6 0%,
+    #E5E7EB 50%,
+    #F3F4F6 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg space-y-3">
+  <div className="h-4 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 rounded animate-pulse bg-[length:200%_100%]"></div>
+  <div className="h-4 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 rounded animate-pulse bg-[length:200%_100%] w-3/4"></div>
+  <div className="h-4 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 rounded animate-pulse bg-[length:200%_100%] w-1/2"></div>
+</div>
+
+### Spinner
+
+Rotating border spinner:
+
+```css
+.spinner {
+  border: 2px solid #E5E7EB; /* gray-200 */
+  border-top-color: #4B7FFF; /* blue-500 */
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+</div>
+
+### Streaming Indicator
+
+Blinking cursor for AI responses:
+
+```css
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: #4B7FFF;
+  margin-left: 2px;
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <p className="text-sm text-gray-900">
+    AI is typing
+    <span className="inline-block w-0.5 h-4 bg-blue-500 ml-1 animate-pulse"></span>
+  </p>
+</div>
+
+---
+
+## Error States
+
+### Input Error
+
+Red border with focus ring:
+
+```css
+border-color: #EF4444; /* red-500 */
+box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); /* red focus ring */
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg space-y-2">
+  <input
+    type="text"
+    placeholder="Error state input"
+    className="w-full px-4 py-2 border-2 border-red-500 rounded-md focus:outline-none focus:ring-4 focus:ring-red-500/20"
+  />
+  <p className="text-sm text-red-600">This field is required</p>
+</div>
+
+### Error Message
+
+Error notification with icon:
+
+```tsx
+<div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
+  <div>
+    <p className="text-sm font-medium text-red-900">Error Title</p>
+    <p className="text-sm text-red-700">Error message details...</p>
+  </div>
+</div>
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+    <svg className="w-4 h-4 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div>
+      <p className="text-sm font-medium text-red-900">Connection Failed</p>
+      <p className="text-sm text-red-700">Unable to connect to database. Please check your credentials.</p>
+    </div>
+  </div>
+</div>
+
+---
+
+## Empty States
+
+### No Documents
+
+Centered empty state with icon and CTA:
+
+```tsx
+<div className="flex flex-col items-center justify-center py-12 text-center">
+  <FileIcon className="w-12 h-12 text-gray-300 mb-3" />
+  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+    No documents yet
+  </h3>
+  <p className="text-sm text-gray-500 mb-4">
+    Upload PDFs or Word documents to get started
+  </p>
+  <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+    Upload Document
+  </Button>
+</div>
+```
+
+**Example:**
+
+<div className="p-8 bg-gray-50 rounded-lg">
+  <div className="flex flex-col items-center justify-center py-12 text-center">
+    <svg className="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    <h3 className="text-lg font-semibold text-gray-900 mb-1">No documents yet</h3>
+    <p className="text-sm text-gray-500 mb-4">Upload PDFs or Word documents to get started</p>
+    <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md">
+      Upload Document
+    </button>
+  </div>
+</div>
+
+### No Query Results
+
+Simpler empty state for search results:
+
+```tsx
+<div className="flex flex-col items-center justify-center py-8 text-center">
+  <DatabaseIcon className="w-12 h-12 text-gray-300 mb-3" />
+  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+    No results found
+  </h3>
+  <p className="text-sm text-gray-500">
+    Try adjusting your query or filters
+  </p>
+</div>
+```
+
+---
+
+## Disabled States
+
+### Disabled Button
+
+Grayed out with cursor change:
+
+```css
+background: #E5E7EB; /* gray-200 */
+color: #9CA3AF; /* gray-400 */
+cursor: not-allowed;
+opacity: 0.6;
+pointer-events: none;
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg flex gap-3">
+  <button className="px-4 py-2 bg-blue-500 text-white rounded-md">
+    Enabled
+  </button>
+  <button className="px-4 py-2 bg-gray-200 text-gray-400 rounded-md cursor-not-allowed opacity-60" disabled>
+    Disabled
+  </button>
+</div>
+
+### Disabled Input
+
+Grayed background with no-drop cursor:
+
+```css
+background: #F9FAFB; /* gray-50 */
+border-color: #E5E7EB; /* gray-200 */
+color: #9CA3AF; /* gray-400 */
+cursor: not-allowed;
+pointer-events: none;
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg space-y-3">
+  <input
+    type="text"
+    placeholder="Enabled input"
+    className="w-full px-4 py-2 border border-gray-300 rounded-md"
+  />
+  <input
+    type="text"
+    placeholder="Disabled input"
+    disabled
+    className="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-400 rounded-md cursor-not-allowed"
+  />
+</div>
+
+---
+
+## Focus States
+
+### Input Focus
+
+Blue border with ring shadow:
+
+```css
+border-color: #4B7FFF; /* blue-500 */
+outline: none;
+box-shadow: 0 0 0 3px rgba(75, 127, 255, 0.2); /* blue-500 at 20% */
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <input
+    type="text"
+    placeholder="Click to focus"
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
+  />
+</div>
+
+### Button Focus (Keyboard Navigation)
+
+Outline with offset for accessibility:
+
+```css
+outline: 2px solid #4B7FFF;
+outline-offset: 2px;
+```
+
+**Example:**
+
+<div className="p-4 bg-gray-50 rounded-lg">
+  <button className="px-4 py-2 bg-blue-500 text-white rounded-md focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2">
+    Tab to focus
+  </button>
+</div>
+
+### Accessible Focus (`:focus-visible`)
+
+Show focus only for keyboard navigation, not mouse clicks:
+
+```css
+/* Reset browser default */
+*:focus {
+  outline: none;
+}
+
+/* Show focus ring only for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #4B7FFF;
+  outline-offset: 2px;
+}
+```
+
+---
+
+## Best Practices
+
+1. **Always provide visual feedback** for interactive elements (hover, active, focus states)
+2. **Use transitions** for smooth state changes (200ms for shadows, 150ms for colors)
+3. **Maintain accessibility** with proper focus indicators for keyboard navigation
+4. **Keep loading states consistent** across the application
+5. **Show meaningful empty states** with clear CTAs to guide users
+6. **Use semantic colors** for error, success, and warning states
+
+---
+
+**Related**: [Colors Story](/story/design-system-colors--primary-blues) · [Typography Story](/story/design-system-typography--type-scale) · [Shadows Story](/story/design-system-shadows-elevation--shadow-scale)
