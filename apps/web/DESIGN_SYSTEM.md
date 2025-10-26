@@ -4,64 +4,177 @@
 
 Olympus MVP uses a modern, accessible design system built with:
 
-- **Shadcn-ui** (New York style) - Component library
+- **Shadcn-ui** (New York style) - Component library foundation
 - **TailwindCSS** - Utility-first CSS framework
-- **Assistant-UI** - AI chat interface primitives
+- **Hex-Inspired Aesthetic** - **PRIMARY DESIGN DIRECTION** for all UI components
+- **Assistant-UI** - AI chat interface primitives (deprecated in favor of Hex patterns)
 - **Framer Motion** - Animation library
 - **Zustand** - State management for UI state
 
+---
+
+## 🎨 Design System (Hex-Inspired)
+
+**IMPORTANT**: As of 2025-10-25, Olympus has pivoted to adopt **100% Hex aesthetic** across all features (document intelligence + database analytics). This ensures a unified, professional, data-first user experience.
+
+### Key Design Principles
+
+1. **Data-First Design** - Results and visualizations are primary, UI chrome is secondary
+2. **Conversational AI Integration** - Natural language as first-class input method
+3. **Professional Tool Aesthetic** - Serious, business-oriented tone
+4. **Source Transparency** - Clear visual indicators for SQL vs document results
+5. **Mobile-First Responsive** - Adaptive layouts with touch-friendly targets
+
+### Design System Documentation
+
+- **[HEX_DESIGN_SYSTEM.md](../../docs/HEX_DESIGN_SYSTEM.md)** - Complete design patterns reference
+- **[hex-component-mapping.md](../../docs/guides/hex-component-mapping.md)** - Component implementation guide
+- **Visual References**: `docs/visual-references/hex/screenshots/` (8 screenshots)
+
+### Custom Component Library
+
+All components follow the Hex aesthetic, located in `packages/ui/`:
+
+- `Button` - Primary (gradient), secondary (outline), icon variants
+- `Card` - Connection cards, message bubbles, result containers
+- `Input` - Text inputs with focus rings
+- `Textarea` - Chat input with rounded corners
+- `Badge` - Source badges (SQL/document), status indicators
+
+**Component Development Rule**: When building new components, always check the [hex-component-mapping.md](../../docs/guides/hex-component-mapping.md) guide first to ensure aesthetic alignment.
+
+---
+
 ## Color System
 
-### Base Colors (CSS Variables)
+### Primary Color Palette
 
-The design system uses CSS variables for theming, supporting both light and dark modes:
+**Status**: Colors to be extracted from screenshots. See [HEX_DESIGN_SYSTEM.md - Color Palette](../../docs/HEX_DESIGN_SYSTEM.md#color-palette) for complete reference.
+
+**Color Tokens**:
+
+```typescript
+// To be updated with exact values from screenshot extraction
+colors: {
+  // Primary actions
+  blue: {
+    500: '#3b82f6',  // Primary action color (placeholder)
+    600: '#2563eb',  // Primary hover state
+  },
+
+  // Neutrals
+  gray: {
+    50: '#f8f9fa',   // Panel backgrounds
+    200: '#e1e4e8',  // Borders
+    600: '#586069',  // Secondary text
+    900: '#24292e',  // Primary text
+  },
+
+  // Source-type badges (gradient backgrounds)
+  badges: {
+    sql: 'linear-gradient(to right, #3b82f6, #2563eb)',      // Blue gradient
+    document: 'linear-gradient(to right, #10b981, #0d9488)', // Green/teal gradient
+  },
+
+  // Code syntax
+  code: {
+    background: '#f6f8fa',
+    keyword: '#d73a49',   // SQL keywords
+    string: '#032f62',    // String literals
+    number: '#005cc5',    // Numeric values
+    function: '#6f42c1',  // Function calls
+  },
+}
+```
+
+**Action Required**: Use design tools to extract exact color values from screenshots in `docs/visual-references/hex/screenshots/`.
+
+### CSS Variables
+
+CSS variables for theming (to be updated with extracted colors):
 
 ```css
 /* Light Mode */
 --background: 0 0% 100% --foreground: 222.2 84% 4.9% --primary: 222.2 47.4%
   11.2% --secondary: 210 40% 96.1% --muted: 210 40% 96.1% --accent: 210 40%
-  96.1% --destructive: 0 84.2% 60.2% /* Dark Mode */ --background: 222.2 84%
-  4.9% --foreground: 210 40% 98% --primary: 210 40% 98% --secondary: 217.2 32.6%
-  17.5% --muted: 217.2 32.6% 17.5% --accent: 217.2 32.6% 17.5% --destructive: 0
-  62.8% 30.6%;
+  96.1% --destructive: 0 84.2% 60.2%;
 ```
 
-### AI-Specific Colors
-
-Custom colors for AI agent interactions:
-
-```typescript
-agent: {
-  primary: 'hsl(217, 91%, 60%)',   // Agent messages/actions
-  secondary: 'hsl(142, 76%, 36%)',  // Success states
-  tool: 'hsl(280, 65%, 60%)',       // Tool executions
-}
-```
+**Note**: These will be updated to match the primary color palette once exact values are extracted.
 
 ## Typography
 
-- **Font Family**: Inter, system-ui, sans-serif
-- **Font Sizes**: Tailwind's default scale
-- **Line Heights**: Optimized for readability
+### Font Families
+
+**Primary Interface Font**:
+
+```css
+font-family:
+  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial,
+  sans-serif;
+```
+
+**Monospace Font** (for code and data):
+
+```css
+font-family:
+  'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+```
+
+### Type Scale
+
+| Element | Size | Weight | Line Height | Usage              |
+| ------- | ---- | ------ | ----------- | ------------------ |
+| H1      | 32px | 700    | 1.25        | Page titles        |
+| H2      | 24px | 600    | 1.3         | Section headers    |
+| H3      | 18px | 600    | 1.4         | Subsection headers |
+| Body    | 14px | 400    | 1.5         | Main content       |
+| Small   | 12px | 400    | 1.4         | Meta, labels       |
+| Code    | 13px | 400    | 1.4         | Code blocks, SQL   |
+
+### Text Styles
+
+- **Bold**: `font-weight: 600` (not 700)
+- **Monospace**: All code, table names, column names
+- **Italic**: Used sparingly for emphasis
 
 ## Components
 
-### Core Shadcn Components
+### Component Library
 
-Installed components (12+):
+**Location**: `packages/ui/`
 
-- `Button` - Primary interaction element
-- `Card` - Container component
-- `Input` - Form input
-- `Label` - Form label
-- `DropdownMenu` - Menu component
+**Foundation**: Shadcn-ui components styled to match design system
+
+Custom components (see [hex-component-mapping.md](../../docs/guides/hex-component-mapping.md) for implementation guide):
+
+- `Button` - Primary (gradient), secondary (outline), icon, destructive variants
+- `Card` - Connection cards, message bubbles, result containers
+- `Input` - Text inputs with focus rings
+- `Textarea` - Chat input with rounded corners
+- `Badge` - Source badges (SQL/document), status pills
+- `SourceBadge` - SQL/document source indicators with gradients
+- `DatabaseConnectionCard` - Database connection UI
+- `ChatInput` - Threads-style chat input with @mentions
+- `ChatMessage` - User/AI message bubbles
+- `SQLNotebookCell` - SQL cell with editor and results
+- `QueryResultsTable` - SQL results table
+- `ThreadsChatContainer` - Full chat layout
+
+### Base Shadcn Components
+
+Installed base components (12+):
+
+- `Label` - Form labels
+- `DropdownMenu` - Menus and actions
 - `Avatar` - User/agent avatars
 - `Separator` - Visual divider
 - `Skeleton` - Loading states
 - `Dialog` - Modal dialogs
-- `Badge` - Status indicators
 - `Tooltip` - Contextual help
 - `ScrollArea` - Scrollable containers
+- `Select` - Dropdown selection
+- `Table` - Data tables
 
 ### Layout Components
 

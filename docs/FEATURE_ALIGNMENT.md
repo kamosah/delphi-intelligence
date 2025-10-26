@@ -1,14 +1,27 @@
 # Feature Alignment Summary
 
-**Project**: Olympus MVP (Athena Intelligence Clone)
-**Date**: 2025-10-14
-**Purpose**: Track alignment between Olympus MVP and Athena Intelligence features
+**Project**: Olympus MVP (Hybrid Intelligence Platform)
+**Last Updated**: 2025-10-25
+**Purpose**: Track alignment between Olympus MVP and its dual inspirations (Athena Intelligence + Hex)
 
 ---
 
 ## Overview
 
-This document tracks the alignment between the Olympus MVP implementation and the Athena Intelligence product we're recreating. It serves as a gap analysis and roadmap for bringing Olympus MVP to feature parity with Athena Intelligence's core capabilities.
+**MAJOR UPDATE (2025-10-25)**: Olympus MVP has pivoted to a **hybrid intelligence platform** combining:
+
+- **Athena Intelligence** inspiration for document intelligence features
+- **Hex** inspiration for database analytics features AND UI/UX aesthetic
+
+This document tracks the 3-way alignment between:
+
+1. **Athena Intelligence** - Document processing, RAG, multi-agent workflows
+2. **Hex** - Database connectors, Threads UI, Notebook Agent, SQL analytics
+3. **Olympus MVP** - Hybrid platform unifying both worlds
+
+### Unique Value Proposition
+
+Olympus is the **first platform** to unify SQL database analytics with document intelligence in a single conversational interface—enabling queries like _"Compare our Q4 revenue to analyst forecasts in these earnings reports"_ with one agent, one UI, and unified citations.
 
 ---
 
@@ -59,6 +72,43 @@ This document tracks the alignment between the Olympus MVP implementation and th
 | **Document Preview**    | ✅ In-app viewer      | ❌ Not implemented        | 🔴 Gap                    |
 | **Bulk Upload**         | ✅ Yes                | ❌ Not implemented        | 🔴 Gap                    |
 | **Version History**     | ✅ Yes                | ❌ Not implemented        | 🔴 Gap                    |
+
+### 5. Database Analytics (Hex-Inspired Features) - NEW
+
+| Feature                      | Hex                   | Olympus MVP          | Status             |
+| ---------------------------- | --------------------- | -------------------- | ------------------ |
+| **PostgreSQL Connector**     | ✅ Yes                | ✅ Backend DB exists | 🟡 Ready (Phase 2) |
+| **Snowflake Connector**      | ✅ Yes                | ❌ Not implemented   | 🔴 Gap (Phase 2)   |
+| **BigQuery Connector**       | ✅ Yes                | ❌ Not implemented   | 🔴 Gap (Phase 2)   |
+| **Redshift Connector**       | ✅ Yes                | ❌ Not implemented   | 🔴 Gap (Phase 2+)  |
+| **Connection Management UI** | ✅ Cards + Test       | ❌ Not implemented   | 🔴 Gap (Phase 2)   |
+| **Text-to-SQL**              | ✅ Notebook Agent     | ❌ Not implemented   | 🔴 Gap (Phase 2)   |
+| **SQL Notebook Cells**       | ✅ Polyglot (SQL+Py)  | ❌ Not implemented   | 🔴 Gap (Phase 3)   |
+| **@Mentions for Data**       | ✅ Threads feature    | ❌ Not implemented   | 🔴 Gap (Phase 2)   |
+| **Semantic Modeling**        | ✅ Modeling Workbench | ❌ Not implemented   | 🔴 Gap (Future)    |
+
+### 6. UI/UX Design (Hex Aesthetic) - NEW
+
+| Feature                     | Hex                   | Olympus MVP        | Status                 |
+| --------------------------- | --------------------- | ------------------ | ---------------------- |
+| **Threads Chat Interface**  | ✅ Conversational UI  | ❌ Not implemented | 🔴 Gap (Phase 2)       |
+| **Source-Type Badges**      | ✅ Visual indicators  | ❌ Not implemented | 🔴 Gap (Phase 2)       |
+| **Color Palette**           | ✅ Professional blue  | ⏳ To extract      | 🟡 In Progress         |
+| **Typography**              | ✅ System fonts       | ⏳ Documented      | 🟡 Documented          |
+| **Component Library**       | ✅ Hex UI components  | ✅ Shadcn-ui base  | 🟡 Needs customization |
+| **Layout Patterns**         | ✅ Chat, cells, cards | ⏳ Documented      | 🟡 Design phase        |
+| **Notebook Cell Interface** | ✅ SQL/Python cells   | ❌ Not implemented | 🔴 Gap (Phase 3)       |
+| **Connection Cards**        | ✅ Status indicators  | ❌ Not implemented | 🔴 Gap (Phase 2)       |
+
+### 7. Hybrid Features (Olympus Unique Differentiation) - NEW
+
+| Feature                          | Athena Intel | Hex | Olympus MVP | Status             |
+| -------------------------------- | ------------ | --- | ----------- | ------------------ |
+| **Unified SQL + Document Query** | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
+| **Hybrid Source Citations**      | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
+| **Cross-Source Synthesis**       | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
+| **Intent Routing (SQL/Doc)**     | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
+| **Hex UI for All Features**      | ❌           | ✅  | ⏳ Planned  | 🟡 Design complete |
 
 ---
 
