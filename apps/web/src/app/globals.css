@@ -12,14 +12,14 @@
   }
   :root {
     /* Hex Brand Colors (Official from Media Kit) */
-    --hex-obsidian: 320 15% 10%;  /* #1d141c */
-    --hex-rose-quartz: 15 66% 86%;  /* #f5cdc0 */
-    --hex-jade: 160 33% 53%;  /* #5cb196 */
-    --hex-amethyst: 286 27% 58%;  /* #a477b2 */
-    --hex-citrine: 43 48% 55%;  /* #cda849 */
-    --hex-opal: 310 56% 96%;  /* #fbf0f9 */
-    --hex-sugilite: 278 39% 41%;  /* #6f3f90 */
-    --hex-cement: 219 14% 51%;  /* #717a94 */
+    --hex-obsidian: 320 15% 10%; /* #1d141c */
+    --hex-rose-quartz: 15 66% 86%; /* #f5cdc0 */
+    --hex-jade: 160 33% 53%; /* #5cb196 */
+    --hex-amethyst: 286 27% 58%; /* #a477b2 */
+    --hex-citrine: 43 48% 55%; /* #cda849 */
+    --hex-opal: 310 56% 96%; /* #fbf0f9 */
+    --hex-sugilite: 278 39% 41%; /* #6f3f90 */
+    --hex-cement: 219 14% 51%; /* #717a94 */
 
     /* Shadcn UI Variables */
     --background: 0 0% 100%;
