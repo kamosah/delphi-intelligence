@@ -83,7 +83,7 @@
 
 **Action & Interactive**
 
-- Primary Blue: `#3B82F6` (focus rings, links, string literals in code)
+- Primary Blue: `#4B7FFF` (focus rings, links, string literals in code)
 - Accent Purple: `#8B5CF6` (SQL keywords, functions, AI features, highlights)
 
 **Backgrounds**
@@ -110,7 +110,7 @@
 - Success Green: `#10B981` (successful operations, ready status)
 - Error Red: `#EF4444` (errors, destructive actions)
 - Warning Orange: `#F97316` (warnings, caution states)
-- Info Blue: `#3B82F6` (informational messages, links)
+- Info Blue: `#4B7FFF` (informational messages, links)
 
 **Code Syntax (Verified from Notebook Agent Screenshots)**
 
@@ -118,7 +118,7 @@
 - Code Border: `#E5E7EB` (light gray)
 - SQL Keyword: `#8B5CF6` (purple - SELECT, FROM, WHERE)
 - SQL Function: `#8B5CF6` (purple - COUNT, EXTRACT)
-- String Literal: `#3B82F6` (blue - 'active')
+- String Literal: `#4B7FFF` (blue - 'active')
 - Comment: `#6B7280` (medium gray)
 - Number: `#1F2937` (dark gray)
 - Operator: `#4B5563` (medium gray)
@@ -273,7 +273,7 @@ font-family:
 │              │  │                        │  │
 │              │  │ Syntax:                │  │
 │              │  │ • Keywords: #8B5CF6    │  │
-│              │  │ • Strings: #3B82F6     │  │
+│              │  │ • Strings: #4B7FFF     │  │
 │              │  │ • Functions: #8B5CF6   │  │
 │              │  │                        │  │
 │              │  │ Font: SF Mono, 13px    │  │
@@ -297,7 +297,7 @@ font-family:
   - Line height 1.6
 - **SQL syntax highlighting**:
   - Keywords (SELECT, FROM, WHERE): Purple #8B5CF6
-  - Strings ('active'): Blue #3B82F6
+  - Strings ('active'): Blue #4B7FFF
   - Functions (COUNT, EXTRACT): Purple #8B5CF6
   - Comments: Gray #6B7280
   - Numbers: Dark gray #1F2937
@@ -379,7 +379,7 @@ font-family:
   - Icon stack (YML badge + analytics chart)
   - Large heading: "What do you want to work on?"
   - Supporting text in medium gray
-  - "Learn more" link in blue (#3B82F6)
+  - "Learn more" link in blue (#4B7FFF)
   - Input field below
 - **Input field** (empty state):
   - White background (#FFFFFF)

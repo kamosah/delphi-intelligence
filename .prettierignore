@@ -36,3 +36,6 @@ next-env.d.ts
 
 # Build artifacts
 dist
+
+# Python backend (uses Ruff for formatting/linting)
+apps/api

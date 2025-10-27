@@ -16,7 +16,7 @@ const config: Config = {
           '200': '#ADC9FF',
           '300': '#85AEFF',
           '400': '#5C93FF',
-          '500': '#3B82F6', // PRIMARY - links, focus rings, strings in code
+          '500': '#4B7FFF', // PRIMARY - links, focus rings, strings in code
           '600': '#2563EB',
           '700': '#1D4ED8',
           '800': '#1E40AF',
@@ -109,7 +109,7 @@ const config: Config = {
         },
         // AI-specific colors for agent interactions
         agent: {
-          primary: 'hsl(217, 91%, 60%)',
+          primary: 'hsl(217, 100%, 65%)',
           secondary: 'hsl(142, 76%, 36%)',
           tool: 'hsl(280, 65%, 60%)',
         },
@@ -167,8 +167,8 @@ const config: Config = {
       },
       keyframes: {
         'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)' },
-          '50%': { boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(75, 127, 255, 0.7)' },
+          '50%': { boxShadow: '0 0 0 10px rgba(75, 127, 255, 0)' },
         },
       },
     },

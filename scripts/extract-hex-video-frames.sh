@@ -24,7 +24,7 @@ echo ""
 extract_frames() {
     local video_file=$1
     local output_prefix=$2
-    local fps=${3:-0.5}  # Default: 1 frame every 2 seconds
+    local fps=${3:-0.5}  # Default: 0.5 fps (1 frame every 2 seconds)
 
     if [ ! -f "$video_file" ]; then
         echo "⚠️  Video not found: $video_file (skipping)"
