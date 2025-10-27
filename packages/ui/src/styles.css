@@ -12,7 +12,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 218 23% 15%;
     /* Hex-verified primary (blue) */
-    --primary: 217 91% 60%; /* #3B82F6 blue-500 */
+    --primary: 217 100% 65%; /* #4B7FFF blue-500 */
     --primary-foreground: 0 0% 100%;
     /* Hex-verified secondary */
     --secondary: 215 20% 91%; /* #E5E7EB gray-200 */
@@ -29,7 +29,7 @@
     /* Hex-verified borders */
     --border: 220 13% 91%; /* #E5E7EB gray-200 default */
     --input: 214 14% 83%; /* #D1D5DB gray-300 stronger */
-    --ring: 217 91% 60%; /* #3B82F6 focus ring */
+    --ring: 217 100% 65%; /* #4B7FFF focus ring */
     --radius: 0.5rem; /* 8px primary border radius */
     /* Chart colors (unchanged) */
     --chart-1: 12 76% 61%;
@@ -42,7 +42,7 @@
     --user-input-bg: #F3F4F6;
     --working-status-bg: #F9FAFB;
     --code-keyword: #8B5CF6;
-    --code-string: #3B82F6;
+    --code-string: #4B7FFF;
   }
 
   .dark {

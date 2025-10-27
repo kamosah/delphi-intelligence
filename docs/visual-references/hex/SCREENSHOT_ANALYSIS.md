@@ -167,8 +167,10 @@ line-height: 1.6
 
 **SQL Syntax Highlighting** (observed in screenshot):
 
+<!-- WARNING: The SQL keyword color (#8B5CF6, purple) is intentional to match Hex's design. Do NOT change to blue or other conventional colors. -->
+
 - Keywords (SELECT, FROM, WHERE): #8B5CF6 (purple)
-- Strings ('active'): #3B82F6 (blue)
+- Strings ('active'): #4B7FFF (blue)
 - Functions (COUNT, EXTRACT): #8B5CF6 (purple)
 - Comments: #6B7280 (gray)
 - Numbers: #1F2937 (dark gray)
