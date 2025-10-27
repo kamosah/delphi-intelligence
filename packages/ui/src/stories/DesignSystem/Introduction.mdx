@@ -1,0 +1,155 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design System/Introduction" />
+
+# Olympus Design System
+
+Welcome to the Olympus design system, inspired by 100% Hex aesthetic.
+
+## Philosophy
+
+Our design system follows Hex's core design principles:
+
+- **Data-first design** - Results and visualizations are primary, UI chrome is secondary
+- **Professional tool aesthetic** - Serious, business-oriented tone for enterprise users
+- **Conversational AI integration** - Natural language as first-class input method
+- **Source transparency** - Clear visual indicators for SQL vs document results
+- **Mobile-first responsive** - Adaptive layouts with touch-friendly targets
+
+## Color Palette
+
+Our color system is built on Hex's visual language, verified from Fall 2025 Agents demo screenshots:
+
+- **Primary Blue** (`#3B82F6`) - Main brand color for CTAs, links, and interactive elements
+- **Accent Purple** (`#8B5CF6`) - AI features, **SQL keywords**, and special functionality
+- **Neutral Grays** - Complete scale from `#F9FAFB` (backgrounds) to `#111827` (darkest text)
+- **Semantic Colors** - Success (`#10B981`), Error (`#EF4444`), Warning (`#F97316`)
+
+### Key Color Notes
+
+⚠️ **Important Design Decisions:**
+
+- **Page Background**: Use `#FAFBFC` (off-white), **NOT** pure white `#FFFFFF`
+- **SQL Keywords**: Use `#8B5CF6` (purple-500), **NOT** red! This was verified from Notebook Agent screenshots
+- **Code Cell Background**: Use `#FFFFFF` (white), NOT gray
+- **Shadows**: Hex uses VERY subtle shadows (`0 1px 3px rgba(0,0,0,0.05)`), much lighter than typical design systems
+
+### Source Badge Gradients
+
+Visual indicators for hybrid query results:
+
+- **SQL Results** - Blue gradient: `linear-gradient(to right, #4B7FFF, #3366FF)`
+- **Document Citations** - Green/teal gradient: `linear-gradient(to right, #10B981, #0D9488)`
+- **Computations** - Purple gradient: `linear-gradient(to right, #8B5CF6, #7C3AED)`
+
+## Typography
+
+- **Interface Font** - System sans-serif stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI'...`)
+- **Monospace Font** - SF Mono, Monaco, Cascadia Code for code and data
+- **Base Size** - 14px body text with 1.5 line height
+- **Headings** - Semibold (600 weight) for H1-H3
+
+## Spacing & Layout
+
+- **8px base unit** - All spacing increments follow 8px grid
+- **Spacing scale** - 0.5x (4px), 1x (8px), 2x (16px), 3x (24px), 4x (32px)...
+- **Generous whitespace** - Data-first approach keeps UI chrome minimal
+
+## Agent Interface Patterns
+
+Verified from Fall 2025 Agents demo (Threads, Notebook Agent, Modeling Agent):
+
+### Loading States
+
+- **"Thinking..." Animation** - Three rows of animated dots (`#D1D5DB` / gray-300) with staggered delays
+- **"Working..." Status Bar** - Subtle spinner on `#F9FAFB` (gray-50) background with `#4B5563` (gray-600) text
+
+### Message Layout
+
+- **User Input Bubbles** - `#F3F4F6` (gray-100) background, `#6B7280` (gray-500) text, 8px border radius
+- **AI Response Cards** - `#FFFFFF` white background, `#1F2937` (gray-800) text, very subtle shadow
+- **Empty State** - Centered "Ask, edit, create..." prompt with `#9CA3AF` (gray-400) text
+
+### Code Cells (Notebook Agent)
+
+- **Background**: `#FFFFFF` (white, NOT gray!)
+- **SQL Keywords**: `#8B5CF6` (purple-500) - SELECT, FROM, WHERE, etc.
+- **String Literals**: `#3B82F6` (blue-500)
+- **Operators**: `#4B5563` (gray-600)
+- **Border**: `#E5E7EB` (gray-200), 6px radius
+- **Font**: SF Mono at 13px
+
+## Components
+
+All components are built with:
+
+- **Shadcn-ui** (New York style) as foundation
+- **Tailwind CSS** for utility-first styling
+- **Exact Hex colors** extracted from Fall 2025 Agents video screenshots
+- **Accessible interactions** - Focus rings, keyboard navigation
+
+## Resources
+
+- [Complete Design Tokens](https://github.com/kamosah/athena/blob/main/docs/DESIGN_TOKENS.md) - Full token reference
+- [Hex Design Reference](https://github.com/kamosah/athena/blob/main/docs/HEX_DESIGN_SYSTEM.md) - UI patterns and components
+- [Component Mapping Guide](https://github.com/kamosah/athena/blob/main/docs/guides/hex-component-mapping.md) - Implementation guide
+
+## Quick Start
+
+```tsx
+import { Button, Card, Badge } from '@olympus/ui';
+
+// Primary button with Hex gradient
+<Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+  Run Query
+</Button>
+
+// Card with hover shadow
+<Card className="hover:shadow-md">
+  <h3 className="text-lg font-semibold text-gray-900">Data Analysis</h3>
+  <Badge className="bg-blue-500 text-white">SQL</Badge>
+</Card>
+```
+
+## Design Token Examples
+
+### Colors
+```tsx
+// Primary action
+className="bg-blue-500 hover:bg-blue-600"
+
+// Text colors
+className="text-gray-900" // Primary text
+className="text-gray-500" // Secondary text
+
+// Borders
+className="border-gray-200"
+```
+
+### Typography
+```tsx
+// Heading
+className="text-2xl font-semibold text-gray-900"
+
+// Body text
+className="text-sm text-gray-600"
+
+// Code/monospace
+className="font-mono text-xs"
+```
+
+### Spacing
+```tsx
+// Component padding
+className="p-4" // 16px
+
+// Section spacing
+className="gap-6" // 24px
+
+// Generous margins
+className="mb-8" // 32px
+```
+
+---
+
+**Next**: Explore the design system stories to see all colors, typography, spacing, and interaction patterns in detail.

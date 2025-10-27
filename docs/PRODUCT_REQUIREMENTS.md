@@ -9,56 +9,88 @@
 
 ## Executive Summary
 
-Olympus is an **AI-powered document intelligence platform** inspired by Athena Intelligence. The platform enables enterprises to deploy AI analysts that function as "remote hires" - autonomous agents that can analyze documents, extract insights, automate research workflows, and provide real-time intelligence across multiple data sources.
+Olympus is a **hybrid intelligence platform** that bridges structured and unstructured data analysis. Inspired by both **Athena Intelligence** (document intelligence) and **Hex** (collaborative data analytics), Olympus enables teams to query across databases AND documents in a unified conversational interface—eliminating the need for separate BI tools and document analysis platforms.
 
-**Core Value Proposition**: Transform documents into actionable intelligence by combining an always-on AI-native platform (Olympus) with autonomous AI agents (Athena) that integrate seamlessly into existing enterprise workflows.
+**Core Value Proposition**: The first platform where data analysts can seamlessly combine live SQL queries with document intelligence—asking questions like "How does our Q4 revenue compare to competitor forecasts in these earnings reports?" and getting cited answers from both sources.
+
+**UI/UX Philosophy**: 100% Hex-inspired aesthetic across all features, from database connections to document intelligence, providing a consistent, modern, professional data workspace.
 
 ---
 
 ## Product Vision
 
-### Inspiration: Athena Intelligence
+### Dual Inspiration: Athena Intelligence + Hex
 
-Olympus MVP is directly inspired by [Athena Intelligence](https://www.athenaintel.com/), an enterprise AI platform that combines:
+Olympus MVP combines the best of two worlds:
 
-1. **Olympus Platform**: An AI-native infrastructure with integrated tools (spreadsheets, documents, notebooks, collaboration tools)
-2. **Athena AI Agent**: An autonomous AI analyst that takes on roles like paralegal, intelligence analyst, market researcher, or financial analyst
+#### 1. **Athena Intelligence** - Document Intelligence Foundation
 
-### Our MVP Goal
+[Athena Intelligence](https://www.athenaintel.com/) provides the blueprint for:
 
-Create a simplified version of Athena Intelligence focusing on:
+- **Olympus Platform**: AI-native infrastructure with integrated collaboration tools
+- **Athena AI Agent**: Autonomous analyst taking on specialized roles (legal, financial, research)
+- **Document Analysis**: PDF/DOCX processing, entity extraction, citation tracking
+- **Multi-agent Orchestration**: LangChain + LangGraph + CrewAI architecture
 
-- Document intelligence and analysis
-- Query-based insights extraction
-- Multi-source data integration
-- Workspace collaboration
-- Audit trails and transparency
+#### 2. **Hex** - Data Analytics & UI/UX Inspiration
+
+[Hex](https://hex.tech) provides the blueprint for:
+
+- **Threads**: Conversational analytics interface with @mentions for data sources
+- **Notebook Agent**: AI-powered SQL/Python notebooks with polyglot cells
+- **Database Connectors**: Snowflake, BigQuery, Redshift, PostgreSQL integration
+- **Semantic Modeling**: Curated business metrics and relationships
+- **UI/UX Aesthetic**: Modern, professional, data-first design language
+
+### Our Hybrid MVP Goal
+
+Build a **unified intelligence platform** that eliminates the gap between structured and unstructured data:
+
+- ✅ **Document intelligence** (Athena-inspired functionality)
+- ✅ **Database analytics** (Hex-inspired functionality)
+- ✅ **Unified AI agent** that queries both SQL databases and document collections
+- ✅ **Single conversational interface** (Hex Threads-style UI)
+- ✅ **Consistent Hex aesthetic** across all features
+- ✅ **Collaborative workspaces** for team analysis
 
 ---
 
 ## Target Users
 
-### Primary Personas
+### Primary Personas (Hybrid Platform)
 
-1. **Research Analysts**
-   - Need: Automate document synthesis and research workflows
-   - Pain: Manual document processing takes too much time
-   - Goal: Focus on strategic analysis instead of data gathering
+1. **Data Analysts** (Hex-inspired, NEW)
+   - Need: Combine internal data (SQL) with external research (PDFs)
+   - Pain: Context-switching between BI tools (Tableau) and document readers
+   - Goal: Single workspace for holistic analysis
+   - Example: "Compare our sales trends to competitor earnings reports"
 
-2. **Legal Professionals**
-   - Need: Bulk document inspection and contract analysis
+2. **Financial Analysts** (Hybrid use case)
+   - Need: Internal financial data + external SEC filings analysis
+   - Pain: Manual reconciliation between databases and document insights
+   - Goal: Automated extraction and synthesis across sources
+   - Example: "Show Q4 revenue vs. analyst forecasts in this 10-K"
+
+3. **Market Researchers** (Hybrid use case)
+   - Need: Survey data (SQL) + competitor reports (PDFs)
+   - Pain: Siloed analysis tools for structured vs unstructured data
+   - Goal: Unified competitive intelligence platform
+   - Example: "How do our NPS scores compare to trends in these industry reports?"
+
+4. **Business Intelligence Teams** (Hex-inspired, NEW)
+   - Need: Semantic data models + document-based insights
+   - Pain: No way to incorporate qualitative data into dashboards
+   - Goal: Dashboards that cite both database metrics and document sources
+
+5. **Research Analysts** (Athena-inspired, original)
+   - Need: Automate document synthesis across multiple sources
+   - Pain: Manual document processing and cross-referencing
+   - Goal: AI-powered research synthesis with citations
+
+6. **Legal Professionals** (Athena-inspired, original)
+   - Need: Bulk contract analysis and compliance checking
    - Pain: Reviewing hundreds of documents manually
-   - Goal: Quick extraction of key terms and compliance checks
-
-3. **Financial Analysts**
-   - Need: Extract financial figures and sentiment from reports
-   - Pain: Manual data entry from SEC filings and earnings reports
-   - Goal: Automated financial data extraction and analysis
-
-4. **Market Researchers**
-   - Need: Competitive intelligence and market analysis
-   - Pain: Scattered data across multiple sources
-   - Goal: Centralized insights with source citations
+   - Goal: Quick extraction of key clauses and risks
 
 ---
 
@@ -109,10 +141,33 @@ Create a simplified version of Athena Intelligence focusing on:
   - Export audit logs (CSV, JSON)
 - **Technical**: Event sourcing pattern, append-only audit log table
 
-#### 1.5 Integration Hub
+#### 1.5 Database Analytics (Hex-Inspired, NEW)
 
-- **Description**: Connect external data sources and tools
-- **Features** (Future):
+- **Description**: Connect and query SQL databases alongside documents
+- **Features**:
+  - **Database Connections**:
+    - PostgreSQL/Supabase (Phase 1 - using existing backend DB)
+    - Snowflake connector (Phase 2)
+    - BigQuery connector (Phase 2)
+    - Redshift connector (Phase 2+)
+  - **SQL Notebook Cells** (Future - Phase 3):
+    - Polyglot notebooks (SQL + Python cells)
+    - Inline result visualization
+    - Cell-based execution
+  - **Unified Query Interface**:
+    - Single conversational UI (Hex Threads-style)
+    - @mention data sources (databases or document collections)
+    - Source-type badges (SQL vs Document vs Hybrid)
+  - **Connection Management**:
+    - Test connection functionality
+    - Credential storage (encrypted)
+    - Connection status monitoring
+- **Technical**: Database drivers (psycopg3, snowflake-connector-python), connection pooling, SSE for query streaming
+
+#### 1.6 Integration Hub
+
+- **Description**: Connect external tools and services (Future)
+- **Features** (Phase 3+):
   - Slack integration for notifications
   - Email integration for document intake
   - API access for custom integrations
@@ -121,7 +176,7 @@ Create a simplified version of Athena Intelligence focusing on:
 
 ---
 
-### 2. Athena AI Agent (Autonomous Analysis)
+### 2. Hybrid AI Agent (Documents + Databases)
 
 #### 2.1 Document Analysis Engine
 
@@ -144,7 +199,7 @@ Create a simplified version of Athena Intelligence focusing on:
   - Trend identification and pattern recognition
 - **Technical**: RAG (Retrieval-Augmented Generation) pipeline, vector similarity search
 
-#### 2.3 Query Response System
+#### 2.3 Query Response System (Document-focused)
 
 - **Description**: Intelligent Q&A over document collections
 - **Features**:
@@ -155,7 +210,29 @@ Create a simplified version of Athena Intelligence focusing on:
   - Clarifying question generation when ambiguous
 - **Technical**: LangGraph for multi-agent reasoning, LangSmith for observability
 
-#### 2.4 Workflow Automation (Future)
+#### 2.4 SQL Query Generation & Execution (Hex-Inspired, NEW)
+
+- **Description**: Natural language to SQL with execution and result synthesis
+- **Features**:
+  - **Text-to-SQL**: Convert natural language questions to SQL queries
+  - **Query Execution**: Run generated SQL against connected databases
+  - **Result Formatting**: Present SQL results in conversational format
+  - **Error Handling**: Debug and retry failed queries
+  - **Query Explanation**: Show generated SQL with inline explanations
+- **Technical**: LLM-based SQL generation, query validation, result streaming
+
+#### 2.5 Hybrid Synthesis (Documents + SQL) (NEW)
+
+- **Description**: Combine insights from both databases and documents
+- **Features**:
+  - **Query Routing**: Determine if query needs SQL, documents, or both
+  - **Cross-Source Synthesis**: Merge results from multiple source types
+  - **Unified Citations**: Show SQL queries AND document sources
+  - **Source-Type Badges**: Visual indicators (blue for SQL, green for docs)
+  - **Comparative Analysis**: "Compare database metric X to document insight Y"
+- **Technical**: Multi-tool agent architecture, result merging logic, unified response format
+
+#### 2.6 Workflow Automation (Future)
 
 - **Description**: User-defined automated workflows
 - **Features** (Phase 2):
@@ -236,31 +313,49 @@ Create a simplified version of Athena Intelligence focusing on:
 
 ---
 
-## Use Cases (Inspired by Athena Intelligence)
+## Use Cases
 
-### Finance
+### Hybrid Use Cases (UNIQUE VALUE PROP - Combining SQL + Documents)
 
-1. **SEC Filing Analysis**: Automatically download and extract key financial figures from 10-K/10-Q filings
-2. **Earnings Report Synthesis**: Extract financial guidance and management sentiment from earnings transcripts
-3. **M&A Due Diligence**: Analyze multiple company documents to identify risks and opportunities
+These use cases demonstrate Olympus's competitive advantage: the ability to query across databases AND documents in a single conversation.
 
-### Legal
+1. **Financial Performance vs. Analyst Expectations** (Finance)
+   - **Query**: "How does our Q4 revenue compare to analyst forecasts in these earnings reports?"
+   - **Sources**: Internal sales database (SQL) + uploaded analyst reports (PDFs)
+   - **Result**: Combines actual revenue from SQL with forecasted ranges from documents, showing variance
+   - **Value**: Eliminates manual copy-paste between BI tool and PDF reader
 
-1. **Contract Analysis**: Bulk review contracts for specific clauses and compliance issues
-2. **Document Discovery**: Search across thousands of documents for relevant case information
-3. **Regulatory Compliance**: Monitor documents for regulatory compliance requirements
+2. **Competitive Market Analysis** (Market Research)
+   - **Query**: "Compare our NPS scores to industry benchmarks mentioned in Gartner reports"
+   - **Sources**: Customer survey database (SQL) + Gartner Magic Quadrant PDFs
+   - **Result**: Shows company NPS alongside competitor scores extracted from analyst reports
+   - **Value**: Unified competitive intelligence without context-switching
 
-### Market Research
+3. **Risk Assessment with External Research** (Finance/Legal)
+   - **Query**: "Show customers with >$1M contracts and check if any competitors mentioned in these SEC filings have similar clients"
+   - **Sources**: Customer database (SQL) + competitor 10-K filings (PDFs)
+   - **Result**: Lists high-value customers with flagged risks from competitor filings
+   - **Value**: Proactive risk identification combining internal data and external intelligence
 
-1. **Competitive Intelligence**: Synthesize insights from competitor reports and market studies
-2. **Consumer Sentiment Analysis**: Analyze social media, reviews, and surveys for sentiment trends
-3. **Market Sizing**: Extract and aggregate data from multiple reports to estimate market size
+4. **Product-Market Fit Analysis** (Product/Strategy)
+   - **Query**: "How do our feature adoption rates compare to user requests in support tickets and market research reports?"
+   - **Sources**: Product analytics database (SQL) + support tickets + market research PDFs
+   - **Result**: Maps internal usage data to external demand signals
+   - **Value**: Data-driven product prioritization with qualitative context
 
-### Consulting
+### Document-Only Use Cases (Athena Intelligence-Inspired)
 
-1. **Client Report Generation**: Automatically generate consulting reports from research data
-2. **Industry Analysis**: Synthesize insights from multiple industry reports
-3. **KPI Tracking**: Extract and track KPIs from various data sources
+1. **SEC Filing Analysis** (Finance): Extract financial figures and sentiment from 10-K/10-Q filings
+2. **Contract Analysis** (Legal): Bulk review contracts for specific clauses and compliance issues
+3. **Competitive Intelligence** (Market Research): Synthesize insights from competitor reports and market studies
+4. **M&A Due Diligence** (Finance): Analyze multiple company documents to identify risks and opportunities
+
+### Database-Only Use Cases (Hex-Inspired)
+
+1. **SQL Analytics** (Data Teams): Write SQL queries to analyze business metrics
+2. **Dashboard Creation** (BI Teams): Build interactive data visualizations from warehouse data
+3. **Ad-hoc Analysis** (Analysts): Explore data with SQL notebooks and chart cells
+4. **Semantic Modeling** (Data Engineers): Define business metrics and relationships for organization-wide use
 
 ---
 
@@ -533,7 +628,9 @@ _Updated to include CrewAI multi-agent workflows and automation in Phase 3-4_
 
 ---
 
-## Feature Comparison: Olympus MVP vs Athena Intelligence
+## Feature Comparison: Olympus MVP vs Athena Intelligence vs Hex
+
+### Document Intelligence Features (vs Athena Intelligence)
 
 | Feature                                | Athena Intelligence | Olympus MVP (Target) | MVP Status     |
 | -------------------------------------- | ------------------- | -------------------- | -------------- |
@@ -545,14 +642,31 @@ _Updated to include CrewAI multi-agent workflows and automation in Phase 3-4_
 | Multi-agent workflows                  | ✅                  | ✅ (CrewAI)          | 🚧 Phase 3-4   |
 | Real-time collaboration                | ✅                  | ✅                   | ⏳ Planned     |
 | Audit trails & logging                 | ✅                  | ✅                   | ⏳ Planned     |
-| Slack/email integration                | ✅                  | ❌                   | Future         |
 | Voice & video interface                | ✅                  | ❌                   | Future         |
-| Private cloud deployment               | ✅                  | ❌                   | Future         |
-| SSO/SAML                               | ✅                  | ❌                   | Future         |
-| SOC 2 compliance                       | ✅                  | ❌                   | Future         |
 | Memory management (learning)           | ✅                  | ❌                   | Future         |
-| 25+ LLM models                         | ✅                  | ✅ (3-5 models)      | ⏳ Planned     |
-| Custom workflow automation             | ✅                  | ❌                   | Future         |
+
+### Database Analytics Features (vs Hex) - NEW
+
+| Feature                       | Hex                 | Olympus MVP (Target) | MVP Status |
+| ----------------------------- | ------------------- | -------------------- | ---------- |
+| Database connections          | ✅ (10+ warehouses) | ✅ (PostgreSQL → 3+) | 🚧 Phase 2 |
+| Threads conversational UI     | ✅                  | ✅                   | ⏳ Planned |
+| Notebook Agent (SQL + Python) | ✅                  | ✅ (SQL focus first) | 🚧 Phase 3 |
+| SQL notebook cells            | ✅                  | ✅                   | 🚧 Phase 3 |
+| Text-to-SQL generation        | ✅                  | ✅                   | 🚧 Phase 2 |
+| Semantic modeling             | ✅                  | ❌                   | Future     |
+| @mentions for data sources    | ✅                  | ✅                   | ⏳ Planned |
+| Source-type badges            | ✅                  | ✅ (SQL + Documents) | ⏳ Planned |
+| Chart cells                   | ✅                  | ❌                   | Future     |
+
+### Unique Hybrid Features (Olympus Differentiation)
+
+| Feature                            | Athena Intelligence | Hex | Olympus MVP |
+| ---------------------------------- | ------------------- | --- | ----------- |
+| **Unified SQL + Document queries** | ❌                  | ❌  | ✅          |
+| **Hybrid source citations**        | ❌                  | ❌  | ✅          |
+| **Cross-source synthesis**         | ❌                  | ❌  | ✅          |
+| **Hex aesthetic for all features** | ❌                  | ✅  | ✅          |
 
 ---
 
@@ -595,33 +709,70 @@ _Updated to include CrewAI multi-agent workflows and automation in Phase 3-4_
 
 ### References
 
+**Athena Intelligence (Document Intelligence Inspiration)**
+
 - [Athena Intelligence Website](https://www.athenaintel.com/)
 - [Athena Intelligence Case Study (LangChain Blog)](https://blog.langchain.com/customers-athena-intelligence/)
 - [Cerebral Valley Interview: Athena Intelligence](https://cerebralvalley.ai/blog/athena-is-your-ai-powered-remote-hire-automating-complex-workflows-6tMTaMHMQaixt2IQyf6mhS)
+
+**Hex (Data Analytics & UI/UX Inspiration)**
+
+- [Hex Website](https://hex.tech)
+- [Introducing Threads (Blog)](https://hex.tech/blog/introducing-threads/)
+- [Introducing Notebook Agent (Blog)](https://hex.tech/blog/introducing-notebook-agent/)
+- [Fall 2025 Launch (Blog)](https://hex.tech/blog/fall-2025-launch/)
+- [Hex Documentation](https://learn.hex.tech/docs)
+- [Hex YouTube Channel](https://www.youtube.com/@_hex_tech/videos)
+
+**Technical Frameworks**
+
 - [LangChain Documentation](https://python.langchain.com/docs/get_started/introduction)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [LangSmith Documentation](https://docs.smith.langchain.com/)
 
 ### Visual References
 
-For UI/UX implementation guidance, see **[VISUAL_REFERENCES.md](./VISUAL_REFERENCES.md)** - a comprehensive catalog of 50+ screenshots, diagrams, and videos from Athena Intelligence including:
+**IMPORTANT**: Olympus uses **100% Hex aesthetic** for all features, including document intelligence.
 
-- **Platform Screenshots**: Dashboard, login flow, workspace layouts
-- **Chat Interface**: All interaction modes, toolkits, agent personas, context controls
-- **Notebooks**: AI integration, code execution, dataset loading workflows
-- **Document Intelligence**: File upload, citations, PDF highlighting
-- **Architecture Diagrams**: Data integrations, memory graphs, entity relationships
-- **Demo Videos**: Feature walkthroughs, product tours, team interviews
+#### Hex Design System (PRIMARY)
 
-**Key Documentation Pages** (for manual screenshot capture):
+See **[HEX_DESIGN_SYSTEM.md](./HEX_DESIGN_SYSTEM.md)** - Comprehensive design system documentation including:
 
-- [Chat Application](https://resources.athenaintel.com/docs/applications/chat)
-- [Notebooks](https://resources.athenaintel.com/docs/applications/notebooks)
-- [Workbench](https://resources.athenaintel.com/docs/contextual-knowledge/workbench)
-- [Getting Started Guide](https://resources.athenaintel.com/docs/getting-started/using-athena)
+- **Design Philosophy**: Data-first, conversational AI integration, professional tool aesthetic
+- **Color Palette**: Extracted from Hex screenshots (TO_EXTRACT: exact hex values pending)
+- **Typography**: System fonts, monospace for code, type scale
+- **Layout Patterns**: Threads chat, SQL notebook cells, database connection UI
+- **Component Library**: Buttons, inputs, cards, badges, code blocks
+- **Interaction Patterns**: @mentions, cell execution, hover states, loading states
 
-See the visual references document for direct download URLs and detailed descriptions of each asset.
+**Captured Hex Assets** (`docs/visual-references/hex/`):
+
+- 8 full-page screenshots (13MB total)
+- Homepage, Threads announcement, SQL cells, database connections, semantic layer
+- Scripts ready for video download (manual YouTube video identification needed)
+
+#### Athena Intelligence Visual References (FUNCTIONAL INSPIRATION ONLY)
+
+See **[VISUAL_REFERENCES.md](./VISUAL_REFERENCES.md)** - Athena Intelligence feature catalog (215 assets):
+
+- **Document Intelligence**: File upload workflows, citation UI, PDF highlighting
+- **Agent Architecture**: Multi-agent workflows, LangGraph patterns, CrewAI integration
+- **Collaboration**: Workspace management, real-time presence, commenting
+
+**Note**: Use Athena Intelligence assets for **functional inspiration** (what features to build), but implement **all UI using Hex aesthetic** from HEX_DESIGN_SYSTEM.md.
 
 ### Change Log
+
+- **2025-10-25**: Major pivot to hybrid platform
+  - Added Hex as co-inspiration for data analytics features
+  - Updated Executive Summary to reflect hybrid intelligence platform
+  - Added Database Analytics features (PostgreSQL, Snowflake, BigQuery connectors)
+  - Added SQL Query Generation & Execution capabilities
+  - Added Hybrid Synthesis feature (combining SQL + documents)
+  - Created Hybrid Use Cases section showcasing unique value proposition
+  - Updated Target Users to include data analysts and BI teams
+  - Declared 100% Hex UI aesthetic across all features
+  - Added Hex visual references and design system documentation
+  - Updated Feature Comparison to include 3-way comparison (Athena/Hex/Olympus)
 
 - **2025-10-14**: Initial PRD created based on Athena Intelligence research
