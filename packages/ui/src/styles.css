@@ -4,31 +4,45 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Hex-verified backgrounds */
+    --background: 210 40% 98.8%; /* #FAFBFC off-white page background */
+    --foreground: 218 11% 11%; /* #111827 headings */
+    --card: 0 0% 100%; /* #FFFFFF white cards */
+    --card-foreground: 218 23% 15%; /* #1F2937 body text */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 218 23% 15%;
+    /* Hex-verified primary (blue) */
+    --primary: 217 91% 60%; /* #3B82F6 blue-500 */
+    --primary-foreground: 0 0% 100%;
+    /* Hex-verified secondary */
+    --secondary: 215 20% 91%; /* #E5E7EB gray-200 */
+    --secondary-foreground: 218 11% 11%;
+    /* Hex-verified muted (user input bubbles) */
+    --muted: 220 14% 96%; /* #F3F4F6 gray-100 */
+    --muted-foreground: 215 16% 47%; /* #6B7280 gray-500 */
+    /* Hex-verified accent (purple for AI/SQL) */
+    --accent: 262 83% 58%; /* #8B5CF6 purple-500 */
+    --accent-foreground: 0 0% 100%;
+    /* Hex-verified destructive (red) */
+    --destructive: 0 85% 60%; /* #EF4444 red-500 */
+    --destructive-foreground: 0 0% 100%;
+    /* Hex-verified borders */
+    --border: 220 13% 91%; /* #E5E7EB gray-200 default */
+    --input: 214 14% 83%; /* #D1D5DB gray-300 stronger */
+    --ring: 217 91% 60%; /* #3B82F6 focus ring */
+    --radius: 0.5rem; /* 8px primary border radius */
+    /* Chart colors (unchanged) */
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    /* Hex-specific custom properties */
+    --off-white: #FAFBFC;
+    --user-input-bg: #F3F4F6;
+    --working-status-bg: #F9FAFB;
+    --code-keyword: #8B5CF6;
+    --code-string: #3B82F6;
   }
 
   .dark {

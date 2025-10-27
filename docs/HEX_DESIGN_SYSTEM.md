@@ -2,7 +2,7 @@
 
 > **Purpose**: Document Hex's UI/UX patterns for design alignment across Olympus platform
 >
-> **Last Updated**: 2025-10-26
+> **Last Updated**: 2025-10-26 (Updated with Fall 2025 Agents screenshot analysis)
 >
 > **Project Decision**: Adopt 100% Hex aesthetic for all features (document intelligence + database analytics)
 
@@ -54,37 +54,49 @@
 
 ## Color Palette
 
-### Primary Colors (Extracted from Visual References)
+### Primary Colors (Verified from Fall 2025 Agents Screenshots)
 
 **Action & Interactive**
 
-- Primary Blue: `#4B7FFF` (CTA buttons, links, active states)
-- Primary Blue Hover: `#3366FF` (hover states, pressed buttons)
-- Accent Purple: `#8B5CF6` (AI features, highlights, special features)
+- Primary Blue: `#3B82F6` (focus rings, links, string literals in code)
+- Accent Purple: `#8B5CF6` (SQL keywords, functions, AI features, highlights)
 
-**Neutrals**
+**Backgrounds**
 
-- Background White: `#FFFFFF` (white canvas)
-- Panel Gray: `#F9FAFB` (secondary backgrounds, subtle fills)
-- Border Gray: `#E5E7EB` (dividers, borders, separators)
-- Text Primary: `#1F2937` (main content, headings)
-- Text Secondary: `#6B7280` (labels, meta, de-emphasized content)
-- Text Tertiary: `#9CA3AF` (placeholder text)
+- Page Background: `#FAFBFC` (off-white canvas - main page)
+- Card Background: `#FFFFFF` (white - cards, AI responses, code cells)
+- Notebook Background: `#F5F6F7` (subtle gray - Notebook agent)
+- User Input Bubble: `#F3F4F6` (light gray - user messages)
+- Working Status Background: `#F9FAFB` (elevated surfaces)
+
+**Neutrals (Verified from Screenshots)**
+
+- Text Primary (Headings): `#111827` (darkest - headings, emphasis)
+- Text Secondary (Body): `#1F2937` (dark gray - body text, code)
+- Text Tertiary: `#4B5563` (medium - de-emphasized text)
+- Text Quaternary: `#6B7280` (lighter - user messages, metadata)
+- Text Placeholder: `#9CA3AF` (lightest text - placeholders)
+- Border Default: `#E5E7EB` (default borders, dividers)
+- Border Strong: `#D1D5DB` (input borders, emphasized borders)
+- Loading Dots: `#D1D5DB` (thinking animation dots)
 
 **Semantic Colors**
 
 - Success Green: `#10B981` (successful operations, ready status)
 - Error Red: `#EF4444` (errors, destructive actions)
 - Warning Orange: `#F97316` (warnings, caution states)
-- Info Blue: `#4B7FFF` (informational messages, same as primary)
+- Info Blue: `#3B82F6` (informational messages, links)
 
-**Code & Data**
+**Code Syntax (Verified from Notebook Agent Screenshots)**
 
-- Code Background: `#F6F8FA`
-- SQL Keyword: `#D73A49` (observed in SQL cells)
-- Function Call: `#6F42C1`
-- String: `#032F62`
-- Number: `#005CC5`
+- Code Background: `#FFFFFF` (white)
+- Code Border: `#E5E7EB` (light gray)
+- SQL Keyword: `#8B5CF6` (purple - SELECT, FROM, WHERE)
+- SQL Function: `#8B5CF6` (purple - COUNT, EXTRACT)
+- String Literal: `#3B82F6` (blue - 'active')
+- Comment: `#6B7280` (medium gray)
+- Number: `#1F2937` (dark gray)
+- Operator: `#4B5563` (medium gray)
 
 ### Source-Type Indicators (Gradients)
 
@@ -118,16 +130,17 @@ font-family:
   'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
 ```
 
-### Type Scale
+### Type Scale (Verified from Screenshots)
 
-| Element | Size | Weight | Line Height | Usage              |
-| ------- | ---- | ------ | ----------- | ------------------ |
-| H1      | 32px | 700    | 1.25        | Page titles        |
-| H2      | 24px | 600    | 1.3         | Section headers    |
-| H3      | 18px | 600    | 1.4         | Subsection headers |
-| Body    | 14px | 400    | 1.5         | Main content       |
-| Small   | 12px | 400    | 1.4         | Meta, labels       |
-| Code    | 13px | 400    | 1.4         | Code blocks, SQL   |
+| Element    | Size    | Weight | Line Height | Usage                                    |
+| ---------- | ------- | ------ | ----------- | ---------------------------------------- |
+| H1         | 32px    | 700    | 1.25        | Page titles                              |
+| H2         | 24-28px | 600    | 1.3         | Section headers ("Top Sales Performers") |
+| H3         | 18px    | 600    | 1.4         | Subsection headers                       |
+| Body       | 14px    | 400    | 1.5         | Main content (PRIMARY)                   |
+| Emphasized | 15px    | 400    | 1.5         | Emphasized body text, large inputs       |
+| Small      | 12px    | 400    | 1.4         | Meta, timestamps ("16 hrs ago")          |
+| Code       | 13px    | 400    | 1.6         | Code blocks, SQL (PRIMARY for code)      |
 
 ### Text Styles
 
@@ -141,67 +154,111 @@ font-family:
 
 ## Layout Patterns
 
-### 1. Threads Chat Interface
+### 1. Threads Chat Interface (Fall 2025 Agents)
 
-**Layout Structure** (Reference: `hex-threads-announcement-full.png`):
+**Layout Structure** (Verified from screenshots: `threads-01.png` - `threads-27.png`):
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Header: Workspace Name, Settings           │
-├─────────────────────────────────────────────┤
+│ Page Background: #FAFBFC (off-white)        │
 │                                             │
-│  Conversation History                       │
 │  ┌──────────────────────────────────────┐  │
-│  │ User Message                          │  │
+│  │ User Question                         │  │
+│  │ Background: #F3F4F6 (light gray)      │  │
+│  │ Text: #6B7280                         │  │
+│  └──────────────────────────────────────┘  │
+│                                             │
+│  ┌──────────────────────────────────────┐  │
+│  │ "Thinking..." (optional loading)      │  │
+│  │ • • • • • • (animated dots)           │  │
 │  └──────────────────────────────────────┘  │
 │                                             │
 │  ┌──────────────────────────────────────┐  │
 │  │ AI Response                           │  │
-│  │ [Source Badge: SQL] [Source Badge: Doc]│  │
+│  │ Background: #FFFFFF (white card)      │  │
+│  │                                       │  │
+│  │ **Top Sales Performers**              │  │
+│  │                                       │  │
+│  │ 1. **Natalie Benjamin** - $1.2M      │  │
+│  │ 2. **Person Name** - Amount          │  │
+│  │                                       │  │
 │  └──────────────────────────────────────┘  │
 │                                             │
-├─────────────────────────────────────────────┤
-│ Input Field with @mentions                  │
-│ [Attach] [Web Search] [Send]               │
-└─────────────────────────────────────────────┘
-```
-
-**Key Features**:
-
-- Full-width conversation area
-- Sticky input at bottom
-- Source badges inline with responses
-- @mention autocomplete for data sources
-
-### 2. Notebook Cell Layout
-
-**Layout Structure** (Reference: `hex-sql-cells-full.png`):
-
-```
-┌─────────────────────────────────────────────┐
-│ [Cell Type: SQL ▼] [▶ Run] [•••]           │
-├─────────────────────────────────────────────┤
-│ SELECT *                                    │
-│ FROM customers                              │
-│ WHERE status = 'active'                     │
-├─────────────────────────────────────────────┤
-│ ✓ Results (1,234 rows) [Export ▼]          │
+│  ┌──────────────────────────────────────┐  │
+│  │ Working... [Stop]                     │  │
+│  │ Background: #F9FAFB                   │  │
+│  └──────────────────────────────────────┘  │
 │                                             │
-│ ┌────┬────────┬────────┬─────────┐        │
-│ │ ID │ Name   │ Email  │ Status  │        │
-│ ├────┼────────┼────────┼─────────┤        │
-│ │ 1  │ Alice  │ a@...  │ active  │        │
-│ └────┴────────┴────────┴─────────┘        │
+│  ┌──────────────────────────────────────┐  │
+│  │ Ask a question...                     │  │
+│  │ Background: #FFFFFF                   │  │
+│  │ Border: #D1D5DB (1px)                 │  │
+│  │ 🗄️ [Demo] Hex Public D...            │  │
+│  └──────────────────────────────────────┘  │
 └─────────────────────────────────────────────┘
 ```
 
-**Key Features**:
+**Key Features (Screenshot Verified)**:
 
-- Clear cell boundary
-- Type selector (SQL, Python, Markdown, Chart)
-- Run button prominent
-- Results fold out below code
-- Table results with infinite scroll
+- **Page background**: Off-white #FAFBFC (not pure white)
+- **User messages**: Light gray bubbles #F3F4F6 with medium gray text #6B7280
+- **AI responses**: White cards #FFFFFF with very subtle shadow (0 1px 3px rgba(0,0,0,0.05))
+- **Loading state**: "Thinking..." text with 3 rows of animated dots (#D1D5DB)
+- **Working status**: Separate bar with #F9FAFB background, border, spinner, and Stop button
+- **Input field**: Large multi-line input with database indicator at bottom right
+- **Generous spacing**: 40-48px vertical padding, centered content (max-width ~800-900px)
+- **Typography**: 14px body, 24-28px headings, bold names in lists
+
+### 2. Notebook Agent (Fall 2025 Agents)
+
+**Layout Structure** (Verified from screenshots: `notebook-agent-01.png` - `notebook-agent-14.png`):
+
+```
+┌──────────────┬──────────────────────────────┐
+│              │ Page Background: #F5F6F7     │
+│  Sidebar     │                              │
+│  Background: │  ┌────────────────────────┐  │
+│  #2D3748     │  │ Code Cell              │  │
+│  (Dark)      │  │ Background: #FFFFFF    │  │
+│              │  │ Border: #E5E7EB (1px)  │  │
+│  File Tree:  │  │                        │  │
+│  • file1.sql │  │ SELECT                 │  │
+│  • file2.sql │  │   order_month,         │  │
+│  • file3.sql │  │   COUNT(*)             │  │
+│              │  │ FROM orders            │  │
+│              │  │ WHERE status='active'  │  │
+│              │  │                        │  │
+│              │  │ Syntax:                │  │
+│              │  │ • Keywords: #8B5CF6    │  │
+│              │  │ • Strings: #3B82F6     │  │
+│              │  │ • Functions: #8B5CF6   │  │
+│              │  │                        │  │
+│              │  │ Font: SF Mono, 13px    │  │
+│              │  │ Line height: 1.6       │  │
+│              │  └────────────────────────┘  │
+│              │                              │
+│              │  [Results displayed below]   │
+└──────────────┴──────────────────────────────┘
+```
+
+**Key Features (Screenshot Verified)**:
+
+- **Sidebar**: Dark gray background (#2D3748), white/light text (#F9FAFB), ~240-280px width
+- **Main canvas**: Light background (#F5F6F7 or #FAFBFC)
+- **Code cells**:
+  - White background (#FFFFFF)
+  - 1px border (#E5E7EB)
+  - 6px border radius
+  - 16-20px padding
+  - SF Mono font at 13px
+  - Line height 1.6
+- **SQL syntax highlighting**:
+  - Keywords (SELECT, FROM, WHERE): Purple #8B5CF6
+  - Strings ('active'): Blue #3B82F6
+  - Functions (COUNT, EXTRACT): Purple #8B5CF6
+  - Comments: Gray #6B7280
+  - Numbers: Dark gray #1F2937
+- **Clean, minimal design** focused on code readability
 
 ### 3. Database Connection UI
 
@@ -233,33 +290,63 @@ font-family:
 - Quick actions (Test, Edit)
 - Connection string preview
 
-### 4. Semantic Model Builder
+### 4. Modeling Agent (Fall 2025 Agents)
 
-**Layout Structure** (Reference: `hex-semantic-layer-full.png`):
+**Layout Structure** (Verified from screenshots: `modeling-agent-01.png` - `modeling-agent-16.png`):
 
 ```
 ┌──────────────┬──────────────────────────────┐
-│              │ Model: Customer Analytics    │
-│ Models List  ├──────────────────────────────┤
+│  Sidebar     │ Main Work Area               │
+│  Background: │ (Empty State Shown)          │
+│  #FAFBFC     │                              │
+│  Border:     │     ┌─────────────┐          │
+│  #E5E7EB     │     │ YML  📊     │          │
+│              │     │ Badge Chart │          │
+│  File List:  │     └─────────────┘          │
 │              │                              │
-│ > Customers  │ Tables                       │
-│   Orders     │ ├─ customers                 │
-│   Products   │ ├─ orders                    │
-│              │ └─ subscriptions             │
+│  accounts    │  What do you want to         │
+│  .yml        │  work on?                    │
 │              │                              │
-│              │ Metrics                      │
-│              │ ├─ Total Revenue             │
-│              │ ├─ Active Users              │
-│              │ └─ Churn Rate                │
+│  campaign_   │  Ask questions, write code,  │
+│  members     │  and build models.           │
+│  .yml        │  Learn more                  │
+│              │                              │
+│  customers   │  ┌────────────────────────┐  │
+│  .yml        │  │ @ Ask, edit, create... │  │
+│              │  │                        │  │
+│  opportuni   │  │ Background: #FFFFFF    │  │
+│  ties.yml    │  │ Border: #E5E7EB (2px)  │  │
+│              │  └────────────────────────┘  │
+│              │                              │
+│  20-25%      │  Database: 🗄️ [Demo]        │
+│  width       │  Hex Public D...             │
 └──────────────┴──────────────────────────────┘
 ```
 
-**Key Features**:
+**Key Features (Screenshot Verified)**:
 
-- Sidebar navigation (model list)
-- Main panel (model definition)
-- Tree structure for tables/metrics
-- Visual relationship indicators
+- **Split layout**: Left sidebar (~20-25% width), right work area (~75-80% width)
+- **Sidebar**:
+  - Background: #FAFBFC
+  - Border right: 1px solid #E5E7EB
+  - Padding: 16px
+  - File list with .yml extensions in light gray (#9CA3AF)
+  - 14px font size, 8px spacing between items
+- **Empty state** (centered in work area):
+  - Icon stack (YML badge + analytics chart)
+  - Large heading: "What do you want to work on?"
+  - Supporting text in medium gray
+  - "Learn more" link in blue (#3B82F6)
+  - Input field below
+- **Input field** (empty state):
+  - White background (#FFFFFF)
+  - 2px border (#E5E7EB) - stronger than typical 1px
+  - 8px border radius
+  - 16-20px padding
+  - @ symbol icon inside (left)
+  - Placeholder: "Ask, edit, create..."
+  - Clean, inviting design
+- **Clean separation** with subtle divider between sidebar and work area
 
 ---
 
