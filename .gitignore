@@ -118,3 +118,16 @@ venv.bak/
 .pytest_cache/
 *storybook.log
 storybook-static
+
+# Visual references (screenshots, videos) - large binary assets
+docs/visual-references/**/frames/
+docs/visual-references/**/videos/
+docs/visual-references/**/*.png
+docs/visual-references/**/*.jpg
+docs/visual-references/**/*.jpeg
+*.mp4
+*.mov
+*.avi
+
+# Design research assets - keep out of git
+docs/design-research/

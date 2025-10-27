@@ -444,7 +444,7 @@ docker compose build --no-cache
 ### General Development
 
 - Use Docker for consistent environments
-- Keep .env files secure and never commit them
+- Keep .env files secure and don't commit them
 - Regular database backups before major changes
 - Use feature branches for development
 - Run tests before committing code
