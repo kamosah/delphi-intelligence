@@ -11,52 +11,49 @@
     @apply bg-white text-gray-900 antialiased;
   }
   :root {
-    --background: 0 0% 100%;
+    /* Hex Brand Colors (Official from Media Kit) */
+    --hex-obsidian: 320 15% 10%;  /* #1d141c */
+    --hex-rose-quartz: 15 66% 86%;  /* #f5cdc0 */
+    --hex-jade: 160 33% 53%;  /* #5cb196 */
+    --hex-amethyst: 286 27% 58%;  /* #a477b2 */
+    --hex-citrine: 43 48% 55%;  /* #cda849 */
+    --hex-opal: 310 56% 96%;  /* #fbf0f9 */
+    --hex-sugilite: 278 39% 41%;  /* #6f3f90 */
+    --hex-cement: 219 14% 51%;  /* #717a94 */
 
+    /* Shadcn UI Variables */
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-
     --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-
     --popover-foreground: 222.2 84% 4.9%;
 
     --primary: 222.2 47.4% 11.2%;
-
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
-
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
-
     --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 210 40% 96.1%;
-
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
-
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
-
     --input: 214.3 31.8% 91.4%;
-
     --ring: 222.2 84% 4.9%;
 
     --chart-1: 12 76% 61%;
-
     --chart-2: 173 58% 39%;
-
     --chart-3: 197 37% 24%;
-
     --chart-4: 43 74% 66%;
-
     --chart-5: 27 87% 67%;
 
     --radius: 0.5rem;

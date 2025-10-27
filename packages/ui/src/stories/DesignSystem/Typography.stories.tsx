@@ -13,49 +13,80 @@ export const FontFamilies: StoryObj = {
   render: () => (
     <div>
       <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-        Font Families
+        Font Families (Hex-Inspired)
       </h2>
+      <p className="text-sm text-gray-600 mb-6">
+        Hex uses <strong>PP Formula</strong> and <strong>GT Cinetype</strong>.
+        We use Google Font alternatives: <strong>DM Sans</strong> and{' '}
+        <strong>IBM Plex Mono</strong>
+      </p>
 
       <div className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Interface Font (Sans-Serif)
+            Primary Interface Font
           </h3>
           <p className="text-sm text-gray-600 mb-3">
-            System font stack for optimal cross-platform rendering
+            <strong>DM Sans</strong> - Google Font alternative to PP Formula.
+            Used for headings, navigation, buttons, and UI labels
           </p>
           <div className="p-4 bg-gray-50 rounded-md border border-gray-200">
-            <p
-              className="text-2xl"
-              style={{
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
-              }}
-            >
+            <p className="text-2xl font-sans">
               The quick brown fox jumps over the lazy dog
             </p>
             <p className="text-xs text-gray-500 font-mono mt-2">
-              -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue',
-              Arial, sans-serif
+              font-family: &apos;DM Sans&apos;, Inter, -apple-system,
+              BlinkMacSystemFont, &apos;Segoe UI&apos;, &apos;Helvetica
+              Neue&apos;, Arial, sans-serif
             </p>
           </div>
         </div>
 
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Monospace Font (Code & Data)
+            Body & Code Font
           </h3>
           <p className="text-sm text-gray-600 mb-3">
-            Fixed-width font for code blocks, SQL, and tabular data
+            <strong>IBM Plex Mono</strong> - Google Font alternative to GT
+            Cinetype. Used for body text, data tables, code blocks, and SQL
+            queries
           </p>
           <div className="p-4 bg-gray-50 rounded-md border border-gray-200">
             <p className="text-lg font-mono">
-              SELECT * FROM customers WHERE status = 'active'
+              SELECT * FROM customers WHERE status = &apos;active&apos;
             </p>
             <p className="text-xs text-gray-500 font-mono mt-2">
-              'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
-              monospace
+              font-family: &apos;IBM Plex Mono&apos;, &apos;SF Mono&apos;,
+              Monaco, &apos;Cascadia Code&apos;, &apos;Roboto Mono&apos;,
+              Consolas, monospace
             </p>
+          </div>
+        </div>
+
+        <div className="mt-6 p-4 bg-blue-50 rounded-md border border-blue-200">
+          <h4 className="text-sm font-semibold text-blue-900 mb-2">
+            Tailwind Usage
+          </h4>
+          <div className="space-y-2 text-xs font-mono text-blue-800">
+            <div>
+              <span className="text-blue-600">
+                // Interface elements (DM Sans)
+              </span>
+              <br />
+              <span className="text-gray-700">
+                &lt;h1 className=&quot;font-sans&quot;&gt;Page Title&lt;/h1&gt;
+              </span>
+            </div>
+            <div className="mt-2">
+              <span className="text-blue-600">
+                // Code/data (IBM Plex Mono)
+              </span>
+              <br />
+              <span className="text-gray-700">
+                &lt;code className=&quot;font-mono&quot;&gt;SELECT * FROM
+                users&lt;/code&gt;
+              </span>
+            </div>
           </div>
         </div>
       </div>

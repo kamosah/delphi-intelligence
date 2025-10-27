@@ -1,10 +1,23 @@
 import { QueryProvider } from '@/lib/query/provider';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { DM_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import 'highlight.js/styles/atom-one-dark.css';
 
-const inter = Inter({ subsets: ['latin'] });
+// Primary interface font (Hex-inspired: DM Sans as alternative to PP Formula)
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+// Code and data font (Hex-inspired: IBM Plex Mono as alternative to GT Cinetype)
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ['400', '500', '600'],
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -62,8 +75,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="min-h-screen bg-gray-50">
+    <html lang="en" className={`${dmSans.variable} ${ibmPlexMono.variable}`}>
+      <body className="min-h-screen bg-gray-50 font-sans">
         <QueryProvider>
           <div id="root" className="min-h-screen">
             {children}
