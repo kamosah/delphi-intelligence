@@ -2,7 +2,7 @@
 
 > **Purpose**: Document Hex's UI/UX patterns for design alignment across Olympus platform
 >
-> **Last Updated**: 2025-10-26 (Updated with Fall 2025 Agents screenshot analysis)
+> **Last Updated**: 2025-10-27 (Added official Hex brand colors and typography from media kit)
 >
 > **Project Decision**: Adopt 100% Hex aesthetic for all features (document intelligence + database analytics)
 
@@ -54,7 +54,32 @@
 
 ## Color Palette
 
-### Primary Colors (Verified from Fall 2025 Agents Screenshots)
+### Brand Colors (Official from Hex Media Kit)
+
+> **Reference**: See `docs/visual-references/hex/hex-media-kit-colors.png` for official color swatches
+
+**Official Hex Brand Palette**
+
+- **Obsidian** (Dark Background): `#1d141c` / RGB(29, 20, 28) / CMYK(0, 0, 0, 0)
+- **Rose Quartz** (Accent Pink): `#f5cdc0` / RGB(245, 205, 192) / CMYK(0, 0, 0, 0)
+- **Jade** (Teal/Green): `#5cb196` / RGB(92, 177, 152) / CMYK(33, 0, 10, 13)
+- **Amethyst** (Purple): `#a477b2` / RGB(164, 119, 178) / CMYK(5, 23, 9, 30)
+- **Citrine** (Yellow/Gold): `#cda849` / RGB(205, 168, 73) / CMYK(0, 15, 52, 20)
+- **Opal** (Light/White): `#fbf0f9` / RGB(251, 240, 249) / CMYK(0, 1, 1, 2)
+- **Sugilite** (Dark Purple): `#6f3f90` / RGB(111, 63, 144) / CMYK(24, 30, 0, 38)
+- **Cement** (Neutral Gray): `#717a94` / RGB(113, 122, 149) / CMYK(14, 10, 0, 42)
+
+**Usage Guidelines:**
+
+- Use **Jade** and **Amethyst** for primary brand accents
+- **Obsidian** for dark mode backgrounds
+- **Opal** for light mode elevated surfaces
+- **Cement** for neutral UI elements and borders
+- **Rose Quartz**, **Citrine**, and **Sugilite** for data visualization and accent highlights
+
+---
+
+### UI Colors (Verified from Fall 2025 Agents Screenshots)
 
 **Action & Interactive**
 
@@ -113,22 +138,40 @@
 
 ## Typography
 
-### Font Families (Observed)
+### Font Families (Hex-Inspired with Google Font Alternatives)
+
+> **Hex's Official Fonts**: PP Formula (interface) and GT Cinetype (body/code)
+>
+> **Our Implementation**: DM Sans and IBM Plex Mono (free Google Font alternatives)
 
 **Primary Interface Font**
 
 ```css
 font-family:
-  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial,
+  'DM Sans',
+  'Inter',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  'Helvetica Neue',
+  Arial,
   sans-serif;
 ```
 
-**Monospace (Code & Data)**
+**Body & Code Font**
 
 ```css
 font-family:
-  'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  'IBM Plex Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
+  monospace;
 ```
+
+**Font Stack Rationale:**
+
+- **DM Sans**: Google Font alternative to PP Formula - geometric sans-serif for headings, navigation, buttons, and UI labels
+- **IBM Plex Mono**: Google Font alternative to GT Cinetype - geometric monospace for body text, data tables, code blocks, and SQL queries
+- System fonts as fallbacks ensure graceful degradation
+- Both fonts maintain Hex's geometric, mechanical aesthetic while being free and open-source
 
 ### Type Scale (Verified from Screenshots)
 

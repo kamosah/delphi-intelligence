@@ -12,6 +12,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Hex brand colors (official from media kit)
+        hex: {
+          obsidian: '#1d141c',
+          roseQuartz: '#f5cdc0',
+          jade: '#5cb196',
+          amethyst: '#a477b2',
+          citrine: '#cda849',
+          opal: '#fbf0f9',
+          sugilite: '#6f3f90',
+          cement: '#717a94',
+        },
         primary: {
           '50': '#eff6ff',
           '100': '#dbeafe',
@@ -71,7 +82,27 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: [
+          'var(--font-sans)',
+          'DM Sans',
+          'Inter',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+        ],
+        mono: [
+          'var(--font-mono)',
+          'IBM Plex Mono',
+          'SF Mono',
+          'Monaco',
+          'Cascadia Code',
+          'Roboto Mono',
+          'Consolas',
+          'monospace',
+        ],
       },
       borderRadius: {
         lg: 'var(--radius)',

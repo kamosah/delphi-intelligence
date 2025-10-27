@@ -47,9 +47,38 @@ All components follow the Hex aesthetic, located in `packages/ui/`:
 
 ## Color System
 
-### Primary Color Palette
+### Hex Brand Colors (Official from Media Kit)
 
-**Status**: Colors extracted from Hex visual references. See [DESIGN_TOKENS.md](../../docs/DESIGN_TOKENS.md) for complete color system.
+**Status**: ✅ Complete - Official colors extracted from Hex media kit. See [HEX_DESIGN_SYSTEM.md](../../docs/HEX_DESIGN_SYSTEM.md) for complete design system.
+
+**Brand Color Tokens** (Available as `hex-*` in Tailwind):
+
+```typescript
+hex: {
+  obsidian: '#1d141c',    // Dark backgrounds, footer
+  roseQuartz: '#f5cdc0',  // Data viz, warm accents
+  jade: '#5cb196',        // Success, document citations
+  amethyst: '#a477b2',    // Primary brand accent, AI features
+  citrine: '#cda849',     // Warnings, highlights, data viz
+  opal: '#fbf0f9',        // Light mode elevated surfaces
+  sugilite: '#6f3f90',    // Computation badges, deep accents
+  cement: '#717a94',      // Neutral UI, borders, disabled states
+}
+```
+
+**Usage Guidelines**:
+
+- Use **Jade** and **Amethyst** for primary brand accents
+- **Obsidian** for dark mode backgrounds
+- **Opal** for light mode elevated surfaces
+- **Cement** for neutral UI elements and borders
+- **Rose Quartz**, **Citrine**, and **Sugilite** for data visualization and accent highlights
+
+---
+
+### UI Color Palette
+
+**Functional colors** for interactive UI elements. See [DESIGN_TOKENS.md](../../docs/DESIGN_TOKENS.md) for complete color system.
 
 **Color Tokens**:
 
@@ -140,22 +169,54 @@ CSS variables for theming (to be updated with extracted colors):
 
 ## Typography
 
-### Font Families
+### Font Families (Hex-Inspired with Google Font Alternatives)
 
-**Primary Interface Font**:
+> **Hex's Official Fonts**: PP Formula (interface) and GT Cinetype (body/code)
+>
+> **Our Implementation**: DM Sans and IBM Plex Mono (free Google Font alternatives)
+
+**Primary Interface Font** (Headings, navigation, buttons, UI labels):
 
 ```css
 font-family:
-  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial,
+  'DM Sans',
+  Inter,
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  'Helvetica Neue',
+  Arial,
   sans-serif;
 ```
 
-**Monospace Font** (for code and data):
+- **DM Sans**: Google Font alternative to PP Formula
+- Geometric sans-serif with clean, modern aesthetic
+- Optimized for UI text and headings
+
+**Body & Code Font** (Body text, data tables, code blocks, SQL queries):
 
 ```css
 font-family:
-  'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  'IBM Plex Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
+  monospace;
 ```
+
+- **IBM Plex Mono**: Google Font alternative to GT Cinetype
+- Geometric monospace with mechanical characteristics
+- Excellent for code, data, and technical content
+
+**Tailwind Usage**:
+
+```tsx
+// Interface elements (DM Sans)
+<h1 className="font-sans">Page Title</h1>
+
+// Code/data (IBM Plex Mono)
+<code className="font-mono">SELECT * FROM users</code>
+```
+
+**Next.js Font Optimization**:
+Both fonts are loaded via `next/font/google` for automatic optimization, subsetting, and self-hosting.
 
 ### Type Scale
 
