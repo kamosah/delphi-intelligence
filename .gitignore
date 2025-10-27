@@ -118,3 +118,10 @@ venv.bak/
 .pytest_cache/
 *storybook.log
 storybook-static
+
+# Visual references (screenshots, videos) - large binary assets
+docs/visual-references/**/frames/
+docs/visual-references/**/videos/
+*.mp4
+*.mov
+*.avi
