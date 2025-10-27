@@ -2,8 +2,8 @@
 
 > **Complete design token reference for the Olympus platform, based on 100% Hex aesthetic**
 >
-> **Last Updated**: 2025-10-26
-> **Status**: Production-ready tokens extracted from Hex visual references
+> **Last Updated**: 2025-10-26 (Updated with Fall 2025 Agents screenshot analysis)
+> **Status**: Production-ready tokens extracted and verified from Hex visual references
 
 ---
 
@@ -110,49 +110,56 @@ const purple = {
   200: '#DDD6FE',
   300: '#C4B5FD',
   400: '#A78BFA',
-  500: '#8B5CF6', // PRIMARY PURPLE - AI features, magic
-  600: '#7C3AED',
+  500: '#8B5CF6', // PRIMARY PURPLE - SQL keywords, AI features, magic
+  600: '#7C3AED', // Syntax highlighting (functions)
   700: '#6D28D9',
   800: '#5B21B6',
   900: '#4C1D95',
 };
 ```
 
-**Usage:**
+**Usage (Updated from Screenshot Analysis):**
 
-- `purple-500` - AI/Magic features, special highlights
+- `purple-500` - SQL keywords (SELECT, FROM, WHERE), AI features, special highlights
+- `purple-600` - SQL functions (COUNT, EXTRACT)
 - `purple-100` - Subtle purple backgrounds for AI sections
 
 #### Neutrals (Backgrounds, Text, Borders)
 
 ```typescript
 const gray = {
-  // Light mode
-  50: '#F9FAFB', // Panel backgrounds, subtle fills
-  100: '#F3F4F6', // Hover backgrounds, disabled fills
-  200: '#E5E7EB', // Borders, dividers
-  300: '#D1D5DB', // Input borders, disabled text
-  400: '#9CA3AF', // Placeholder text
-  500: '#6B7280', // Secondary text, icons
-  600: '#4B5563', // Body text
-  700: '#374151', // Headings, emphasized text
-  800: '#1F2937', // Primary text
-  900: '#111827', // Darkest text, high emphasis
+  // Light mode (verified from screenshots)
+  50: '#F9FAFB', // Working status backgrounds, elevated surfaces
+  100: '#F3F4F6', // User input bubbles, badges, YML tags
+  200: '#E5E7EB', // Default borders, dividers, sidebar borders
+  300: '#D1D5DB', // Input field borders, loading dots
+  400: '#9CA3AF', // Placeholder text, file extensions
+  500: '#6B7280', // User input bubble text, de-emphasized content
+  600: '#4B5563', // Working status text, tertiary content
+  700: '#374151', // List secondary text
+  800: '#1F2937', // Body text, code text, thinking indicator
+  900: '#111827', // Headings, primary emphasis, bold names
 
   // Special
-  white: '#FFFFFF',
+  white: '#FFFFFF', // Card backgrounds, code cell backgrounds
+  offWhite: '#FAFBFC', // Page background (off-white canvas)
   black: '#000000',
 };
 ```
 
-**Usage:**
+**Usage (Updated from Screenshot Analysis):**
 
-- `gray-50` - Page backgrounds, panel fills
-- `gray-100` - Card backgrounds, hover states
-- `gray-200` - Borders, dividers, separators
-- `gray-500` - Secondary text, de-emphasized content
-- `gray-800` - Primary body text
-- `gray-900` - Headings, high-emphasis text
+- `offWhite (#FAFBFC)` - Main page background, canvas
+- `white (#FFFFFF)` - Card backgrounds, AI response areas, code cells
+- `gray-50` - Working status background, subtle elevated states
+- `gray-100` - User input message bubbles, badges, hover backgrounds
+- `gray-200` - Default borders (cards, sidebar dividers)
+- `gray-300` - Input field borders, loading dot animation
+- `gray-400` - Placeholder text in inputs
+- `gray-500` - User message text, secondary content
+- `gray-600` - Working status "Working..." text
+- `gray-800` - Primary body text, code content
+- `gray-900` - Headings, bold list items, high-emphasis text
 
 #### Success Green
 
@@ -290,15 +297,20 @@ const interactive = {
 
 ```typescript
 const background = {
-  // Canvas
-  canvas: gray.white, // Main page background
-  canvasSubtle: gray[50], // Subtle background variation
+  // Canvas (verified from screenshots)
+  canvas: gray.offWhite, // Main page background (#FAFBFC)
+  canvasSubtle: '#F5F6F7', // Notebook agent background
 
   // Surfaces
-  surface: gray.white, // Card backgrounds
+  surface: gray.white, // Card backgrounds, AI responses, code cells (#FFFFFF)
   surfaceHover: gray[50], // Card hover state
   surfaceSelected: blue[50], // Selected cards
   surfaceDisabled: gray[100], // Disabled surfaces
+  surfaceElevated: gray[50], // Working status bar background (#F9FAFB)
+
+  // User interaction
+  userInput: gray[100], // User message bubbles (#F3F4F6)
+  aiResponse: gray.white, // AI message background (#FFFFFF)
 
   // Overlays
   overlay: 'rgba(0, 0, 0, 0.5)', // Modal backdrop
@@ -310,10 +322,13 @@ const background = {
 
 ```typescript
 const border = {
-  default: gray[200], // Standard borders
-  strong: gray[300], // Emphasized borders
-  subtle: gray[100], // Subtle borders
-  focus: blue[500], // Focus rings
+  // Standard borders (verified from screenshots)
+  default: gray[200], // Card borders, dividers (#E5E7EB)
+  strong: gray[300], // Input field borders (#D1D5DB)
+  subtle: gray[100], // Very light dividers (#F3F4F6)
+
+  // Interactive states
+  focus: blue[500], // Focus rings (#3B82F6)
   error: red[500], // Error borders
   success: green[500], // Success borders
 };
@@ -323,15 +338,24 @@ const border = {
 
 ```typescript
 const text = {
-  primary: gray[800], // Body text
-  secondary: gray[500], // De-emphasized text
-  tertiary: gray[400], // Placeholder text
+  // Primary text hierarchy (verified from screenshots)
+  primary: gray[900], // Headings, emphasis (#111827)
+  secondary: gray[800], // Body text, main content (#1F2937)
+  tertiary: gray[600], // De-emphasized text (#4B5563)
+  quaternary: gray[500], // Subtle text, metadata (#6B7280)
+  placeholder: gray[400], // Placeholder text (#9CA3AF)
+  disabled: gray[300], // Disabled text (#D1D5DB)
+
+  // Special contexts
   inverse: gray.white, // Text on dark backgrounds
-  disabled: gray[300], // Disabled text
+  userMessage: gray[500], // User input bubble text (#6B7280)
+  loadingDots: gray[300], // Loading animation dots (#D1D5DB)
+
+  // Semantic colors
   error: red[600], // Error messages
   success: green[600], // Success messages
   warning: orange[600], // Warning messages
-  link: blue[500], // Links
+  link: blue[500], // Links (#3B82F6)
 };
 ```
 
@@ -368,6 +392,28 @@ const sourceBadge = {
   },
 };
 ```
+
+#### Code Syntax Highlighting
+
+```typescript
+const syntax = {
+  // SQL/Code highlighting (verified from screenshots)
+  keyword: purple[500], // SELECT, FROM, WHERE, etc. (#8B5CF6)
+  function: purple[500], // COUNT, EXTRACT, etc. (#8B5CF6)
+  string: blue[500], // String literals ('active') (#3B82F6)
+  comment: gray[500], // Comments (#6B7280)
+  number: gray[800], // Numbers (#1F2937)
+  variable: '#EC4899', // Variables (pink - inferred)
+  operator: gray[600], // Operators (=, AND, OR)
+  background: gray.white, // Code cell background (#FFFFFF)
+  border: gray[200], // Code cell border (#E5E7EB)
+};
+```
+
+**Usage:**
+
+- Notebook Agent code cells use these colors for SQL/Python syntax
+- Maintains consistency across all code-heavy interfaces
 
 ---
 
@@ -408,17 +454,24 @@ const fontFamily = {
 
 ```typescript
 const fontSize = {
-  xs: '11px', // 0.6875rem - Small labels, badges
-  sm: '12px', // 0.75rem - Meta text, timestamps
-  base: '14px', // 0.875rem - Body text (PRIMARY)
-  lg: '16px', // 1rem - Emphasized body text
-  xl: '18px', // 1.125rem - H3, subsection headers
-  '2xl': '20px', // 1.25rem - H2, section headers
-  '3xl': '24px', // 1.5rem - H2, large headers
-  '4xl': '32px', // 2rem - H1, page titles
-  '5xl': '40px', // 2.5rem - Hero text
+  // Verified from screenshots
+  xs: '12px', // 0.75rem - Small labels, metadata, timestamps
+  sm: '13px', // 0.8125rem - Code text, small labels
+  base: '14px', // 0.875rem - Body text (PRIMARY), inputs
+  md: '15px', // 0.9375rem - Emphasized body text
+  lg: '18px', // 1.125rem - Subheadings
+  xl: '24px', // 1.5rem - Section headings ("Top Sales Performers")
+  '2xl': '28px', // 1.75rem - Large headings
+  '3xl': '32px', // 2rem - H1, page titles
+  '4xl': '40px', // 2.5rem - Hero text
 };
 ```
+
+**Screenshot Verified:**
+
+- Code/Mono: 13px (`fontSize.sm`)
+- Body text: 14px (`fontSize.base`)
+- Section headings: 24-28px (`fontSize.xl` or `fontSize.2xl`)
 
 ### Font Weights
 
@@ -437,14 +490,20 @@ const fontWeight = {
 
 ```typescript
 const lineHeight = {
+  // Verified from screenshots
   none: 1, // Headings (tight)
-  tight: 1.25, // H1 (32px)
-  snug: 1.3, // H2 (24px)
-  normal: 1.4, // H3, small text (18px, 12px)
+  tight: 1.25, // H1, large headings
+  snug: 1.3, // H2, section headings
+  normal: 1.4, // H3, small text
   relaxed: 1.5, // Body text (14px) - PRIMARY
-  loose: 1.6, // Long-form content
+  loose: 1.6, // Code (13px), long-form content - PRIMARY for code
 };
 ```
+
+**Screenshot Verified:**
+
+- Body text: 1.5 line height (relaxed)
+- Code cells: 1.6 line height (loose)
 
 ### Typography Scale (Semantic)
 
@@ -565,36 +624,43 @@ const sizing = {
 
 ### Shadow Tokens
 
-Hex uses subtle shadows for elevation and depth:
+Hex uses very subtle shadows for elevation and depth:
 
 ```typescript
 const shadows = {
   none: 'none',
 
-  // Subtle elevation
-  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+  // Subtle elevation (verified from screenshots)
+  subtle: '0 1px 2px rgba(0, 0, 0, 0.04)', // Input fields, empty states
 
-  // Default elevation
-  base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+  // Default elevation - VERY subtle in Hex
+  base: '0 1px 3px rgba(0, 0, 0, 0.05)', // Cards, AI responses (PRIMARY)
 
   // Medium elevation (cards on hover)
-  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
+  md: '0 2px 4px rgba(0, 0, 0, 0.06)', // Hover states
 
   // High elevation (modals, popovers)
-  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+  lg: '0 4px 6px rgba(0, 0, 0, 0.1)', // Modals, popovers
 
   // Maximum elevation (dropdowns above modals)
-  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+  xl: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
 
   // Focus rings
-  focus: '0 0 0 3px rgba(75, 127, 255, 0.2)', // blue-500 at 20%
+  focus: '0 0 0 3px rgba(59, 130, 246, 0.1)', // blue-500 at 10% (subtle)
   focusError: '0 0 0 3px rgba(239, 68, 68, 0.2)', // red-500 at 20%
 };
 ```
 
+**Screenshot Verified:**
+
+- Hex uses MUCH more subtle shadows than typical UI kits
+- Cards: 0 1px 3px rgba(0,0,0,0.05) - barely perceptible
+- Input fields: 0 1px 2px rgba(0,0,0,0.04) - extremely subtle
+
 **Usage:**
 
-- Cards: `shadow.base` (default), `shadow.md` (on hover)
+- Cards: `shadow.base` (very subtle), `shadow.md` (on hover)
+- Input fields: `shadow.subtle`
 - Dropdowns/Menus: `shadow.lg`
 - Modals: `shadow.xl`
 - Focus states: `shadow.focus`
@@ -609,23 +675,34 @@ Hex uses consistent border radius for a cohesive feel:
 
 ```typescript
 const borderRadius = {
+  // Verified from screenshots
   none: '0px',
-  sm: '4px', // Small elements, badges
-  base: '6px', // Inputs, small buttons (PRIMARY)
-  md: '8px', // Cards, containers
-  lg: '12px', // Large buttons, chat inputs, modals
+  sm: '4px', // Small elements, badges, YML tags
+  base: '6px', // Code cells, small cards
+  md: '8px', // Main cards, message bubbles, inputs (PRIMARY)
+  lg: '12px', // Large buttons, modals
   xl: '16px', // Hero sections
   '2xl': '24px', // Extra large containers
   full: '9999px', // Pills, circular avatars
 };
 ```
 
+**Screenshot Verified:**
+
+- Message bubbles (user input): 8px
+- Input fields: 8px
+- Cards: 8px (most common)
+- Code cells: 6px
+- Small badges: 4px
+
 **Common Patterns:**
 
-- Buttons: `radius.base` (6px)
-- Cards: `radius.md` (8px)
-- Chat input: `radius.lg` (12px)
-- Badges: `radius.full` (pill shape)
+- Buttons: `radius.md` (8px)
+- Cards: `radius.md` (8px) - PRIMARY
+- Message bubbles: `radius.md` (8px)
+- Code cells: `radius.base` (6px)
+- Input fields: `radius.md` (8px)
+- Badges: `radius.sm` (4px) or `radius.full` (pill shape)
 - Avatars: `radius.full` (circular)
 
 ---
@@ -759,6 +836,140 @@ const darkMode = {
   {/* Light mode: white bg, dark text */}
   {/* Dark mode: dark bg, light text */}
 </div>
+```
+
+---
+
+## Component-Specific Tokens
+
+### Loading States (Verified from Screenshots)
+
+```typescript
+const loading = {
+  // "Thinking..." indicator
+  thinking: {
+    text: gray[800], // "Thinking." text (#1F2937)
+    dots: gray[300], // Dot color (#D1D5DB)
+    dotSize: '4-6px', // Dot diameter
+    dotSpacing: '4-6px', // Space between dots
+    rows: 3, // Number of rows in animation
+  },
+
+  // "Working..." status bar
+  working: {
+    background: gray[50], // Status bar background (#F9FAFB)
+    border: gray[200], // Border (#E5E7EB)
+    text: gray[600], // "Working..." text (#4B5563)
+    borderRadius: borderRadius.base, // 6px
+    padding: '12px 20px',
+  },
+};
+```
+
+### Message Bubbles (Threads Interface)
+
+```typescript
+const messageBubble = {
+  // User input messages
+  user: {
+    background: gray[100], // Light gray bubble (#F3F4F6)
+    text: gray[500], // Medium gray text (#6B7280)
+    border: gray[200], // Subtle border (#E5E7EB)
+    borderRadius: borderRadius.md, // 8px
+    padding: '12px 16px',
+  },
+
+  // AI response messages
+  ai: {
+    background: gray.white, // White background (#FFFFFF)
+    text: gray[800], // Dark text (#1F2937)
+    borderRadius: borderRadius.md, // 8px
+    padding: '24px 32px',
+    shadow: shadows.base, // Very subtle shadow
+  },
+};
+```
+
+### Input Fields (Verified from Screenshots)
+
+```typescript
+const input = {
+  // Standard input field
+  default: {
+    background: gray.white, // White background (#FFFFFF)
+    border: gray[300], // Input border (#D1D5DB)
+    borderWidth: '1px',
+    borderRadius: borderRadius.md, // 8px
+    padding: '16px 20px',
+    placeholder: gray[400], // Placeholder text (#9CA3AF)
+    fontSize: fontSize.base, // 14px
+    shadow: shadows.subtle, // Very subtle shadow
+  },
+
+  // Empty state input (larger, with 2px border)
+  emptyState: {
+    background: gray.white,
+    border: gray[200], // Lighter border (#E5E7EB)
+    borderWidth: '2px',
+    borderRadius: borderRadius.md, // 8px
+    padding: '16px 20px',
+    fontSize: fontSize.md, // 15px
+    shadow: shadows.subtle,
+  },
+};
+```
+
+### Code Cells (Notebook Agent)
+
+```typescript
+const codeCell = {
+  background: gray.white, // White background (#FFFFFF)
+  border: gray[200], // Border (#E5E7EB)
+  borderRadius: borderRadius.base, // 6px
+  padding: '16px 20px',
+  fontFamily: fontFamily.mono, // SF Mono
+  fontSize: fontSize.sm, // 13px
+  lineHeight: lineHeight.loose, // 1.6
+  textColor: gray[800], // Code text (#1F2937)
+};
+```
+
+### File List Items (Modeling Agent)
+
+```typescript
+const fileListItem = {
+  fontSize: fontSize.base, // 14px
+  textColor: gray[800], // File name (#1F2937)
+  extension: gray[400], // .yml extension (#9CA3AF)
+  spacing: spacing[2], // 8px between items
+  padding: spacing[2], // 8px padding
+};
+```
+
+### Empty States
+
+```typescript
+const emptyState = {
+  icon: {
+    size: '48px',
+    color: gray[300], // Light gray icon (#D1D5DB)
+  },
+  heading: {
+    fontSize: fontSize.lg, // 18px or larger
+    fontWeight: fontWeight.semibold, // 600
+    color: gray[900], // Dark heading (#111827)
+    marginBottom: spacing[1], // 4px
+  },
+  description: {
+    fontSize: fontSize.base, // 14px
+    color: gray[500], // Medium gray (#6B7280)
+    marginBottom: spacing[4], // 16px
+  },
+  link: {
+    fontSize: fontSize.sm, // 12-14px
+    color: blue[500], // Blue link (#3B82F6)
+  },
+};
 ```
 
 ---

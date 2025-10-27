@@ -258,26 +258,147 @@ export const CodeSyntaxColors: StoryObj = {
         Code Syntax Highlighting
       </h2>
       <p className="text-sm text-gray-600 mb-6">
-        Colors for SQL and code blocks
+        Verified from Notebook Agent screenshots - Hex uses purple for SQL
+        keywords
       </p>
 
       <ColorSwatch
         name="Code Background"
-        hex="#F6F8FA"
-        usage="Code block backgrounds"
+        hex="#FFFFFF"
+        usage="Code cell background (white, not gray)"
       />
       <ColorSwatch
-        name="SQL Keyword"
-        hex="#D73A49"
-        usage="SELECT, FROM, WHERE keywords"
+        name="Code Border"
+        hex="#E5E7EB"
+        usage="Code cell border (gray-200)"
       />
       <ColorSwatch
-        name="String Literal"
-        hex="#032F62"
-        usage="String values in quotes"
+        name="SQL Keyword (PURPLE)"
+        hex="#8B5CF6"
+        usage="SELECT, FROM, WHERE - purple-500"
       />
-      <ColorSwatch name="Number" hex="#005CC5" usage="Numeric values" />
-      <ColorSwatch name="Function Call" hex="#6F42C1" usage="Function names" />
+      <ColorSwatch
+        name="SQL Function (PURPLE)"
+        hex="#8B5CF6"
+        usage="COUNT, EXTRACT, SUM - purple-500"
+      />
+      <ColorSwatch
+        name="String Literal (BLUE)"
+        hex="#3B82F6"
+        usage="String values ('active') - blue-500"
+      />
+      <ColorSwatch
+        name="Number"
+        hex="#1F2937"
+        usage="Numeric values - gray-800"
+      />
+      <ColorSwatch
+        name="Comment"
+        hex="#6B7280"
+        usage="Code comments - gray-500"
+      />
+      <ColorSwatch
+        name="Operator"
+        hex="#4B5563"
+        usage="Operators (=, AND, OR) - gray-600"
+      />
+    </div>
+  ),
+};
+
+export const BackgroundColors: StoryObj = {
+  render: () => (
+    <div>
+      <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+        Background Colors
+      </h2>
+      <p className="text-sm text-gray-600 mb-6">
+        Verified from Fall 2025 Agents screenshots - Hex uses off-white, not
+        pure white
+      </p>
+
+      <ColorSwatch
+        name="Page Background (OFF-WHITE)"
+        hex="#FAFBFC"
+        usage="Main page background - NOT pure white!"
+      />
+      <ColorSwatch
+        name="Card Background"
+        hex="#FFFFFF"
+        usage="AI responses, code cells, cards"
+      />
+      <ColorSwatch
+        name="Notebook Background"
+        hex="#F5F6F7"
+        usage="Notebook Agent canvas background"
+      />
+      <ColorSwatch
+        name="User Input Bubble"
+        hex="#F3F4F6"
+        usage="User message bubbles (gray-100)"
+      />
+      <ColorSwatch
+        name="Working Status Background"
+        hex="#F9FAFB"
+        usage="'Working...' status bar (gray-50)"
+      />
+    </div>
+  ),
+};
+
+export const ComponentColors: StoryObj = {
+  render: () => (
+    <div>
+      <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+        Component-Specific Colors
+      </h2>
+      <p className="text-sm text-gray-600 mb-6">
+        Exact colors extracted from Threads and Notebook Agent interfaces
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            Loading States
+          </h3>
+          <ColorSwatch
+            name="Loading Dots"
+            hex="#D1D5DB"
+            usage="'Thinking...' animation dots (gray-300)"
+          />
+          <ColorSwatch
+            name="Thinking Text"
+            hex="#1F2937"
+            usage="'Thinking.' text color (gray-800)"
+          />
+          <ColorSwatch
+            name="Working Text"
+            hex="#4B5563"
+            usage="'Working...' text color (gray-600)"
+          />
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            Message Text
+          </h3>
+          <ColorSwatch
+            name="User Message Text"
+            hex="#6B7280"
+            usage="User input bubble text (gray-500)"
+          />
+          <ColorSwatch
+            name="AI Response Text"
+            hex="#1F2937"
+            usage="AI message text (gray-800)"
+          />
+          <ColorSwatch
+            name="Heading Text"
+            hex="#111827"
+            usage="Section headings (gray-900)"
+          />
+        </div>
+      </div>
     </div>
   ),
 };
