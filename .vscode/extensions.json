@@ -1,0 +1,50 @@
+{
+  "recommendations": [
+    // Core Development - Essential for all contributors
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Frontend - Next.js, React, TypeScript
+    "bradlc.vscode-tailwindcss",
+    "GraphQL.vscode-graphql",
+    "GraphQL.vscode-graphql-syntax",
+    "formulahendry.auto-rename-tag",
+
+    // Backend - Python, FastAPI
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+
+    // Database & API Testing
+    "mtxr.sqltools",
+    "ckolkman.vscode-postgres",
+    "rangav.vscode-thunder-client",
+
+    // Docker & Containers
+    "ms-azuretools.vscode-docker",
+    "ms-vscode-remote.remote-containers",
+
+    // Testing
+    "ms-playwright.playwright",
+    "vitest.explorer",
+
+    // Git & Version Control
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Productivity & Code Quality
+    "streetsidesoftware.code-spell-checker",
+    "usernamehw.errorlens",
+    "wayou.vscode-todo-highlight",
+
+    // Documentation
+    "yzhang.markdown-all-in-one",
+    "redhat.vscode-yaml"
+  ],
+  "unwantedRecommendations": [
+    // Avoid conflicts with Ruff
+    "ms-python.black-formatter",
+    "ms-python.flake8",
+    "ms-python.pylint"
+  ]
+}
