@@ -84,7 +84,7 @@ class DocumentProcessor:
             # Emit SSE event for status change
             await sse_manager.emit_document_update(
                 document_id=UUID(document_id),
-                space_id=document.space_id,
+                space_id=UUID(str(document.space_id)),
                 event="status_update",
                 data={
                     "status": document.status,
@@ -107,7 +107,7 @@ class DocumentProcessor:
                 # Emit SSE event for failure
                 await sse_manager.emit_document_update(
                     document_id=UUID(document_id),
-                    space_id=document.space_id,
+                    space_id=UUID(str(document.space_id)),
                     event="status_update",
                     data={
                         "status": document.status,
@@ -140,7 +140,7 @@ class DocumentProcessor:
                 # Emit SSE event for failure
                 await sse_manager.emit_document_update(
                     document_id=UUID(document_id),
-                    space_id=document.space_id,
+                    space_id=UUID(str(document.space_id)),
                     event="status_update",
                     data={
                         "status": document.status,
@@ -171,7 +171,7 @@ class DocumentProcessor:
                 # Emit SSE event for failure
                 await sse_manager.emit_document_update(
                     document_id=UUID(document_id),
-                    space_id=document.space_id,
+                    space_id=UUID(str(document.space_id)),
                     event="status_update",
                     data={
                         "status": document.status,
@@ -213,7 +213,7 @@ class DocumentProcessor:
                     # Emit SSE event for successful processing
                     await sse_manager.emit_document_update(
                         document_id=UUID(document_id),
-                        space_id=document.space_id,
+                        space_id=UUID(str(document.space_id)),
                         event="status_update",
                         data={
                             "status": document.status,
@@ -255,7 +255,7 @@ class DocumentProcessor:
                     # Emit SSE event for failure
                     await sse_manager.emit_document_update(
                         document_id=UUID(document_id),
-                        space_id=document.space_id,
+                        space_id=UUID(str(document.space_id)),
                         event="status_update",
                         data={
                             "status": document.status,

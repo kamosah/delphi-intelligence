@@ -2,6 +2,8 @@
 Authentication routes for user registration, login, and token management
 """
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.dependencies import get_current_user
@@ -185,7 +187,9 @@ async def exchange_token(data: dict[str, str]) -> TokenResponse:
 
 
 @router.post("/sse-token")
-async def get_sse_token(current_user=Depends(get_current_user)) -> dict[str, str | int]:
+async def get_sse_token(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str | int]:
     """
     Exchange access token for a short-lived SSE connection token.
 

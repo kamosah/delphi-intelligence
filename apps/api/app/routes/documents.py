@@ -3,8 +3,8 @@
 import asyncio
 import io
 import json
-from typing import Annotated
-from uuid import UUID as PyUUID
+from typing import Annotated, Any, AsyncGenerator
+from uuid import UUID as PyUUID  # noqa: N811
 from uuid import uuid4
 
 from fastapi import (
@@ -222,9 +222,7 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Verify user has permission to delete
-    if not await permission_service.can_delete_from_space(
-        user, PyUUID(str(document.space_id)), db
-    ):
+    if not await permission_service.can_delete_from_space(user, PyUUID(str(document.space_id)), db):
         raise HTTPException(
             status_code=403, detail="You do not have permission to delete this document"
         )
@@ -358,7 +356,7 @@ async def stream_document_updates(
     token: str,
     request: Request,
     db: AsyncSession = Depends(get_session),
-):
+) -> EventSourceResponse:
     """
     Server-Sent Events (SSE) endpoint for real-time document status updates.
 
@@ -416,14 +414,12 @@ async def stream_document_updates(
 
     # Check if user has permission to access this space
     if not await permission_service.can_access_space(user, space_uuid, db):
-        raise HTTPException(
-            status_code=403, detail="You do not have access to this space"
-        )
+        raise HTTPException(status_code=403, detail="You do not have access to this space")
 
     # Subscribe to space updates
     queue = sse_manager.subscribe_to_space(space_uuid)
 
-    async def event_generator():
+    async def event_generator() -> AsyncGenerator[dict[str, Any], None]:
         """Generate SSE events from the queue."""
         try:
             # Send initial connection event
@@ -447,7 +443,7 @@ async def stream_document_updates(
                         "event": message["event"],
                         "data": json.dumps(message),
                     }
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Send heartbeat to keep connection alive
                     yield {
                         "event": "heartbeat",

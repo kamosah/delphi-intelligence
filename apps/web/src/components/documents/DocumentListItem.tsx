@@ -92,8 +92,8 @@ export function DocumentListItem({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Document</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{document.name}"? This action
-              cannot be undone.
+              Are you sure you want to delete &ldquo;{document.name}&rdquo;?
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

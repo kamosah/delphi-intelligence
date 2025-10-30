@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class SSEManager:
     """Manages Server-Sent Events connections and broadcasts."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize SSE manager with empty connections."""
         # Store queues by document_id for targeted updates
         self._document_queues: dict[UUID, list[asyncio.Queue]] = defaultdict(list)
@@ -103,8 +103,8 @@ class SSEManager:
             for queue in self._document_queues[document_id]:
                 try:
                     await queue.put(message)
-                except Exception as e:
-                    logger.error(f"Failed to send to document queue: {e}")
+                except Exception:
+                    logger.exception("Failed to send to document queue")
                     dead_queues.append(queue)
 
             # Clean up dead queues
@@ -117,8 +117,8 @@ class SSEManager:
             for queue in self._space_queues[space_id]:
                 try:
                     await queue.put(message)
-                except Exception as e:
-                    logger.error(f"Failed to send to space queue: {e}")
+                except Exception:
+                    logger.exception("Failed to send to space queue")
                     dead_queues.append(queue)
 
             # Clean up dead queues
