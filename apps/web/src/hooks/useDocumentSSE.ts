@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -130,7 +130,7 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
 
         // Handle heartbeat events (keep-alive)
         eventSource.addEventListener('heartbeat', () => {
-          // Silent - heartbeats keep connection alive
+          console.log('[SSE] Heartbeat received');
         });
 
         // Handle errors

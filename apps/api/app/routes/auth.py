@@ -5,6 +5,8 @@ Authentication routes for user registration, login, and token management
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import timedelta
+from app.auth.jwt_handler import jwt_manager
 
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
@@ -208,8 +210,6 @@ async def get_sse_token(
         - Token can only be used for SSE connections
         - Reduces exposure window compared to long-lived tokens
     """
-    from datetime import timedelta
-    from app.auth.jwt_handler import jwt_manager
 
     # Token data
     token_data = {
@@ -218,12 +218,13 @@ async def get_sse_token(
     }
 
     # Create short-lived token (5 minutes)
+    sse_token_expiry = timedelta(minutes=5)  # Short TTL for security
     sse_token = jwt_manager.create_access_token(
         data=token_data,
-        expires_delta=timedelta(minutes=5),  # Short TTL for security
+        expires_delta=sse_token_expiry,
     )
 
     return {
         "sse_token": sse_token,
-        "expires_in": 300,  # 5 minutes in seconds
+        "expires_in": int(sse_token_expiry.total_seconds()),  # Calculate from timedelta
     }

@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
-from uuid import UUID as PyUUID
+from uuid import UUID as PyUUID  # noqa: N811
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID

@@ -1,7 +1,7 @@
 'use client';
 
-import type { Document } from '@/lib/api/documents-client';
 import { useDeleteDocument, useDownloadDocument } from '@/hooks/useDocuments';
+import type { Document } from '@/lib/api/documents-client';
 import {
   Card,
   CardContent,
@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { DocumentListSkeleton } from './DocumentListSkeleton';
 import { DocumentListEmpty } from './DocumentListEmpty';
 import { DocumentListItem } from './DocumentListItem';
+import { DocumentListSkeleton } from './DocumentListSkeleton';
 
 interface DocumentListProps {
   documents: Document[];
@@ -85,6 +85,7 @@ export function DocumentList({
               onDelete={handleDelete}
               onDownload={handleDownload}
               isDeleting={isDeleting}
+              isDownloading={isDownloading}
             />
           ))}
         </div>
