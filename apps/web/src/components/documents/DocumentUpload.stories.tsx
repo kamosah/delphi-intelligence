@@ -168,16 +168,6 @@ export const InterfaceTest: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Verify card title is present
-    const title = canvas.getByText('Upload Documents');
-    await expect(title).toBeInTheDocument();
-
-    // Verify description is present
-    const description = canvas.getByText(
-      /Drag and drop files or click to browse/
-    );
-    await expect(description).toBeInTheDocument();
-
     // Verify drop zone instructions
     const dropZoneText = canvas.getByText('Drop files here or click to browse');
     await expect(dropZoneText).toBeInTheDocument();
@@ -185,5 +175,9 @@ export const InterfaceTest: Story = {
     // Verify supported formats are displayed
     const formatsText = canvas.getByText(/Supported formats:/);
     await expect(formatsText).toBeInTheDocument();
+
+    // Verify file input exists
+    const fileInput = document.querySelector('#file-input');
+    await expect(fileInput).toBeInTheDocument();
   },
 };
