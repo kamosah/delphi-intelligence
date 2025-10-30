@@ -82,7 +82,7 @@ class TestAPIDocumentation:
         data = response.json()
         assert "openapi" in data
         assert "info" in data
-        assert data["info"]["title"] == "Olympus MVP"
+        assert data["info"]["title"] == "Olympus MVP API"
 
     def test_docs_endpoint(self):
         """Test API documentation endpoint"""

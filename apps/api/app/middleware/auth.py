@@ -33,7 +33,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/auth/verify-email",
     }
 
-    async def dispatch(
+    async def dispatch(  # noqa: PLR0911
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         """
@@ -86,9 +86,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 user = result.scalar_one_or_none()
 
                 if not user:
-                    return JSONResponse(
-                        status_code=401, content={"detail": "User not found"}
-                    )
+                    return JSONResponse(status_code=401, content={"detail": "User not found"})
 
                 # Add user model to request state
                 request.state.user = user

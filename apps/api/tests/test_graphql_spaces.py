@@ -20,18 +20,55 @@ def client():
 @pytest.fixture()
 def mock_user():
     """Mock authenticated user"""
-    return {
-        "id": str(uuid4()),
-        "email": "test@example.com",
-        "role": "member",
-        "authenticated": True,
-    }
+    user_id = uuid4()
+    mock = MagicMock()
+    mock.id = user_id
+    mock.email = "test@example.com"
+    mock.role = "member"
+    mock.full_name = "Test User"
+    mock.is_active = True
+    return mock
 
 
 @pytest.fixture()
 def auth_headers():
     """Create authorization headers with mock JWT"""
     return {"Authorization": "Bearer mock.jwt.token"}
+
+
+@pytest.fixture()
+def mock_auth(mock_user):
+    """Setup complete auth mocking for middleware and GraphQL"""
+    with patch("app.middleware.auth.get_session_factory") as mock_get_session_factory, \
+         patch("app.middleware.auth.jwt_manager.verify_token") as mock_verify_token, \
+         patch("app.middleware.auth.redis_manager.is_token_blacklisted") as mock_is_blacklisted:
+
+        # Mock JWT verification
+        mock_verify_token.return_value = {
+            "sub": str(mock_user.id),
+            "email": mock_user.email,
+            "role": mock_user.role,
+        }
+
+        # Mock middleware database session to return mock user
+        mock_middleware_session = AsyncMock()
+        mock_middleware_result = MagicMock()
+        mock_middleware_result.scalar_one_or_none.return_value = mock_user
+        mock_middleware_session.execute = AsyncMock(return_value=mock_middleware_result)
+        mock_middleware_session.__aenter__ = AsyncMock(return_value=mock_middleware_session)
+        mock_middleware_session.__aexit__ = AsyncMock(return_value=None)
+        mock_get_session_factory.return_value.return_value = mock_middleware_session
+
+        # Mock Redis blacklist check
+        async def mock_blacklist_check(token):
+            return False
+        mock_is_blacklisted.side_effect = mock_blacklist_check
+
+        yield {
+            "get_session_factory": mock_get_session_factory,
+            "verify_token": mock_verify_token,
+            "is_blacklisted": mock_is_blacklisted,
+        }
 
 
 @pytest.fixture()
@@ -46,7 +83,7 @@ def mock_space_model(mock_user):
     mock_space.icon_color = "#3B82F6"
     mock_space.is_public = False
     mock_space.max_members = None
-    mock_space.owner_id = mock_user["id"]
+    mock_space.owner_id = mock_user.id
     mock_space.members = [MagicMock()]  # One member (owner)
     mock_space.documents = []
     return mock_space
@@ -55,32 +92,16 @@ def mock_space_model(mock_user):
 class TestSpacesQuery:
     """Test cases for spaces GraphQL query"""
 
-    @patch("app.middleware.auth.jwt_manager.verify_token")
-    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.query.get_session")
     def test_get_spaces_success(
         self,
         mock_get_session,
-        mock_is_blacklisted,
-        mock_verify_token,
         client,
         auth_headers,
         mock_user,
+        mock_auth,
     ):
         """Test successfully fetching user's spaces"""
-
-        # Mock JWT verification to bypass middleware
-        mock_verify_token.return_value = {
-            "sub": mock_user["id"],
-            "email": mock_user["email"],
-            "role": mock_user["role"],
-        }
-
-        # Async mock for Redis check
-        async def mock_blacklist_check(token):
-            return False
-
-        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
@@ -213,32 +234,16 @@ class TestSpacesQuery:
 class TestSpaceQuery:
     """Test cases for single space GraphQL query"""
 
-    @patch("app.middleware.auth.jwt_manager.verify_token")
-    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.query.get_session")
     def test_get_space_by_id(
         self,
         mock_get_session,
-        mock_is_blacklisted,
-        mock_verify_token,
         client,
         auth_headers,
         mock_user,
+        mock_auth,
     ):
         """Test fetching a single space by ID"""
-
-        # Mock JWT verification to bypass middleware
-        mock_verify_token.return_value = {
-            "sub": mock_user["id"],
-            "email": mock_user["email"],
-            "role": mock_user["role"],
-        }
-
-        # Async mock for Redis check
-        async def mock_blacklist_check(token):
-            return False
-
-        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
@@ -310,33 +315,17 @@ class TestSpaceQuery:
 class TestCreateSpaceMutation:
     """Test cases for createSpace GraphQL mutation"""
 
-    @patch("app.middleware.auth.jwt_manager.verify_token")
-    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.mutation.get_session")
     def test_create_space_success(
         self,
         mock_get_session,
-        mock_is_blacklisted,
-        mock_verify_token,
         client,
         auth_headers,
         mock_user,
         mock_space_model,
+        mock_auth,
     ):
         """Test successfully creating a new space"""
-
-        # Mock JWT verification to bypass middleware
-        mock_verify_token.return_value = {
-            "sub": mock_user["id"],
-            "email": mock_user["email"],
-            "role": mock_user["role"],
-        }
-
-        # Async mock for Redis check
-        async def mock_blacklist_check(token):
-            return False
-
-        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
@@ -362,7 +351,7 @@ class TestCreateSpaceMutation:
         mock_space_model.slug = "new-test-space"
         mock_space_model.description = "A brand new test space"
         mock_space_model.icon_color = "#10B981"
-        mock_space_model.owner_id = mock_user["id"]
+        mock_space_model.owner_id = mock_user.id
         mock_space_model.members = [MagicMock()]
         mock_space_model.documents = []
 
@@ -442,32 +431,16 @@ class TestCreateSpaceMutation:
 class TestUpdateSpaceMutation:
     """Test cases for updateSpace GraphQL mutation"""
 
-    @patch("app.middleware.auth.jwt_manager.verify_token")
-    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.mutation.get_session")
     def test_update_space_as_owner(
         self,
         mock_get_session,
-        mock_is_blacklisted,
-        mock_verify_token,
         client,
         auth_headers,
         mock_user,
+        mock_auth,
     ):
         """Test updating a space as the owner"""
-
-        # Mock JWT verification to bypass middleware
-        mock_verify_token.return_value = {
-            "sub": mock_user["id"],
-            "email": mock_user["email"],
-            "role": mock_user["role"],
-        }
-
-        # Async mock for Redis check
-        async def mock_blacklist_check(token):
-            return False
-
-        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
@@ -638,33 +611,17 @@ class TestDeleteSpaceMutation:
 class TestSpaceIdempotency:
     """Test cases for space creation idempotency"""
 
-    @patch("app.middleware.auth.jwt_manager.verify_token")
-    @patch("app.middleware.auth.redis_manager.is_token_blacklisted")
     @patch("app.graphql.mutation.get_session")
     def test_duplicate_space_name_same_user(
         self,
         mock_get_session,
-        mock_is_blacklisted,
-        mock_verify_token,
         client,
         auth_headers,
         mock_user,
         mock_space_model,
+        mock_auth,
     ):
         """Test creating two spaces with the same name for the same user returns same space"""
-
-        # Mock JWT verification to bypass middleware
-        mock_verify_token.return_value = {
-            "sub": mock_user["id"],
-            "email": mock_user["email"],
-            "role": mock_user["role"],
-        }
-
-        # Async mock for Redis check
-        async def mock_blacklist_check(token):
-            return False
-
-        mock_is_blacklisted.side_effect = mock_blacklist_check
 
         # Mock database session
         mock_session = AsyncMock()
@@ -683,7 +640,7 @@ class TestSpaceIdempotency:
         mock_existing_space.slug = "duplicate-test-space"
         mock_existing_space.description = "Testing idempotency"
         mock_existing_space.icon_color = None
-        mock_existing_space.owner_id = mock_user["id"]
+        mock_existing_space.owner_id = mock_user.id
         mock_existing_space.members = [MagicMock()]
         mock_existing_space.documents = []
 
