@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     # App Configuration
-    app_name: str = Field(default="Olympus MVP", description="Application name")
+    app_name: str = Field(default="Olympus MVP API", description="Application name")
     debug: bool = Field(default=True, description="Debug mode")
     env: str = Field(default="development", description="Environment")
     host: str = Field(default="0.0.0.0", description="Server host")
