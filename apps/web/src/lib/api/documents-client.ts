@@ -162,4 +162,25 @@ export const documentsApi = {
       accessToken
     );
   },
+
+  // Download document
+  download: async (documentId: string, accessToken: string): Promise<Blob> => {
+    const url = `${API_BASE_URL}/api/documents/${documentId}/download`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail || `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+
+    return response.blob();
+  },
 };

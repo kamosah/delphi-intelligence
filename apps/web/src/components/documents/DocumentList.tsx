@@ -1,7 +1,7 @@
 'use client';
 
+import { useDeleteDocument, useDownloadDocument } from '@/hooks/useDocuments';
 import type { Document } from '@/lib/api/documents-client';
-import { useDeleteDocument } from '@/hooks/useDocuments';
 import {
   Card,
   CardContent,
@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { DocumentListSkeleton } from './DocumentListSkeleton';
 import { DocumentListEmpty } from './DocumentListEmpty';
 import { DocumentListItem } from './DocumentListItem';
+import { DocumentListSkeleton } from './DocumentListSkeleton';
 
 interface DocumentListProps {
   documents: Document[];
@@ -46,9 +46,17 @@ export function DocumentList({
   emptyMessage = 'No documents uploaded yet',
 }: DocumentListProps) {
   const { deleteDocument, isDeleting } = useDeleteDocument();
+  const { downloadDocument, isDownloading } = useDownloadDocument();
 
   const handleDelete = async (documentId: string) => {
     await deleteDocument({ documentId, spaceId });
+  };
+
+  const handleDownload = async (documentId: string) => {
+    const document = documents.find((doc) => doc.id === documentId);
+    if (document) {
+      await downloadDocument({ documentId, fileName: document.name });
+    }
   };
 
   if (isLoading) {
@@ -75,7 +83,9 @@ export function DocumentList({
               key={document.id}
               document={document}
               onDelete={handleDelete}
+              onDownload={handleDownload}
               isDeleting={isDeleting}
+              isDownloading={isDownloading}
             />
           ))}
         </div>

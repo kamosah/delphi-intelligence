@@ -3,6 +3,7 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
+from uuid import UUID as PyUUID  # noqa: N811
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -32,7 +33,7 @@ class Document(Base):
     __tablename__ = "documents"
 
     # Document identification
-    space_id: Mapped[UUID] = mapped_column(
+    space_id: Mapped[PyUUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False, index=True
     )
 
@@ -59,7 +60,7 @@ class Document(Base):
     doc_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Processing timestamps
-    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 

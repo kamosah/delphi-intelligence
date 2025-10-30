@@ -36,6 +36,7 @@ pydantic-settings = "^2.2.1"
 python-dotenv = "^1.0.0"
 httpx = "^0.27.0"
 email-validator = "^2.3.0"
+sse-starlette = "^2.0.0"  # Server-Sent Events for real-time updates
 
 # Document Processing
 pymupdf = "^1.23.0"  # PDF extraction

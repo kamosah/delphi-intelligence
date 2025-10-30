@@ -11,6 +11,29 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 /**
+ * Sanitize a filename to remove potentially problematic characters.
+ * Removes path traversal sequences and special characters that could cause issues.
+ *
+ * @param filename - The filename to sanitize
+ * @returns Sanitized filename safe for download attribute
+ */
+function sanitizeFilename(filename: string): string {
+  return (
+    filename
+      // Remove path traversal sequences
+      .replace(/\.\./g, '')
+      // Remove path separators
+      .replace(/[/\\]/g, '_')
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Remove control characters
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Trim whitespace
+      .trim() || 'download'
+  ); // Fallback to 'download' if filename becomes empty
+}
+
+/**
  * React Query hook for uploading documents with progress tracking.
  *
  * @example
@@ -180,5 +203,57 @@ export function useDeleteDocument() {
     deleteDocumentSync: mutation.mutate,
     isDeleting: mutation.isPending,
     deleteError: mutation.error,
+  };
+}
+
+/**
+ * React Query hook for downloading a document.
+ *
+ * @example
+ * const { downloadDocument } = useDownloadDocument();
+ *
+ * const handleDownload = async (documentId: string, fileName: string) => {
+ *   await downloadDocument({ documentId, fileName });
+ * };
+ */
+export function useDownloadDocument() {
+  const { accessToken } = useAuthStore();
+
+  const mutation = useMutation({
+    mutationFn: async ({
+      documentId,
+      fileName,
+    }: {
+      documentId: string;
+      fileName: string;
+    }) => {
+      if (!accessToken) {
+        throw new Error('Authentication required');
+      }
+
+      // Download file as blob
+      const blob = await documentsApi.download(documentId, accessToken);
+
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = sanitizeFilename(fileName); // Sanitize filename for security
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return { success: true };
+    },
+  });
+
+  return {
+    downloadDocument: mutation.mutateAsync,
+    downloadDocumentSync: mutation.mutate,
+    isDownloading: mutation.isPending,
+    downloadError: mutation.error,
   };
 }
