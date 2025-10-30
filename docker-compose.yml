@@ -19,6 +19,8 @@ services:
       - "8000:8000"
     volumes:
       - ./apps/api:/app
+    env_file:
+      - ./apps/api/.env
     environment:
       - REDIS_URL=redis://redis:6379/0
     depends_on:

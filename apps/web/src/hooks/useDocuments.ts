@@ -182,3 +182,55 @@ export function useDeleteDocument() {
     deleteError: mutation.error,
   };
 }
+
+/**
+ * React Query hook for downloading a document.
+ *
+ * @example
+ * const { downloadDocument } = useDownloadDocument();
+ *
+ * const handleDownload = async (documentId: string, fileName: string) => {
+ *   await downloadDocument({ documentId, fileName });
+ * };
+ */
+export function useDownloadDocument() {
+  const { accessToken } = useAuthStore();
+
+  const mutation = useMutation({
+    mutationFn: async ({
+      documentId,
+      fileName,
+    }: {
+      documentId: string;
+      fileName: string;
+    }) => {
+      if (!accessToken) {
+        throw new Error('Authentication required');
+      }
+
+      // Download file as blob
+      const blob = await documentsApi.download(documentId, accessToken);
+
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return { success: true };
+    },
+  });
+
+  return {
+    downloadDocument: mutation.mutateAsync,
+    downloadDocumentSync: mutation.mutate,
+    isDownloading: mutation.isPending,
+    downloadError: mutation.error,
+  };
+}

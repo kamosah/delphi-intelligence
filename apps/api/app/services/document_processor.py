@@ -1,7 +1,10 @@
 """Document processing service for text extraction."""
 
 import logging
+import tempfile
 from datetime import UTC, datetime
+from pathlib import Path
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +14,8 @@ from app.models.document import Document, DocumentStatus
 from app.services.chunking_service import chunk_document
 from app.services.embedding_service import embed_document
 from app.services.extractors import BaseExtractor, DOCXExtractor, PDFExtractor, TextExtractor
+from app.services.sse_manager import sse_manager
+from app.services.storage_service import get_storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +81,17 @@ class DocumentProcessor:
             document.status = DocumentStatus.PROCESSING
             await db.commit()
 
+            # Emit SSE event for status change
+            await sse_manager.emit_document_update(
+                document_id=UUID(document_id),
+                space_id=document.space_id,
+                event="status_update",
+                data={
+                    "status": document.status,
+                    "updated_at": datetime.now(UTC).isoformat(),
+                },
+            )
+
             logger.info(f"Processing document {document_id}: {document.name}")
 
             # Get appropriate extractor
@@ -87,15 +103,62 @@ class DocumentProcessor:
                 document.status = DocumentStatus.FAILED
                 document.processing_error = error_msg
                 await db.commit()
+
+                # Emit SSE event for failure
+                await sse_manager.emit_document_update(
+                    document_id=UUID(document_id),
+                    space_id=document.space_id,
+                    event="status_update",
+                    data={
+                        "status": document.status,
+                        "updated_at": datetime.now(UTC).isoformat(),
+                        "processing_error": error_msg,
+                    },
+                )
                 return
 
-            # Download file from storage
-            # TODO: Implement file download from Supabase Storage
-            # For now, assume file_path is a local path
-            file_path = document.file_path
+            # Download file from Supabase Storage
+            try:
+                logger.info(f"Downloading file from storage: {document.file_path}")
+                file_content = await get_storage_service().download_file(document.file_path)
+
+                # Create temporary file with appropriate extension
+                file_extension = Path(document.name).suffix or ".tmp"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+                    temp_file.write(file_content)
+                    temp_file_path = temp_file.name
+
+                logger.info(f"File downloaded to temporary location: {temp_file_path}")
+
+            except Exception as download_error:
+                error_msg = f"Failed to download file from storage: {download_error}"
+                logger.exception(error_msg)
+                document.status = DocumentStatus.FAILED
+                document.processing_error = error_msg
+                await db.commit()
+
+                # Emit SSE event for failure
+                await sse_manager.emit_document_update(
+                    document_id=UUID(document_id),
+                    space_id=document.space_id,
+                    event="status_update",
+                    data={
+                        "status": document.status,
+                        "updated_at": datetime.now(UTC).isoformat(),
+                        "processing_error": error_msg,
+                    },
+                )
+                return
 
             # Extract text
-            result_data = extractor.extract(file_path)
+            try:
+                result_data = extractor.extract(temp_file_path)
+            finally:
+                # Clean up temporary file
+                try:
+                    Path(temp_file_path).unlink()
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to clean up temporary file: {cleanup_error}")
 
             if not result_data.success:
                 logger.error(
@@ -104,6 +167,18 @@ class DocumentProcessor:
                 document.status = DocumentStatus.FAILED
                 document.processing_error = result_data.error
                 await db.commit()
+
+                # Emit SSE event for failure
+                await sse_manager.emit_document_update(
+                    document_id=UUID(document_id),
+                    space_id=document.space_id,
+                    event="status_update",
+                    data={
+                        "status": document.status,
+                        "updated_at": datetime.now(UTC).isoformat(),
+                        "processing_error": result_data.error,
+                    },
+                )
                 return
 
             # Update document with extracted text and metadata
@@ -135,6 +210,18 @@ class DocumentProcessor:
                     document.status = DocumentStatus.PROCESSED
                     await db.commit()
 
+                    # Emit SSE event for successful processing
+                    await sse_manager.emit_document_update(
+                        document_id=UUID(document_id),
+                        space_id=document.space_id,
+                        event="status_update",
+                        data={
+                            "status": document.status,
+                            "updated_at": datetime.now(UTC).isoformat(),
+                            "chunks_count": embedded_count,
+                        },
+                    )
+
                 except Exception as embed_error:
                     logger.exception(
                         f"Error generating embeddings for document {document_id}: {embed_error}"
@@ -164,6 +251,18 @@ class DocumentProcessor:
                     document.status = DocumentStatus.FAILED
                     document.processing_error = str(e)
                     await db.commit()
+
+                    # Emit SSE event for failure
+                    await sse_manager.emit_document_update(
+                        document_id=UUID(document_id),
+                        space_id=document.space_id,
+                        event="status_update",
+                        data={
+                            "status": document.status,
+                            "updated_at": datetime.now(UTC).isoformat(),
+                            "processing_error": str(e),
+                        },
+                    )
             except Exception as db_error:
                 logger.exception(f"Error updating document status after failure: {db_error}")
 
