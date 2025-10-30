@@ -59,7 +59,7 @@ class Document(Base):
     doc_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Processing timestamps
-    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 

@@ -1,7 +1,11 @@
 """Document upload and management API endpoints."""
 
+import asyncio
+import io
+import json
 from typing import Annotated
-from uuid import UUID, uuid4
+from uuid import UUID as PyUUID
+from uuid import uuid4
 
 from fastapi import (
     APIRouter,
@@ -13,12 +17,17 @@ from fastapi import (
     Request,
     UploadFile,
 )
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sse_starlette.sse import EventSourceResponse
 
+from app.auth.jwt_handler import jwt_manager
 from app.db.session import get_session
 from app.models import Document, DocumentStatus, Space, User
 from app.services.document_processor import process_document_background
+from app.services.permissions import permission_service
+from app.services.sse_manager import sse_manager
 from app.services.storage_service import get_storage_service
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
@@ -51,7 +60,7 @@ async def upload_document(
 
     # Validate space_id format
     try:
-        space_uuid = UUID(space_id)
+        space_uuid = PyUUID(space_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid space_id format")
 
@@ -62,8 +71,11 @@ async def upload_document(
     if not space:
         raise HTTPException(status_code=404, detail="Space not found")
 
-    # TODO: Check if user has permission to upload to this space
-    # For now, we'll allow any authenticated user
+    # Check if user has permission to upload to this space
+    if not await permission_service.can_upload_to_space(user, space_uuid, db):
+        raise HTTPException(
+            status_code=403, detail="You do not have permission to upload to this space"
+        )
 
     # Generate document ID
     document_id = uuid4()
@@ -141,7 +153,7 @@ async def get_document(
 
     # Parse document_id
     try:
-        doc_uuid = UUID(document_id)
+        doc_uuid = PyUUID(document_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid document_id format")
 
@@ -152,7 +164,11 @@ async def get_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # TODO: Verify user has access to document's space
+    # Verify user has access to document's space
+    if not await permission_service.can_access_space(user, PyUUID(str(document.space_id)), db):
+        raise HTTPException(
+            status_code=403, detail="You do not have access to this document's space"
+        )
 
     return {
         "id": str(document.id),
@@ -194,7 +210,7 @@ async def delete_document(
 
     # Parse document_id
     try:
-        doc_uuid = UUID(document_id)
+        doc_uuid = PyUUID(document_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid document_id format")
 
@@ -205,7 +221,13 @@ async def delete_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # TODO: Verify user has permission to delete
+    # Verify user has permission to delete
+    if not await permission_service.can_delete_from_space(
+        user, PyUUID(str(document.space_id)), db
+    ):
+        raise HTTPException(
+            status_code=403, detail="You do not have permission to delete this document"
+        )
 
     # Delete file from storage
     try:
@@ -219,6 +241,61 @@ async def delete_document(
     await db.commit()
 
     return {"message": "Document deleted successfully", "id": document_id}
+
+
+@router.get("/{document_id}/download")
+async def download_document(
+    document_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_session),
+) -> StreamingResponse:
+    """
+    Download a document file.
+
+    Args:
+        document_id: UUID of the document
+
+    Returns:
+        File content as streaming response
+    """
+    # Get authenticated user
+    user: User | None = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # Parse document_id
+    try:
+        doc_uuid = PyUUID(document_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid document_id format")
+
+    # Get document
+    result = await db.execute(select(Document).where(Document.id == doc_uuid))
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Verify user has access to document's space
+    if not await permission_service.can_access_space(user, PyUUID(str(document.space_id)), db):
+        raise HTTPException(
+            status_code=403, detail="You do not have access to this document's space"
+        )
+
+    # Download file from storage
+    try:
+        file_content = await get_storage_service().download_file(document.file_path)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+
+    # Return as streaming response
+    return StreamingResponse(
+        io.BytesIO(file_content),
+        media_type=document.file_type or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{document.name}"'},
+    )
 
 
 @router.get("")
@@ -247,7 +324,7 @@ async def list_documents(
     # Filter by space if provided
     if space_id:
         try:
-            space_uuid = UUID(space_id)
+            space_uuid = PyUUID(space_id)
             query = query.where(Document.space_id == space_uuid)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid space_id format")
@@ -273,3 +350,112 @@ async def list_documents(
         ],
         "total": len(documents),
     }
+
+
+@router.get("/stream/{space_id}")
+async def stream_document_updates(
+    space_id: str,
+    token: str,
+    request: Request,
+    db: AsyncSession = Depends(get_session),
+):
+    """
+    Server-Sent Events (SSE) endpoint for real-time document status updates.
+
+    Streams document processing status changes for all documents in a space.
+    Clients can listen to this endpoint to receive real-time updates without polling.
+
+    Args:
+        space_id: UUID of the space to watch
+        token: Short-lived SSE token (from /auth/sse-token endpoint)
+        request: FastAPI request object
+
+    Returns:
+        EventSourceResponse streaming document updates
+
+    Event format:
+        {
+            "event": "status_update",
+            "document_id": "uuid",
+            "data": {
+                "status": "processing|processed|failed",
+                "updated_at": "ISO timestamp",
+                "processing_error": "error message if failed"
+            }
+        }
+
+    Security:
+        Requires a short-lived token (5-minute TTL) obtained from /auth/sse-token
+        This prevents token leakage in URLs while maintaining EventSource compatibility.
+    """
+    # Validate short-lived SSE token
+    payload = jwt_manager.verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired SSE token")
+
+    # Get user from token payload
+    user_id = PyUUID(payload.get("sub"))
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    # Validate space_id format
+    try:
+        space_uuid = PyUUID(space_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid space_id format")
+
+    # Verify space exists and user has access
+    result = await db.execute(select(Space).where(Space.id == space_uuid))
+    space = result.scalar_one_or_none()
+
+    if not space:
+        raise HTTPException(status_code=404, detail="Space not found")
+
+    # Check if user has permission to access this space
+    if not await permission_service.can_access_space(user, space_uuid, db):
+        raise HTTPException(
+            status_code=403, detail="You do not have access to this space"
+        )
+
+    # Subscribe to space updates
+    queue = sse_manager.subscribe_to_space(space_uuid)
+
+    async def event_generator():
+        """Generate SSE events from the queue."""
+        try:
+            # Send initial connection event
+            yield {
+                "event": "connected",
+                "data": json.dumps({"space_id": str(space_uuid)}),
+            }
+
+            # Stream events from queue
+            while True:
+                # Check if client disconnected
+                if await request.is_disconnected():
+                    break
+
+                try:
+                    # Wait for next event with timeout
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+
+                    # Send event to client
+                    yield {
+                        "event": message["event"],
+                        "data": json.dumps(message),
+                    }
+                except asyncio.TimeoutError:
+                    # Send heartbeat to keep connection alive
+                    yield {
+                        "event": "heartbeat",
+                        "data": json.dumps({"timestamp": "now"}),
+                    }
+
+        finally:
+            # Clean up subscription when client disconnects
+            sse_manager.unsubscribe_from_space(space_uuid, queue)
+
+    return EventSourceResponse(event_generator())

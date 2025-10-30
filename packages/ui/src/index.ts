@@ -1,5 +1,18 @@
 // Components
 export { Alert, AlertDescription, AlertTitle } from './components/alert';
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './components/alert-dialog';
 export { AnimatedPageLoader } from './components/animated-page-loader';
 export { Avatar, AvatarFallback, AvatarImage } from './components/avatar';
 export { Badge, type BadgeProps } from './components/badge';
