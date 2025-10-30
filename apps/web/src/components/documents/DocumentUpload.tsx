@@ -1,12 +1,5 @@
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@olympus/ui';
 import { useUploadDocument } from '@/hooks/useDocuments';
 import { useCallback, useState } from 'react';
 import { DocumentUploadDropZone } from './DocumentUploadDropZone';
@@ -180,31 +173,22 @@ export function DocumentUpload({
   const isUploading = files.some((f) => f.status === 'uploading');
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upload Documents</CardTitle>
-        <CardDescription>
-          Drag and drop files or click to browse. Maximum {maxFiles} files,{' '}
-          {maxSizeMB}MB each.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <DocumentUploadDropZone
-          isDragging={isDragging}
-          isUploading={isUploading}
-          acceptedFileTypes={acceptedFileTypes}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onFileInput={handleFileInput}
-        />
+    <div className="space-y-4">
+      <DocumentUploadDropZone
+        isDragging={isDragging}
+        isUploading={isUploading}
+        acceptedFileTypes={acceptedFileTypes}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onFileInput={handleFileInput}
+      />
 
-        <DocumentUploadFileList
-          files={filesWithProgress}
-          onRetry={retryUpload}
-          onRemove={removeFile}
-        />
-      </CardContent>
-    </Card>
+      <DocumentUploadFileList
+        files={filesWithProgress}
+        onRetry={retryUpload}
+        onRemove={removeFile}
+      />
+    </div>
   );
 }

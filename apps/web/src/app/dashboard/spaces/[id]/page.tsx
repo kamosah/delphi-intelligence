@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { useDocuments } from '@/hooks/useDocuments';
+import { useDocumentSSE } from '@/hooks/useDocumentSSE';
 import {
   Card,
   CardContent,
@@ -17,6 +18,9 @@ export default function SpaceDetailPage() {
   const spaceId = params.id as string;
 
   const { documents, isLoading } = useDocuments(spaceId);
+
+  // Subscribe to real-time document status updates via SSE
+  useDocumentSSE(spaceId);
 
   return (
     <div className="space-y-6">

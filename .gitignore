@@ -133,3 +133,8 @@ docs/visual-references/**/*.jpeg
 
 # Design research assets - keep out of git
 docs/design-research/
+
+# AI agent instructions - keep local only
+.github/copilot-instructions.md
+WARP.md
+.mcp.json

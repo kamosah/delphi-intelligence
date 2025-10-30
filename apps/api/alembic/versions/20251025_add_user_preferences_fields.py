@@ -21,10 +21,10 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '20251025_add_user_prefs'
-down_revision: Union[str, Sequence[str], None] = '20251025_remove_joined_at'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = '20251025_add_user_prefs'  # noqa: F841
+down_revision: Union[str, Sequence[str], None] = '20251025_remove_joined_at'  # noqa: F841
+branch_labels: Union[str, Sequence[str], None] = None  # noqa: F841
+depends_on: Union[str, Sequence[str], None] = None  # noqa: F841
 
 
 def upgrade() -> None:

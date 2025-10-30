@@ -7,6 +7,7 @@ interface DocumentActionsProps {
   onDelete: () => void;
   onDownload?: () => void;
   isDeleting?: boolean;
+  isDownloading?: boolean;
 }
 
 /**
@@ -17,6 +18,7 @@ export function DocumentActions({
   onDelete,
   onDownload,
   isDeleting = false,
+  isDownloading = false,
 }: DocumentActionsProps) {
   return (
     <div className="flex items-center gap-2">
@@ -24,6 +26,7 @@ export function DocumentActions({
         variant="ghost"
         size="sm"
         onClick={onDownload}
+        disabled={isDownloading}
         className="text-gray-600 hover:text-gray-900"
         title="Download document"
       >

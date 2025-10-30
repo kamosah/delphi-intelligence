@@ -144,7 +144,7 @@ class Query:
             if not user:
                 return []
 
-            user_id = UUID(str(user["id"]))
+            user_id = user.id
 
             # Get spaces where user is owner or member
             # Relationships are eager loaded via lazy='selectin' in model
@@ -184,7 +184,7 @@ class Query:
                 if not user:
                     return None
 
-                user_id = UUID(str(user["id"]))
+                user_id = user.id
                 space_id = UUID(str(id))
 
                 # Get space and verify user has access (owner or member)

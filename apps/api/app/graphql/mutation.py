@@ -124,7 +124,7 @@ class Mutation:
                     msg = "Authentication required to create a space"
                     raise ValueError(msg)
 
-                user_id = UUID(str(user["id"]))
+                user_id = user.id
 
                 # Generate unique slug from space name
                 slug = await generate_unique_slug(input.name, session, SpaceModel)
@@ -208,7 +208,7 @@ class Mutation:
                 if not user:
                     return None
 
-                user_id = UUID(str(user["id"]))
+                user_id = user.id
                 space_id = UUID(str(id))
 
                 # Get space
@@ -283,7 +283,7 @@ class Mutation:
                 if not user:
                     return False
 
-                user_id = UUID(str(user["id"]))
+                user_id = user.id
                 space_id = UUID(str(id))
 
                 # Get space

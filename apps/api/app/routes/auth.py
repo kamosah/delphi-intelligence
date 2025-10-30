@@ -2,7 +2,11 @@
 Authentication routes for user registration, login, and token management
 """
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import timedelta
+from app.auth.jwt_handler import jwt_manager
 
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
@@ -182,3 +186,45 @@ async def exchange_token(data: dict[str, str]) -> TokenResponse:
             status_code=status.HTTP_400_BAD_REQUEST, detail="supabase_token is required"
         )
     return await get_auth_service().exchange_supabase_token(supabase_token)
+
+
+@router.post("/sse-token")
+async def get_sse_token(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str | int]:
+    """
+    Exchange access token for a short-lived SSE connection token.
+
+    This endpoint creates a single-use token with 5-minute TTL specifically
+    for Server-Sent Events connections. This allows SSE to work with EventSource
+    API which doesn't support custom headers.
+
+    Args:
+        current_user: Authenticated user dict from JWT token
+
+    Returns:
+        Dictionary with short-lived SSE token and expiry time
+
+    Security:
+        - Token expires in 5 minutes
+        - Token can only be used for SSE connections
+        - Reduces exposure window compared to long-lived tokens
+    """
+
+    # Token data
+    token_data = {
+        "sub": current_user.get("id"),
+        "email": current_user.get("email"),
+    }
+
+    # Create short-lived token (5 minutes)
+    sse_token_expiry = timedelta(minutes=5)  # Short TTL for security
+    sse_token = jwt_manager.create_access_token(
+        data=token_data,
+        expires_delta=sse_token_expiry,
+    )
+
+    return {
+        "sse_token": sse_token,
+        "expires_in": int(sse_token_expiry.total_seconds()),  # Calculate from timedelta
+    }
