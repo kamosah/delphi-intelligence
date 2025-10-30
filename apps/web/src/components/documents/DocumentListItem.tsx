@@ -23,6 +23,7 @@ interface DocumentListItemProps {
   onDelete: (documentId: string) => void;
   onDownload?: (documentId: string) => void;
   isDeleting?: boolean;
+  isDownloading?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export function DocumentListItem({
   onDelete,
   onDownload,
   isDeleting = false,
+  isDownloading = false,
 }: DocumentListItemProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -83,6 +85,7 @@ export function DocumentListItem({
             onDelete={handleDeleteClick}
             onDownload={handleDownload}
             isDeleting={isDeleting}
+            isDownloading={isDownloading}
           />
         </div>
       </div>

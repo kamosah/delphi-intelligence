@@ -388,8 +388,14 @@ async def stream_document_updates(
         }
 
     Security:
-        Requires a short-lived token (5-minute TTL) obtained from /auth/sse-token
-        This prevents token leakage in URLs while maintaining EventSource compatibility.
+        Requires a short-lived token (5-minute TTL) obtained from /auth/sse-token.
+
+        Token is passed as a query parameter due to EventSource API limitations
+        (EventSource doesn't support custom headers). This means tokens may be logged
+        in server access logs and browser history. Risk is mitigated by:
+        - Short 5-minute TTL limits exposure window
+        - Token is single-purpose (SSE connections only)
+        - Regular token rotation via /auth/sse-token endpoint
     """
     # Validate short-lived SSE token
     payload = jwt_manager.verify_token(token)

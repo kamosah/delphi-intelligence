@@ -11,6 +11,29 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 /**
+ * Sanitize a filename to remove potentially problematic characters.
+ * Removes path traversal sequences and special characters that could cause issues.
+ *
+ * @param filename - The filename to sanitize
+ * @returns Sanitized filename safe for download attribute
+ */
+function sanitizeFilename(filename: string): string {
+  return (
+    filename
+      // Remove path traversal sequences
+      .replace(/\.\./g, '')
+      // Remove path separators
+      .replace(/[/\\]/g, '_')
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Remove control characters
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Trim whitespace
+      .trim() || 'download'
+  ); // Fallback to 'download' if filename becomes empty
+}
+
+/**
  * React Query hook for uploading documents with progress tracking.
  *
  * @example
@@ -215,7 +238,7 @@ export function useDownloadDocument() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = fileName;
+      link.download = sanitizeFilename(fileName); // Sanitize filename for security
       document.body.appendChild(link);
       link.click();
 

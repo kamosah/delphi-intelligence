@@ -12,10 +12,10 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '5b44e667b3ee'
-down_revision: Union[str, Sequence[str], None] = '20251023_add_timestamps'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = '5b44e667b3ee'  # noqa: F841
+down_revision: Union[str, Sequence[str], None] = '20251023_add_timestamps'  # noqa: F841
+branch_labels: Union[str, Sequence[str], None] = None  # noqa: F841
+depends_on: Union[str, Sequence[str], None] = None  # noqa: F841
 
 
 def upgrade() -> None:
