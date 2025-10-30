@@ -1,5 +1,6 @@
 """Permission checking service for access control."""
 
+from typing import Union
 from uuid import UUID
 
 from sqlalchemy import select

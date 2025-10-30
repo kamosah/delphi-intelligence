@@ -8,6 +8,9 @@ from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
+# SSE configuration constants
+SSE_QUEUE_MAX_SIZE = 100  # Maximum number of queued messages per connection
+
 
 class SSEManager:
     """Manages Server-Sent Events connections and broadcasts."""
@@ -29,7 +32,7 @@ class SSEManager:
         Returns:
             Queue that will receive document status updates
         """
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue(maxsize=SSE_QUEUE_MAX_SIZE)
         self._document_queues[document_id].append(queue)
         logger.info(f"Client subscribed to document {document_id}")
         return queue
@@ -44,7 +47,7 @@ class SSEManager:
         Returns:
             Queue that will receive document status updates for the space
         """
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue(maxsize=SSE_QUEUE_MAX_SIZE)
         self._space_queues[space_id].append(queue)
         logger.info(f"Client subscribed to space {space_id}")
         return queue
@@ -64,6 +67,7 @@ class SSEManager:
                     del self._document_queues[document_id]
                 logger.info(f"Client unsubscribed from document {document_id}")
             except ValueError:
+                # Queue was already removed during concurrent cleanup
                 pass
 
     def unsubscribe_from_space(self, space_id: UUID, queue: asyncio.Queue) -> None:
@@ -81,6 +85,7 @@ class SSEManager:
                     del self._space_queues[space_id]
                 logger.info(f"Client unsubscribed from space {space_id}")
             except ValueError:
+                # Queue was already removed during concurrent cleanup
                 pass
 
     async def emit_document_update(
@@ -104,7 +109,7 @@ class SSEManager:
                 try:
                     await queue.put(message)
                 except Exception:
-                    logger.exception("Failed to send to document queue")
+                    logger.exception(f"Failed to send to document queue for document {document_id}")
                     dead_queues.append(queue)
 
             # Clean up dead queues
@@ -118,7 +123,7 @@ class SSEManager:
                 try:
                     await queue.put(message)
                 except Exception:
-                    logger.exception("Failed to send to space queue")
+                    logger.exception(f"Failed to send to space queue for space {space_id}")
                     dead_queues.append(queue)
 
             # Clean up dead queues

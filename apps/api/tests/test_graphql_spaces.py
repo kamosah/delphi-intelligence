@@ -39,10 +39,11 @@ def auth_headers():
 @pytest.fixture()
 def mock_auth(mock_user):
     """Setup complete auth mocking for middleware and GraphQL"""
-    with patch("app.middleware.auth.get_session_factory") as mock_get_session_factory, \
-         patch("app.middleware.auth.jwt_manager.verify_token") as mock_verify_token, \
-         patch("app.middleware.auth.redis_manager.is_token_blacklisted") as mock_is_blacklisted:
-
+    with (
+        patch("app.middleware.auth.get_session_factory") as mock_get_session_factory,
+        patch("app.middleware.auth.jwt_manager.verify_token") as mock_verify_token,
+        patch("app.middleware.auth.redis_manager.is_token_blacklisted") as mock_is_blacklisted,
+    ):
         # Mock JWT verification
         mock_verify_token.return_value = {
             "sub": str(mock_user.id),
@@ -62,6 +63,7 @@ def mock_auth(mock_user):
         # Mock Redis blacklist check
         async def mock_blacklist_check(token):
             return False
+
         mock_is_blacklisted.side_effect = mock_blacklist_check
 
         yield {
