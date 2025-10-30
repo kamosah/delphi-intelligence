@@ -3,6 +3,7 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
+from uuid import UUID as PyUUID
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -32,7 +33,7 @@ class Document(Base):
     __tablename__ = "documents"
 
     # Document identification
-    space_id: Mapped[UUID] = mapped_column(
+    space_id: Mapped[PyUUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False, index=True
     )
 

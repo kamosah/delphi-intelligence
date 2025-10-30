@@ -3,7 +3,9 @@
 import asyncio
 import io
 import json
-from typing import Annotated, Any, AsyncGenerator
+from datetime import UTC, datetime
+from typing import Annotated, Any
+from collections.abc import AsyncGenerator
 from uuid import UUID as PyUUID  # noqa: N811
 from uuid import uuid4
 
@@ -31,6 +33,9 @@ from app.services.sse_manager import sse_manager
 from app.services.storage_service import get_storage_service
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
+
+# SSE configuration constants
+SSE_HEARTBEAT_INTERVAL = 30.0  # seconds - how often to send heartbeat when no events
 
 
 @router.post("")
@@ -165,7 +170,7 @@ async def get_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Verify user has access to document's space
-    if not await permission_service.can_access_space(user, PyUUID(str(document.space_id)), db):
+    if not await permission_service.can_access_space(user, document.space_id, db):
         raise HTTPException(
             status_code=403, detail="You do not have access to this document's space"
         )
@@ -222,7 +227,7 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Verify user has permission to delete
-    if not await permission_service.can_delete_from_space(user, PyUUID(str(document.space_id)), db):
+    if not await permission_service.can_delete_from_space(user, document.space_id, db):
         raise HTTPException(
             status_code=403, detail="You do not have permission to delete this document"
         )
@@ -275,7 +280,7 @@ async def download_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Verify user has access to document's space
-    if not await permission_service.can_access_space(user, PyUUID(str(document.space_id)), db):
+    if not await permission_service.can_access_space(user, document.space_id, db):
         raise HTTPException(
             status_code=403, detail="You do not have access to this document's space"
         )
@@ -436,7 +441,7 @@ async def stream_document_updates(
 
                 try:
                     # Wait for next event with timeout
-                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    message = await asyncio.wait_for(queue.get(), timeout=SSE_HEARTBEAT_INTERVAL)
 
                     # Send event to client
                     yield {
@@ -447,7 +452,7 @@ async def stream_document_updates(
                     # Send heartbeat to keep connection alive
                     yield {
                         "event": "heartbeat",
-                        "data": json.dumps({"timestamp": "now"}),
+                        "data": json.dumps({"timestamp": datetime.now(UTC).isoformat()}),
                     }
 
         finally:

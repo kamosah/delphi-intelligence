@@ -7,6 +7,11 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// SSE configuration constants
+const SSE_TOKEN_REFRESH_BUFFER = 30; // seconds - refresh token before expiry
+const SSE_RECONNECT_DELAY = 2000; // milliseconds - delay before reconnect on error
+const SSE_ERROR_RETRY_DELAY = 5000; // milliseconds - delay before retry on connection error
+
 interface SSEMessage {
   event: string;
   document_id: string;
@@ -125,7 +130,7 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
 
         // Handle heartbeat events (keep-alive)
         eventSource.addEventListener('heartbeat', () => {
-          // console.log('[SSE] Heartbeat received');
+          // Silent - heartbeats keep connection alive
         });
 
         // Handle errors
@@ -143,14 +148,14 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
             if (!isCancelled) {
               reconnectTimeoutRef.current = setTimeout(() => {
                 connectSSE();
-              }, 2000); // 2 second delay before reconnect
+              }, SSE_RECONNECT_DELAY);
             }
           }
         });
 
         // Step 3: Schedule token refresh before expiry
-        // Refresh 30 seconds before expiry (expires_in is 300 seconds = 5 minutes)
-        const refreshDelay = (expires_in - 30) * 1000;
+        // Refresh before expiry (expires_in is 300 seconds = 5 minutes)
+        const refreshDelay = (expires_in - SSE_TOKEN_REFRESH_BUFFER) * 1000;
         reconnectTimeoutRef.current = setTimeout(() => {
           if (!isCancelled && eventSource.readyState !== EventSource.CLOSED) {
             console.log('[SSE] Refreshing SSE token...');
@@ -167,7 +172,7 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
         if (!isCancelled) {
           reconnectTimeoutRef.current = setTimeout(() => {
             connectSSE();
-          }, 5000); // 5 second delay on error
+          }, SSE_ERROR_RETRY_DELAY);
         }
       }
     }
