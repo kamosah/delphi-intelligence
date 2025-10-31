@@ -1,5 +1,6 @@
 """GraphQL query resolvers."""
 
+import logging
 from uuid import UUID
 
 from sqlalchemy import select
@@ -11,6 +12,8 @@ from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
 from .types import SearchDocumentsInput, SearchResult, Space, User
+
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
@@ -65,9 +68,12 @@ class Query:
         return "GraphQL API is healthy!"
 
     @strawberry.field
-    async def search_documents(self, input: SearchDocumentsInput) -> list[SearchResult]:
+    async def search_documents(self, info: strawberry.types.Info, input: SearchDocumentsInput) -> list[SearchResult]:
         """
         Perform semantic search across document chunks.
+
+        Automatically filters results to only include documents from spaces
+        the authenticated user has access to (owner or member).
 
         Args:
             input: Search parameters including query text and filters
@@ -98,6 +104,16 @@ class Query:
             }
         """
         async for session in get_session():
+            # Get the authenticated user from the request context
+            request = info.context["request"]
+            user = getattr(request.state, "user", None)
+
+            if not user:
+                # No authenticated user - return empty results
+                return []
+
+            user_id = user.id
+
             # Get vector search service
             search_service = get_vector_search_service()
 
@@ -107,15 +123,36 @@ class Query:
                 [UUID(str(doc_id)) for doc_id in input.document_ids] if input.document_ids else None
             )
 
-            # Perform search
+            # If no specific space_id provided, get all spaces user has access to
+            space_ids = None
+            if space_id is None:
+                # Get spaces where user is owner or member
+                stmt = (
+                    select(SpaceModel.id)
+                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                    .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    .distinct()
+                )
+                result = await session.execute(stmt)
+                space_ids = [row[0] for row in result.all()]
+                logger.info(f"User {user_id} has access to {len(space_ids)} spaces: {space_ids}")
+
+            # Perform search with access control
+            logger.info(
+                f"searchDocuments: query='{input.query[:50]}...', "
+                f"space_id={space_id}, space_ids={space_ids}, "
+                f"document_ids={document_ids}, limit={input.limit}, threshold={input.similarity_threshold}"
+            )
             results = await search_service.search_similar_chunks(
                 query=input.query,
                 db=session,
                 space_id=space_id,
+                space_ids=space_ids,
                 document_ids=document_ids,
                 limit=input.limit,
                 similarity_threshold=input.similarity_threshold,
             )
+            logger.info(f"searchDocuments returned {len(results)} results")
 
             # Convert service results to GraphQL types
             return [SearchResult.from_service_result(result) for result in results]

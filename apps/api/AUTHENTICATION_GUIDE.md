@@ -257,6 +257,127 @@ Set `DEBUG=true` in `.env` to enable:
 - API documentation at `/docs`
 - GraphQL playground at `/graphql`
 
+## Using Authentication in Development Tools
+
+### Swagger UI (/docs)
+
+The Swagger UI provides built-in support for Bearer token authentication:
+
+1. **Login to get tokens**:
+   ```bash
+   curl -X POST "http://localhost:8000/auth/login" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "user@example.com",
+       "password": "securepassword123"
+     }'
+   ```
+
+2. **Copy the `access_token` from the response**
+
+3. **In Swagger UI** (`http://localhost:8000/docs`):
+   - Click the **"Authorize"** button (🔒 icon) at the top right
+   - Enter your token in the format: `Bearer YOUR_ACCESS_TOKEN`
+   - Or just paste `YOUR_ACCESS_TOKEN` (Swagger adds "Bearer" automatically)
+   - Click **"Authorize"**
+   - Click **"Close"**
+
+4. **All subsequent requests** in Swagger UI will now include the Authorization header automatically
+
+5. **To logout**: Click "Authorize" again and click "Logout"
+
+### GraphiQL Interface (/graphql)
+
+GraphiQL requires manual header configuration:
+
+1. **Login to get tokens** (same as above):
+   ```bash
+   curl -X POST "http://localhost:8000/auth/login" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "user@example.com",
+       "password": "securepassword123"
+     }'
+   ```
+
+2. **Copy the `access_token` from the response**
+
+3. **In GraphiQL** (`http://localhost:8000/graphql`):
+   - Click the **"Headers"** button at the bottom left (below the query editor)
+   - Add the Authorization header in JSON format:
+     ```json
+     {
+       "Authorization": "Bearer YOUR_ACCESS_TOKEN"
+     }
+     ```
+
+4. **Test authentication** with this query:
+   ```graphql
+   query {
+     me {
+       id
+       email
+       fullName
+       role
+     }
+   }
+   ```
+
+5. **All subsequent GraphQL queries** will use this header until you clear it or refresh the page
+
+### Quick Test Script
+
+Create a test user and login in one go:
+
+```bash
+# Register user
+curl -X POST "http://localhost:8000/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "TestPassword123!",
+    "full_name": "Test User"
+  }'
+
+# Login and extract token (requires jq)
+TOKEN=$(curl -s -X POST "http://localhost:8000/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "TestPassword123!"
+  }' | jq -r '.access_token')
+
+echo "Your access token:"
+echo $TOKEN
+
+# Test authenticated endpoint
+curl -X GET "http://localhost:8000/auth/me" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Important Notes
+
+- **Debug mode required**: Both `/docs` and `/graphql` are only available when `DEBUG=true` in your `.env` file
+- **Token expiration**: Access tokens expire after 24 hours (configurable via `JWT_EXPIRATION_HOURS`)
+- **Token refresh**: Use the `/auth/refresh` endpoint with your `refresh_token` to get a new access token
+- **Security**: The middleware automatically validates tokens and checks the Redis blacklist for revoked tokens
+
+### Troubleshooting Authentication in Dev Tools
+
+**"Unauthorized" errors in Swagger/GraphiQL**:
+- Verify your token hasn't expired (check response from `/auth/login` for `expires_in`)
+- Ensure the token format is correct: `Bearer YOUR_TOKEN`
+- Check Redis is running: `docker compose ps` (must show redis as "Up")
+- Verify JWT_SECRET matches between token creation and verification
+
+**"Token has been revoked" errors**:
+- The token was blacklisted after logout
+- Login again to get a fresh token
+
+**"User not found" errors**:
+- The user was deleted from the database
+- Register a new user or restore the deleted user
+
 ## Next Steps
 
 - [ ] Implement email verification flow

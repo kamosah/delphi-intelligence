@@ -1,7 +1,7 @@
 'use client';
 
-import { Button, Progress } from '@olympus/ui';
-import { File, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Alert, AlertDescription, Button, Progress } from '@olympus/ui';
+import { AlertCircle, CheckCircle2, File, X } from 'lucide-react';
 
 export interface FileUploadState {
   file: File;
@@ -54,8 +54,13 @@ export function DocumentUploadFileItem({
           </div>
         )}
 
-        {fileState.status === 'error' && (
-          <p className="text-xs text-red-500 mt-1">{fileState.error}</p>
+        {fileState.status === 'error' && fileState.error && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              {fileState.error}
+            </AlertDescription>
+          </Alert>
         )}
       </div>
 
