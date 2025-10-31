@@ -1,7 +1,13 @@
 'use client';
 
 import { useUploadDocument } from '@/hooks/useDocuments';
+import {
+  getValidationErrorMessage,
+  parseUploadError,
+  validateFilename,
+} from '@/lib/utils/error-parser';
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 import { DocumentUploadDropZone } from './DocumentUploadDropZone';
 import { DocumentUploadFileList } from './DocumentUploadFileList';
 import type { FileUploadState } from './DocumentUploadFileItem';
@@ -79,14 +85,23 @@ export function DocumentUpload({
 
         onUploadComplete?.(result.id);
       } catch (error) {
+        const userMessage = parseUploadError(
+          error instanceof Error ? error : new Error('Unknown error')
+        );
+
+        // Show toast notification
+        toast.error('Upload failed', {
+          description: `${fileState.file.name}: ${userMessage}`,
+          duration: 5000,
+        });
+
         setFiles((prev) =>
           prev.map((f) =>
             f.id === fileState.id
               ? {
                   ...f,
                   status: 'error',
-                  error:
-                    error instanceof Error ? error.message : 'Upload failed',
+                  error: userMessage,
                 }
               : f
           )
@@ -98,8 +113,9 @@ export function DocumentUpload({
 
   const addFiles = useCallback(
     (newFiles: File[]) => {
+      // Check file count limit
       if (files.length + newFiles.length > maxFiles) {
-        alert(`Maximum ${maxFiles} files allowed`);
+        toast.error(getValidationErrorMessage('count', { maxCount: maxFiles }));
         return;
       }
 
@@ -107,15 +123,33 @@ export function DocumentUpload({
       const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
       for (const file of newFiles) {
+        // Validate file size
         if (file.size > maxSizeBytes) {
-          alert(`File ${file.name} exceeds ${maxSizeMB}MB limit`);
+          toast.error(
+            getValidationErrorMessage('size', {
+              filename: file.name,
+              maxSize: maxSizeMB,
+            })
+          );
           continue;
         }
 
+        // Validate file type
         const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
         if (!acceptedFileTypes.includes(fileExtension)) {
-          alert(`File type ${fileExtension} not supported`);
+          toast.error(
+            getValidationErrorMessage('type', { filename: file.name })
+          );
           continue;
+        }
+
+        // Validate filename (check for emojis and special characters)
+        const filenameValidation = validateFilename(file.name);
+        if (!filenameValidation.valid && filenameValidation.message) {
+          // Show warning but still allow upload (backend will sanitize)
+          toast.warning(filenameValidation.message, {
+            description: file.name,
+          });
         }
 
         validFiles.push({

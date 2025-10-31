@@ -264,6 +264,48 @@ export type DeleteSpaceMutation = {
   deleteSpace: boolean;
 };
 
+export type SearchDocumentsQueryVariables = Exact<{
+  input: SearchDocumentsInput;
+}>;
+
+export type SearchDocumentsQuery = {
+  __typename?: 'Query';
+  searchDocuments: Array<{
+    __typename?: 'SearchResult';
+    similarityScore: number;
+    distance: number;
+    chunk: {
+      __typename?: 'DocumentChunk';
+      id: string;
+      documentId: string;
+      chunkText: string;
+      chunkIndex: number;
+      tokenCount: number;
+      startChar: number;
+      endChar: number;
+      chunkMetadata: any;
+      createdAt: string;
+    };
+    document: {
+      __typename?: 'Document';
+      id: string;
+      name: string;
+      fileType: string;
+      filePath: string;
+      sizeBytes: number;
+      status: string;
+      spaceId: string;
+      uploadedBy: string;
+      docMetadata?: any | null;
+      extractedText?: string | null;
+      processingError?: string | null;
+      processedAt?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>;
+};
+
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
@@ -512,6 +554,79 @@ useDeleteSpaceMutation.fetcher = (
 ) =>
   graphqlRequestFetcher<DeleteSpaceMutation, DeleteSpaceMutationVariables>(
     DeleteSpaceDocument,
+    variables,
+    options
+  );
+
+export const SearchDocumentsDocument = `
+    query SearchDocuments($input: SearchDocumentsInput!) {
+  searchDocuments(input: $input) {
+    chunk {
+      id
+      documentId
+      chunkText
+      chunkIndex
+      tokenCount
+      startChar
+      endChar
+      chunkMetadata
+      createdAt
+    }
+    document {
+      id
+      name
+      fileType
+      filePath
+      sizeBytes
+      status
+      spaceId
+      uploadedBy
+      docMetadata
+      extractedText
+      processingError
+      processedAt
+      createdAt
+      updatedAt
+    }
+    similarityScore
+    distance
+  }
+}
+    `;
+
+export const useSearchDocumentsQuery = <
+  TData = SearchDocumentsQuery,
+  TError = Error,
+>(
+  variables: SearchDocumentsQueryVariables,
+  options?: Omit<
+    UseQueryOptions<SearchDocumentsQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<SearchDocumentsQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<SearchDocumentsQuery, TError, TData>({
+    queryKey: ['SearchDocuments', variables],
+    queryFn: graphqlRequestFetcher<
+      SearchDocumentsQuery,
+      SearchDocumentsQueryVariables
+    >(SearchDocumentsDocument, variables),
+    ...options,
+  });
+};
+
+useSearchDocumentsQuery.getKey = (variables: SearchDocumentsQueryVariables) => [
+  'SearchDocuments',
+  variables,
+];
+
+useSearchDocumentsQuery.fetcher = (
+  variables: SearchDocumentsQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<SearchDocumentsQuery, SearchDocumentsQueryVariables>(
+    SearchDocumentsDocument,
     variables,
     options
   );

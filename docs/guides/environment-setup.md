@@ -63,15 +63,12 @@ These servers are automatically available when working in this project:
       "args": ["mcp-remote", "https://mcp.linear.app/sse"]
     },
     "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=mvqjahridaytxfsuzljy"
+    },
+    "github": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref=mvqjahridaytxfsuzljy"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_72251866901920fec086e4fc7ff81ff4993b3f17"
-      }
+      "args": ["-y", "@modelcontextprotocol/server-github"]
     }
   }
 }
@@ -82,12 +79,14 @@ These servers are automatically available when working in this project:
 - **shadcn**: Access to Shadcn UI component registry for adding/searching design system components
 - **linear**: Integration with Linear for issue tracking, project management, and task creation
 - **supabase**: Direct access to Supabase management API (database operations, auth, storage)
+- **github**: GitHub integration for PR management, issue tracking, and repository operations
 
 **Setup**:
 
 - **shadcn**: No additional configuration required
 - **linear**: Requires `LINEAR_API_KEY` environment variable
 - **supabase**: Configured with project-specific credentials
+- **github**: Automatically uses your GitHub authentication from Claude Code
 
 ### Global Servers (Recommended Setup)
 
@@ -137,14 +136,14 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
 ### Why Hybrid Configuration?
 
-| Configuration                      | Purpose                                                      | Location                           |
-| ---------------------------------- | ------------------------------------------------------------ | ---------------------------------- |
-| **Project-specific** (`.mcp.json`) | Tools specific to Olympus project (shadcn, linear, supabase) | Committed to git, shared with team |
-| **Global** (`~/.claude.json`)      | Universal tools (filesystem, memory, postgres, ide)          | Personal config with credentials   |
+| Configuration                      | Purpose                                                              | Location                           |
+| ---------------------------------- | -------------------------------------------------------------------- | ---------------------------------- |
+| **Project-specific** (`.mcp.json`) | Tools specific to Olympus project (shadcn, linear, supabase, github) | Committed to git, shared with team |
+| **Global** (`~/.claude.json`)      | Universal tools (filesystem, memory, postgres, ide)                  | Personal config with credentials   |
 
 **Benefits**:
 
-- ✅ Team members automatically get project-specific tools (shadcn, linear, supabase)
+- ✅ Team members automatically get project-specific tools (shadcn, linear, supabase, github)
 - ✅ Database credentials stay out of version control
 - ✅ Personal development setup (database, file paths) stays private
 - ✅ Universal tools (filesystem, memory) available across all projects
@@ -153,13 +152,15 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
 **For new team members**:
 
-1. Project-specific servers (shadcn, linear, supabase) work automatically
-2. Configure global servers in `~/.claude.json`:
+1. Project-specific servers (shadcn, linear, supabase, github) work automatically
+2. Set up required environment variables:
+   - Add `LINEAR_API_KEY` to your environment (get from Linear settings → API → Personal API keys)
+3. Configure global servers in `~/.claude.json`:
    - Add **postgres** with your local database connection string
    - Add **filesystem** with path to this repository
    - Add **memory** for knowledge graph (no configuration needed)
 
-3. Verify setup:
+4. Verify setup:
 
    ```bash
    # Test postgres connection
@@ -167,6 +168,9 @@ These servers should be configured in your **global Claude Code config** (`~/.cl
 
    # Test shadcn
    # Claude Code should be able to search/add components
+
+   # Test github
+   # Claude Code should be able to create PRs and manage issues
    ```
 
 ### Troubleshooting

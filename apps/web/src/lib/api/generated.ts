@@ -257,6 +257,48 @@ export type DeleteSpaceMutation = {
   deleteSpace: boolean;
 };
 
+export type SearchDocumentsQueryVariables = Exact<{
+  input: SearchDocumentsInput;
+}>;
+
+export type SearchDocumentsQuery = {
+  __typename?: 'Query';
+  searchDocuments: Array<{
+    __typename?: 'SearchResult';
+    similarityScore: number;
+    distance: number;
+    chunk: {
+      __typename?: 'DocumentChunk';
+      id: string;
+      documentId: string;
+      chunkText: string;
+      chunkIndex: number;
+      tokenCount: number;
+      startChar: number;
+      endChar: number;
+      chunkMetadata: any;
+      createdAt: string;
+    };
+    document: {
+      __typename?: 'Document';
+      id: string;
+      name: string;
+      fileType: string;
+      filePath: string;
+      sizeBytes: number;
+      status: string;
+      spaceId: string;
+      uploadedBy: string;
+      docMetadata?: any | null;
+      extractedText?: string | null;
+      processingError?: string | null;
+      processedAt?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>;
+};
+
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
