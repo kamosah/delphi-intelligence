@@ -184,3 +184,108 @@ class TestRedisManager:
         await manager.close()
 
         mock_client.close.assert_called_once()
+
+    @pytest.mark.asyncio()
+    async def test_store_sse_token_success(self, redis_manager):
+        """Test successful SSE token storage"""
+        manager, mock_client = redis_manager
+        mock_client.setex.return_value = True
+        mock_client.sadd.return_value = 1
+        mock_client.expire.return_value = True
+
+        token = "sse.token.here"
+        user_id = "user123"
+        expire = timedelta(minutes=5)
+        result = await manager.store_sse_token(token, user_id, expire)
+
+        assert result is True
+        mock_client.setex.assert_called_once_with(f"sse_token:{token}", expire, user_id)
+        mock_client.sadd.assert_called_once_with(f"sse_tokens_by_user:{user_id}", token)
+        mock_client.expire.assert_called_once_with(f"sse_tokens_by_user:{user_id}", expire)
+
+    @pytest.mark.asyncio()
+    async def test_store_sse_token_failure(self, redis_manager):
+        """Test SSE token storage failure"""
+        manager, mock_client = redis_manager
+        mock_client.setex.side_effect = Exception("Redis error")
+
+        token = "sse.token.here"
+        user_id = "user123"
+        result = await manager.store_sse_token(token, user_id)
+
+        assert result is False
+
+    @pytest.mark.asyncio()
+    async def test_verify_sse_token_success(self, redis_manager):
+        """Test successful SSE token verification"""
+        manager, mock_client = redis_manager
+        user_id = "user123"
+        mock_client.get.return_value = user_id
+
+        token = "sse.token.here"
+        result = await manager.verify_sse_token(token)
+
+        assert result == user_id
+        mock_client.get.assert_called_once_with(f"sse_token:{token}")
+
+    @pytest.mark.asyncio()
+    async def test_verify_sse_token_not_found(self, redis_manager):
+        """Test SSE token verification when token doesn't exist"""
+        manager, mock_client = redis_manager
+        mock_client.get.return_value = None
+
+        token = "nonexistent.token"
+        result = await manager.verify_sse_token(token)
+
+        assert result is None
+
+    @pytest.mark.asyncio()
+    async def test_revoke_sse_token_success(self, redis_manager):
+        """Test successful SSE token revocation"""
+        manager, mock_client = redis_manager
+        user_id = "user123"
+        mock_client.get.return_value = user_id
+        mock_client.delete.return_value = 1
+        mock_client.srem.return_value = 1
+
+        token = "sse.token.here"
+        result = await manager.revoke_sse_token(token)
+
+        assert result is True
+        mock_client.get.assert_called_once_with(f"sse_token:{token}")
+        mock_client.delete.assert_called_once_with(f"sse_token:{token}")
+        mock_client.srem.assert_called_once_with(f"sse_tokens_by_user:{user_id}", token)
+
+    @pytest.mark.asyncio()
+    async def test_revoke_all_sse_tokens_success(self, redis_manager):
+        """Test successful revocation of all SSE tokens for a user"""
+        manager, mock_client = redis_manager
+        user_id = "user123"
+        tokens = {"token1", "token2", "token3"}
+        mock_client.smembers.return_value = tokens
+        mock_client.delete.return_value = 3
+
+        result = await manager.revoke_all_sse_tokens(user_id)
+
+        assert result is True
+        mock_client.smembers.assert_called_once_with(f"sse_tokens_by_user:{user_id}")
+        # Verify delete was called for token keys (order doesn't matter for sets)
+        assert mock_client.delete.call_count == 2
+        # First call should be for the token keys
+        first_call_args = set(mock_client.delete.call_args_list[0][0])
+        expected_keys = {"sse_token:token1", "sse_token:token2", "sse_token:token3"}
+        assert first_call_args == expected_keys
+
+    @pytest.mark.asyncio()
+    async def test_revoke_all_sse_tokens_no_tokens(self, redis_manager):
+        """Test revoking SSE tokens when user has no tokens"""
+        manager, mock_client = redis_manager
+        user_id = "user123"
+        mock_client.smembers.return_value = set()
+        mock_client.delete.return_value = 1
+
+        result = await manager.revoke_all_sse_tokens(user_id)
+
+        assert result is True
+        # Only the user's token set should be deleted
+        mock_client.delete.assert_called_once_with(f"sse_tokens_by_user:{user_id}")

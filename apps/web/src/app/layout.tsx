@@ -1,6 +1,7 @@
 import { QueryProvider } from '@/lib/query/provider';
 import type { Metadata } from 'next';
 import { DM_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 import 'highlight.js/styles/atom-one-dark.css';
 
@@ -81,6 +82,7 @@ export default function RootLayout({
           <div id="root" className="min-h-screen">
             {children}
           </div>
+          <Toaster position="top-right" richColors duration={5000} />
         </QueryProvider>
       </body>
     </html>

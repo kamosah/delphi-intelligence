@@ -1,6 +1,7 @@
 {
   "extends": ["next/core-web-vitals", "plugin:storybook/recommended"],
   "rules": {
-    // Add custom rules as needed
+    // Disable quote escaping rule - modern JSX handles quotes fine
+    "react/no-unescaped-entities": "off"
   }
 }

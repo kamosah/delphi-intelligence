@@ -2,6 +2,7 @@
 Health check routes for API monitoring and status verification
 """
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -9,12 +10,15 @@ from fastapi import APIRouter, Depends
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("/")
 async def basic_health() -> dict[str, Any]:
     """Basic health check endpoint"""
+    logger.info("Health check requested - logging is working!")
     return {
         "status": "healthy",
         "service": "olympus-api",

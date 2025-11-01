@@ -1,0 +1,54 @@
+# ============================================
+# Document Query Operations
+# ============================================
+
+query GetDocuments($spaceId: ID, $limit: Int, $offset: Int) {
+  documents(spaceId: $spaceId, limit: $limit, offset: $offset) {
+    id
+    name
+    fileType
+    filePath
+    status
+    spaceId
+    uploadedBy
+    sizeBytes
+    processingError
+    processedAt
+    createdAt
+    updatedAt
+  }
+}
+
+query SearchDocuments($input: SearchDocumentsInput!) {
+  searchDocuments(input: $input) {
+    chunk {
+      id
+      documentId
+      chunkText
+      chunkIndex
+      tokenCount
+      startChar
+      endChar
+      chunkMetadata
+      createdAt
+    }
+    document {
+      id
+      name
+      fileType
+      filePath
+      sizeBytes
+      status
+      spaceId
+      uploadedBy
+      docMetadata
+      extractedText
+      processingError
+      processedAt
+      createdAt
+      updatedAt
+    }
+    similarityScore
+    distance
+  }
+}

@@ -5,6 +5,7 @@ import {
   type Document,
   type UploadDocumentRequest,
 } from '@/lib/api/documents-client';
+import { useGetDocumentsQuery } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -60,6 +61,33 @@ export function useUploadDocument() {
 
       const fileId = request.fileId || request.file.name;
 
+      // Optimistically add a placeholder document to show upload progress
+      const queryKey = queryKeys.documents.list(request.space_id);
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const placeholderDocument = {
+          id: `temp-${fileId}`,
+          name: request.file.name,
+          fileType: request.file.type || 'application/octet-stream',
+          filePath: '',
+          sizeBytes: request.file.size,
+          spaceId: request.space_id,
+          uploadedBy: '',
+          status: 'uploading' as const,
+          extractedText: null,
+          docMetadata: null,
+          processedAt: null,
+          processingError: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        return {
+          documents: [placeholderDocument, ...(oldData.documents || [])],
+        };
+      });
+
       return documentsApi.upload(request, accessToken, (progress) => {
         setUploadProgress((prev) => ({
           ...prev,
@@ -67,14 +95,19 @@ export function useUploadDocument() {
         }));
       });
     },
-    onSuccess: (data, variables) => {
-      // Invalidate document list for the space
+    onSuccess: (data: Document, variables) => {
+      // Keep placeholder visible and invalidate to fetch fresh data from GraphQL
+      // This prevents the document from disappearing between upload success and GraphQL refetch
+      const fileId = variables.fileId || variables.file.name;
+      const queryKey = queryKeys.documents.list(variables.space_id);
+
+      // Invalidate to fetch the real document from GraphQL
+      // The placeholder will be naturally replaced when new data arrives
       queryClient.invalidateQueries({
         queryKey: queryKeys.documents.list(variables.space_id),
       });
 
       // Clear progress for this file
-      const fileId = variables.fileId || variables.file.name;
       setUploadProgress((prev) => {
         const newProgress = { ...prev };
         delete newProgress[fileId];
@@ -82,8 +115,20 @@ export function useUploadDocument() {
       });
     },
     onError: (error, variables) => {
-      // Clear progress on error
+      // Remove placeholder on error
       const fileId = variables.fileId || variables.file.name;
+      const queryKey = queryKeys.documents.list(variables.space_id);
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const documents = (oldData.documents || []).filter(
+          (doc: any) => doc.id !== `temp-${fileId}`
+        );
+
+        return { documents };
+      });
+
+      // Clear progress on error
       setUploadProgress((prev) => {
         const newProgress = { ...prev };
         delete newProgress[fileId];
@@ -102,28 +147,34 @@ export function useUploadDocument() {
 }
 
 /**
- * React Query hook for listing documents in a space.
+ * React Query hook for listing documents in a space via GraphQL.
+ *
+ * Returns documents with camelCase fields (GraphQL convention).
  *
  * @example
  * const { documents, isLoading } = useDocuments(spaceId);
+ *
+ * @example
+ * const { documents, isLoading } = useDocuments(); // All accessible documents
  */
 export function useDocuments(spaceId?: string) {
   const { accessToken } = useAuthStore();
 
-  const query = useQuery({
-    queryKey: queryKeys.documents.list(spaceId || 'all'),
-    queryFn: async () => {
-      if (!accessToken) {
-        throw new Error('Authentication required');
-      }
-      return documentsApi.list(accessToken, spaceId);
+  const query = useGetDocumentsQuery(
+    {
+      spaceId: spaceId || null,
+      limit: 100,
+      offset: 0,
     },
-    enabled: !!accessToken,
-  });
+    {
+      enabled: !!accessToken,
+      queryKey: queryKeys.documents.list(spaceId || null),
+    }
+  );
 
   return {
     documents: query.data?.documents || [],
-    total: query.data?.total || 0,
+    total: query.data?.documents?.length || 0,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
