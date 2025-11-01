@@ -1,0 +1,7 @@
+# ============================================
+# Query Result Mutation Operations
+# ============================================
+
+mutation DeleteQueryResult($id: ID!) {
+  deleteQuery(id: $id)
+}

@@ -255,6 +255,15 @@ export type User = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type DeleteQueryResultMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type DeleteQueryResultMutation = {
+  __typename?: 'Mutation';
+  deleteQuery: boolean;
+};
+
 export type CreateSpaceMutationVariables = Exact<{
   input: CreateSpaceInput;
 }>;
@@ -381,6 +390,68 @@ export type SearchDocumentsQuery = {
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
+
+export type GetQueryResultsQueryVariables = Exact<{
+  spaceId: Scalars['ID']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetQueryResultsQuery = {
+  __typename?: 'Query';
+  queries: Array<{
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    sources?: any | null;
+    agentSteps?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetQueryResultQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type GetQueryResultQuery = {
+  __typename?: 'Query';
+  query?: {
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    sources?: any | null;
+    agentSteps?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
 
 export type GetSpacesQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
