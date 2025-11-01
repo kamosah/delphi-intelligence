@@ -300,6 +300,9 @@ class AuthService:
             # Revoke refresh token
             await redis_manager.revoke_refresh_token(user_id)
 
+            # Revoke all SSE tokens for this user
+            await redis_manager.revoke_all_sse_tokens(user_id)
+
             # Delete session
             await redis_manager.delete_session(f"session:{user_id}")
 
@@ -525,6 +528,13 @@ class AuthService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid or expired reset token",
                 )
+
+            # Revoke all SSE tokens for this user (security: force re-auth)
+            user_id = response.user.id
+            await redis_manager.revoke_all_sse_tokens(user_id)
+
+            # Also revoke refresh token to force re-login
+            await redis_manager.revoke_refresh_token(user_id)
 
             return True
 

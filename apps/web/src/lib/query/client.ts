@@ -60,7 +60,7 @@ export const queryKeys = {
   documents: {
     all: ['documents'] as const,
     lists: () => [...queryKeys.documents.all, 'list'] as const,
-    list: (spaceId: string, filters?: Record<string, any>) =>
+    list: (spaceId?: string | null, filters?: Record<string, any>) =>
       [...queryKeys.documents.lists(), spaceId, filters] as const,
     details: () => [...queryKeys.documents.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.documents.details(), id] as const,

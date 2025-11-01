@@ -129,6 +129,84 @@ Database switching is controlled via environment variables:
 
 See [Environment Setup Guide](./docs/guides/environment-setup.md) for configuration.
 
+### Vector Search & RAG Pipeline
+
+**Semantic Search Infrastructure** (pgvector + OpenAI Embeddings):
+
+The platform uses **pgvector** for semantic document search, enabling AI-powered retrieval based on meaning rather than keywords.
+
+**Architecture:**
+
+```
+Upload → Extract Text → Chunk (750 tokens) → Embed (OpenAI) → Store (pgvector) → Search (cosine similarity)
+```
+
+**Key Components:**
+
+1. **ChunkingService** (`apps/api/app/services/chunking_service.py`)
+   - Splits documents into ~750 token chunks
+   - Preserves sentence boundaries (NLTK)
+   - 100 token overlap between chunks
+
+2. **EmbeddingService** (`apps/api/app/services/embedding_service.py`)
+   - Generates embeddings via OpenAI `text-embedding-3-small` (1536 dimensions)
+   - Batch processing (100 chunks per call)
+   - Retry logic for rate limits (exponential backoff)
+
+3. **VectorSearchService** (`apps/api/app/services/vector_search_service.py`)
+   - Semantic similarity search using cosine distance
+   - Filters by space_id, document_ids
+   - Configurable top-k and similarity threshold
+
+4. **Query Agent** (`apps/api/app/agents/query_agent.py`)
+   - RAG (Retrieval-Augmented Generation) pipeline using LangGraph
+   - Workflow: retrieve_context → generate_response → add_citations
+   - Automatically uses vector search when users ask questions in Threads
+
+**Frontend Integration:**
+
+- GraphQL query: `searchDocuments(input: SearchDocumentsInput!)`
+- React Query hook: `useSearchDocuments()` from `@/hooks/useVectorSearch`
+- VectorSearchDebugger: `/debug/vector-search` (dev-only tool for tuning)
+
+**Database Schema:**
+
+```sql
+CREATE TABLE document_chunks (
+    id UUID PRIMARY KEY,
+    document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+    chunk_text TEXT NOT NULL,
+    embedding vector(1536),  -- pgvector type
+    chunk_index INTEGER NOT NULL,
+    token_count INTEGER NOT NULL,
+    start_char BIGINT,
+    end_char BIGINT,
+    chunk_metadata JSONB,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- IVFFlat index for fast similarity search
+CREATE INDEX idx_document_chunks_embedding_cosine
+    ON document_chunks
+    USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
+```
+
+**Performance:**
+
+- Target latency: <500ms per query
+- Embedding cost: ~$0.02 per 1M tokens (text-embedding-3-small)
+- Index type: IVFFlat (lists=100 for ~10K chunks)
+
+**Important Notes:**
+
+- Vector search is **backend-only** - users don't directly "search", they ask questions in Threads
+- The AI agent automatically uses vector search for document-related queries
+- VectorSearchDebugger is for development/tuning only, not exposed to end users
+- All documents are automatically chunked and embedded during upload processing
+
+See [Vector Search Guide](./docs/guides/vector-search-guide.md) for complete architecture, API reference, and performance tuning.
+
 ## Component Development Philosophy
 
 **Core Principle**: Build composable, reusable components following the Hex design aesthetic rather than monolithic page components.

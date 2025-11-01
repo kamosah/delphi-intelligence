@@ -25,12 +25,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
 from app.auth.jwt_handler import jwt_manager
+from app.auth.redis_client import redis_manager
 from app.db.session import get_session
 from app.models import Document, DocumentStatus, Space, User
 from app.services.document_processor import process_document_background
 from app.services.permissions import permission_service
 from app.services.sse_manager import sse_manager
 from app.services.storage_service import get_storage_service
+from app.utils.filename import normalize_filename
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -103,11 +105,15 @@ async def upload_document(
         file_size = len(content)
         await file.seek(0)
 
+    # Normalize document name to snake_case for consistency
+    raw_name = name or file.filename or "untitled"
+    normalized_name = normalize_filename(raw_name)
+
     # Create document record
     document = Document(
         id=document_id,
         space_id=space_uuid,
-        name=name or file.filename or "Untitled",
+        name=normalized_name,
         file_type=file.content_type or "application/octet-stream",
         file_path=file_path,
         size_bytes=file_size,
@@ -395,15 +401,25 @@ async def stream_document_updates(
         in server access logs and browser history. Risk is mitigated by:
         - Short 5-minute TTL limits exposure window
         - Token is single-purpose (SSE connections only)
+        - Token stored in Redis for revocation support
         - Regular token rotation via /auth/sse-token endpoint
     """
-    # Validate short-lived SSE token
+    # Step 1: Verify JWT signature and expiry
     payload = jwt_manager.verify_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired SSE token")
 
+    # Step 2: Verify token exists in Redis (allows revocation)
+    user_id_from_redis = await redis_manager.verify_sse_token(token)
+    if not user_id_from_redis:
+        raise HTTPException(status_code=401, detail="SSE token has been revoked or expired")
+
     # Get user from token payload
     user_id = PyUUID(payload.get("sub"))
+
+    # Ensure Redis user_id matches JWT payload
+    if str(user_id) != user_id_from_redis:
+        raise HTTPException(status_code=401, detail="Token validation failed")
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useDeleteDocument, useDownloadDocument } from '@/hooks/useDocuments';
-import type { Document } from '@/lib/api/documents-client';
+import type { Document } from '@/lib/api/generated';
 import {
   Card,
   CardContent,

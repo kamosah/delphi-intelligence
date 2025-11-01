@@ -7,6 +7,7 @@ from fastapi import HTTPException, UploadFile
 from supabase import Client, create_client
 
 from app.config import settings
+from app.utils.filename import normalize_filename
 
 
 class StorageService:
@@ -51,8 +52,11 @@ class StorageService:
         # Validate file
         self._validate_file(file)
 
-        # Generate file path: {space_id}/{document_id}/{filename}
-        file_path = f"{space_id}/{document_id}/{file.filename}"
+        # Normalize filename to snake_case for consistency
+        safe_filename = normalize_filename(file.filename or "untitled")
+
+        # Generate file path: {space_id}/{document_id}/{safe_filename}
+        file_path = f"{space_id}/{document_id}/{safe_filename}"
 
         try:
             # Read file content
