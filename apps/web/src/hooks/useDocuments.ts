@@ -61,33 +61,6 @@ export function useUploadDocument() {
 
       const fileId = request.fileId || request.file.name;
 
-      // Optimistically add a placeholder document to show upload progress
-      const queryKey = queryKeys.documents.list(request.space_id);
-      queryClient.setQueryData(queryKey, (oldData: any) => {
-        if (!oldData) return oldData;
-
-        const placeholderDocument = {
-          id: `temp-${fileId}`,
-          name: request.file.name,
-          fileType: request.file.type || 'application/octet-stream',
-          filePath: '',
-          sizeBytes: request.file.size,
-          spaceId: request.space_id,
-          uploadedBy: '',
-          status: 'uploading' as const,
-          extractedText: null,
-          docMetadata: null,
-          processedAt: null,
-          processingError: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        return {
-          documents: [placeholderDocument, ...(oldData.documents || [])],
-        };
-      });
-
       return documentsApi.upload(request, accessToken, (progress) => {
         setUploadProgress((prev) => ({
           ...prev,
@@ -96,13 +69,51 @@ export function useUploadDocument() {
       });
     },
     onSuccess: (data: Document, variables) => {
-      // Keep placeholder visible and invalidate to fetch fresh data from GraphQL
-      // This prevents the document from disappearing between upload success and GraphQL refetch
+      // Add the uploaded document with 'uploaded' status to DocumentList
+      // SSE will handle transitions: uploaded → processing → processed
       const fileId = variables.fileId || variables.file.name;
       const queryKey = queryKeys.documents.list(variables.space_id);
 
-      // Invalidate to fetch the real document from GraphQL
-      // The placeholder will be naturally replaced when new data arrives
+      // Transform REST API response (snake_case) to match GraphQL format (camelCase)
+      const document = {
+        id: data.id,
+        name: data.name,
+        fileType: data.file_type,
+        filePath: (data as any).file_path || '',
+        sizeBytes: data.size_bytes,
+        spaceId: data.space_id,
+        uploadedBy: data.uploaded_by,
+        status: data.status,
+        extractedText: data.extracted_text || null,
+        docMetadata: data.metadata || null,
+        processedAt: data.processed_at || null,
+        processingError: data.processing_error || null,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+
+      // Immediately add the real document to the list with 'uploaded' status
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData) {
+          return { documents: [document] };
+        }
+
+        // Check if document already exists (shouldn't, but defensive)
+        const exists = (oldData.documents || []).some(
+          (doc: any) => doc.id === document.id
+        );
+
+        if (exists) {
+          return oldData;
+        }
+
+        return {
+          documents: [document, ...(oldData.documents || [])],
+        };
+      });
+
+      // Invalidate to ensure we have the latest data
+      // This will pick up any server-side changes
       queryClient.invalidateQueries({
         queryKey: queryKeys.documents.list(variables.space_id),
       });
@@ -115,20 +126,9 @@ export function useUploadDocument() {
       });
     },
     onError: (error, variables) => {
-      // Remove placeholder on error
+      // Clear progress on error (no placeholder to remove anymore)
       const fileId = variables.fileId || variables.file.name;
-      const queryKey = queryKeys.documents.list(variables.space_id);
-      queryClient.setQueryData(queryKey, (oldData: any) => {
-        if (!oldData) return oldData;
 
-        const documents = (oldData.documents || []).filter(
-          (doc: any) => doc.id !== `temp-${fileId}`
-        );
-
-        return { documents };
-      });
-
-      // Clear progress on error
       setUploadProgress((prev) => {
         const newProgress = { ...prev };
         delete newProgress[fileId];
@@ -236,13 +236,47 @@ export function useDeleteDocument() {
       }
       return documentsApi.delete(documentId, accessToken);
     },
-    onSuccess: (data, variables) => {
-      // Invalidate document list for the space
+    // Optimistically update the cache before mutation runs
+    onMutate: async (variables) => {
+      const queryKey = queryKeys.documents.list(variables.spaceId);
+
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value for rollback
+      const previousDocuments = queryClient.getQueryData(queryKey);
+
+      // Optimistically remove the document from the cache
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData) return oldData;
+
+        return {
+          documents: (oldData.documents || []).filter(
+            (doc: any) => doc.id !== variables.documentId
+          ),
+        };
+      });
+
+      // Return context object with the snapshot
+      return { previousDocuments };
+    },
+    // Rollback on error
+    onError: (error, variables, context) => {
+      // Restore the previous state
+      if (context?.previousDocuments) {
+        queryClient.setQueryData(
+          queryKeys.documents.list(variables.spaceId),
+          context.previousDocuments
+        );
+      }
+    },
+    // Always refetch after error or success to ensure consistency
+    onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.documents.list(variables.spaceId),
       });
 
-      // Remove from cache
+      // Remove from detail cache
       queryClient.removeQueries({
         queryKey: queryKeys.documents.detail(variables.documentId),
       });

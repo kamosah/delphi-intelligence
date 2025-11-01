@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatePresence } from 'framer-motion';
 import { useDeleteDocument, useDownloadDocument } from '@/hooks/useDocuments';
 import type { Document } from '@/lib/api/generated';
 import {
@@ -78,16 +79,18 @@ export function DocumentList({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {documents.map((document) => (
-            <DocumentListItem
-              key={document.id}
-              document={document}
-              onDelete={handleDelete}
-              onDownload={handleDownload}
-              isDeleting={isDeleting}
-              isDownloading={isDownloading}
-            />
-          ))}
+          <AnimatePresence mode="popLayout">
+            {documents.map((document) => (
+              <DocumentListItem
+                key={document.id}
+                document={document}
+                onDelete={handleDelete}
+                onDownload={handleDownload}
+                isDeleting={isDeleting}
+                isDownloading={isDownloading}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       </CardContent>
     </Card>
