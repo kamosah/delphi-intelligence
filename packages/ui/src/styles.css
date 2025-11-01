@@ -20,9 +20,9 @@
     /* Hex-verified muted (user input bubbles) */
     --muted: 220 14% 96%; /* #F3F4F6 gray-100 */
     --muted-foreground: 215 16% 47%; /* #6B7280 gray-500 */
-    /* Hex-verified accent (purple for AI/SQL) */
-    --accent: 262 83% 58%; /* #8B5CF6 purple-500 */
-    --accent-foreground: 0 0% 100%;
+    /* Hex-verified accent (light blue for hover states) */
+    --accent: 210 100% 97%; /* #EBF2FF blue-50 for hover backgrounds */
+    --accent-foreground: 218 23% 15%; /* #1F2937 for contrast */
     /* Hex-verified destructive (red) */
     --destructive: 0 85% 60%; /* #EF4444 red-500 */
     --destructive-foreground: 0 0% 100%;

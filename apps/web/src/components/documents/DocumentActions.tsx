@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@olympus/ui';
-import { Trash2, Download } from 'lucide-react';
+import { Trash2, Download, Loader2 } from 'lucide-react';
 
 interface DocumentActionsProps {
   onDelete: () => void;
@@ -30,7 +30,11 @@ export function DocumentActions({
         className="text-gray-600 hover:text-gray-900"
         title="Download document"
       >
-        <Download className="w-4 h-4" />
+        {isDownloading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
       </Button>
       <Button
         variant="ghost"
@@ -38,9 +42,13 @@ export function DocumentActions({
         onClick={onDelete}
         disabled={isDeleting}
         className="text-red-600 hover:text-red-700 hover:bg-red-50"
-        title="Delete document"
+        title={isDeleting ? 'Deleting...' : 'Delete document'}
       >
-        <Trash2 className="w-4 h-4" />
+        {isDeleting ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Trash2 className="w-4 h-4" />
+        )}
       </Button>
     </div>
   );

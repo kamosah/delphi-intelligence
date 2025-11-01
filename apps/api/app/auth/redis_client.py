@@ -167,6 +167,91 @@ class RedisManager:
         except Exception:
             return False
 
+    async def store_sse_token(
+        self, token: str, user_id: str, expire: timedelta = timedelta(minutes=5)
+    ) -> bool:
+        """
+        Store SSE token in Redis for verification and revocation.
+
+        Args:
+            token: SSE token to store
+            user_id: User ID associated with the token
+            expire: Token expiration time (default: 5 minutes)
+
+        Returns:
+            True if successful
+        """
+        try:
+            # Store token -> user_id mapping for verification
+            await self.redis.setex(f"sse_token:{token}", expire, user_id)
+            # Also add to user's token set for bulk revocation
+            await self.redis.sadd(f"sse_tokens_by_user:{user_id}", token)
+            # Set expiry on the user's token set (cleanup old entries)
+            await self.redis.expire(f"sse_tokens_by_user:{user_id}", expire)
+            return True
+        except Exception:
+            return False
+
+    async def verify_sse_token(self, token: str) -> str | None:
+        """
+        Verify SSE token exists in Redis and return associated user_id.
+
+        Args:
+            token: SSE token to verify
+
+        Returns:
+            User ID if token is valid, None otherwise
+        """
+        try:
+            result = await self.redis.get(f"sse_token:{token}")
+            return str(result) if result else None
+        except Exception:
+            return None
+
+    async def revoke_sse_token(self, token: str) -> bool:
+        """
+        Revoke a specific SSE token.
+
+        Args:
+            token: SSE token to revoke
+
+        Returns:
+            True if successful
+        """
+        try:
+            # Get user_id before deleting
+            user_id = await self.redis.get(f"sse_token:{token}")
+            await self.redis.delete(f"sse_token:{token}")
+            # Remove from user's token set
+            if user_id:
+                await self.redis.srem(f"sse_tokens_by_user:{user_id}", token)
+            return True
+        except Exception:
+            return False
+
+    async def revoke_all_sse_tokens(self, user_id: str) -> bool:
+        """
+        Revoke all SSE tokens for a user (called on logout/password change).
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            True if successful
+        """
+        try:
+            # Get all tokens for this user
+            tokens = await self.redis.smembers(f"sse_tokens_by_user:{user_id}")
+            if tokens:
+                # Delete all token keys
+                keys_to_delete = [f"sse_token:{token}" for token in tokens]
+                await self.redis.delete(*keys_to_delete)
+            # Delete the user's token set
+            await self.redis.delete(f"sse_tokens_by_user:{user_id}")
+            return True
+        except Exception:
+            return False
+
     async def close(self) -> None:
         """Close Redis connection if it was created"""
         if self._redis is not None:

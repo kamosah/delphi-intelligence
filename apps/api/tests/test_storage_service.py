@@ -1,41 +1,36 @@
-"""Tests for StorageService filename sanitization."""
+"""Tests for filename normalization."""
 
 import pytest
 
-from app.services.storage_service import StorageService
+from app.utils.filename import normalize_filename
 
 
 class TestFilenameSanitization:
-    """Test cases for _sanitize_filename method."""
-
-    @pytest.fixture
-    def storage_service(self):
-        """Create a StorageService instance for testing."""
-        return StorageService()
+    """Test cases for normalize_filename function."""
 
     @pytest.mark.parametrize(
-        "input_filename,expected_output",
+        ("input_filename", "expected_output"),
         [
-            # Emoji removal
-            ("⚖️ Document.pdf", "Document.pdf"),
-            ("📊 Report.xlsx", "Report.xlsx"),
-            ("File 😊.txt", "File.txt"),
+            # Emoji removal (converted to lowercase)
+            ("⚖️ Document.pdf", "document.pdf"),
+            ("📊 Report.xlsx", "report.xlsx"),
+            ("File 😊.txt", "file.txt"),
             ("emoji_only_😊.pdf", "emoji_only.pdf"),
-            ("😊😊😊.docx", "document.docx"),
-            # Special characters
-            ("File (1).docx", "File_1.docx"),
-            ("File [test].pdf", "File_test.pdf"),
-            ("File {data}.csv", "File_data.csv"),
-            ("File@2024.pdf", "File_2024.pdf"),
-            ("File#1.txt", "File_1.txt"),
-            ("File$100.xlsx", "File_100.xlsx"),
-            ("File%20.pdf", "File_20.pdf"),
-            ("File&More.docx", "File_More.docx"),
-            ("File*Star.txt", "File_Star.txt"),
-            ("File+Plus.pdf", "File_Plus.pdf"),
-            ("File=Equal.csv", "File_Equal.csv"),
-            # Spaces
-            ("My Document.pdf", "My_Document.pdf"),
+            ("😊😊😊.docx", "untitled.docx"),
+            # Special characters (converted to lowercase)
+            ("File (1).docx", "file_1.docx"),
+            ("File [test].pdf", "file_test.pdf"),
+            ("File {data}.csv", "file_data.csv"),
+            ("File@2024.pdf", "file_2024.pdf"),
+            ("File#1.txt", "file_1.txt"),
+            ("File$100.xlsx", "file_100.xlsx"),
+            ("File%20.pdf", "file_20.pdf"),
+            ("File&More.docx", "file_more.docx"),
+            ("File*Star.txt", "file_star.txt"),
+            ("File+Plus.pdf", "file_plus.pdf"),
+            ("File=Equal.csv", "file_equal.csv"),
+            # Spaces (converted to underscores and lowercase)
+            ("My Document.pdf", "my_document.pdf"),
             ("test file.pdf", "test_file.pdf"),
             ("  spaces  .txt", "spaces.txt"),
             # Multiple underscores
@@ -51,46 +46,55 @@ class TestFilenameSanitization:
             (".hidden.pdf", "hidden.pdf"),
             ("..double.txt", "double.txt"),
             ("trailing..pdf", "trailing.pdf"),
-            # Mixed cases
-            ("⚖️ Example Document 2_ Software Service Agreement.pdf", "Example_Document_2_Software_Service_Agreement.pdf"),
-            ("📊 Example Document 1_ Quarterly Financial Report.pdf", "Example_Document_1_Quarterly_Financial_Report.pdf"),
-            ("My (Important) File [2024].docx", "My_Important_File_2024.docx"),
+            # Mixed cases (all converted to lowercase)
+            (
+                "⚖️ Example Document 2_ Software Service Agreement.pdf",
+                "example_document_2_software_service_agreement.pdf",
+            ),
+            (
+                "📊 Example Document 1_ Quarterly Financial Report.pdf",
+                "example_document_1_quarterly_financial_report.pdf",
+            ),
+            ("My (Important) File [2024].docx", "my_important_file_2024.docx"),
             # Unicode and accents (should be removed/normalized)
-            ("Café.pdf", "Cafe.pdf"),
-            ("Résumé.docx", "Resume.docx"),
-            ("日本語.txt", "document.txt"),  # Non-ASCII chars removed
-            ("Zürich.pdf", "Zurich.pdf"),
+            ("Café.pdf", "caf.pdf"),
+            ("Résumé.docx", "r_sum.docx"),
+            ("日本語.txt", "untitled.txt"),  # Non-ASCII chars removed
+            ("Zürich.pdf", "z_rich.pdf"),
             # Edge cases
             ("", "untitled"),
             ("...", "untitled"),
             ("___", "untitled"),
             (" ", "untitled"),
             (".", "untitled"),
-            ("_.pdf", "document.pdf"),
-            # Valid filenames (should remain mostly unchanged)
+            ("_.pdf", "untitled.pdf"),
+            # Valid filenames (converted to lowercase)
             ("document.pdf", "document.pdf"),
             ("my_file.docx", "my_file.docx"),
-            ("test-file.txt", "test-file.txt"),
-            ("File123.csv", "File123.csv"),
-            ("FILE_NAME.XLSX", "FILE_NAME.XLSX"),
-            # No extension
+            ("test-file.txt", "test_file.txt"),  # hyphens converted to underscores
+            ("File123.csv", "file123.csv"),
+            ("FILE_NAME.XLSX", "file_name.xlsx"),
+            # No extension (converted to lowercase)
             ("document", "document"),
             ("test_file", "test_file"),
-            ("⚖️ Document", "Document"),
-            # Multiple extensions
-            ("file.tar.gz", "file.tar.gz"),
-            ("backup.2024.zip", "backup.2024.zip"),
-            # Long filenames with emoji
-            ("🎉 This is a very long filename with emoji and spaces.pdf", "This_is_a_very_long_filename_with_emoji_and_spaces.pdf"),
+            ("⚖️ Document", "document"),
+            # Multiple extensions (dots become underscores except final extension)
+            ("file.tar.gz", "file_tar.gz"),
+            ("backup.2024.zip", "backup_2024.zip"),
+            # Long filenames with emoji (converted to lowercase)
+            (
+                "🎉 This is a very long filename with emoji and spaces.pdf",
+                "this_is_a_very_long_filename_with_emoji_and_spaces.pdf",
+            ),
         ],
     )
-    def test_sanitize_filename(self, storage_service, input_filename, expected_output):
+    def test_sanitize_filename(self, input_filename, expected_output):
         """Test filename sanitization with various inputs."""
-        result = storage_service._sanitize_filename(input_filename)
+        result = normalize_filename(input_filename)
         assert result == expected_output, f"Expected '{expected_output}', got '{result}'"
 
-    def test_sanitize_filename_preserves_extension(self, storage_service):
-        """Test that file extension is always preserved."""
+    def test_sanitize_filename_preserves_extension(self):
+        """Test that file extension is always preserved (lowercase)."""
         test_cases = [
             ("file.pdf", ".pdf"),
             ("file.docx", ".docx"),
@@ -99,30 +103,34 @@ class TestFilenameSanitization:
             ("file.xlsx", ".xlsx"),
             ("⚖️ emoji.pdf", ".pdf"),
             ("special!@#.docx", ".docx"),
+            ("FILE.PDF", ".pdf"),  # Extension converted to lowercase
         ]
 
         for filename, expected_ext in test_cases:
-            result = storage_service._sanitize_filename(filename)
-            assert result.endswith(expected_ext), f"Extension not preserved for '{filename}'"
+            result = normalize_filename(filename)
+            assert result.endswith(
+                expected_ext
+            ), f"Extension not preserved for '{filename}', got '{result}'"
 
-    def test_sanitize_filename_no_empty_name(self, storage_service):
+    def test_sanitize_filename_no_empty_name(self):
         """Test that filename never results in empty string."""
         test_cases = [
             ("", "untitled"),
             ("   ", "untitled"),
             ("...", "untitled"),
             ("___", "untitled"),
-            ("😊😊😊.pdf", "document.pdf"),
-            ("⚖️.txt", "document.txt"),
-            ("@#$%.docx", "document.docx"),
+            ("😊😊😊.pdf", "untitled.pdf"),
+            ("⚖️.txt", "untitled.txt"),
+            ("@#$%.docx", "untitled.docx"),
         ]
 
         for filename, expected in test_cases:
-            result = storage_service._sanitize_filename(filename)
-            assert result and len(result) > 0, f"Empty result for '{filename}'"
+            result = normalize_filename(filename)
+            assert result, f"Result is None for '{filename}'"
+            assert len(result) > 0, f"Empty result for '{filename}'"
             assert result == expected, f"Expected '{expected}', got '{result}' for '{filename}'"
 
-    def test_sanitize_filename_ascii_safe(self, storage_service):
+    def test_sanitize_filename_ascii_safe(self):
         """Test that result only contains ASCII-safe characters."""
         test_cases = [
             "⚖️ Document.pdf",
@@ -133,45 +141,52 @@ class TestFilenameSanitization:
         ]
 
         for filename in test_cases:
-            result = storage_service._sanitize_filename(filename)
+            result = normalize_filename(filename)
             # Check that result only contains ASCII characters
-            assert result.isascii(), f"Result '{result}' contains non-ASCII characters"
+            assert result, f"Result is empty for '{filename}'"
+            assert (
+                result.isascii()
+            ), f"Result '{result}' contains non-ASCII characters for input '{filename}'"
 
-    def test_sanitize_filename_no_problematic_chars(self, storage_service):
+    def test_sanitize_filename_no_problematic_chars(self):
         """Test that result doesn't contain problematic characters for storage."""
         # Characters that typically cause issues in storage keys
-        problematic_chars = ['<', '>', ':', '"', '|', '?', '*', '\x00']
+        problematic_chars = ["<", ">", ":", '"', "|", "?", "*", "\x00"]
 
         test_cases = [
-            'file<angle>.pdf',
-            'file>angle.txt',
-            'file:colon.docx',
+            "file<angle>.pdf",
+            "file>angle.txt",
+            "file:colon.docx",
             'file"quote.csv',
-            'file|pipe.xlsx',
-            'file?question.pdf',
-            'file*star.txt',
+            "file|pipe.xlsx",
+            "file?question.pdf",
+            "file*star.txt",
         ]
 
         for filename in test_cases:
-            result = storage_service._sanitize_filename(filename)
+            result = normalize_filename(filename)
             for char in problematic_chars:
-                assert char not in result, f"Problematic char '{char}' found in result '{result}'"
+                assert (
+                    char not in result
+                ), f"Problematic char '{char}' found in result '{result}' for input '{filename}'"
 
-    def test_sanitize_filename_real_world_examples(self, storage_service):
+    def test_sanitize_filename_real_world_examples(self):
         """Test with real-world file upload examples."""
         test_cases = [
-            # macOS filename with emoji
-            ("📄 Contract_v2 (final).pdf", "Contract_v2_final.pdf"),
-            # Windows filename with special chars (hyphen is preserved as valid char)
-            ("Report - Q4 2024 [DRAFT].docx", "Report_-_Q4_2024_DRAFT.docx"),
+            # macOS filename with emoji (all lowercase, hyphens become underscores)
+            ("📄 Contract_v2 (final).pdf", "contract_v2_final.pdf"),
+            # Windows filename with special chars (hyphens become underscores)
+            ("Report - Q4 2024 [DRAFT].docx", "report_q4_2024_draft.docx"),
             # User-entered filename with multiple emojis
-            ("🎉🎊 Party Planning 2024 🎈.xlsx", "Party_Planning_2024.xlsx"),
-            # Screenshot filename
-            ("Screenshot 2024-10-30 at 3.45.12 PM.png", "Screenshot_2024-10-30_at_3.45.12_PM.png"),
+            ("🎉🎊 Party Planning 2024 🎈.xlsx", "party_planning_2024.xlsx"),
+            # Screenshot filename (all lowercase, hyphens become underscores)
+            ("Screenshot 2024-10-30 at 3.45.12 PM.png", "screenshot_2024_10_30_at_3_45_12_pm.png"),
             # Downloaded file with encoded spaces
-            ("My%20Document.pdf", "My_20Document.pdf"),
+            ("My%20Document.pdf", "my_20document.pdf"),
         ]
 
         for input_filename, expected_output in test_cases:
-            result = storage_service._sanitize_filename(input_filename)
-            assert result == expected_output, f"Expected '{expected_output}', got '{result}'"
+            result = normalize_filename(input_filename)
+            assert (
+                result == expected_output
+            ), f"Expected '{expected_output}', got '{result}' for input '{input_filename}'"

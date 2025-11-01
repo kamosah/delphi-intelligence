@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Document } from '@/lib/api/documents-client';
+import type { Document } from '@/lib/api/generated';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,7 @@ import { DocumentStatusBadge } from './DocumentStatusBadge';
 import { DocumentMetadata } from './DocumentMetadata';
 import { DocumentActions } from './DocumentActions';
 import { DocumentError } from './DocumentError';
+import { DocumentListItemSkeleton } from './DocumentListItemSkeleton';
 
 interface DocumentListItemProps {
   document: Document;
@@ -54,11 +55,24 @@ export function DocumentListItem({
     }
   };
 
+  const isUploading = document.status === 'uploading';
+
+  // Show skeleton during upload
+  if (isUploading) {
+    return <DocumentListItemSkeleton fileName={document.name} />;
+  }
+
   return (
     <>
-      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+      <div
+        className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-all duration-300 ${
+          isDeleting
+            ? 'opacity-50 bg-red-50 border-red-200'
+            : 'hover:bg-gray-50'
+        }`}
+      >
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <DocumentIcon fileType={document.file_type} />
+          <DocumentIcon fileType={document.fileType} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -66,16 +80,21 @@ export function DocumentListItem({
                 {document.name}
               </h4>
               <DocumentStatusBadge status={document.status} />
+              {isDeleting && (
+                <span className="text-xs text-red-600 font-medium">
+                  Deleting...
+                </span>
+              )}
             </div>
 
             <DocumentMetadata
-              fileType={document.file_type}
-              sizeBytes={document.size_bytes}
-              createdAt={document.created_at}
+              fileType={document.fileType}
+              sizeBytes={document.sizeBytes}
+              createdAt={document.createdAt}
             />
 
-            {document.status === 'failed' && document.processing_error && (
-              <DocumentError error={document.processing_error} />
+            {document.status === 'failed' && document.processingError && (
+              <DocumentError error={document.processingError} />
             )}
           </div>
         </div>

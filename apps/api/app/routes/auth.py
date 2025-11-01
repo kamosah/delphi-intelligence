@@ -9,6 +9,7 @@ from datetime import timedelta
 from app.auth.jwt_handler import jwt_manager
 
 from app.auth.dependencies import get_current_user
+from app.auth.redis_client import redis_manager
 from app.auth.schemas import (
     PasswordReset,
     PasswordResetConfirm,
@@ -207,8 +208,10 @@ async def get_sse_token(
 
     Security:
         - Token expires in 5 minutes
+        - Token stored in Redis for revocation support
         - Token can only be used for SSE connections
         - Reduces exposure window compared to long-lived tokens
+        - Can be revoked on logout/password change
     """
 
     # Token data
@@ -223,6 +226,26 @@ async def get_sse_token(
         data=token_data,
         expires_delta=sse_token_expiry,
     )
+
+    # Store token in Redis for verification and revocation
+    user_id = current_user.get("id")
+    if not user_id or not isinstance(user_id, str):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user session",
+        )
+
+    success = await redis_manager.store_sse_token(
+        token=sse_token,
+        user_id=user_id,
+        expire=sse_token_expiry,
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create SSE token",
+        )
 
     return {
         "sse_token": sse_token,

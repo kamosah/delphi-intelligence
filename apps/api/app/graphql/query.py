@@ -7,11 +7,12 @@ from sqlalchemy import select
 import strawberry
 
 from app.db.session import get_session
+from app.models.document import Document as DocumentModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
-from .types import SearchDocumentsInput, SearchResult, Space, User
+from .types import Document, SearchDocumentsInput, SearchResult, Space, User
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,9 @@ class Query:
         return "GraphQL API is healthy!"
 
     @strawberry.field
-    async def search_documents(self, info: strawberry.types.Info, input: SearchDocumentsInput) -> list[SearchResult]:
+    async def search_documents(
+        self, info: strawberry.types.Info, input: SearchDocumentsInput
+    ) -> list[SearchResult]:
         """
         Perform semantic search across document chunks.
 
@@ -202,6 +205,91 @@ class Query:
         return []
 
     @strawberry.field
+    async def documents(
+        self,
+        info: strawberry.types.Info,
+        space_id: strawberry.ID | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Document]:
+        """
+        Get a list of documents the authenticated user has access to.
+
+        Args:
+            space_id: Optional space ID to filter documents. If not provided, returns documents from all accessible spaces.
+            limit: Maximum number of documents to return (default: 100)
+            offset: Number of documents to skip for pagination
+
+        Returns:
+            List of documents
+        """
+        async for session in get_session():
+            # Get the authenticated user from the request context
+            request = info.context["request"]
+            user = getattr(request.state, "user", None)
+
+            if not user:
+                return []
+
+            user_id = user.id
+
+            # Build query based on whether space_id is provided
+            if space_id:
+                # Filter by specific space
+                space_uuid = UUID(str(space_id))
+
+                # Verify user has access to this space
+                space_access_stmt = (
+                    select(SpaceModel.id)
+                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                    .where(
+                        (SpaceModel.id == space_uuid)
+                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    )
+                    .distinct()
+                )
+                space_result = await session.execute(space_access_stmt)
+                if not space_result.scalar_one_or_none():
+                    # User doesn't have access to this space
+                    return []
+
+                stmt = (
+                    select(DocumentModel)
+                    .where(DocumentModel.space_id == space_uuid)
+                    .order_by(DocumentModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            else:
+                # Get documents from all spaces user has access to
+                accessible_spaces_stmt = (
+                    select(SpaceModel.id)
+                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                    .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    .distinct()
+                )
+                space_result = await session.execute(accessible_spaces_stmt)
+                space_ids = [row[0] for row in space_result.all()]
+
+                if not space_ids:
+                    return []
+
+                stmt = (
+                    select(DocumentModel)
+                    .where(DocumentModel.space_id.in_(space_ids))
+                    .order_by(DocumentModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+
+            result = await session.execute(stmt)
+            document_models = result.scalars().all()
+
+            return [Document.from_model(doc) for doc in document_models]
+
+        return []
+
+    @strawberry.field
     async def space(self, info: strawberry.types.Info, id: strawberry.ID) -> Space | None:
         """
         Get a space by ID.
@@ -233,6 +321,7 @@ class Query:
                         (SpaceModel.id == space_id)
                         & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
                     )
+                    .distinct()
                 )
 
                 result = await session.execute(stmt)

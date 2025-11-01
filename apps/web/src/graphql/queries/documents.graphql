@@ -2,6 +2,23 @@
 # Document Query Operations
 # ============================================
 
+query GetDocuments($spaceId: ID, $limit: Int, $offset: Int) {
+  documents(spaceId: $spaceId, limit: $limit, offset: $offset) {
+    id
+    name
+    fileType
+    filePath
+    status
+    spaceId
+    uploadedBy
+    sizeBytes
+    processingError
+    processedAt
+    createdAt
+    updatedAt
+  }
+}
+
 query SearchDocuments($input: SearchDocumentsInput!) {
   searchDocuments(input: $input) {
     chunk {

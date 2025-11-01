@@ -1,6 +1,8 @@
 'use client';
 
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDocuments } from '@/hooks/useDocuments';
+import { useSpaces } from '@/hooks/useSpaces';
 import {
   useSearchDocuments,
   type SearchDocumentsInput,
@@ -16,6 +18,11 @@ import {
   Label,
   Progress,
   ScrollArea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
   Skeleton,
   Tooltip,
@@ -35,7 +42,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 
 /**
  * VectorSearchDebugger - Development tool for testing semantic search quality
- *
+ *`
  * Features:
  * - Debounced search for better performance
  * - Real-time search with parameter tuning
@@ -50,33 +57,49 @@ export function VectorSearchDebugger() {
   const [searchQuery, setSearchQuery] = useState('');
   const [limit, setLimit] = useState(10);
   const [similarityThreshold, setSimilarityThreshold] = useState(0.0);
-  const [spaceId, setSpaceId] = useState('');
-  const [documentIds, setDocumentIds] = useState('');
+  const [spaceId, setSpaceId] = useState('all');
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
 
-  // Debounce search query to avoid excessive API calls (500ms delay)
+  // Fetch available spaces for selection
+  const { spaces, isLoading: spacesLoading } = useSpaces();
+
+  // Fetch documents (filtered by selected space)
+  const { documents, isLoading: documentsLoading } = useDocuments(
+    spaceId !== 'all' ? spaceId : undefined
+  );
+
+  // Debounce search query and range inputs to avoid excessive API calls (500ms delay)
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedLimit = useDebounce(limit, 500);
+  const debouncedSimilarityThreshold = useDebounce(similarityThreshold, 500);
 
   // Memoize search input to prevent unnecessary re-renders
   const searchInput: SearchDocumentsInput = useMemo(
     () => ({
       query: debouncedSearchQuery,
-      limit,
-      similarityThreshold,
-      ...(spaceId && { spaceId }),
-      ...(documentIds && {
-        documentIds: documentIds
-          .split(',')
-          .map((id) => id.trim())
-          .filter(Boolean),
+      limit: debouncedLimit,
+      similarityThreshold: debouncedSimilarityThreshold,
+      ...(spaceId && spaceId !== 'all' && { spaceId }),
+      ...(selectedDocumentIds.length > 0 && {
+        documentIds: selectedDocumentIds,
       }),
     }),
-    [debouncedSearchQuery, limit, similarityThreshold, spaceId, documentIds]
+    [
+      debouncedSearchQuery,
+      debouncedLimit,
+      debouncedSimilarityThreshold,
+      spaceId,
+      selectedDocumentIds,
+    ]
   );
 
   const { results, isLoading, error } = useSearchDocuments(searchInput);
 
-  // Track if user is typing (debounce in progress)
-  const isTyping = searchQuery !== debouncedSearchQuery;
+  // Track if user is typing/adjusting (debounce in progress)
+  const isAdjusting =
+    searchQuery !== debouncedSearchQuery ||
+    limit !== debouncedLimit ||
+    similarityThreshold !== debouncedSimilarityThreshold;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -165,10 +188,10 @@ export function VectorSearchDebugger() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="query">Search Query</Label>
-              {isTyping && (
+              {isAdjusting && (
                 <Badge variant="outline" className="text-xs gap-1">
                   <Clock className="h-3 w-3" />
-                  Typing...
+                  Updating...
                 </Badge>
               )}
             </div>
@@ -248,24 +271,105 @@ export function VectorSearchDebugger() {
           {/* Optional Filters */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="spaceId">Space ID (optional)</Label>
-              <Input
-                id="spaceId"
-                placeholder="Filter by space"
-                value={spaceId}
-                onChange={(e) => setSpaceId(e.target.value)}
-              />
+              <Label htmlFor="spaceId">Space (optional)</Label>
+              <Select value={spaceId} onValueChange={setSpaceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a space to filter by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All spaces</SelectItem>
+                  {spaces.map((space) => (
+                    <SelectItem key={space.id} value={space.id}>
+                      {space.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {spacesLoading && (
+                <p className="text-xs text-gray-500">Loading spaces...</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="documentIds">
-                Document IDs (optional, comma-separated)
-              </Label>
-              <Input
-                id="documentIds"
-                placeholder="doc-1, doc-2"
-                value={documentIds}
-                onChange={(e) => setDocumentIds(e.target.value)}
-              />
+              <Label htmlFor="documentIds">Documents (optional)</Label>
+              <Select
+                value={selectedDocumentIds.length === 0 ? 'all' : 'custom'}
+                onValueChange={(value) => {
+                  if (value === 'all') {
+                    setSelectedDocumentIds([]);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      selectedDocumentIds.length === 0
+                        ? 'All documents'
+                        : `${selectedDocumentIds.length} document${selectedDocumentIds.length > 1 ? 's' : ''} selected`
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All documents</SelectItem>
+                  {documents.length > 0 && (
+                    <>
+                      <Separator className="my-1" />
+                      {documents.map((doc) => (
+                        <SelectItem
+                          key={doc.id}
+                          value={doc.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedDocumentIds((prev) =>
+                              prev.includes(doc.id)
+                                ? prev.filter((id) => id !== doc.id)
+                                : [...prev, doc.id]
+                            );
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedDocumentIds.includes(doc.id)}
+                              readOnly
+                              className="h-3 w-3"
+                            />
+                            <span className="truncate">{doc.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+              {documentsLoading && (
+                <p className="text-xs text-gray-500">Loading documents...</p>
+              )}
+              {selectedDocumentIds.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedDocumentIds.map((docId) => {
+                    const doc = documents.find((d) => d.id === docId);
+                    return (
+                      <Badge
+                        key={docId}
+                        variant="outline"
+                        className="text-xs gap-1"
+                      >
+                        {doc?.name || docId}
+                        <button
+                          onClick={() =>
+                            setSelectedDocumentIds((prev) =>
+                              prev.filter((id) => id !== docId)
+                            )
+                          }
+                          className="ml-1 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

@@ -66,6 +66,18 @@ export { Input } from './components/input';
 export { Label } from './components/label';
 export { Progress } from './components/progress';
 export { ScrollArea, ScrollBar } from './components/scroll-area';
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from './components/select';
 export { Separator } from './components/separator';
 export { Skeleton } from './components/skeleton';
 export { Textarea, type TextareaProps } from './components/textarea';
