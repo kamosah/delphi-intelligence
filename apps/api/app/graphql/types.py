@@ -8,7 +8,7 @@ import strawberry
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
-from app.models.query import Query as QueryModel, QueryStatus
+from app.models.query import Query as QueryModel
 from app.models.space import Space as SpaceModel
 from app.models.user import User as UserModel
 
