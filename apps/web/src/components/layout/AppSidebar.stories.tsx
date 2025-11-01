@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import { Sidebar } from './Sidebar';
+import { AppSidebar } from './AppSidebar';
 
 const meta = {
-  title: 'Layout/Sidebar',
-  component: Sidebar,
+  title: 'Layout/AppSidebar',
+  component: AppSidebar,
   parameters: {
     layout: 'fullscreen',
     nextjs: {
@@ -13,7 +13,17 @@ const meta = {
   decorators: [
     (Story) => (
       <div style={{ display: 'flex', height: '100vh' }}>
-        <Story />
+        <div
+          onClick={(e) => {
+            // Prevent navigation in Storybook
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'A' || target.closest('a')) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <Story />
+        </div>
         <div
           style={{ flex: 1, padding: '20px', background: 'var(--background)' }}
         >
@@ -23,13 +33,14 @@ const meta = {
           <p style={{ color: 'var(--muted-foreground)' }}>
             This simulates the main content area next to the sidebar. Try
             clicking the navigation items or hover over them when collapsed.
+            (Navigation is disabled in Storybook)
           </p>
         </div>
       </div>
     ),
   ],
   tags: ['autodocs'],
-} satisfies Meta<typeof Sidebar>;
+} satisfies Meta<typeof AppSidebar>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
