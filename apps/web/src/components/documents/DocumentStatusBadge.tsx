@@ -26,6 +26,7 @@ export function DocumentStatusBadge({ status }: DocumentStatusBadgeProps) {
       variant: 'secondary' | 'default' | 'destructive';
       label: string;
       icon: typeof FileText;
+      className?: string;
     }
   > = {
     uploading: {
@@ -44,9 +45,10 @@ export function DocumentStatusBadge({ status }: DocumentStatusBadgeProps) {
       icon: Clock,
     },
     processed: {
-      variant: 'default' as const,
+      variant: 'secondary' as const,
       label: 'Processed',
       icon: FileText,
+      className: 'bg-green-100 text-green-700 hover:bg-green-100/80',
     },
     failed: {
       variant: 'destructive' as const,
@@ -59,7 +61,10 @@ export function DocumentStatusBadge({ status }: DocumentStatusBadgeProps) {
   const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className="flex items-center gap-1">
+    <Badge
+      variant={config.variant}
+      className={`flex items-center gap-1 ${config.className || ''}`}
+    >
       <Icon className="w-3 h-3" />
       {config.label}
     </Badge>

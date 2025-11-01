@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
 import type { Document } from '@/lib/api/generated';
 import {
   AlertDialog,
@@ -13,12 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@olympus/ui';
-import { DocumentIcon } from './DocumentIcon';
-import { DocumentStatusBadge } from './DocumentStatusBadge';
-import { DocumentMetadata } from './DocumentMetadata';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { DocumentActions } from './DocumentActions';
 import { DocumentError } from './DocumentError';
-import { DocumentListItemSkeleton } from './DocumentListItemSkeleton';
+import { DocumentIcon } from './DocumentIcon';
+import { DocumentMetadata } from './DocumentMetadata';
+import { DocumentStatusBadge } from './DocumentStatusBadge';
 
 interface DocumentListItemProps {
   document: Document;
@@ -55,13 +54,6 @@ export function DocumentListItem({
       onDownload(document.id);
     }
   };
-
-  const isUploading = document.status === 'uploading';
-
-  // Show skeleton during upload
-  if (isUploading) {
-    return <DocumentListItemSkeleton fileName={document.name} />;
-  }
 
   return (
     <>

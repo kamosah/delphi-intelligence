@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/nextjs';
-import { withAuth } from '@/lib/storybook/decorators';
-import { DocumentList } from './DocumentList';
 import type { Document } from '@/lib/api/generated';
+import { withAuth } from '@/lib/storybook/decorators';
+import type { Meta, StoryObj } from '@storybook/nextjs';
+import { DocumentList } from './DocumentList';
 
 const meta = {
   title: 'Documents/DocumentList',
@@ -229,36 +229,6 @@ export const LargeList: Story = {
         Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
       ).toISOString(),
     })),
-    spaceId: 'space-1',
-    isLoading: false,
-  },
-};
-
-/**
- * Documents with uploading state.
- *
- * Shows the DocumentListItemSkeleton component used during document upload.
- * Note: This story imports and renders the skeleton component directly since
- * the uploading state is managed by the upload hook, not the Document model.
- */
-export const WithUploadingDocuments: Story = {
-  render: (args) => {
-    // Import the skeleton component for the uploading state demo
-    const { DocumentListItemSkeleton } = require('./DocumentListItemSkeleton');
-
-    return (
-      <div className="space-y-2">
-        {/* Uploading documents (skeleton state) */}
-        <DocumentListItemSkeleton fileName="Q4_Financial_Report_Draft.pdf" />
-        <DocumentListItemSkeleton fileName="Product_Roadmap_2025.docx" />
-
-        {/* Existing documents */}
-        <DocumentList {...args} />
-      </div>
-    );
-  },
-  args: {
-    documents: [mockDocuments[0], mockDocuments[2]],
     spaceId: 'space-1',
     isLoading: false,
   },
