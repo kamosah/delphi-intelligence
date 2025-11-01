@@ -111,6 +111,7 @@ export type MutationUpdateUserArgs = {
 
 export type Query = {
   __typename?: 'Query';
+  documents: Array<Document>;
   health: Scalars['String']['output'];
   searchDocuments: Array<SearchResult>;
   space?: Maybe<Space>;
@@ -118,6 +119,12 @@ export type Query = {
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
   users: Array<User>;
+};
+
+export type QueryDocumentsArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  spaceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type QuerySearchDocumentsArgs = {
@@ -255,6 +262,31 @@ export type DeleteSpaceMutationVariables = Exact<{
 export type DeleteSpaceMutation = {
   __typename?: 'Mutation';
   deleteSpace: boolean;
+};
+
+export type GetDocumentsQueryVariables = Exact<{
+  spaceId?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetDocumentsQuery = {
+  __typename?: 'Query';
+  documents: Array<{
+    __typename?: 'Document';
+    id: string;
+    name: string;
+    fileType: string;
+    filePath: string;
+    status: string;
+    spaceId: string;
+    uploadedBy: string;
+    sizeBytes: number;
+    processingError?: string | null;
+    processedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 };
 
 export type SearchDocumentsQueryVariables = Exact<{

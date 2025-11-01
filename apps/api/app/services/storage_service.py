@@ -1,15 +1,13 @@
 """Storage service for managing file uploads to Supabase Storage."""
 
 import mimetypes
-import re
-import unicodedata
-from pathlib import Path
 from uuid import UUID
 
 from fastapi import HTTPException, UploadFile
 from supabase import Client, create_client
 
 from app.config import settings
+from app.utils.filename import normalize_filename
 
 
 class StorageService:
@@ -54,8 +52,8 @@ class StorageService:
         # Validate file
         self._validate_file(file)
 
-        # Sanitize filename for storage compatibility
-        safe_filename = self._sanitize_filename(file.filename or "untitled")
+        # Normalize filename to snake_case for consistency
+        safe_filename = normalize_filename(file.filename or "untitled")
 
         # Generate file path: {space_id}/{document_id}/{safe_filename}
         file_path = f"{space_id}/{document_id}/{safe_filename}"
@@ -133,54 +131,6 @@ class StorageService:
             return content
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
-
-    def _sanitize_filename(self, filename: str) -> str:
-        """
-        Sanitize filename for storage compatibility.
-
-        Removes emojis, special characters, and normalizes to ASCII-safe format.
-        Preserves file extension.
-
-        Args:
-            filename: Original filename
-
-        Returns:
-            Sanitized filename safe for storage keys
-
-        Examples:
-            "⚖️ Document.pdf" -> "Document.pdf"
-            "File (1).docx" -> "File_1.docx"
-            "My Document 😊.txt" -> "My_Document.txt"
-        """
-        if not filename or not filename.strip():
-            return "untitled"
-
-        # Separate extension
-        path = Path(filename)
-        name = path.stem
-        ext = path.suffix
-
-        # Remove emojis and non-ASCII characters
-        # Normalize to NFD (decompose) then remove combining marks and accents
-        name = unicodedata.normalize("NFD", name)
-        # Keep only ASCII characters (removes accents and combining marks)
-        name = "".join(char for char in name if ord(char) < 128)
-
-        # Replace spaces and special chars with underscores
-        name = re.sub(r"[^\w\-.]", "_", name)
-
-        # Remove multiple consecutive underscores
-        name = re.sub(r"_+", "_", name)
-
-        # Remove leading/trailing underscores and periods
-        name = name.strip("_.")
-
-        # Ensure name is not empty
-        if not name:
-            return "untitled" if not ext else f"document{ext}"
-
-        # Reconstruct filename with extension
-        return f"{name}{ext}"
 
     def _validate_file(self, file: UploadFile) -> None:
         """

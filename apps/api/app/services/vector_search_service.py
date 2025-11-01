@@ -1,10 +1,12 @@
 """Vector search service for semantic similarity search using pgvector."""
 
 import logging
-from typing import NamedTuple
+from typing import Any, NamedTuple
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import and_, select
+from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
@@ -38,6 +40,82 @@ class VectorSearchService:
         """
         self.embedding_service = embedding_service or get_embedding_service()
         logger.info("Initialized VectorSearchService")
+
+    def _validate_search_params(self, query: str, limit: int, similarity_threshold: float) -> None:
+        """Validate search parameters."""
+        if not query or not query.strip():
+            msg = "Query cannot be empty"
+            raise ValueError(msg)
+
+        if limit < 1 or limit > 100:
+            msg = "Limit must be between 1 and 100"
+            raise ValueError(msg)
+
+        if similarity_threshold < 0.0 or similarity_threshold > 1.0:
+            msg = "Similarity threshold must be between 0.0 and 1.0"
+            raise ValueError(msg)
+
+    def _build_search_filters(
+        self,
+        space_id: UUID | None,
+        space_ids: list[UUID] | None,
+        document_ids: list[UUID] | None,
+    ) -> list:
+        """Build database filters for vector search."""
+        filters = []
+
+        # Single space_id takes precedence over space_ids
+        if space_id is not None:
+            filters.append(Document.space_id == space_id)
+            logger.info(f"[VECTOR_SEARCH] Adding filter: single space_id={space_id}")
+        elif space_ids is not None and len(space_ids) > 0:
+            filters.append(Document.space_id.in_(space_ids))
+            logger.info(f"[VECTOR_SEARCH] Adding filter: multiple space_ids={space_ids}")
+        else:
+            logger.info("[VECTOR_SEARCH] WARNING: No space filter applied!")
+
+        if document_ids is not None and len(document_ids) > 0:
+            filters.append(DocumentChunk.document_id.in_(document_ids))
+            logger.info(f"[VECTOR_SEARCH] Adding filter: document_ids={document_ids}")
+
+        logger.info(f"[VECTOR_SEARCH] Total filters: {len(filters)}")
+        return filters
+
+    def _process_search_results(
+        self, rows: Sequence[Row[Any]], similarity_threshold: float
+    ) -> list[SearchResult]:
+        """Process database rows into SearchResult objects with threshold filtering."""
+        search_results = []
+        filtered_count = 0
+
+        for chunk, document, distance in rows:
+            # Convert cosine distance to similarity score
+            similarity_score = 1.0 - distance
+
+            # Apply similarity threshold filter
+            if similarity_score < similarity_threshold:
+                filtered_count += 1
+                logger.info(
+                    f"[VECTOR_SEARCH] Filtered out result: score={similarity_score:.4f} < threshold={similarity_threshold}"
+                )
+                continue
+
+            search_results.append(
+                SearchResult(
+                    chunk=chunk,
+                    document=document,
+                    similarity_score=similarity_score,
+                    distance=distance,
+                )
+            )
+            logger.info(
+                f"[VECTOR_SEARCH] Kept result: doc={document.name}, score={similarity_score:.4f}, distance={distance:.4f}"
+            )
+
+        logger.info(
+            f"[VECTOR_SEARCH] Final: {len(search_results)} results returned, {filtered_count} filtered out by threshold"
+        )
+        return search_results
 
     async def search_similar_chunks(
         self,
@@ -74,17 +152,8 @@ class VectorSearchService:
             - Cosine similarity = 1 - cosine_distance
             - If both space_id and space_ids are provided, space_id takes precedence
         """
-        if not query or not query.strip():
-            msg = "Query cannot be empty"
-            raise ValueError(msg)
-
-        if limit < 1 or limit > 100:
-            msg = "Limit must be between 1 and 100"
-            raise ValueError(msg)
-
-        if similarity_threshold < 0.0 or similarity_threshold > 1.0:
-            msg = "Similarity threshold must be between 0.0 and 1.0"
-            raise ValueError(msg)
+        # Validate parameters
+        self._validate_search_params(query, limit, similarity_threshold)
 
         logger.info(
             f"[VECTOR_SEARCH] Starting search for: '{query[:50]}...' "
@@ -102,7 +171,6 @@ class VectorSearchService:
             raise
 
         # Build the query with vector similarity search
-        # Using cosine_distance operator from pgvector
         stmt = (
             select(
                 DocumentChunk,
@@ -110,31 +178,15 @@ class VectorSearchService:
                 DocumentChunk.embedding.cosine_distance(query_embedding).label("distance"),
             )
             .join(Document, DocumentChunk.document_id == Document.id)
-            .where(DocumentChunk.embedding.isnot(None))  # Only search chunks with embeddings
+            .where(DocumentChunk.embedding.isnot(None))
         )
 
         # Apply filters
-        filters = []
-
-        # Single space_id takes precedence over space_ids
-        if space_id is not None:
-            filters.append(Document.space_id == space_id)
-            logger.info(f"[VECTOR_SEARCH] Adding filter: single space_id={space_id}")
-        elif space_ids is not None and len(space_ids) > 0:
-            filters.append(Document.space_id.in_(space_ids))
-            logger.info(f"[VECTOR_SEARCH] Adding filter: multiple space_ids={space_ids}")
-        else:
-            logger.info("[VECTOR_SEARCH] WARNING: No space filter applied!")
-
-        if document_ids is not None and len(document_ids) > 0:
-            filters.append(DocumentChunk.document_id.in_(document_ids))
-            logger.info(f"[VECTOR_SEARCH] Adding filter: document_ids={document_ids}")
-
-        logger.info(f"[VECTOR_SEARCH] Total filters: {len(filters)}")
+        filters = self._build_search_filters(space_id, space_ids, document_ids)
         if filters:
             stmt = stmt.where(and_(*filters))
 
-        # Order by distance (lower is better) and limit results
+        # Order by distance and limit results
         stmt = stmt.order_by("distance").limit(limit)
 
         # Execute query
@@ -147,40 +199,8 @@ class VectorSearchService:
             logger.exception(f"[VECTOR_SEARCH] Error executing vector search query: {e}")
             raise
 
-        # Convert to SearchResult objects
-        search_results = []
-        filtered_count = 0
-        for chunk, document, distance in rows:
-            # Convert cosine distance to similarity score
-            # Cosine distance: 0 = identical, 2 = opposite
-            # Similarity: 1 = identical, 0 = completely different
-            similarity_score = 1.0 - distance
-
-            # Apply similarity threshold filter
-            if similarity_score < similarity_threshold:
-                filtered_count += 1
-                logger.info(
-                    f"[VECTOR_SEARCH] Filtered out result: score={similarity_score:.4f} < threshold={similarity_threshold}"
-                )
-                continue
-
-            search_results.append(
-                SearchResult(
-                    chunk=chunk,
-                    document=document,
-                    similarity_score=similarity_score,
-                    distance=distance,
-                )
-            )
-            logger.info(
-                f"[VECTOR_SEARCH] Kept result: doc={document.name}, score={similarity_score:.4f}, distance={distance:.4f}"
-            )
-
-        logger.info(
-            f"[VECTOR_SEARCH] Final: {len(search_results)} results returned, {filtered_count} filtered out by threshold"
-        )
-
-        return search_results
+        # Process and filter results
+        return self._process_search_results(rows, similarity_threshold)
 
     async def search_by_embedding(
         self,

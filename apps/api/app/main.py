@@ -4,6 +4,8 @@ FastAPI main application module
 
 import logging
 import sys
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -18,13 +20,12 @@ from app.routes.documents import router as documents_router
 from app.routes.query_stream import router as query_stream_router
 
 
-def configure_logging():
+def configure_logging() -> None:
     """Configure application logging for Docker and development environments."""
 
     # Create formatter
     formatter = logging.Formatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Create console handler that outputs to stdout
@@ -104,7 +105,7 @@ def create_app() -> FastAPI:
             "graphql": "/graphql" if settings.debug else "disabled in production",
         }
 
-    def custom_openapi():
+    def custom_openapi() -> dict[str, Any]:
         """Custom OpenAPI schema with Bearer token authentication"""
         if app.openapi_schema:
             return app.openapi_schema

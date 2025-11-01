@@ -115,7 +115,7 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
           const message: SSEMessage = JSON.parse(event.data);
           console.log('[SSE] Document status update:', message);
 
-          // Invalidate the document list query to trigger refetch
+          // Invalidate the document list query for this space
           queryClient.invalidateQueries({
             queryKey: queryKeys.documents.list(spaceId),
           });
