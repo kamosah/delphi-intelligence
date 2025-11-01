@@ -394,7 +394,9 @@ class Query:
             space_result = await session.execute(space_access_stmt)
             if not space_result.scalar_one_or_none():
                 # User doesn't have access to this space
-                logger.warning(f"User {user_id} attempted to access queries for unauthorized space {space_uuid}")
+                logger.warning(
+                    f"User {user_id} attempted to access queries for unauthorized space {space_uuid}"
+                )
                 return []
 
             # Get queries for the space
