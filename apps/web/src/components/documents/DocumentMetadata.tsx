@@ -27,7 +27,7 @@ export function DocumentMetadata({
 
   return (
     <div className="flex items-center gap-3 text-xs text-gray-500">
-      <span>{fileType.toUpperCase()}</span>
+      <span>{fileType?.toUpperCase() || 'FILE'}</span>
       <span>•</span>
       <span>{formatFileSize(sizeBytes)}</span>
       <span>•</span>

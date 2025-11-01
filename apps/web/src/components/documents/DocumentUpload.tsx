@@ -83,6 +83,11 @@ export function DocumentUpload({
           )
         );
 
+        // Remove file from upload list after short delay to show success state
+        setTimeout(() => {
+          setFiles((prev) => prev.filter((f) => f.id !== fileState.id));
+        }, 1500); // 1.5 second delay to show success state
+
         onUploadComplete?.(result.id);
       } catch (error) {
         const userMessage = parseUploadError(

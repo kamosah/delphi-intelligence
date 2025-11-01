@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { Document } from '@/lib/api/generated';
 import {
   AlertDialog,
@@ -64,10 +65,22 @@ export function DocumentListItem({
 
   return (
     <>
-      <div
-        className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-all duration-300 ${
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: -10 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+        }}
+        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+        transition={{
+          duration: 0.3,
+          ease: 'easeOut',
+        }}
+        className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg ${
           isDeleting
-            ? 'opacity-50 bg-red-50 border-red-200'
+            ? 'bg-red-50 border-red-200 pointer-events-none'
             : 'hover:bg-gray-50'
         }`}
       >
@@ -107,7 +120,7 @@ export function DocumentListItem({
             isDownloading={isDownloading}
           />
         </div>
-      </div>
+      </motion.div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
