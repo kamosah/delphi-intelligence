@@ -8,11 +8,12 @@ import strawberry
 
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
+from app.models.query import Query as QueryModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
-from .types import Document, SearchDocumentsInput, SearchResult, Space, User
+from .types import Document, QueryResult, SearchDocumentsInput, SearchResult, Space, User
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +330,142 @@ class Query:
 
                 if space_model:
                     return Space.from_model(space_model)
+                return None
+
+            except ValueError:
+                # Invalid UUID format
+                return None
+
+        return None
+
+    @strawberry.field
+    async def queries(
+        self,
+        info: strawberry.types.Info,
+        space_id: strawberry.ID,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[QueryResult]:
+        """
+        Get a list of queries for a specific space.
+
+        Args:
+            space_id: The space ID to filter queries
+            limit: Maximum number of queries to return (default: 50)
+            offset: Number of queries to skip for pagination
+
+        Returns:
+            List of queries ordered by creation date (most recent first)
+
+        Example query:
+            query {
+              queries(spaceId: "space-uuid", limit: 20) {
+                id
+                queryText
+                result
+                confidenceScore
+                status
+                createdAt
+                sources
+              }
+            }
+        """
+        async for session in get_session():
+            # Get the authenticated user from the request context
+            request = info.context["request"]
+            user = getattr(request.state, "user", None)
+
+            if not user:
+                return []
+
+            user_id = user.id
+            space_uuid = UUID(str(space_id))
+
+            # Verify user has access to this space
+            space_access_stmt = (
+                select(SpaceModel.id)
+                .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                .where(
+                    (SpaceModel.id == space_uuid)
+                    & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                )
+                .distinct()
+            )
+            space_result = await session.execute(space_access_stmt)
+            if not space_result.scalar_one_or_none():
+                # User doesn't have access to this space
+                logger.warning(f"User {user_id} attempted to access queries for unauthorized space {space_uuid}")
+                return []
+
+            # Get queries for the space
+            stmt = (
+                select(QueryModel)
+                .where(QueryModel.space_id == space_uuid)
+                .order_by(QueryModel.created_at.desc())
+                .limit(limit)
+                .offset(offset)
+            )
+
+            result = await session.execute(stmt)
+            query_models = result.scalars().all()
+
+            logger.info(f"Retrieved {len(query_models)} queries for space {space_uuid}")
+            return [QueryResult.from_model(query) for query in query_models]
+
+        return []
+
+    @strawberry.field
+    async def query(self, info: strawberry.types.Info, id: strawberry.ID) -> QueryResult | None:
+        """
+        Get a single query by ID.
+
+        Args:
+            id: The query ID
+
+        Returns:
+            The query if found and user has access, None otherwise
+
+        Example query:
+            query {
+              query(id: "query-uuid") {
+                id
+                queryText
+                result
+                confidenceScore
+                citations
+                agentSteps
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    return None
+
+                user_id = user.id
+                query_id = UUID(str(id))
+
+                # Get query and verify user has access via space membership
+                stmt = (
+                    select(QueryModel)
+                    .join(SpaceModel, SpaceModel.id == QueryModel.space_id)
+                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                    .where(
+                        (QueryModel.id == query_id)
+                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    )
+                    .distinct()
+                )
+
+                result = await session.execute(stmt)
+                query_model = result.scalar_one_or_none()
+
+                if query_model:
+                    return QueryResult.from_model(query_model)
                 return None
 
             except ValueError:

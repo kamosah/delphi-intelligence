@@ -1,12 +1,14 @@
 """GraphQL types for the application."""
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 import strawberry
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
+from app.models.query import Query as QueryModel, QueryStatus
 from app.models.space import Space as SpaceModel
 from app.models.user import User as UserModel
 
@@ -212,3 +214,81 @@ class UpdateSpaceInput:
     name: str | None = None
     description: str | None = None
     icon_color: str | None = None
+
+
+@strawberry.enum
+class QueryStatusEnum(str, Enum):
+    """GraphQL enum for query processing status."""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+@strawberry.type
+class Citation:
+    """GraphQL Citation type for query source citations."""
+
+    index: int
+    document_id: strawberry.ID
+    document_title: str
+    chunk_index: int
+    chunk_text: str
+    relevance_score: float
+    page_number: int | None = None
+
+
+@strawberry.type
+class QueryResult:
+    """GraphQL QueryResult type for AI agent query execution results."""
+
+    id: strawberry.ID
+    space_id: strawberry.ID
+    created_by: strawberry.ID
+    query_text: str
+    result: str | None
+    title: str | None
+    context: str | None
+    confidence_score: float | None
+    agent_steps: strawberry.scalars.JSON | None  # type: ignore[valid-type]
+    sources: strawberry.scalars.JSON | None  # type: ignore[valid-type]
+    model_used: str | None
+    status: QueryStatusEnum | None
+    error_message: str | None
+    processing_time_ms: int | None
+    tokens_used: int | None
+    cost_usd: float | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, query: QueryModel) -> "QueryResult":
+        """Convert SQLAlchemy Query model to GraphQL QueryResult type."""
+        # Convert QueryStatus enum to QueryStatusEnum if present
+        status = None
+        if query.status:
+            status = QueryStatusEnum[query.status.name]
+
+        return cls(
+            id=strawberry.ID(str(query.id)),
+            space_id=strawberry.ID(str(query.space_id)),
+            created_by=strawberry.ID(str(query.created_by)),
+            query_text=query.query_text,
+            result=query.result,
+            title=query.title,
+            context=query.context,
+            confidence_score=query.confidence_score,
+            agent_steps=query.agent_steps,
+            sources=query.sources,
+            model_used=query.model_used,
+            status=status,
+            error_message=query.error_message,
+            processing_time_ms=query.processing_time_ms,
+            tokens_used=query.tokens_used,
+            cost_usd=float(query.cost_usd) if query.cost_usd else None,
+            completed_at=query.completed_at,
+            created_at=query.created_at,
+            updated_at=query.updated_at,
+        )

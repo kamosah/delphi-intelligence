@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 import strawberry
 
 from app.db.session import get_session
+from app.models.query import Query as QueryModel
 from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.utils.slug import generate_unique_slug
@@ -308,6 +309,81 @@ class Mutation:
                 await session.rollback()
                 # Re-raise authorization errors
                 if "owner" in str(e):
+                    raise
+                # Invalid UUID format
+                return False
+
+        return False
+
+    @strawberry.mutation
+    async def delete_query(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:
+        """
+        Delete a query by ID.
+
+        Args:
+            id: The query ID
+
+        Returns:
+            True if deleted successfully, False otherwise
+
+        Authorization:
+            - Only the query creator or space owner can delete
+            - Must have access to the space containing the query
+
+        Example mutation:
+            mutation {
+              deleteQuery(id: "query-uuid")
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    return False
+
+                user_id = user.id
+                query_id = UUID(str(id))
+
+                # Get query with space information
+                stmt = (
+                    select(QueryModel)
+                    .join(SpaceModel, SpaceModel.id == QueryModel.space_id)
+                    .where(QueryModel.id == query_id)
+                )
+                result = await session.execute(stmt)
+                query_model = result.scalar_one_or_none()
+
+                if not query_model:
+                    return False
+
+                # Check authorization: creator, space owner, or space member
+                is_creator = query_model.created_by == user_id
+                is_owner = query_model.space.owner_id == user_id
+
+                # Check if user is a member of the space
+                member_stmt = select(SpaceMemberModel).where(
+                    (SpaceMemberModel.space_id == query_model.space_id)
+                    & (SpaceMemberModel.user_id == user_id)
+                )
+                member_result = await session.execute(member_stmt)
+                is_member = member_result.scalar_one_or_none() is not None
+
+                if not is_creator and not is_owner and not is_member:
+                    msg = "Insufficient permissions to delete this query"
+                    raise ValueError(msg)
+
+                await session.delete(query_model)
+                await session.commit()
+
+                return True
+
+            except ValueError as e:
+                await session.rollback()
+                # Re-raise authorization errors
+                if "permissions" in str(e):
                     raise
                 # Invalid UUID format
                 return False

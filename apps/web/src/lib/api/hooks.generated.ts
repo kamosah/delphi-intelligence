@@ -84,6 +84,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   createSpace: Space;
   createUser: User;
+  deleteQuery: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
   updateSpace?: Maybe<Space>;
@@ -96,6 +97,10 @@ export type MutationCreateSpaceArgs = {
 
 export type MutationCreateUserArgs = {
   input: CreateUserInput;
+};
+
+export type MutationDeleteQueryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type MutationDeleteSpaceArgs = {
@@ -120,6 +125,8 @@ export type Query = {
   __typename?: 'Query';
   documents: Array<Document>;
   health: Scalars['String']['output'];
+  queries: Array<QueryResult>;
+  query?: Maybe<QueryResult>;
   searchDocuments: Array<SearchResult>;
   space?: Maybe<Space>;
   spaces: Array<Space>;
@@ -132,6 +139,16 @@ export type QueryDocumentsArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
   spaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type QueryQueriesArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  spaceId: Scalars['ID']['input'];
+};
+
+export type QueryQueryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type QuerySearchDocumentsArgs = {
@@ -159,6 +176,36 @@ export type QueryUsersArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
 };
+
+export type QueryResult = {
+  __typename?: 'QueryResult';
+  agentSteps?: Maybe<Scalars['JSON']['output']>;
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  confidenceScore?: Maybe<Scalars['Float']['output']>;
+  context?: Maybe<Scalars['String']['output']>;
+  costUsd?: Maybe<Scalars['Float']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Scalars['ID']['output'];
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  modelUsed?: Maybe<Scalars['String']['output']>;
+  processingTimeMs?: Maybe<Scalars['Int']['output']>;
+  queryText: Scalars['String']['output'];
+  result?: Maybe<Scalars['String']['output']>;
+  sources?: Maybe<Scalars['JSON']['output']>;
+  spaceId: Scalars['ID']['output'];
+  status?: Maybe<QueryStatusEnum>;
+  title?: Maybe<Scalars['String']['output']>;
+  tokensUsed?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export enum QueryStatusEnum {
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+}
 
 export type SearchDocumentsInput = {
   documentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
