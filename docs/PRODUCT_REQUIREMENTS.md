@@ -119,17 +119,21 @@ Build a **unified intelligence platform** that eliminates the gap between struct
   - Bulk upload capabilities
 - **Technical**: File storage integration (Supabase Storage), document parsing pipeline
 
-#### 1.3 AI Query Interface
+#### 1.3 AI Query Interface (Threads)
 
-- **Description**: Natural language interface for querying documents
+- **Description**: Hex-inspired conversational interface for querying documents and databases
 - **Features**:
-  - Conversational query input
-  - Real-time streaming responses (SSE for ChatGPT-style typing effect)
-  - Multi-document querying
-  - Source citation for all responses
-  - Query history and bookmarking
-  - Follow-up question suggestions
-- **Technical**: LangChain for LLM integration, SSE for response streaming, vector store for semantic search
+  - **Rich Text Input**: TipTap editor with mentions support
+  - **@user Mentions**: Tag team members for collaboration and notifications
+  - **@database Mentions**: Reference connected databases for SQL context
+  - **#space Mentions**: Tag workspaces for organization and scoping
+  - **Conversational query input**: Natural language questions with autocomplete
+  - **Real-time streaming responses**: SSE for ChatGPT-style typing effect
+  - **Multi-document querying**: Query across multiple documents simultaneously
+  - **Source citation**: All responses include clickable citations
+  - **Query history and bookmarking**: Save and revisit past queries
+  - **Follow-up question suggestions**: AI-generated prompts for deeper exploration
+- **Technical**: TipTap rich text editor, LangChain for LLM integration, SSE for response streaming, vector store for semantic search
 
 #### 1.4 Activity Logging & Audit Trail
 
@@ -250,11 +254,13 @@ Build a **unified intelligence platform** that eliminates the gap between struct
 
 - **Description**: Multiple users working simultaneously in a space
 - **Features**:
-  - Live presence indicators (who's viewing what)
-  - Shared query history
-  - Commenting on documents and queries
-  - @mentions for team members
-- **Technical**: WebSocket connections, Yjs for CRDT-based sync
+  - **Live presence indicators**: See who's viewing what in real-time
+  - **Shared query history**: All team members see the same conversation
+  - **Commenting on documents and queries**: Thread-based discussions
+  - **@user Mentions**: Tag team members to notify them (via TipTap editor)
+  - **Real-time cursor positions**: See where others are typing (Yjs)
+  - **Collaborative editing**: Multiple users editing Threads simultaneously
+- **Technical**: TipTap editor, Yjs for CRDT-based sync, WebSocket connections for presence
 
 #### 3.2 Sharing & Permissions
 
@@ -382,10 +388,11 @@ Based on Athena Intelligence's tech stack:
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS + Shadcn UI
+- **Rich Text Editor**: TipTap (ProseMirror-based) with mentions support
 - **State Management**:
   - React Query (TanStack Query) for server state
   - Zustand for client state
-- **Real-time**: WebSockets (future) / Supabase Realtime (alternative)
+- **Real-time**: Yjs for collaborative editing, WebSockets (future) / Supabase Realtime (alternative)
 
 #### Backend
 
@@ -573,58 +580,86 @@ SpaceMembership (for collaboration)
 
 ## MVP Roadmap
 
-### Phase 1: Foundation (Current - 4 weeks)
+**Story Point Scale**: Modified Fibonacci (0.5, 1, 2, 3, 5, 8, 13, 20)
 
-✅ User authentication (login, signup, email verification, password reset)
-✅ Basic database models (User, Space, Document, Query)
-✅ GraphQL API infrastructure
-🚧 Document upload and storage
-🚧 Basic space management UI
+- See Linear workspace documentation for point-to-hour estimates
 
-### Phase 2: Document Intelligence (4 weeks)
+### Phase 1: Foundation (~40 points - Current)
 
-- [ ] Document processing pipeline (text extraction, chunking)
-- [ ] Vector database integration (pgvector)
-- [x] LangChain + LangGraph agent setup (LOG-136 complete)
-- [ ] Basic query interface with RAG
-- [ ] Citation tracking and source attribution
-- [x] ADR-002: Hybrid LangGraph + CrewAI architecture (complete)
-- [ ] CrewAI dependency integration and proof-of-concept
+- ✅ User authentication (login, signup, email verification, password reset) - 13 points
+- ✅ Basic database models (User, Space, Document, Query) - 8 points
+- ✅ GraphQL API infrastructure - 8 points
+- ✅ Document upload and storage (LOG-176) - 8 points
+- ✅ Vector search with pgvector (LOG-177) - 5 points
+- 🚧 Basic space management UI - 5 points (estimated)
 
-### Phase 3: AI Agent & Multi-Agent Orchestration (4 weeks)
+**Phase 1 Total**: ~47 points completed
 
-- [ ] Multi-document query support
-- [ ] Advanced reasoning with LangGraph
-- [ ] Query history and bookmarking
-- [ ] LangSmith observability integration
-- [ ] Confidence scoring for responses
-- [ ] CrewAI financial analysis crew (first specialized team)
-- [ ] Multi-document research synthesis endpoint
-- [ ] Crew result caching for performance
-- [ ] Domain-specific agent teams (legal review, market research)
+### Phase 2: Document Intelligence & Threads UI (~60 points)
 
-### Phase 4: Collaboration & Workflow Automation (4 weeks)
+- [x] Document processing pipeline (text extraction, chunking) - LOG-176/177 - 8 points
+- [x] Vector database integration (pgvector) - LOG-177 - 5 points
+- [x] LangChain + LangGraph agent setup (LOG-136 complete) - 13 points
+- [ ] **Mentions System Implementation** (LOG-180 - immediate next sprint) - **9-15 points**:
+  - [ ] TipTap editor foundation setup - 1-2 points
+  - [ ] @user mentions with autocomplete - 2-3 points
+  - [ ] @database mentions for SQL context - 1-2 points
+  - [ ] #space mentions for workspace tagging - 1-2 points
+  - [ ] Storybook stories and documentation - 1 point
+- [ ] Basic query interface with RAG (Threads UI) - 13 points
+- [ ] Citation tracking and source attribution - 8 points
+- [x] ADR-002: Hybrid LangGraph + CrewAI architecture (complete) - 2 points
+- [x] ADR-003: TipTap mentions implementation (complete) - 2 points
+- [ ] CrewAI dependency integration and proof-of-concept - 5 points
 
-- [ ] Space sharing and permissions
-- [ ] Real-time presence indicators
-- [ ] Comments and annotations
-- [ ] Activity feed and notifications
-- [ ] User-defined workflow creation UI
-- [ ] Scheduled crew execution (daily/weekly research tasks)
-- [ ] Trigger-based workflows (document upload → crew processing)
-- [ ] Workflow template library (financial, legal, research)
+**Phase 2 Estimate**: ~60 points (28 completed, ~32 remaining)
 
-### Phase 5: Polish & Launch (3 weeks)
+### Phase 3: AI Agent & Multi-Agent Orchestration (~50 points)
 
-- [ ] Audit logging and compliance features
-- [ ] Performance optimization
-- [ ] User onboarding flow
-- [ ] Documentation and help center
-- [ ] Beta launch
+- [ ] Multi-document query support - 8 points
+- [ ] Advanced reasoning with LangGraph - 13 points
+- [ ] Query history and bookmarking - 5 points
+- [ ] LangSmith observability integration - 5 points
+- [ ] Confidence scoring for responses - 3 points
+- [ ] CrewAI financial analysis crew (first specialized team) - 8 points
+- [ ] Multi-document research synthesis endpoint - 5 points
+- [ ] Crew result caching for performance - 3 points
+- [ ] Domain-specific agent teams (legal review, market research) - 13 points
 
-**Total Timeline**: ~19 weeks (4.75 months) to MVP launch
+**Phase 3 Estimate**: ~63 points
 
-_Updated to include CrewAI multi-agent workflows and automation in Phase 3-4_
+### Phase 4: Collaboration & Workflow Automation (~50 points)
+
+- [ ] Space sharing and permissions - 8 points
+- [ ] Real-time presence indicators - 5 points
+- [ ] Comments and annotations - 8 points
+- [ ] Activity feed and notifications - 5 points
+- [ ] User-defined workflow creation UI - 13 points
+- [ ] Scheduled crew execution (daily/weekly research tasks) - 5 points
+- [ ] Trigger-based workflows (document upload → crew processing) - 8 points
+- [ ] Workflow template library (financial, legal, research) - 5 points
+
+**Phase 4 Estimate**: ~57 points
+
+### Phase 5: Polish & Launch (~30 points)
+
+- [ ] Audit logging and compliance features - 8 points
+- [ ] Performance optimization - 8 points
+- [ ] User onboarding flow - 5 points
+- [ ] Documentation and help center - 5 points
+- [ ] Beta launch - 3 points
+
+**Phase 5 Estimate**: ~29 points
+
+---
+
+**Total MVP Estimate**: ~256 points
+
+_Updated to include:_
+
+- _Story point-based estimates (Modified Fibonacci scale)_
+- _CrewAI multi-agent workflows and automation in Phase 3-4_
+- _TipTap mentions system in Phase 2 (ADR-003, LOG-180)_
 
 ---
 
