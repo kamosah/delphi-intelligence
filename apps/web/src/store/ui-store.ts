@@ -4,9 +4,12 @@ import { persist } from 'zustand/middleware';
 interface UIState {
   isDarkMode: boolean;
   sidebarOpen: boolean;
+  sidebarVisible: boolean;
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  toggleSidebarVisibility: () => void;
+  setSidebarVisible: (visible: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -14,6 +17,7 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       isDarkMode: false,
       sidebarOpen: true,
+      sidebarVisible: true,
       toggleDarkMode: () =>
         set((state) => {
           const newMode = !state.isDarkMode;
@@ -30,6 +34,9 @@ export const useUIStore = create<UIState>()(
       toggleSidebar: () =>
         set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
+      toggleSidebarVisibility: () =>
+        set((state) => ({ sidebarVisible: !state.sidebarVisible })),
+      setSidebarVisible: (visible: boolean) => set({ sidebarVisible: visible }),
     }),
     {
       name: 'ui-storage',

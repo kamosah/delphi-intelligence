@@ -1,0 +1,51 @@
+# ============================================
+# Query Result Query Operations
+# ============================================
+
+query GetQueryResults($spaceId: ID!, $limit: Int, $offset: Int) {
+  queries(spaceId: $spaceId, limit: $limit, offset: $offset) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    sources
+    agentSteps
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+
+query GetQueryResult($id: ID!) {
+  query(id: $id) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    sources
+    agentSteps
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
