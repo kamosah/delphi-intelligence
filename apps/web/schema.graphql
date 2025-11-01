@@ -1,0 +1,158 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+input CreateSpaceInput {
+  description: String = null
+  iconColor: String = null
+  name: String!
+}
+
+input CreateUserInput {
+  avatarUrl: String = null
+  bio: String = null
+  email: String!
+  fullName: String = null
+}
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+type Document {
+  createdAt: DateTime!
+  docMetadata: JSON
+  extractedText: String
+  filePath: String!
+  fileType: String!
+  id: ID!
+  name: String!
+  processedAt: DateTime
+  processingError: String
+  sizeBytes: Int!
+  spaceId: ID!
+  status: String!
+  updatedAt: DateTime!
+  uploadedBy: ID!
+}
+
+type DocumentChunk {
+  chunkIndex: Int!
+  chunkMetadata: JSON!
+  chunkText: String!
+  createdAt: DateTime!
+  documentId: ID!
+  endChar: Int!
+  id: ID!
+  startChar: Int!
+  tokenCount: Int!
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON
+
+type Mutation {
+  createSpace(input: CreateSpaceInput!): Space!
+  createUser(input: CreateUserInput!): User!
+  deleteQuery(id: ID!): Boolean!
+  deleteSpace(id: ID!): Boolean!
+  deleteUser(id: ID!): Boolean!
+  updateSpace(id: ID!, input: UpdateSpaceInput!): Space
+  updateUser(id: ID!, input: UpdateUserInput!): User
+}
+
+type Query {
+  documents(limit: Int! = 100, offset: Int! = 0, spaceId: ID = null): [Document!]!
+  health: String!
+  queries(limit: Int! = 50, offset: Int! = 0, spaceId: ID!): [QueryResult!]!
+  query(id: ID!): QueryResult
+  searchDocuments(input: SearchDocumentsInput!): [SearchResult!]!
+  space(id: ID!): Space
+  spaces(limit: Int! = 10, offset: Int! = 0): [Space!]!
+  user(id: ID!): User
+  userByEmail(email: String!): User
+  users(limit: Int! = 10, offset: Int! = 0): [User!]!
+}
+
+type QueryResult {
+  agentSteps: JSON
+  completedAt: DateTime
+  confidenceScore: Float
+  context: String
+  costUsd: Float
+  createdAt: DateTime!
+  createdBy: ID!
+  errorMessage: String
+  id: ID!
+  modelUsed: String
+  processingTimeMs: Int
+  queryText: String!
+  result: String
+  sources: JSON
+  spaceId: ID!
+  status: QueryStatusEnum
+  title: String
+  tokensUsed: Int
+  updatedAt: DateTime!
+}
+
+enum QueryStatusEnum {
+  COMPLETED
+  FAILED
+  PENDING
+  PROCESSING
+}
+
+input SearchDocumentsInput {
+  documentIds: [ID!] = null
+  limit: Int! = 10
+  query: String!
+  similarityThreshold: Float! = 0
+  spaceId: ID = null
+}
+
+type SearchResult {
+  chunk: DocumentChunk!
+  distance: Float!
+  document: Document!
+  similarityScore: Float!
+}
+
+type Space {
+  createdAt: DateTime!
+  description: String
+  documentCount: Int!
+  iconColor: String
+  id: ID!
+  isPublic: Boolean!
+  maxMembers: Int
+  memberCount: Int!
+  name: String!
+  ownerId: ID!
+  slug: String!
+  updatedAt: DateTime!
+}
+
+input UpdateSpaceInput {
+  description: String = null
+  iconColor: String = null
+  name: String = null
+}
+
+input UpdateUserInput {
+  avatarUrl: String = null
+  bio: String = null
+  fullName: String = null
+}
+
+type User {
+  avatarUrl: String
+  bio: String
+  createdAt: DateTime!
+  email: String!
+  fullName: String
+  id: ID!
+  updatedAt: DateTime!
+}

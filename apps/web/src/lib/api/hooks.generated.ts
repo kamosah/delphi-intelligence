@@ -84,6 +84,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   createSpace: Space;
   createUser: User;
+  deleteQuery: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
   updateSpace?: Maybe<Space>;
@@ -96,6 +97,10 @@ export type MutationCreateSpaceArgs = {
 
 export type MutationCreateUserArgs = {
   input: CreateUserInput;
+};
+
+export type MutationDeleteQueryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type MutationDeleteSpaceArgs = {
@@ -120,6 +125,8 @@ export type Query = {
   __typename?: 'Query';
   documents: Array<Document>;
   health: Scalars['String']['output'];
+  queries: Array<QueryResult>;
+  query?: Maybe<QueryResult>;
   searchDocuments: Array<SearchResult>;
   space?: Maybe<Space>;
   spaces: Array<Space>;
@@ -132,6 +139,16 @@ export type QueryDocumentsArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
   spaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type QueryQueriesArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  spaceId: Scalars['ID']['input'];
+};
+
+export type QueryQueryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type QuerySearchDocumentsArgs = {
@@ -159,6 +176,36 @@ export type QueryUsersArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
 };
+
+export type QueryResult = {
+  __typename?: 'QueryResult';
+  agentSteps?: Maybe<Scalars['JSON']['output']>;
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  confidenceScore?: Maybe<Scalars['Float']['output']>;
+  context?: Maybe<Scalars['String']['output']>;
+  costUsd?: Maybe<Scalars['Float']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Scalars['ID']['output'];
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  modelUsed?: Maybe<Scalars['String']['output']>;
+  processingTimeMs?: Maybe<Scalars['Int']['output']>;
+  queryText: Scalars['String']['output'];
+  result?: Maybe<Scalars['String']['output']>;
+  sources?: Maybe<Scalars['JSON']['output']>;
+  spaceId: Scalars['ID']['output'];
+  status?: Maybe<QueryStatusEnum>;
+  title?: Maybe<Scalars['String']['output']>;
+  tokensUsed?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export enum QueryStatusEnum {
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+}
 
 export type SearchDocumentsInput = {
   documentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -213,6 +260,15 @@ export type User = {
   fullName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type DeleteQueryResultMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type DeleteQueryResultMutation = {
+  __typename?: 'Mutation';
+  deleteQuery: boolean;
 };
 
 export type CreateSpaceMutationVariables = Exact<{
@@ -342,6 +398,68 @@ export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
 
+export type GetQueryResultsQueryVariables = Exact<{
+  spaceId: Scalars['ID']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetQueryResultsQuery = {
+  __typename?: 'Query';
+  queries: Array<{
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    sources?: any | null;
+    agentSteps?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetQueryResultQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type GetQueryResultQuery = {
+  __typename?: 'Query';
+  query?: {
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    sources?: any | null;
+    agentSteps?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
 export type GetSpacesQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -443,6 +561,48 @@ export type GetUserByEmailQuery = {
     updatedAt: string;
   } | null;
 };
+
+export const DeleteQueryResultDocument = `
+    mutation DeleteQueryResult($id: ID!) {
+  deleteQuery(id: $id)
+}
+    `;
+
+export const useDeleteQueryResultMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    DeleteQueryResultMutation,
+    TError,
+    DeleteQueryResultMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    DeleteQueryResultMutation,
+    TError,
+    DeleteQueryResultMutationVariables,
+    TContext
+  >({
+    mutationKey: ['DeleteQueryResult'],
+    mutationFn: (variables?: DeleteQueryResultMutationVariables) =>
+      graphqlRequestFetcher<
+        DeleteQueryResultMutation,
+        DeleteQueryResultMutationVariables
+      >(DeleteQueryResultDocument, variables)(),
+    ...options,
+  });
+};
+
+useDeleteQueryResultMutation.fetcher = (
+  variables: DeleteQueryResultMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    DeleteQueryResultMutation,
+    DeleteQueryResultMutationVariables
+  >(DeleteQueryResultDocument, variables, options);
 
 export const CreateSpaceDocument = `
     mutation CreateSpace($input: CreateSpaceInput!) {
@@ -750,6 +910,132 @@ useHealthCheckQuery.fetcher = (
 ) =>
   graphqlRequestFetcher<HealthCheckQuery, HealthCheckQueryVariables>(
     HealthCheckDocument,
+    variables,
+    options
+  );
+
+export const GetQueryResultsDocument = `
+    query GetQueryResults($spaceId: ID!, $limit: Int, $offset: Int) {
+  queries(spaceId: $spaceId, limit: $limit, offset: $offset) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    sources
+    agentSteps
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetQueryResultsQuery = <
+  TData = GetQueryResultsQuery,
+  TError = Error,
+>(
+  variables: GetQueryResultsQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetQueryResultsQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<GetQueryResultsQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<GetQueryResultsQuery, TError, TData>({
+    queryKey: ['GetQueryResults', variables],
+    queryFn: graphqlRequestFetcher<
+      GetQueryResultsQuery,
+      GetQueryResultsQueryVariables
+    >(GetQueryResultsDocument, variables),
+    ...options,
+  });
+};
+
+useGetQueryResultsQuery.getKey = (variables: GetQueryResultsQueryVariables) => [
+  'GetQueryResults',
+  variables,
+];
+
+useGetQueryResultsQuery.fetcher = (
+  variables: GetQueryResultsQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetQueryResultsQuery, GetQueryResultsQueryVariables>(
+    GetQueryResultsDocument,
+    variables,
+    options
+  );
+
+export const GetQueryResultDocument = `
+    query GetQueryResult($id: ID!) {
+  query(id: $id) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    sources
+    agentSteps
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetQueryResultQuery = <
+  TData = GetQueryResultQuery,
+  TError = Error,
+>(
+  variables: GetQueryResultQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetQueryResultQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<GetQueryResultQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<GetQueryResultQuery, TError, TData>({
+    queryKey: ['GetQueryResult', variables],
+    queryFn: graphqlRequestFetcher<
+      GetQueryResultQuery,
+      GetQueryResultQueryVariables
+    >(GetQueryResultDocument, variables),
+    ...options,
+  });
+};
+
+useGetQueryResultQuery.getKey = (variables: GetQueryResultQueryVariables) => [
+  'GetQueryResult',
+  variables,
+];
+
+useGetQueryResultQuery.fetcher = (
+  variables: GetQueryResultQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetQueryResultQuery, GetQueryResultQueryVariables>(
+    GetQueryResultDocument,
     variables,
     options
   );
