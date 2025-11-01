@@ -112,6 +112,14 @@ export function useStreamingQuery() {
                 }));
                 break;
 
+              case 'replace':
+                // Replace entire response (used for low-confidence fallback)
+                setState((prev) => ({
+                  ...prev,
+                  response: data.content,
+                }));
+                break;
+
               case 'citations':
                 // Update citations and confidence score
                 setState((prev) => ({

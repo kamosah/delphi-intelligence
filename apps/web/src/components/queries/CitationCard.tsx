@@ -28,12 +28,12 @@ interface CitationCardProps {
  *     document_id: "doc-123",
  *     document_title: "Annual Report 2024",
  *     chunk_index: 0,
- *     relevance_score: 0.95
+ *     similarity_score: 0.95
  *   }}
  * />
  */
 export function CitationCard({ citation, className }: CitationCardProps) {
-  const relevancePercent = Math.round(citation.relevance_score * 100);
+  const similarityPercent = Math.round(citation.similarity_score * 100);
 
   // Determine relevance color based on score
   const getRelevanceColor = (score: number): string => {
@@ -68,13 +68,13 @@ export function CitationCard({ citation, className }: CitationCardProps) {
             {citation.text}
           </p>
 
-          {/* Footer: Relevance Score + Link */}
+          {/* Footer: Similarity Score + Link */}
           <div className="flex items-center justify-between gap-2">
-            {/* Relevance Score */}
+            {/* Similarity Score */}
             <span
-              className={`text-xs font-medium ${getRelevanceColor(citation.relevance_score)}`}
+              className={`text-xs font-medium ${getRelevanceColor(citation.similarity_score)}`}
             >
-              {relevancePercent}% relevant
+              {similarityPercent}% relevant
             </span>
 
             {/* View Source Link */}

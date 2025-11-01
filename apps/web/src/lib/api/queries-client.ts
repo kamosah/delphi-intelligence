@@ -12,7 +12,9 @@ export interface Citation {
   document_id: string;
   document_title?: string;
   chunk_index: number;
-  relevance_score: number;
+  similarity_score: number; // Backend sends similarity_score (0-1)
+  page_number?: number;
+  confidence_level?: 'high' | 'medium' | 'low';
 }
 
 export interface Query {
