@@ -54,7 +54,8 @@ class TestQueryStreamEndpoint:
                 yield event
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = mock_stream()
+            # Return the generator itself, not the result of calling it
+            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             # Make streaming request
             params = {
@@ -66,7 +67,7 @@ class TestQueryStreamEndpoint:
 
             async with async_client.stream("GET", "/api/query/stream", params=params) as response:
                 assert response.status_code == 200
-                assert response.headers["content-type"] == "text/event-stream"
+                assert "text/event-stream" in response.headers["content-type"]
                 assert response.headers["cache-control"] == "no-cache"
                 assert response.headers["connection"] == "keep-alive"
 
@@ -98,7 +99,7 @@ class TestQueryStreamEndpoint:
             patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process,
             patch("app.routes.query_stream.QUERY_TIMEOUT_SECONDS", mock_timeout),
         ):
-            mock_process.return_value = slow_stream()
+            mock_process.side_effect = lambda *args, **kwargs: slow_stream(*args, **kwargs)
 
             params = {
                 "query": "Slow query",
@@ -125,10 +126,12 @@ class TestQueryStreamEndpoint:
         """Test that rate limit errors are properly categorized."""
 
         async def rate_limit_stream(*args, **kwargs):
+            if False:
+                yield  # Make it a generator
             raise Exception("OpenAI rate limit exceeded. Please try again later.")
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = rate_limit_stream()
+            mock_process.side_effect = lambda *args, **kwargs: rate_limit_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
@@ -151,10 +154,12 @@ class TestQueryStreamEndpoint:
         """Test that API errors are properly categorized."""
 
         async def api_error_stream(*args, **kwargs):
+            if False:
+                yield  # Make it a generator
             raise Exception("OpenAI API connection failed")
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = api_error_stream()
+            mock_process.side_effect = lambda *args, **kwargs: api_error_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
@@ -177,10 +182,12 @@ class TestQueryStreamEndpoint:
         """Test that database errors are properly categorized."""
 
         async def db_error_stream(*args, **kwargs):
+            if False:
+                yield  # Make it a generator
             raise Exception("Database connection error: timeout")
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = db_error_stream()
+            mock_process.side_effect = lambda *args, **kwargs: db_error_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
@@ -203,10 +210,12 @@ class TestQueryStreamEndpoint:
         """Test that unknown errors are categorized as UNKNOWN."""
 
         async def unknown_error_stream(*args, **kwargs):
+            if False:
+                yield  # Make it a generator
             raise Exception("Something unexpected happened")
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = unknown_error_stream()
+            mock_process.side_effect = lambda *args, **kwargs: unknown_error_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
@@ -265,7 +274,7 @@ class TestQueryStreamEndpoint:
                 yield event
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = mock_stream()
+            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {"query": "Test"}
 
@@ -295,7 +304,7 @@ class TestQueryStreamEndpoint:
             yield {"type": "done", "confidence_score": 0.8}
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = mock_stream()
+            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {
                 "query": "Test",
@@ -324,7 +333,7 @@ class TestQueryStreamEndpoint:
             }
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = mock_stream()
+            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {
                 "query": "Test",
@@ -352,7 +361,7 @@ class TestQueryStreamEndpoint:
             yield {"type": "done", "confidence_score": 0.8}
 
         with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
-            mock_process.return_value = mock_stream()
+            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {"query": "Test"}
 

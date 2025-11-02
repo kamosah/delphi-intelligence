@@ -19,6 +19,7 @@ from app.agents.query_agent import (
 )
 from app.models.query import Query
 from app.services.citation_service import get_citation_service
+from app.agents.query_agent import add_citations
 
 logger = logging.getLogger(__name__)
 
@@ -283,7 +284,6 @@ class AIAgentService:
 
         # Step 3: Extract citations
         state["response"] = full_response
-        from app.agents.query_agent import add_citations
 
         state = await add_citations(state)
 

@@ -16,6 +16,7 @@ from app.agents.query_agent import (
     retrieve_context,
 )
 from app.services.ai_agent import AIAgentService, ai_agent_service
+from app.services.vector_search_service import SearchResult
 
 
 class TestQueryAgent:
@@ -138,44 +139,66 @@ class TestAIAgentService:
     """Tests for the AI agent service."""
 
     @pytest.mark.asyncio
-    async def test_process_query_with_mock(self) -> None:
-        """Test query processing with mocked agent."""
+    async def test_process_query_high_confidence(self) -> None:
+        """Test query processing returns response when confidence is high."""
         service = AIAgentService()
 
-        # Mock the agent execution
+        # Mock search result with high similarity score
+        mock_search_result = MagicMock(spec=SearchResult)
+        mock_search_result.similarity_score = 0.9
+
+        context_text = "AI stands for artificial intelligence."
+
+        # Mock the agent execution with citations
         mock_result = {
             "query": "What is AI?",
-            "context": [],
-            "response": "AI is artificial intelligence.",
-            "citations": [],
+            "context": [context_text],
+            "response": "AI is artificial intelligence [1].",
+            "citations": [{"index": 1, "text": context_text}],
+            "search_results": [mock_search_result],
         }
 
         with patch.object(service.agent, "ainvoke", return_value=mock_result):
+            # Mock confidence calculation to return high confidence (>0.7)
+            service.citation_service.calculate_overall_confidence = MagicMock(return_value=0.85)
+
             result = await service.process_query("What is AI?")
 
-            assert result["response"] == "AI is artificial intelligence."
-            assert result["citations"] == []
-            assert result["context_used"] is False
+            # Should return the actual response (not fallback) when confidence is high
+            assert result["response"] == "AI is artificial intelligence [1]."
+            assert len(result["citations"]) == 1
+            assert result["citations"][0]["text"] == context_text
+            assert result["confidence_score"] == 0.85
+            assert result["context_used"] is True
 
     @pytest.mark.asyncio
     async def test_process_query_with_context(self) -> None:
-        """Test query processing with provided context."""
+        """Test query processing with pre-provided context (bypasses vector search)."""
         service = AIAgentService()
+
+        # Mock search result
+        mock_search_result = MagicMock(spec=SearchResult)
+        mock_search_result.similarity_score = 0.85
 
         context = ["AI is a powerful technology."]
         mock_result = {
             "query": "What is AI?",
             "context": context,
-            "response": "AI is a powerful technology according to the context.",
+            "response": "AI is a powerful technology [1].",
             "citations": [{"index": 1, "text": context[0]}],
+            "search_results": [mock_search_result],
         }
 
         with patch.object(service.agent, "ainvoke", return_value=mock_result):
+            # Mock confidence calculation to return high confidence
+            service.citation_service.calculate_overall_confidence = MagicMock(return_value=0.85)
+
             result = await service.process_query("What is AI?", context=context)
 
-            assert result["response"] is not None
+            assert "AI is a powerful technology" in result["response"]
             assert result["context_used"] is True
             assert len(result["citations"]) == 1
+            assert result["confidence_score"] == 0.85
 
     @pytest.mark.asyncio
     async def test_process_query_stream(self) -> None:
