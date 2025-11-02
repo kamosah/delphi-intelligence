@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.query_agent import (
     AgentState,
+    NO_CONTEXT_FALLBACK_MESSAGE,
     create_query_agent,
     generate_response_streaming,
 )
@@ -26,18 +27,8 @@ logger = logging.getLogger(__name__)
 # Confidence threshold for "I don't know" fallback (hybrid approach)
 CONFIDENCE_THRESHOLD = 0.5  # Reject responses below 50% confidence
 
-# Fallback message for low-confidence responses
-LOW_CONFIDENCE_MESSAGE = """I don't have enough information in the provided documents to answer this question accurately.
-
-This could be because:
-- The question requires information not present in the uploaded documents
-- The relevant information may be in documents that haven't been uploaded yet
-- The question may need to be more specific to find relevant content
-
-Suggestions:
-- Try rephrasing your question to be more specific
-- Upload additional documents that might contain the relevant information
-- Break down complex questions into simpler, more focused queries"""
+# Use shared fallback message from query_agent for consistency
+LOW_CONFIDENCE_MESSAGE = NO_CONTEXT_FALLBACK_MESSAGE
 
 
 class AIAgentService:
@@ -301,9 +292,9 @@ class AIAgentService:
             full_response, confidence_score, state["citations"]
         )
 
-        # If response was replaced due to low confidence, send correction token
+        # If response was replaced due to low confidence, send replace event
         if final_response != full_response:
-            # Send a special token to clear the previous response
+            # Send a replace event to replace the streamed response
             yield {"type": "replace", "content": final_response}
 
         # Yield citations with confidence

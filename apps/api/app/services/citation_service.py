@@ -6,6 +6,7 @@ and citation quality assessment.
 """
 
 import logging
+import re
 from typing import Any
 from collections.abc import Sequence
 
@@ -306,8 +307,6 @@ class CitationService:
             quality_score -= 0.3
 
         # Check 2: Verify response contains citation markers
-        import re
-
         citation_pattern = r"\[(\d+)\]"
         citation_markers = set(re.findall(citation_pattern, response))
 

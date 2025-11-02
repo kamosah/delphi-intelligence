@@ -9,6 +9,12 @@ import {
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/client';
+import {
+  MAX_RETRY_ATTEMPTS,
+  RETRY_DELAY_MS,
+  MAX_RETRY_DELAY_MS,
+  NON_RETRYABLE_ERRORS,
+} from '@/constants/streaming';
 
 interface StreamingState {
   response: string;
@@ -20,14 +26,6 @@ interface StreamingState {
   retryCount: number;
   errorCode?: string;
 }
-
-// Reconnection configuration
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 1000; // Start with 1 second
-const MAX_RETRY_DELAY_MS = 10000; // Max 10 seconds
-
-// Errors that should not trigger retry
-const NON_RETRYABLE_ERRORS = ['TIMEOUT', 'UNKNOWN'];
 
 /**
  * Custom hook for streaming query responses using Server-Sent Events (SSE).
@@ -86,8 +84,8 @@ export function useStreamingQuery() {
    * Check if error is retryable
    */
   const isRetryableError = (errorCode?: string): boolean => {
-    if (!errorCode) return true; // Unknown errors are retryable
-    return !NON_RETRYABLE_ERRORS.includes(errorCode);
+    const code = errorCode ?? 'UNKNOWN';
+    return !NON_RETRYABLE_ERRORS.includes(code);
   };
 
   /**
@@ -261,16 +259,16 @@ export function useStreamingQuery() {
           // Wait for backoff delay with cancellable timeout
           await new Promise<void>((resolve, reject) => {
             retryTimeoutRef.current = setTimeout(() => {
+              // Check if timeout was cleared (cancelled) before completion
+              if (retryTimeoutRef.current === null) {
+                reject(new Error('Retry cancelled by user'));
+                return;
+              }
+              // Otherwise, proceed
               retryTimeoutRef.current = null;
               resolve();
             }, delay);
           });
-
-          // Check if retry was cancelled during delay
-          if (retryTimeoutRef.current === null && retryCount > 0) {
-            // Timeout was cleared, meaning stopStreaming() was called
-            throw new Error('Retry cancelled by user');
-          }
 
           // Retry recursively
           return startStreamingInternal(params, retryCount + 1);

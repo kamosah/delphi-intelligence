@@ -23,7 +23,9 @@ from app.services.vector_search_service import SearchResult, get_vector_search_s
 logger = logging.getLogger(__name__)
 
 # Context window management constants
-MAX_CONTEXT_WINDOW = 8000  # For gpt-4-turbo (8k tokens)
+MAX_CONTEXT_WINDOW = (
+    8000  # Artificially limited for performance/cost; gpt-4-turbo supports up to 128k
+)
 MAX_RESPONSE_TOKENS = 2000  # Reserved for response generation
 SYSTEM_PROMPT_OVERHEAD = 200  # Estimated tokens for system prompt
 FEW_SHOT_OVERHEAD = 400  # Estimated tokens for few-shot examples
@@ -71,6 +73,19 @@ Example 3:
 Context: [1] The user authentication system uses JWT tokens with a 24-hour expiration.
 Question: What is the database backup schedule?
 Answer: I don't have enough information in the provided documents to answer this question about database backup schedules. The available context only discusses user authentication [1]."""
+
+# Fallback message when no context is available
+NO_CONTEXT_FALLBACK_MESSAGE = """I don't have enough information in the provided documents to answer this question accurately.
+
+This could be because:
+- The question requires information not present in the uploaded documents
+- The relevant information may be in documents that haven't been uploaded yet
+- The question may need to be more specific to find relevant content
+
+Suggestions:
+- Try rephrasing your question to be more specific
+- Upload additional documents that might contain the relevant information
+- Break down complex questions into simpler, more focused queries"""
 
 
 def count_tokens(text: str, model: str = "gpt-4") -> int:
@@ -132,7 +147,7 @@ def trim_context_to_budget(
     # Sort chunks by relevance (highest first)
     if search_results:
         # Pair chunks with search results and sort by similarity score
-        paired = list(zip(chunks, search_results, strict=False))
+        paired = list(zip(chunks, search_results, strict=True))
         paired.sort(key=lambda x: x[1].similarity_score, reverse=True)
 
         # Take chunks until budget is reached
@@ -299,10 +314,10 @@ Instructions:
 - If information is insufficient, clearly state "I don't have enough information in the provided documents to answer this question accurately."
 - Be precise and concise"""
     else:
-        # No context available - should trigger "I don't know" response
+        # No context available - use consistent fallback message
         prompt = f"""Question: {state["query"]}
 
-I don't have access to any relevant documents to answer this question. Please upload documents or provide more context."""
+{NO_CONTEXT_FALLBACK_MESSAGE}"""
 
     # Generate response
     messages = [
@@ -353,10 +368,10 @@ Instructions:
 - If information is insufficient, clearly state "I don't have enough information in the provided documents to answer this question accurately."
 - Be precise and concise"""
     else:
-        # No context available - should trigger "I don't know" response
+        # No context available - use consistent fallback message
         prompt = f"""Question: {state["query"]}
 
-I don't have access to any relevant documents to answer this question. Please upload documents or provide more context."""
+{NO_CONTEXT_FALLBACK_MESSAGE}"""
 
     # Generate streaming response
     messages = [

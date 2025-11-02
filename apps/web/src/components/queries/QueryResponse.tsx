@@ -6,6 +6,10 @@ import { QueryMessage } from './QueryMessage';
 import { CitationList } from './CitationList';
 import { Alert } from '@olympus/ui';
 import { Loader2, AlertCircle } from 'lucide-react';
+import {
+  MAX_RETRY_ATTEMPTS,
+  NON_RETRYABLE_ERRORS,
+} from '@/constants/streaming';
 
 // Error code to title mapping
 const ERROR_TITLES: Record<string, string> = {
@@ -15,9 +19,6 @@ const ERROR_TITLES: Record<string, string> = {
   DATABASE_ERROR: 'Database Error',
   UNKNOWN: 'Query Failed',
 };
-
-// Non-retryable error codes
-const NON_RETRYABLE_ERRORS = ['TIMEOUT', 'UNKNOWN'];
 
 interface QueryResponseProps {
   response: string;
@@ -79,7 +80,8 @@ export function QueryResponse({
     const isRetryable = !NON_RETRYABLE_ERRORS.includes(errorCode ?? '');
 
     // Show retry button if handler provided and under max retries
-    const showRetryButton = onRetry && (!retryCount || retryCount < 3);
+    const showRetryButton =
+      onRetry && (!retryCount || retryCount < MAX_RETRY_ATTEMPTS);
 
     return (
       <div className={`p-4 ${className || ''}`}>
