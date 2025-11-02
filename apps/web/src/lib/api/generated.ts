@@ -29,6 +29,14 @@ export type Scalars = {
   JSON: { input: any; output: any };
 };
 
+export type CreateQueryInput = {
+  confidenceScore?: InputMaybe<Scalars['Float']['input']>;
+  queryText: Scalars['String']['input'];
+  result?: InputMaybe<Scalars['String']['input']>;
+  spaceId: Scalars['ID']['input'];
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
@@ -75,13 +83,19 @@ export type DocumentChunk = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  createQuery?: Maybe<QueryResult>;
   createSpace: Space;
   createUser: User;
   deleteQuery: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  updateQuery?: Maybe<QueryResult>;
   updateSpace?: Maybe<Space>;
   updateUser?: Maybe<User>;
+};
+
+export type MutationCreateQueryArgs = {
+  input: CreateQueryInput;
 };
 
 export type MutationCreateSpaceArgs = {
@@ -102,6 +116,11 @@ export type MutationDeleteSpaceArgs = {
 
 export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type MutationUpdateQueryArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateQueryInput;
 };
 
 export type MutationUpdateSpaceArgs = {
@@ -232,6 +251,11 @@ export type Space = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type UpdateQueryInput = {
+  result?: InputMaybe<Scalars['String']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
@@ -253,6 +277,67 @@ export type User = {
   fullName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CreateQueryMutationVariables = Exact<{
+  input: CreateQueryInput;
+}>;
+
+export type CreateQueryMutation = {
+  __typename?: 'Mutation';
+  createQuery?: {
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    agentSteps?: any | null;
+    sources?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type UpdateQueryMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateQueryInput;
+}>;
+
+export type UpdateQueryMutation = {
+  __typename?: 'Mutation';
+  updateQuery?: {
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    agentSteps?: any | null;
+    sources?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 };
 
 export type DeleteQueryResultMutationVariables = Exact<{
