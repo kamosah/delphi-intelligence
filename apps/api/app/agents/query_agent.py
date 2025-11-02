@@ -94,7 +94,9 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
 
 
 def trim_context_to_budget(
-    chunks: list[str], search_results: list[SearchResult] | None, max_tokens: int = MAX_CONTEXT_TOKENS
+    chunks: list[str],
+    search_results: list[SearchResult] | None,
+    max_tokens: int = MAX_CONTEXT_TOKENS,
 ) -> tuple[list[str], list[SearchResult] | None]:
     """
     Trim context chunks to fit within token budget.
@@ -153,25 +155,25 @@ def trim_context_to_budget(
         )
 
         return selected_chunks, selected_results if selected_results else None
-    else:
-        # No search results - trim from end
-        selected_chunks = []
-        current_tokens = 0
 
-        for chunk in chunks:
-            chunk_tokens = count_tokens(chunk)
-            if current_tokens + chunk_tokens <= max_tokens:
-                selected_chunks.append(chunk)
-                current_tokens += chunk_tokens
-            else:
-                break
+    # No search results - trim from end
+    selected_chunks = []
+    current_tokens = 0
 
-        logger.info(
-            f"Trimmed context from {len(chunks)} to {len(selected_chunks)} chunks "
-            f"({total_tokens} → {current_tokens} tokens)"
-        )
+    for chunk in chunks:
+        chunk_tokens = count_tokens(chunk)
+        if current_tokens + chunk_tokens <= max_tokens:
+            selected_chunks.append(chunk)
+            current_tokens += chunk_tokens
+        else:
+            break
 
-        return selected_chunks, None
+    logger.info(
+        f"Trimmed context from {len(chunks)} to {len(selected_chunks)} chunks "
+        f"({total_tokens} → {current_tokens} tokens)"
+    )
+
+    return selected_chunks, None
 
 
 class AgentState(TypedDict, total=False):

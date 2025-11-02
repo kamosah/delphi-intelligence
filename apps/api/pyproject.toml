@@ -159,6 +159,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "PT023",   # pytest.mark.asyncio() vs @pytest.mark.asyncio
     "ERA001",  # Commented-out code in tests
     "RUF013",  # Implicit Optional in tests
+    "TRY002",  # Create your own exception (generic Exception is fine for test mocks)
 ]
 # Standalone test files in api root
 "test_models_simple.py" = [

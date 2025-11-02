@@ -301,11 +301,9 @@ class CitationService:
                         f"(valid range: 1-{max_index})"
                     )
                     quality_score -= 0.2
-        else:
-            # No citations - could indicate hallucination or very general response
-            if context_chunks and len(response) > 50:  # Non-trivial response
-                issues.append("Response has no citations despite available context")
-                quality_score -= 0.3
+        elif context_chunks and len(response) > 50:  # Non-trivial response
+            issues.append("Response has no citations despite available context")
+            quality_score -= 0.3
 
         # Check 2: Verify response contains citation markers
         import re
@@ -319,9 +317,7 @@ class CitationService:
 
         # Check 3: Verify cited chunks are actually relevant
         if citations:
-            low_quality_citations = [
-                c for c in citations if c.get("similarity_score", 0) < 0.4
-            ]
+            low_quality_citations = [c for c in citations if c.get("similarity_score", 0) < 0.4]
             if low_quality_citations:
                 issues.append(
                     f"{len(low_quality_citations)} citations have very low relevance (<0.4)"
@@ -340,9 +336,7 @@ class CitationService:
         response_lower = response.lower()
         for keyword in hallucination_keywords:
             if keyword in response_lower and len(context_chunks) > 0:
-                issues.append(
-                    f"Response contains potential hallucination indicator: '{keyword}'"
-                )
+                issues.append(f"Response contains potential hallucination indicator: '{keyword}'")
                 quality_score -= 0.1
                 break
 
@@ -361,8 +355,7 @@ class CitationService:
 
         if not is_valid:
             logger.warning(
-                f"Response validation failed: quality={quality_score:.3f}, "
-                f"issues={len(issues)}"
+                f"Response validation failed: quality={quality_score:.3f}, " f"issues={len(issues)}"
             )
             for issue in issues:
                 logger.debug(f"  - {issue}")

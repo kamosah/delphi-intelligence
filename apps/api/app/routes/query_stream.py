@@ -62,11 +62,11 @@ async def generate_sse_events(
                 # Format as SSE
                 yield f"data: {json.dumps(event)}\n\n"
 
-    except asyncio.TimeoutError:
-        logger.error(f"Query timeout after {QUERY_TIMEOUT_SECONDS}s: {query[:100]}")
+    except TimeoutError:
+        logger.exception(f"Query timeout after {QUERY_TIMEOUT_SECONDS}s: {query[:100]}")
         error_event = {
             "type": "error",
-            "message": f"Query processing timed out after {QUERY_TIMEOUT_SECONDS} seconds. Please try a simpler question or refine your query.",
+            "message": f"Query processing timed out after {QUERY_TIMEOUT_SECONDS} seconds. Please try asking a simpler question or refine your query for better results.",
             "error_code": "TIMEOUT",
         }
         yield f"data: {json.dumps(error_event)}\n\n"
