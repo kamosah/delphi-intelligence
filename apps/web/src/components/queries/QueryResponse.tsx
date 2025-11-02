@@ -7,11 +7,25 @@ import { CitationList } from './CitationList';
 import { Alert } from '@olympus/ui';
 import { Loader2, AlertCircle } from 'lucide-react';
 
+// Error code to title mapping
+const ERROR_TITLES: Record<string, string> = {
+  TIMEOUT: 'Query Timeout',
+  RATE_LIMIT: 'Rate Limit Exceeded',
+  API_ERROR: 'AI Service Unavailable',
+  DATABASE_ERROR: 'Database Error',
+  UNKNOWN: 'Query Failed',
+};
+
+// Non-retryable error codes
+const NON_RETRYABLE_ERRORS = ['TIMEOUT', 'UNKNOWN'];
+
 interface QueryResponseProps {
   response: string;
   citations: Citation[];
   isStreaming: boolean;
   error: string | null;
+  errorCode?: string;
+  retryCount?: number;
   confidenceScore?: number | null;
   onRetry?: () => void;
   className?: string;
@@ -41,6 +55,8 @@ export function QueryResponse({
   citations,
   isStreaming,
   error,
+  errorCode,
+  retryCount = 0,
   confidenceScore,
   onRetry,
   className,
@@ -54,23 +70,50 @@ export function QueryResponse({
     }
   }, [response, citations]);
 
-  // Error state
+  // Error state with enhanced messaging
   if (error) {
+    // Get error title from mapping with fallback
+    const errorTitle = ERROR_TITLES[errorCode ?? ''] ?? 'Query Failed';
+
+    // Determine if error is retryable
+    const isRetryable = !NON_RETRYABLE_ERRORS.includes(errorCode ?? '');
+
+    // Show retry button if handler provided and under max retries
+    const showRetryButton = onRetry && (!retryCount || retryCount < 3);
+
     return (
       <div className={`p-4 ${className || ''}`}>
         <Alert className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
-          <div className="ml-2">
-            <p className="text-sm font-medium text-red-800">Query Failed</p>
+          <div className="ml-2 flex-1">
+            <p className="text-sm font-medium text-red-800">{errorTitle}</p>
             <p className="text-sm text-red-700 mt-1">{error}</p>
-            {onRetry && (
-              <button
-                onClick={onRetry}
-                className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium underline"
-              >
-                Try again
-              </button>
+
+            {/* Retry count indicator */}
+            {retryCount > 0 && (
+              <p className="text-xs text-red-600 mt-2">
+                Retry attempt {retryCount}/3 failed
+              </p>
             )}
+
+            {/* Action buttons */}
+            <div className="mt-3 flex items-center gap-3">
+              {showRetryButton && (
+                <button
+                  onClick={onRetry}
+                  className="text-sm text-red-600 hover:text-red-700 font-medium underline"
+                >
+                  {isRetryable ? 'Retry query' : 'Try new query'}
+                </button>
+              )}
+              {!showRetryButton && (
+                <p className="text-xs text-red-600">
+                  {isRetryable
+                    ? 'Please wait a moment and try again'
+                    : 'Please try rephrasing your question'}
+                </p>
+              )}
+            </div>
           </div>
         </Alert>
       </div>

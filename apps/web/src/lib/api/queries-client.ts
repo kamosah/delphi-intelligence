@@ -43,6 +43,12 @@ export type SSEDoneEvent = {
 export type SSEErrorEvent = {
   type: 'error';
   message: string;
+  error_code?:
+    | 'TIMEOUT'
+    | 'RATE_LIMIT'
+    | 'API_ERROR'
+    | 'DATABASE_ERROR'
+    | 'UNKNOWN';
 };
 
 export type SSEEvent =
