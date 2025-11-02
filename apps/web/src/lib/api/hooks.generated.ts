@@ -36,6 +36,14 @@ export type Scalars = {
   JSON: { input: any; output: any };
 };
 
+export type CreateQueryInput = {
+  confidenceScore?: InputMaybe<Scalars['Float']['input']>;
+  queryText: Scalars['String']['input'];
+  result?: InputMaybe<Scalars['String']['input']>;
+  spaceId: Scalars['ID']['input'];
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
@@ -82,13 +90,19 @@ export type DocumentChunk = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  createQuery?: Maybe<QueryResult>;
   createSpace: Space;
   createUser: User;
   deleteQuery: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  updateQuery?: Maybe<QueryResult>;
   updateSpace?: Maybe<Space>;
   updateUser?: Maybe<User>;
+};
+
+export type MutationCreateQueryArgs = {
+  input: CreateQueryInput;
 };
 
 export type MutationCreateSpaceArgs = {
@@ -109,6 +123,11 @@ export type MutationDeleteSpaceArgs = {
 
 export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type MutationUpdateQueryArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateQueryInput;
 };
 
 export type MutationUpdateSpaceArgs = {
@@ -239,6 +258,11 @@ export type Space = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type UpdateQueryInput = {
+  result?: InputMaybe<Scalars['String']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
@@ -260,6 +284,67 @@ export type User = {
   fullName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CreateQueryMutationVariables = Exact<{
+  input: CreateQueryInput;
+}>;
+
+export type CreateQueryMutation = {
+  __typename?: 'Mutation';
+  createQuery?: {
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    agentSteps?: any | null;
+    sources?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type UpdateQueryMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateQueryInput;
+}>;
+
+export type UpdateQueryMutation = {
+  __typename?: 'Mutation';
+  updateQuery?: {
+    __typename?: 'QueryResult';
+    id: string;
+    spaceId: string;
+    createdBy: string;
+    queryText: string;
+    result?: string | null;
+    title?: string | null;
+    context?: string | null;
+    confidenceScore?: number | null;
+    agentSteps?: any | null;
+    sources?: any | null;
+    modelUsed?: string | null;
+    status?: QueryStatusEnum | null;
+    errorMessage?: string | null;
+    processingTimeMs?: number | null;
+    tokensUsed?: number | null;
+    costUsd?: number | null;
+    completedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 };
 
 export type DeleteQueryResultMutationVariables = Exact<{
@@ -561,6 +646,126 @@ export type GetUserByEmailQuery = {
     updatedAt: string;
   } | null;
 };
+
+export const CreateQueryDocument = `
+    mutation CreateQuery($input: CreateQueryInput!) {
+  createQuery(input: $input) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    agentSteps
+    sources
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useCreateQueryMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    CreateQueryMutation,
+    TError,
+    CreateQueryMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    CreateQueryMutation,
+    TError,
+    CreateQueryMutationVariables,
+    TContext
+  >({
+    mutationKey: ['CreateQuery'],
+    mutationFn: (variables?: CreateQueryMutationVariables) =>
+      graphqlRequestFetcher<CreateQueryMutation, CreateQueryMutationVariables>(
+        CreateQueryDocument,
+        variables
+      )(),
+    ...options,
+  });
+};
+
+useCreateQueryMutation.fetcher = (
+  variables: CreateQueryMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<CreateQueryMutation, CreateQueryMutationVariables>(
+    CreateQueryDocument,
+    variables,
+    options
+  );
+
+export const UpdateQueryDocument = `
+    mutation UpdateQuery($id: ID!, $input: UpdateQueryInput!) {
+  updateQuery(id: $id, input: $input) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    agentSteps
+    sources
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useUpdateQueryMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    UpdateQueryMutation,
+    TError,
+    UpdateQueryMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    UpdateQueryMutation,
+    TError,
+    UpdateQueryMutationVariables,
+    TContext
+  >({
+    mutationKey: ['UpdateQuery'],
+    mutationFn: (variables?: UpdateQueryMutationVariables) =>
+      graphqlRequestFetcher<UpdateQueryMutation, UpdateQueryMutationVariables>(
+        UpdateQueryDocument,
+        variables
+      )(),
+    ...options,
+  });
+};
+
+useUpdateQueryMutation.fetcher = (
+  variables: UpdateQueryMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<UpdateQueryMutation, UpdateQueryMutationVariables>(
+    UpdateQueryDocument,
+    variables,
+    options
+  );
 
 export const DeleteQueryResultDocument = `
     mutation DeleteQueryResult($id: ID!) {

@@ -26,7 +26,7 @@ const sampleCitations: Citation[] = [
     document_id: 'doc-123',
     document_title: 'Q4 2024 Financial Report',
     chunk_index: 0,
-    relevance_score: 0.95,
+    similarity_score: 0.95,
   },
   {
     index: 2,
@@ -34,7 +34,7 @@ const sampleCitations: Citation[] = [
     document_id: 'doc-456',
     document_title: 'Risk Assessment Analysis',
     chunk_index: 2,
-    relevance_score: 0.72,
+    similarity_score: 0.72,
   },
 ];
 
