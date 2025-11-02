@@ -239,6 +239,25 @@ class Citation:
     page_number: int | None = None
 
 
+@strawberry.input
+class CreateQueryInput:
+    """Input type for creating a new query (manual creation, not via streaming)."""
+
+    space_id: strawberry.ID
+    query_text: str
+    result: str | None = None
+    title: str | None = None
+    confidence_score: float | None = None
+
+
+@strawberry.input
+class UpdateQueryInput:
+    """Input type for updating an existing query."""
+
+    title: str | None = None
+    result: str | None = None
+
+
 @strawberry.type
 class QueryResult:
     """GraphQL QueryResult type for AI agent query execution results."""

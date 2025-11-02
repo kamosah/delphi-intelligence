@@ -48,7 +48,10 @@ export const QueryInterface = forwardRef<
     confidenceScore,
     isStreaming,
     error,
+    errorCode,
+    retryCount,
     startStreaming,
+    retry,
     reset,
   } = useStreamingQuery();
 
@@ -121,10 +124,22 @@ export const QueryInterface = forwardRef<
     }
   };
 
-  // Handle retry on error
-  const handleRetry = () => {
-    if (currentQuery) {
-      handleSubmitQuery(currentQuery);
+  // Handle retry on error - use the retry method from useStreamingQuery
+  const handleRetry = async () => {
+    try {
+      await retry();
+
+      // After retry completes successfully, add assistant response to conversation
+      setConversationHistory((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: response,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (err) {
+      console.error('Retry failed:', err);
     }
   };
 
@@ -175,6 +190,8 @@ export const QueryInterface = forwardRef<
             citations={citations}
             isStreaming={isStreaming}
             error={error}
+            errorCode={errorCode}
+            retryCount={retryCount}
             confidenceScore={confidenceScore}
             onRetry={handleRetry}
           />

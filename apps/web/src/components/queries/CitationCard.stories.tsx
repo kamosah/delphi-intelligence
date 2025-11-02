@@ -25,7 +25,7 @@ const highRelevanceCitation: Citation = {
   document_id: 'doc-123',
   document_title: 'Q4 2024 Financial Report',
   chunk_index: 0,
-  relevance_score: 0.95,
+  similarity_score: 0.95,
 };
 
 const mediumRelevanceCitation: Citation = {
@@ -34,7 +34,7 @@ const mediumRelevanceCitation: Citation = {
   document_id: 'doc-456',
   document_title: 'Risk Assessment Analysis',
   chunk_index: 2,
-  relevance_score: 0.72,
+  similarity_score: 0.72,
 };
 
 const lowRelevanceCitation: Citation = {
@@ -43,7 +43,7 @@ const lowRelevanceCitation: Citation = {
   document_id: 'doc-789',
   document_title: 'Corporate Governance Policy',
   chunk_index: 5,
-  relevance_score: 0.48,
+  similarity_score: 0.48,
 };
 
 const longTextCitation: Citation = {
@@ -52,7 +52,7 @@ const longTextCitation: Citation = {
   document_id: 'doc-101',
   document_title: 'Comprehensive Financial Analysis 2024',
   chunk_index: 10,
-  relevance_score: 0.88,
+  similarity_score: 0.88,
 };
 
 const noTitleCitation: Citation = {
@@ -60,7 +60,7 @@ const noTitleCitation: Citation = {
   text: 'This citation comes from a document without a title in the metadata.',
   document_id: 'doc-202',
   chunk_index: 0,
-  relevance_score: 0.65,
+  similarity_score: 0.65,
 };
 
 /**

@@ -21,7 +21,7 @@ const sampleCitations: Citation[] = [
     document_id: 'doc-123',
     document_title: 'Q4 2024 Financial Report',
     chunk_index: 0,
-    relevance_score: 0.95,
+    similarity_score: 0.95,
   },
   {
     index: 2,
@@ -29,7 +29,7 @@ const sampleCitations: Citation[] = [
     document_id: 'doc-456',
     document_title: 'Risk Assessment Analysis',
     chunk_index: 2,
-    relevance_score: 0.72,
+    similarity_score: 0.72,
   },
   {
     index: 3,
@@ -37,7 +37,7 @@ const sampleCitations: Citation[] = [
     document_id: 'doc-789',
     document_title: 'Corporate Governance Policy',
     chunk_index: 5,
-    relevance_score: 0.48,
+    similarity_score: 0.48,
   },
 ];
 
@@ -49,7 +49,7 @@ const manyCitations: Citation[] = [
     document_id: 'doc-111',
     document_title: 'Customer Success Metrics Q4',
     chunk_index: 1,
-    relevance_score: 0.88,
+    similarity_score: 0.88,
   },
   {
     index: 5,
@@ -57,7 +57,7 @@ const manyCitations: Citation[] = [
     document_id: 'doc-222',
     document_title: 'Product Strategy 2025',
     chunk_index: 3,
-    relevance_score: 0.82,
+    similarity_score: 0.82,
   },
   {
     index: 6,
@@ -65,7 +65,7 @@ const manyCitations: Citation[] = [
     document_id: 'doc-333',
     document_title: 'Compliance Framework',
     chunk_index: 7,
-    relevance_score: 0.67,
+    similarity_score: 0.67,
   },
 ];
 
@@ -142,7 +142,7 @@ export const MixedRelevance: Story = {
         document_id: 'doc-h1',
         document_title: 'High Relevance Document',
         chunk_index: 0,
-        relevance_score: 0.92,
+        similarity_score: 0.92,
       },
       {
         index: 2,
@@ -150,7 +150,7 @@ export const MixedRelevance: Story = {
         document_id: 'doc-m1',
         document_title: 'Medium Relevance Document',
         chunk_index: 0,
-        relevance_score: 0.68,
+        similarity_score: 0.68,
       },
       {
         index: 3,
@@ -158,7 +158,7 @@ export const MixedRelevance: Story = {
         document_id: 'doc-l1',
         document_title: 'Low Relevance Document',
         chunk_index: 0,
-        relevance_score: 0.42,
+        similarity_score: 0.42,
       },
       {
         index: 4,
@@ -166,7 +166,7 @@ export const MixedRelevance: Story = {
         document_id: 'doc-h2',
         document_title: 'Another High Relevance Document',
         chunk_index: 0,
-        relevance_score: 0.87,
+        similarity_score: 0.87,
       },
     ],
   },

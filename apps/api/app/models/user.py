@@ -45,10 +45,16 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # User role (legacy field from Supabase, using user_role enum)
+    # Note: This is a legacy field not currently used in the application
     role: Mapped[UserRole | None] = mapped_column(
-        SQLEnum(UserRole, name="user_role", values_callable=lambda x: [e.value for e in x]),
+        SQLEnum(
+            UserRole,
+            name="user_role",
+            values_callable=lambda x: [e.value for e in x],
+            create_constraint=False,  # Don't create enum type (legacy field)
+        ),
         nullable=True,
-        default=UserRole.MEMBER,
+        default=None,  # No default to avoid enum issues
     )
 
     # Status fields

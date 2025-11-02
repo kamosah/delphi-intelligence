@@ -14,13 +14,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.query_agent import (
     AgentState,
+    NO_CONTEXT_FALLBACK_MESSAGE,
     create_query_agent,
     generate_response_streaming,
 )
 from app.models.query import Query
 from app.services.citation_service import get_citation_service
+from app.agents.query_agent import add_citations
 
 logger = logging.getLogger(__name__)
+
+# Confidence threshold for "I don't know" fallback (hybrid approach)
+CONFIDENCE_THRESHOLD = 0.5  # Reject responses below 50% confidence
+
+# Use shared fallback message from query_agent for consistency
+LOW_CONFIDENCE_MESSAGE = NO_CONTEXT_FALLBACK_MESSAGE
 
 
 class AIAgentService:
@@ -36,6 +44,32 @@ class AIAgentService:
         self.agent = create_query_agent()
         self.citation_service = get_citation_service()
         logger.info("Initialized AIAgentService with LangGraph agent")
+
+    def _apply_confidence_threshold(
+        self, response: str, confidence_score: float, citations: list[dict[str, Any]]
+    ) -> tuple[str, list[dict[str, Any]]]:
+        """
+        Apply confidence threshold to response (hybrid approach).
+
+        If confidence is below threshold, replace response with "I don't know" message.
+        This provides automatic quality control while the enhanced prompts guide the
+        LLM to express uncertainty naturally.
+
+        Args:
+            response: Generated response text
+            confidence_score: Calculated confidence score (0-1)
+            citations: Extracted citations
+
+        Returns:
+            Tuple of (potentially modified response, potentially empty citations)
+        """
+        if confidence_score < CONFIDENCE_THRESHOLD:
+            logger.warning(
+                f"Low confidence response detected ({confidence_score:.3f} < {CONFIDENCE_THRESHOLD}). "
+                f"Replacing with fallback message."
+            )
+            return LOW_CONFIDENCE_MESSAGE, []
+        return response, citations
 
     async def process_query(
         self,
@@ -97,10 +131,15 @@ class AIAgentService:
             )
             logger.info(f"Calculated confidence score: {confidence_score:.3f}")
 
+        # Apply confidence threshold (hybrid approach)
+        final_response, final_citations = self._apply_confidence_threshold(
+            result["response"], confidence_score, result["citations"]
+        )
+
         num_sources = len(search_results) if search_results else 0
         response_data = {
-            "response": result["response"],
-            "citations": result["citations"],
+            "response": final_response,
+            "citations": final_citations,
             "confidence_score": confidence_score,
             "context_used": len(result["context"]) > 0,
             "num_sources": num_sources,
@@ -113,8 +152,8 @@ class AIAgentService:
                 query_text=query,
                 space_id=space_id,
                 user_id=user_id,
-                result_text=result["response"],
-                citations=result["citations"],
+                result_text=final_response,
+                citations=final_citations,
                 confidence_score=confidence_score,
                 agent_state=dict(result),
             )
@@ -236,7 +275,6 @@ class AIAgentService:
 
         # Step 3: Extract citations
         state["response"] = full_response
-        from app.agents.query_agent import add_citations
 
         state = await add_citations(state)
 
@@ -249,11 +287,21 @@ class AIAgentService:
             )
             logger.info(f"Streaming query confidence score: {confidence_score:.3f}")
 
+        # Apply confidence threshold (hybrid approach)
+        final_response, final_citations = self._apply_confidence_threshold(
+            full_response, confidence_score, state["citations"]
+        )
+
+        # If response was replaced due to low confidence, send replace event
+        if final_response != full_response:
+            # Send a replace event to replace the streamed response
+            yield {"type": "replace", "content": final_response}
+
         # Yield citations with confidence
-        if state["citations"]:
+        if final_citations:
             yield {
                 "type": "citations",
-                "sources": state["citations"],
+                "sources": final_citations,
                 "confidence_score": confidence_score,
             }
 
@@ -265,8 +313,8 @@ class AIAgentService:
                 query_text=query,
                 space_id=space_id,
                 user_id=user_id,
-                result_text=full_response,
-                citations=state["citations"],
+                result_text=final_response,
+                citations=final_citations,
                 confidence_score=confidence_score,
                 agent_state=dict(state),
             )

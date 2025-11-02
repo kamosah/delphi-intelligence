@@ -5,6 +5,7 @@ Provides real-time streaming of AI agent responses with vector search,
 citation tracking, and confidence scoring for progressive display in the UI.
 """
 
+import asyncio
 import json
 import logging
 from typing import Annotated
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/query", tags=["query-streaming"])
 
+# Timeout configuration for query processing
+QUERY_TIMEOUT_SECONDS = 120  # 2 minutes max for query processing
+
 
 async def generate_sse_events(
     query: str,
@@ -33,7 +37,7 @@ async def generate_sse_events(
     """
     Generate Server-Sent Events for streaming query responses.
 
-    Includes vector search, citation tracking, and confidence scoring.
+    Includes vector search, citation tracking, confidence scoring, and timeout handling.
 
     Args:
         query: User's natural language question
@@ -46,22 +50,47 @@ async def generate_sse_events(
         SSE formatted events (data: {...}\\n\\n)
     """
     try:
-        async for event in ai_agent_service.process_query_stream(
-            query=query,
-            db=db,
-            space_id=space_id,
-            user_id=user_id,
-            save_to_db=save_to_db,
-        ):
-            # Format as SSE
-            yield f"data: {json.dumps(event)}\n\n"
+        # Stream events with hard timeout protection
+        async with asyncio.timeout(QUERY_TIMEOUT_SECONDS):
+            async for event in ai_agent_service.process_query_stream(
+                query=query,
+                db=db,
+                space_id=space_id,
+                user_id=user_id,
+                save_to_db=save_to_db,
+            ):
+                # Format as SSE
+                yield f"data: {json.dumps(event)}\n\n"
+
+    except TimeoutError:
+        logger.exception(f"Query timeout after {QUERY_TIMEOUT_SECONDS}s: {query[:100]}")
+        error_event = {
+            "type": "error",
+            "message": f"Query processing timed out after {QUERY_TIMEOUT_SECONDS} seconds. Please try asking a simpler question or refine your query for better results.",
+            "error_code": "TIMEOUT",
+        }
+        yield f"data: {json.dumps(error_event)}\n\n"
 
     except Exception as e:
         logger.exception(f"Error during query streaming: {e}")
-        # Send error event
+        # Categorize error for better user feedback
+        error_message = str(e)
+        error_code = "UNKNOWN"
+
+        if "rate limit" in error_message.lower():
+            error_code = "RATE_LIMIT"
+            error_message = "API rate limit exceeded. Please wait a moment and try again."
+        elif "openai" in error_message.lower() or "api" in error_message.lower():
+            error_code = "API_ERROR"
+            error_message = "AI service temporarily unavailable. Please try again."
+        elif "database" in error_message.lower() or "connection" in error_message.lower():
+            error_code = "DATABASE_ERROR"
+            error_message = "Database connection error. Please try again."
+
         error_event = {
             "type": "error",
-            "message": str(e),
+            "message": error_message,
+            "error_code": error_code,
         }
         yield f"data: {json.dumps(error_event)}\n\n"
 

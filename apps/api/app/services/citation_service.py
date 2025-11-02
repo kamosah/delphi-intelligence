@@ -6,6 +6,7 @@ and citation quality assessment.
 """
 
 import logging
+import re
 from typing import Any
 from collections.abc import Sequence
 
@@ -260,6 +261,107 @@ class CitationService:
         )
 
         return filtered
+
+    def detect_hallucinations(
+        self,
+        response: str,
+        context_chunks: list[str],
+        citations: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """
+        Detect potential hallucinations in the response (validation against context).
+
+        Performs validation by checking:
+        1. All citations reference valid context chunks
+        2. Response contains citation markers when context is available
+        3. Citations have adequate relevance scores
+        4. Response avoids hallucination indicator phrases
+
+        Args:
+            response: Generated response text
+            context_chunks: Context chunks used for generation
+            citations: Extracted citations
+
+        Returns:
+            Validation result dictionary with:
+            - is_valid (bool): Whether response passes validation
+            - issues (list[str]): List of validation issues found
+            - quality_score (float): Overall quality score (0-1)
+        """
+        issues = []
+        quality_score = 1.0
+
+        # Check 1: Verify all citation indices are valid
+        if citations:
+            max_index = len(context_chunks)
+            for citation in citations:
+                citation_num = citation.get("index", 0)
+                if citation_num < 1 or citation_num > max_index:
+                    issues.append(
+                        f"Citation [{citation_num}] references invalid context index "
+                        f"(valid range: 1-{max_index})"
+                    )
+                    quality_score -= 0.2
+        elif context_chunks and len(response) > 50:  # Non-trivial response
+            issues.append("Response has no citations despite available context")
+            quality_score -= 0.3
+
+        # Check 2: Verify response contains citation markers
+        citation_pattern = r"\[(\d+)\]"
+        citation_markers = set(re.findall(citation_pattern, response))
+
+        if context_chunks and not citation_markers:
+            issues.append("Response contains no citation markers despite available context")
+            quality_score -= 0.2
+
+        # Check 3: Verify cited chunks are actually relevant
+        if citations:
+            low_quality_citations = [c for c in citations if c.get("similarity_score", 0) < 0.4]
+            if low_quality_citations:
+                issues.append(
+                    f"{len(low_quality_citations)} citations have very low relevance (<0.4)"
+                )
+                quality_score -= 0.1 * len(low_quality_citations)
+
+        # Check 4: Detect potential hallucination indicators
+        hallucination_keywords = [
+            "according to my knowledge",
+            "as far as I know",
+            "in general",
+            "typically",
+            "usually",
+            "it is common",
+        ]
+        response_lower = response.lower()
+        for keyword in hallucination_keywords:
+            if keyword in response_lower and len(context_chunks) > 0:
+                issues.append(f"Response contains potential hallucination indicator: '{keyword}'")
+                quality_score -= 0.1
+                break
+
+        # Clamp quality score to [0, 1]
+        quality_score = max(0.0, min(1.0, quality_score))
+
+        is_valid = quality_score >= 0.6 and len(issues) == 0
+
+        validation_result = {
+            "is_valid": is_valid,
+            "issues": issues,
+            "quality_score": round(quality_score, 3),
+            "num_citations": len(citations),
+            "num_context_chunks": len(context_chunks),
+        }
+
+        if not is_valid:
+            logger.warning(
+                f"Response validation failed: quality={quality_score:.3f}, " f"issues={len(issues)}"
+            )
+            for issue in issues:
+                logger.debug(f"  - {issue}")
+        else:
+            logger.debug(f"Response validation passed: quality={quality_score:.3f}")
+
+        return validation_result
 
 
 # Global service instance

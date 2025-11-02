@@ -11,6 +11,7 @@ from typing import Any, TypedDict
 from uuid import UUID
 from collections.abc import AsyncGenerator
 
+import tiktoken
 from langchain.schema import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -20,6 +21,174 @@ from app.services.langchain_config import get_llm
 from app.services.vector_search_service import SearchResult, get_vector_search_service
 
 logger = logging.getLogger(__name__)
+
+# Context window management constants
+MAX_CONTEXT_WINDOW = (
+    8000  # Artificially limited for performance/cost; gpt-4-turbo supports up to 128k
+)
+MAX_RESPONSE_TOKENS = 2000  # Reserved for response generation
+SYSTEM_PROMPT_OVERHEAD = 200  # Estimated tokens for system prompt
+FEW_SHOT_OVERHEAD = 400  # Estimated tokens for few-shot examples
+QUERY_OVERHEAD = 100  # Estimated average tokens for user query
+SAFETY_MARGIN = 200  # Safety buffer to prevent edge cases
+
+# Calculate available token budget for context
+MAX_CONTEXT_TOKENS = (
+    MAX_CONTEXT_WINDOW
+    - MAX_RESPONSE_TOKENS
+    - SYSTEM_PROMPT_OVERHEAD
+    - FEW_SHOT_OVERHEAD
+    - QUERY_OVERHEAD
+    - SAFETY_MARGIN
+)  # ~5100 tokens available for context
+
+
+# Enhanced system prompt for document Q&A specialist
+SYSTEM_PROMPT = """You are a specialized document intelligence assistant designed to answer questions based on provided document context. Your role is to:
+
+1. **Accuracy First**: Only provide information that is directly supported by the context
+2. **Cite Sources**: Always cite your sources using [N] notation (e.g., [1], [2])
+3. **Acknowledge Uncertainty**: If the context lacks sufficient information, clearly state this rather than speculating
+4. **Be Concise**: Provide clear, direct answers without unnecessary elaboration
+5. **Maintain Professionalism**: Use a professional, helpful tone suitable for business and research contexts
+
+When uncertain or when the context doesn't contain relevant information, respond with:
+"I don't have enough information in the provided documents to answer this question accurately."
+
+You may suggest what additional information would be needed or recommend refining the question."""
+
+# Few-shot examples for better response quality
+FEW_SHOT_EXAMPLES = """
+Example 1:
+Context: [1] The company's Q4 revenue was $2.5M, representing a 15% increase from Q3.
+Question: What was the Q4 revenue?
+Answer: The Q4 revenue was $2.5M, which was a 15% increase from Q3 [1].
+
+Example 2:
+Context: [1] Our product supports PostgreSQL and MySQL databases. [2] MongoDB integration is planned for Q2 2024.
+Question: Does the product support MongoDB?
+Answer: MongoDB integration is not currently supported but is planned for Q2 2024 [2]. The product currently supports PostgreSQL and MySQL [1].
+
+Example 3:
+Context: [1] The user authentication system uses JWT tokens with a 24-hour expiration.
+Question: What is the database backup schedule?
+Answer: I don't have enough information in the provided documents to answer this question about database backup schedules. The available context only discusses user authentication [1]."""
+
+# Fallback message when no context is available
+NO_CONTEXT_FALLBACK_MESSAGE = """I don't have enough information in the provided documents to answer this question accurately.
+
+This could be because:
+- The question requires information not present in the uploaded documents
+- The relevant information may be in documents that haven't been uploaded yet
+- The question may need to be more specific to find relevant content
+
+Suggestions:
+- Try rephrasing your question to be more specific
+- Upload additional documents that might contain the relevant information
+- Break down complex questions into simpler, more focused queries"""
+
+
+def count_tokens(text: str, model: str = "gpt-4") -> int:
+    """
+    Count tokens in a text string using tiktoken.
+
+    Args:
+        text: Text to count tokens for
+        model: Model name for tokenizer (default: gpt-4)
+
+    Returns:
+        Number of tokens in the text
+    """
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+    except Exception as e:
+        logger.warning(f"Error counting tokens: {e}. Using character-based estimate.")
+        # Fallback: rough estimate (4 chars per token)
+        return len(text) // 4
+
+
+def trim_context_to_budget(
+    chunks: list[str],
+    search_results: list[SearchResult] | None,
+    max_tokens: int = MAX_CONTEXT_TOKENS,
+) -> tuple[list[str], list[SearchResult] | None]:
+    """
+    Trim context chunks to fit within token budget.
+
+    Uses adaptive strategy:
+    1. Calculate total tokens in all chunks
+    2. If over budget, keep highest-relevance chunks (by similarity score)
+    3. Trim from lowest-relevance upward until under budget
+
+    Args:
+        chunks: List of text chunks
+        search_results: Corresponding search results with similarity scores
+        max_tokens: Maximum tokens allowed for context
+
+    Returns:
+        Tuple of (trimmed_chunks, trimmed_search_results)
+    """
+    if not chunks:
+        return [], search_results
+
+    # Calculate total tokens
+    total_tokens = sum(count_tokens(chunk) for chunk in chunks)
+
+    if total_tokens <= max_tokens:
+        logger.debug(f"Context within budget: {total_tokens}/{max_tokens} tokens")
+        return chunks, search_results
+
+    logger.warning(
+        f"Context exceeds budget ({total_tokens}/{max_tokens} tokens). "
+        f"Trimming to highest-relevance chunks."
+    )
+
+    # Sort chunks by relevance (highest first)
+    if search_results:
+        # Pair chunks with search results and sort by similarity score
+        paired = list(zip(chunks, search_results, strict=True))
+        paired.sort(key=lambda x: x[1].similarity_score, reverse=True)
+
+        # Take chunks until budget is reached
+        selected_chunks = []
+        selected_results = []
+        current_tokens = 0
+
+        for chunk, result in paired:
+            chunk_tokens = count_tokens(chunk)
+            if current_tokens + chunk_tokens <= max_tokens:
+                selected_chunks.append(chunk)
+                selected_results.append(result)
+                current_tokens += chunk_tokens
+            else:
+                break
+
+        logger.info(
+            f"Trimmed context from {len(chunks)} to {len(selected_chunks)} chunks "
+            f"({total_tokens} → {current_tokens} tokens)"
+        )
+
+        return selected_chunks, selected_results if selected_results else None
+
+    # No search results - trim from end
+    selected_chunks = []
+    current_tokens = 0
+
+    for chunk in chunks:
+        chunk_tokens = count_tokens(chunk)
+        if current_tokens + chunk_tokens <= max_tokens:
+            selected_chunks.append(chunk)
+            current_tokens += chunk_tokens
+        else:
+            break
+
+    logger.info(
+        f"Trimmed context from {len(chunks)} to {len(selected_chunks)} chunks "
+        f"({total_tokens} → {current_tokens} tokens)"
+    )
+
+    return selected_chunks, None
 
 
 class AgentState(TypedDict, total=False):
@@ -87,13 +256,18 @@ async def retrieve_context(state: AgentState) -> AgentState:
             f"(space_id={space_id})"
         )
 
-        # Extract text for context and store full results for citation
-        state["context"] = [result.chunk.chunk_text for result in search_results]
-        state["search_results"] = search_results
+        # Extract text for context
+        context_chunks = [result.chunk.chunk_text for result in search_results]
+
+        # Apply token budget trimming
+        trimmed_chunks, trimmed_results = trim_context_to_budget(context_chunks, search_results)
+
+        state["context"] = trimmed_chunks
+        state["search_results"] = trimmed_results
 
         # Log relevance scores
-        if search_results:
-            scores = [f"{r.similarity_score:.3f}" for r in search_results[:3]]
+        if trimmed_results:
+            scores = [f"{r.similarity_score:.3f}" for r in trimmed_results[:3]]
             logger.debug(f"Top 3 similarity scores: {scores}")
 
     except Exception as e:
@@ -124,7 +298,10 @@ async def generate_response(state: AgentState) -> AgentState:
         # Number each context chunk for citations
         numbered_contexts = [f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])]
         context_text = "\n\n".join(numbered_contexts)
-        prompt = f"""You are an AI assistant that answers questions based on provided context.
+
+        prompt = f"""{FEW_SHOT_EXAMPLES}
+
+Now, answer the following question based on the context provided:
 
 Context (with source numbers):
 {context_text}
@@ -132,18 +309,19 @@ Context (with source numbers):
 Question: {state["query"]}
 
 Instructions:
-- Provide a clear and accurate answer based on the context above
-- When making claims or stating facts, cite the source using [N] notation (e.g., [1], [2])
-- If the context doesn't contain enough information, acknowledge this
-- Be precise and only use information from the provided context"""
+- Only use information from the context above
+- Cite sources using [N] notation
+- If information is insufficient, clearly state "I don't have enough information in the provided documents to answer this question accurately."
+- Be precise and concise"""
     else:
-        prompt = f"""You are an AI assistant. Answer the following question clearly and concisely.
+        # No context available - use consistent fallback message
+        prompt = f"""Question: {state["query"]}
 
-Question: {state["query"]}"""
+{NO_CONTEXT_FALLBACK_MESSAGE}"""
 
     # Generate response
     messages = [
-        SystemMessage(content="You are a helpful AI assistant."),
+        SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=prompt),
     ]
 
@@ -174,7 +352,10 @@ async def generate_response_streaming(state: AgentState) -> AsyncGenerator[str, 
         # Number each context chunk for citations
         numbered_contexts = [f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])]
         context_text = "\n\n".join(numbered_contexts)
-        prompt = f"""You are an AI assistant that answers questions based on provided context.
+
+        prompt = f"""{FEW_SHOT_EXAMPLES}
+
+Now, answer the following question based on the context provided:
 
 Context (with source numbers):
 {context_text}
@@ -182,18 +363,19 @@ Context (with source numbers):
 Question: {state["query"]}
 
 Instructions:
-- Provide a clear and accurate answer based on the context above
-- When making claims or stating facts, cite the source using [N] notation (e.g., [1], [2])
-- If the context doesn't contain enough information, acknowledge this
-- Be precise and only use information from the provided context"""
+- Only use information from the context above
+- Cite sources using [N] notation
+- If information is insufficient, clearly state "I don't have enough information in the provided documents to answer this question accurately."
+- Be precise and concise"""
     else:
-        prompt = f"""You are an AI assistant. Answer the following question clearly and concisely.
+        # No context available - use consistent fallback message
+        prompt = f"""Question: {state["query"]}
 
-Question: {state["query"]}"""
+{NO_CONTEXT_FALLBACK_MESSAGE}"""
 
     # Generate streaming response
     messages = [
-        SystemMessage(content="You are a helpful AI assistant."),
+        SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=prompt),
     ]
 
