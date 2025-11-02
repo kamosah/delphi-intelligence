@@ -1,8 +1,8 @@
 # Vector Search Architecture Guide
 
-> **Last Updated**: 2025-10-30
+> **Last Updated**: 2025-11-02
 >
-> **Status**: Production-ready (LOG-177 complete)
+> **Status**: Production-ready (LOG-178 complete - RAG pipeline with confidence scoring)
 
 ## Table of Contents
 
@@ -475,6 +475,179 @@ results = await vector_search.search_similar_chunks(
 
 ---
 
+## Prompt Engineering
+
+The RAG pipeline's effectiveness heavily depends on well-crafted system prompts and query handling. This section documents the prompt engineering patterns used in the Query Agent.
+
+### System Prompt Design
+
+The agent uses a specialized system prompt (`app/agents/query_agent.py:SYSTEM_PROMPT`) that emphasizes:
+
+**1. Accuracy First**
+
+```
+"Only provide information that is directly supported by the context"
+```
+
+- Prevents hallucination by constraining responses to source documents
+- Agent refuses to speculate when context is insufficient
+- Prioritizes correctness over completeness
+
+**2. Citation Requirements**
+
+```
+"Always cite your sources using [N] notation (e.g., [1], [2])"
+```
+
+- Forces the agent to ground every claim in source documents
+- Enables source attribution in the UI
+- Citation format: `[1]`, `[2]`, etc. matching numbered context chunks
+
+**3. Uncertainty Acknowledgment**
+
+```
+"If the context lacks sufficient information, clearly state this rather than speculating"
+```
+
+- Default fallback response: _"I don't have enough information in the provided documents to answer this question accurately."_
+- Agent suggests what additional information would be needed
+- Prevents low-quality responses
+
+**4. Professional Tone**
+
+```
+"Use a professional, helpful tone suitable for business and research contexts"
+```
+
+- Clear, concise language
+- No unnecessary elaboration
+- Business-appropriate formality
+
+### Few-Shot Examples
+
+The agent includes few-shot examples (`app/agents/query_agent.py:FEW_SHOT_EXAMPLES`) to improve response quality:
+
+**Example 1: Straightforward Answer with Citation**
+
+```
+Context: [1] The company's Q4 revenue was $2.5M, representing a 15% increase from Q3.
+Question: What was the Q4 revenue?
+Answer: The Q4 revenue was $2.5M, which was a 15% increase from Q3 [1].
+```
+
+**Example 2: Partial Information with Future Plans**
+
+```
+Context: [1] Our product supports PostgreSQL and MySQL databases.
+         [2] MongoDB integration is planned for Q2 2024.
+Question: Does the product support MongoDB?
+Answer: MongoDB integration is not currently supported but is planned for Q2 2024 [2].
+        The product currently supports PostgreSQL and MySQL [1].
+```
+
+**Example 3: Insufficient Information**
+
+```
+Context: [1] The user authentication system uses JWT tokens with a 24-hour expiration.
+Question: What is the database backup schedule?
+Answer: I don't have enough information in the provided documents to answer this question
+        about database backup schedules. The available context only discusses user
+        authentication [1].
+```
+
+### Context Formatting
+
+Context chunks are formatted with numbered citations before being sent to the LLM:
+
+```python
+# Original chunks
+["The company's revenue was $2.5M", "Market share increased by 10%"]
+
+# Formatted for LLM
+[1] The company's revenue was $2.5M
+
+[2] Market share increased by 10%
+
+Question: What was the revenue?
+```
+
+This numbering:
+
+- Enables the LLM to use `[N]` citation markers
+- Matches citations to source chunks in post-processing
+- Preserves chunk order by relevance (highest similarity first)
+
+### Token Budget Management
+
+The agent implements strict token budget controls to prevent context overflow:
+
+```python
+# app/agents/query_agent.py
+MAX_CONTEXT_WINDOW = 8000        # Total GPT-4 turbo window
+MAX_RESPONSE_TOKENS = 2000       # Reserved for response
+SYSTEM_PROMPT_OVERHEAD = 200     # System prompt tokens
+FEW_SHOT_OVERHEAD = 400          # Few-shot examples
+QUERY_OVERHEAD = 100             # User query tokens
+SAFETY_MARGIN = 200              # Buffer for edge cases
+
+# Available for context chunks
+MAX_CONTEXT_TOKENS = 5100        # ~68% of window
+```
+
+**Adaptive Context Trimming:**
+
+If retrieved chunks exceed the token budget, the agent:
+
+1. Calculates total tokens using tiktoken
+2. Sorts chunks by similarity score (highest first)
+3. Takes chunks until budget is reached
+4. Discards lowest-relevance chunks
+
+**Example:**
+
+```python
+# Retrieved 10 chunks (8K tokens total) - exceeds 5.1K budget
+# Agent keeps top 6 chunks (4.9K tokens) by relevance
+# Logs: "Trimmed context from 10 to 6 chunks (8000 → 4900 tokens)"
+```
+
+This ensures:
+
+- Most relevant context is always included
+- Lower-quality context is sacrificed first
+- Total prompt stays within model limits
+
+### Prompt Iteration Best Practices
+
+**Testing Prompt Changes:**
+
+Use the RAG pipeline integration tests to validate prompt modifications:
+
+```bash
+# Run confidence scoring tests after prompt changes
+poetry run pytest tests/test_rag_pipeline_integration.py::test_calculate_overall_confidence -v
+```
+
+**Key Metrics to Track:**
+
+1. **Citation Rate**: % of responses with proper citations
+2. **Hallucination Rate**: % of responses contradicting sources
+3. **Confidence Scores**: Average confidence across test queries
+4. **"I don't know" Rate**: % of queries triggering fallback
+
+**Common Issues & Fixes:**
+
+| Issue                             | Fix                                                        |
+| --------------------------------- | ---------------------------------------------------------- |
+| Agent doesn't cite sources        | Add more emphasis in system prompt + few-shot examples     |
+| Agent speculates without evidence | Strengthen "accuracy first" directive                      |
+| Citations don't match context     | Verify context numbering format                            |
+| Responses too verbose             | Add "be concise" to system prompt                          |
+| Low confidence scores             | Improve chunking strategy or increase similarity threshold |
+| Too many "I don't know" responses | Lower similarity threshold or retrieve more chunks         |
+
+---
+
 ## Performance Tuning
 
 ### 1. Index Optimization
@@ -652,6 +825,190 @@ print(citations)  # Should show matched citations
 - LLM didn't use `[N]` format (improve prompt)
 - Context array empty (check `retrieve_context` step)
 - Citation number out of range (LLM hallucination)
+
+### Low Confidence Scores
+
+**Symptoms:**
+
+- Queries consistently score below 0.7 confidence
+- Many queries trigger "I don't know" fallback
+- Citation quality seems poor despite relevant results
+
+**Root Causes & Solutions:**
+
+1. **Poor Semantic Match**
+   - **Cause**: Query uses different terminology than documents
+   - **Solution**: Improve chunking to preserve more context, or use query rewriting
+   - **Check**: Review similarity scores in search results
+
+2. **Insufficient Context**
+   - **Cause**: Retrieved chunks don't contain enough information
+   - **Solution**: Increase `limit` parameter (default: 5 → try 10)
+   - **Check**: Verify `retrieve_context` step retrieves relevant chunks
+
+3. **Threshold Too High**
+   - **Cause**: `similarity_threshold` filters out relevant chunks
+   - **Solution**: Lower threshold from 0.3 → 0.0 to see all matches
+   - **Check**: Compare results with different thresholds
+
+4. **Chunking Issues**
+   - **Cause**: Chunks are too small/large or split poorly
+   - **Solution**: Adjust chunking parameters (750 tokens default)
+   - **Check**: Review chunk boundaries in database
+
+**Configuration:**
+
+```python
+# app/services/citation_service.py
+HIGH_CONFIDENCE_THRESHOLD = 0.7  # Return response normally
+LOW_CONFIDENCE_THRESHOLD = 0.5   # Trigger fallback warning
+```
+
+**Debug Confidence Calculation:**
+
+```python
+from app.services.citation_service import CitationService
+
+service = CitationService()
+
+# Test with your search results
+confidence = service.calculate_overall_confidence(
+    search_results=results,
+    num_citations_used=2,
+)
+
+print(f"Confidence: {confidence:.2%}")
+
+# Check individual chunk scores
+for result in results:
+    print(f"{result.document.name}: {result.similarity_score:.2%}")
+```
+
+### Hallucination Detection Failures
+
+**Symptoms:**
+
+- Agent makes claims not supported by source documents
+- Citations reference incorrect information
+- Validation shows `is_valid = False`
+
+**Solutions:**
+
+1. **Strengthen System Prompt**:
+   - Emphasize "accuracy first" directive
+   - Add more "I don't know" examples
+   - Reduce creative freedom in prompt
+
+2. **Increase Citation Requirements**:
+   - Require citations for every claim
+   - Penalize responses without proper attribution
+   - Use stricter hallucination detection threshold
+
+3. **Review Context Quality**:
+   - Check if retrieved chunks actually contain relevant info
+   - Verify similarity scores are high enough (>0.5)
+   - Ensure chunks aren't truncated mid-sentence
+
+**Test Hallucination Detection:**
+
+```python
+from app.services.citation_service import CitationService
+
+service = CitationService()
+
+response = "The Q4 revenue was $3M [1]"  # Claiming $3M
+context_chunks = ["The Q4 revenue was $2.5M"]  # Actually says $2.5M
+
+validation = service.detect_hallucinations(
+    response=response,
+    context_chunks=context_chunks,
+    citations=[{"index": 1, "text": context_chunks[0]}],
+)
+
+print(validation)
+# {
+#     "is_valid": False,  # Hallucination detected
+#     "quality_score": 0.3,
+#     "issues": ["Response contradicts source document"],
+# }
+```
+
+### SSE Streaming Timeouts
+
+**Symptoms:**
+
+- Queries timeout after 120 seconds
+- Frontend shows "Query processing timed out" error
+- No response tokens received
+
+**Root Causes:**
+
+1. **Slow Vector Search**:
+   - **Check**: Query latency in logs
+   - **Solution**: Optimize index, add filters (space_id, document_ids)
+
+2. **Large Context**:
+   - **Check**: Number of chunks retrieved and token count
+   - **Solution**: Reduce `limit` or implement better context trimming
+
+3. **LLM API Delays**:
+   - **Check**: OpenAI API status and rate limits
+   - **Solution**: Implement retry logic, use shorter max_tokens
+
+**Configuration:**
+
+```python
+# app/routes/query_stream.py
+QUERY_TIMEOUT_SECONDS = 120  # Adjust if needed (current: 2 minutes)
+```
+
+**Test Timeout Handling:**
+
+```bash
+# Run timeout test
+poetry run pytest tests/test_query_stream_endpoint.py::test_query_timeout_handling -v
+```
+
+### Document Processing Stuck
+
+**Symptoms:**
+
+- Document status remains `PROCESSING` indefinitely
+- No chunks created in `document_chunks` table
+- Processing doesn't fail or complete
+
+**Debug Steps:**
+
+1. **Check Processing Status**:
+
+   ```sql
+   SELECT id, name, status, processing_error, updated_at
+   FROM documents
+   WHERE status = 'PROCESSING'
+   ORDER BY updated_at DESC;
+   ```
+
+2. **Check Background Tasks**:
+
+   ```bash
+   # View API logs for processing errors
+   docker compose logs -f api | grep "document_processor"
+   ```
+
+3. **Manual Reprocessing**:
+
+   ```python
+   from app.services.document_processor import get_document_processor
+
+   processor = get_document_processor()
+   await processor.process_document(document_id=uuid, db=session)
+   ```
+
+4. **Common Issues**:
+   - File not accessible (check storage path)
+   - Text extraction failed (check PyMuPDF/docx compatibility)
+   - Chunking service error (check NLTK data downloaded)
+   - Embedding service timeout (check OpenAI API key)
 
 ---
 
