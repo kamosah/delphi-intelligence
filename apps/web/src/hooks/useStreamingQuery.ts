@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import {
-  queriesApi,
+  buildStreamUrl,
   type Citation,
   type SSEEvent,
 } from '@/lib/api/queries-client';
@@ -84,7 +84,7 @@ export function useStreamingQuery() {
         });
 
         // Build stream URL with auth token
-        const streamUrl = queriesApi.buildStreamUrl({
+        const streamUrl = buildStreamUrl({
           query: params.query,
           spaceId: params.spaceId,
           userId: user?.id,
@@ -109,6 +109,14 @@ export function useStreamingQuery() {
                 setState((prev) => ({
                   ...prev,
                   response: prev.response + data.content,
+                }));
+                break;
+
+              case 'replace':
+                // Replace entire response (used for low-confidence fallback)
+                setState((prev) => ({
+                  ...prev,
+                  response: data.content,
                 }));
                 break;
 

@@ -2,6 +2,54 @@
 # Query Result Mutation Operations
 # ============================================
 
+mutation CreateQuery($input: CreateQueryInput!) {
+  createQuery(input: $input) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    agentSteps
+    sources
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateQuery($id: ID!, $input: UpdateQueryInput!) {
+  updateQuery(id: $id, input: $input) {
+    id
+    spaceId
+    createdBy
+    queryText
+    result
+    title
+    context
+    confidenceScore
+    agentSteps
+    sources
+    modelUsed
+    status
+    errorMessage
+    processingTimeMs
+    tokensUsed
+    costUsd
+    completedAt
+    createdAt
+    updatedAt
+  }
+}
+
 mutation DeleteQueryResult($id: ID!) {
   deleteQuery(id: $id)
 }

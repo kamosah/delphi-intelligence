@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { http, HttpResponse, delay } from 'msw';
 import { QueryHistory } from './QueryHistory';
-import type { Query } from '@/lib/api/queries-client';
+import type { QueryResult } from '@/hooks/useQueryResults';
 
 const meta = {
   title: 'Queries/QueryHistory',
@@ -15,110 +15,110 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const mockQueries: Query[] = [
+const mockQueries: QueryResult[] = [
   {
     id: '1',
-    query_text: 'What are the key financial risks mentioned in the Q4 report?',
+    queryText: 'What are the key financial risks mentioned in the Q4 report?',
     result:
       'The key risks include market volatility, supply chain disruptions, and regulatory changes.',
-    confidence_score: 0.89,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.89,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-15T10:30:00').toISOString(),
-    updated_at: new Date('2024-01-15T10:30:15').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-15T10:30:00').toISOString(),
+    updatedAt: new Date('2024-01-15T10:30:15').toISOString(),
   },
   {
     id: '2',
-    query_text: 'What was the total revenue in Q4 2024?',
+    queryText: 'What was the total revenue in Q4 2024?',
     result: 'Total revenue in Q4 2024 was $125.5 million.',
-    confidence_score: 0.96,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.96,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-15T09:15:00').toISOString(),
-    updated_at: new Date('2024-01-15T09:15:10').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-15T09:15:00').toISOString(),
+    updatedAt: new Date('2024-01-15T09:15:10').toISOString(),
   },
   {
     id: '3',
-    query_text: 'Which business segments showed the strongest growth?',
+    queryText: 'Which business segments showed the strongest growth?',
     result: 'The enterprise segment showed 45% growth, while SMB grew 12%.',
-    confidence_score: 0.92,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.92,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-15T08:00:00').toISOString(),
-    updated_at: new Date('2024-01-15T08:00:12').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-15T08:00:00').toISOString(),
+    updatedAt: new Date('2024-01-15T08:00:12').toISOString(),
   },
   {
     id: '4',
-    query_text: 'What are the projected growth rates for 2025?',
+    queryText: 'What are the projected growth rates for 2025?',
     result:
       'Projected growth for 2025 is approximately 15-20% based on current trends.',
-    confidence_score: 0.72,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.72,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-14T16:45:00').toISOString(),
-    updated_at: new Date('2024-01-14T16:45:18').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-14T16:45:00').toISOString(),
+    updatedAt: new Date('2024-01-14T16:45:18').toISOString(),
   },
   {
     id: '5',
-    query_text: 'What cost reduction strategies are mentioned?',
+    queryText: 'What cost reduction strategies are mentioned?',
     result:
       'The document mentions automation, process optimization, and vendor consolidation.',
-    confidence_score: 0.85,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.85,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-14T14:20:00').toISOString(),
-    updated_at: new Date('2024-01-14T14:20:15').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-14T14:20:00').toISOString(),
+    updatedAt: new Date('2024-01-14T14:20:15').toISOString(),
   },
 ];
 
-const longQueryList: Query[] = [
+const longQueryList: QueryResult[] = [
   ...mockQueries,
   {
     id: '6',
-    query_text:
+    queryText:
       'This is a very long query that will be truncated to show how the component handles text that exceeds the available space in the sidebar',
     result: 'Response text',
-    confidence_score: 0.78,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.78,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-13T11:00:00').toISOString(),
-    updated_at: new Date('2024-01-13T11:00:15').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-13T11:00:00').toISOString(),
+    updatedAt: new Date('2024-01-13T11:00:15').toISOString(),
   },
   {
     id: '7',
-    query_text: 'What are the hiring plans for Q1 2025?',
+    queryText: 'What are the hiring plans for Q1 2025?',
     result: 'Plans to hire 50 new employees in engineering and sales.',
-    confidence_score: 0.68,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.68,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-12T09:30:00').toISOString(),
-    updated_at: new Date('2024-01-12T09:30:12').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-12T09:30:00').toISOString(),
+    updatedAt: new Date('2024-01-12T09:30:12').toISOString(),
   },
   {
     id: '8',
-    query_text: 'What customer satisfaction metrics are reported?',
+    queryText: 'What customer satisfaction metrics are reported?',
     result: 'NPS score of 72, up 8 points from previous quarter.',
-    confidence_score: 0.91,
-    space_id: 'space-123',
-    created_by: 'user-456',
+    confidenceScore: 0.91,
+    spaceId: 'space-123',
+    createdBy: 'user-456',
     sources: null,
-    agent_steps: null,
-    created_at: new Date('2024-01-11T15:00:00').toISOString(),
-    updated_at: new Date('2024-01-11T15:00:14').toISOString(),
+    agentSteps: null,
+    createdAt: new Date('2024-01-11T15:00:00').toISOString(),
+    updatedAt: new Date('2024-01-11T15:00:14').toISOString(),
   },
 ];
 
@@ -255,11 +255,11 @@ export const MixedConfidence: Story = {
     msw: {
       handlers: [
         http.get('http://localhost:8000/api/queries', () => {
-          const mixedQueries: Query[] = [
-            { ...mockQueries[0], confidence_score: 0.95 },
-            { ...mockQueries[1], confidence_score: 0.68 },
-            { ...mockQueries[2], confidence_score: 0.42 },
-            { ...mockQueries[3], confidence_score: 0.88 },
+          const mixedQueries: QueryResult[] = [
+            { ...mockQueries[0], confidenceScore: 0.95 },
+            { ...mockQueries[1], confidenceScore: 0.68 },
+            { ...mockQueries[2], confidenceScore: 0.42 },
+            { ...mockQueries[3], confidenceScore: 0.88 },
           ];
           return HttpResponse.json({
             queries: mixedQueries,

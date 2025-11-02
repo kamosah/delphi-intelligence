@@ -12,7 +12,17 @@ from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as Spa
 from app.models.user import User as UserModel
 from app.utils.slug import generate_unique_slug
 
-from .types import CreateSpaceInput, CreateUserInput, Space, UpdateSpaceInput, UpdateUserInput, User
+from .types import (
+    CreateQueryInput,
+    CreateSpaceInput,
+    CreateUserInput,
+    QueryResult,
+    Space,
+    UpdateQueryInput,
+    UpdateSpaceInput,
+    UpdateUserInput,
+    User,
+)
 
 
 @strawberry.type
@@ -389,3 +399,168 @@ class Mutation:
                 return False
 
         return False
+
+    @strawberry.mutation
+    async def create_query(
+        self, info: strawberry.types.Info, input: CreateQueryInput
+    ) -> QueryResult | None:
+        """
+        Create a new query manually (not via streaming).
+
+        Args:
+            input: CreateQueryInput with space_id, query_text, and optional result/title
+
+        Returns:
+            The created QueryResult or None if creation fails
+
+        Authorization:
+            - User must have access to the space
+
+        Example mutation:
+            mutation {
+              createQuery(input: {
+                spaceId: "space-uuid",
+                queryText: "What are the key findings?",
+                result: "The key findings are...",
+                title: "Key Findings Query"
+              }) {
+                id
+                queryText
+                result
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    return None
+
+                user_id = user.id
+                space_id = UUID(str(input.space_id))
+
+                # Verify user has access to the space
+                stmt = select(SpaceModel).where(SpaceModel.id == space_id)
+                result = await session.execute(stmt)
+                space_model = result.scalar_one_or_none()
+
+                if not space_model:
+                    return None
+
+                # Check if user is owner or member
+                is_owner = space_model.owner_id == user_id
+                member_stmt = select(SpaceMemberModel).where(
+                    (SpaceMemberModel.space_id == space_id) & (SpaceMemberModel.user_id == user_id)
+                )
+                member_result = await session.execute(member_stmt)
+                is_member = member_result.scalar_one_or_none() is not None
+
+                if not is_owner and not is_member:
+                    msg = "Insufficient permissions to create query in this space"
+                    raise ValueError(msg)
+
+                # Create new query
+                query_model = QueryModel(
+                    space_id=space_id,
+                    created_by=user_id,
+                    query_text=input.query_text,
+                    result=input.result,
+                    title=input.title,
+                    confidence_score=input.confidence_score,
+                )
+
+                session.add(query_model)
+                await session.commit()
+                await session.refresh(query_model)
+
+                return QueryResult.from_model(query_model)
+
+            except (ValueError, IntegrityError):
+                await session.rollback()
+                return None
+
+        return None
+
+    @strawberry.mutation
+    async def update_query(
+        self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateQueryInput
+    ) -> QueryResult | None:
+        """
+        Update an existing query.
+
+        Args:
+            id: The query ID
+            input: UpdateQueryInput with optional title and result
+
+        Returns:
+            The updated QueryResult or None if update fails
+
+        Authorization:
+            - Only the query creator or space owner can update
+
+        Example mutation:
+            mutation {
+              updateQuery(
+                id: "query-uuid",
+                input: {
+                  title: "Updated Title",
+                  result: "Updated result text"
+                }
+              ) {
+                id
+                title
+                result
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    return None
+
+                user_id = user.id
+                query_id = UUID(str(id))
+
+                # Get query with space information
+                stmt = (
+                    select(QueryModel)
+                    .join(SpaceModel, SpaceModel.id == QueryModel.space_id)
+                    .where(QueryModel.id == query_id)
+                )
+                result = await session.execute(stmt)
+                query_model = result.scalar_one_or_none()
+
+                if not query_model:
+                    return None
+
+                # Check authorization: creator or space owner
+                is_creator = query_model.created_by == user_id
+                is_owner = query_model.space.owner_id == user_id
+
+                if not is_creator and not is_owner:
+                    msg = "Insufficient permissions to update this query"
+                    raise ValueError(msg)
+
+                # Update fields if provided
+                if input.title is not None:
+                    query_model.title = input.title
+                if input.result is not None:
+                    query_model.result = input.result
+
+                await session.commit()
+                await session.refresh(query_model)
+
+                return QueryResult.from_model(query_model)
+
+            except ValueError:
+                await session.rollback()
+                return None
+
+        return None
