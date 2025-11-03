@@ -2,6 +2,7 @@
 
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query/client';
 import {
   useCreateQueryMutation,
   useDeleteQueryResultMutation,
@@ -96,14 +97,12 @@ export function useDeleteQueryResult() {
 
   const mutation = useDeleteQueryResultMutation({
     onSuccess: (data, variables) => {
-      // Note: We need spaceId to invalidate properly, but mutation only takes id
-      // The component calling this should handle invalidation via onSuccess callback
-      // OR we can invalidate all query result queries
-      queryClient.invalidateQueries({ queryKey: ['GetQueryResults'] });
+      // Invalidate all query result list queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.queries.lists() });
 
-      // Remove from cache
+      // Remove specific query from cache
       queryClient.removeQueries({
-        queryKey: ['GetQueryResult', { id: variables.id }],
+        queryKey: queryKeys.queries.detail(variables.id),
       });
     },
   });
@@ -144,13 +143,13 @@ export function useCreateQuery() {
       if (data?.createQuery) {
         const query = data.createQuery;
 
-        // Invalidate list queries to refetch with new item
+        // Invalidate list queries for this space to refetch with new item
         queryClient.invalidateQueries({
-          queryKey: ['GetQueryResults', { spaceId: query.spaceId }],
+          queryKey: queryKeys.queries.list({ spaceId: query.spaceId }),
         });
 
         // Set the new query in cache
-        queryClient.setQueryData(['GetQueryResult', { id: query.id }], {
+        queryClient.setQueryData(queryKeys.queries.detail(query.id), {
           query,
         });
       }
@@ -191,13 +190,13 @@ export function useUpdateQuery() {
       if (data?.updateQuery) {
         const query = data.updateQuery;
 
-        // Invalidate list queries to refetch with updated item
+        // Invalidate list queries for this space to refetch with updated item
         queryClient.invalidateQueries({
-          queryKey: ['GetQueryResults', { spaceId: query.spaceId }],
+          queryKey: queryKeys.queries.list({ spaceId: query.spaceId }),
         });
 
         // Update the query in cache
-        queryClient.setQueryData(['GetQueryResult', { id: variables.id }], {
+        queryClient.setQueryData(queryKeys.queries.detail(variables.id), {
           query,
         });
       }
