@@ -235,6 +235,14 @@ See [Vector Search Guide](./docs/guides/vector-search-guide.md) for complete arc
 - ❌ Never create custom primitives when design system components exist
 - ❌ Never deviate from Hex aesthetic without explicit user approval
 
+**Frontend Code Quality Rules**:
+
+- ❌ **No nested ternaries** - Use early returns, intermediate variables, or helper functions for clarity
+- ✅ **Separate concerns** - Split multi-component files into individual files
+- ✅ **Extract shared utilities** - Place reusable logic in `lib/utils/` or `lib/helpers/`
+- ✅ **Extract shared types** - Place reusable types in `types/ui/` or `types/domain/`
+- ✅ **Maximize reusability** - Consider shareability when creating utilities and types
+
 **Example**:
 
 ```tsx

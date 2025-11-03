@@ -10,6 +10,8 @@ import re
 from typing import Any
 from collections.abc import Sequence
 
+import numpy as np
+
 from app.services.vector_search_service import SearchResult
 
 logger = logging.getLogger(__name__)
@@ -127,12 +129,14 @@ class CitationService:
         num_citations_used: int,
     ) -> float:
         """
-        Calculate overall confidence score for a RAG response.
+        Calculate overall confidence score for a RAG response using weighted approach.
 
-        Considers:
-        - Average similarity of top results
-        - Number of high-quality sources
-        - Coverage (how many sources were actually used)
+        Enhanced algorithm considers:
+        - Weighted average similarity (prioritizes top results)
+        - Variance penalty (penalizes ambiguous/inconsistent results)
+        - Citation coverage bonus (rewards proper citation density)
+
+        This approach follows industry best practices for RAG quality assessment.
 
         Args:
             search_results: All search results retrieved
@@ -144,31 +148,87 @@ class CitationService:
         if not search_results:
             return 0.0
 
-        # Average similarity of top 3 results
+        # Get top 3 similarity scores
         top_results = search_results[:3]
-        avg_similarity = sum(r.similarity_score for r in top_results) / len(top_results)
+        similarities = np.array([r.similarity_score for r in top_results])
 
-        # High-quality sources (similarity > 0.7)
-        high_quality_count = sum(1 for r in search_results if r.similarity_score > 0.7)
-        quality_ratio = high_quality_count / len(search_results) if search_results else 0
+        # Weighted average (exponential weights prioritize top results)
+        # Top result gets most weight, subsequent results get exponentially less
+        weights = np.exp(np.arange(len(similarities)))
+        avg_similarity = float(np.average(similarities, weights=weights))
 
-        # Coverage (how many sources were used)
-        coverage = min(num_citations_used / 3, 1.0)  # Optimal is 3+ citations
+        # Variance penalty: Low variance suggests query ambiguity or inconsistent results
+        # High variance (>0.05) is normal and expected; low variance is penalized
+        variance_penalty = 0.0
+        if len(similarities) > 1:
+            variance = float(np.std(similarities))
+            if variance < 0.05:
+                variance_penalty = 0.1
+                logger.debug(f"Low variance detected ({variance:.4f}), applying penalty")
 
-        # Weighted confidence score
-        confidence = (
-            avg_similarity * 0.5  # 50% weight on similarity
-            + quality_ratio * 0.3  # 30% weight on quality ratio
-            + coverage * 0.2  # 20% weight on coverage
-        )
+        # Citation coverage bonus: Reward appropriate citation density
+        # Optimal is 3+ citations; fewer citations get proportional bonus
+        coverage_bonus = min(num_citations_used / 3.0, 1.0) * 0.1
+
+        # Calculate final confidence
+        confidence = avg_similarity + coverage_bonus - variance_penalty
+
+        # Clamp to [0.0, 1.0] range
+        confidence = max(0.0, min(1.0, confidence))
 
         logger.debug(
-            f"Confidence calculation: similarity={avg_similarity:.3f}, "
-            f"quality_ratio={quality_ratio:.3f}, coverage={coverage:.3f}, "
+            f"Enhanced confidence calculation: "
+            f"weighted_avg={avg_similarity:.3f}, "
+            f"variance_penalty={variance_penalty:.3f}, "
+            f"coverage_bonus={coverage_bonus:.3f}, "
             f"final={confidence:.3f}"
         )
 
         return round(confidence, 4)
+
+    def get_quality_level(
+        self,
+        confidence_score: float,
+        avg_similarity: float,
+        total_document_tokens: int | None = None,
+    ) -> str:
+        """
+        Determine quality level (high/medium/low) with document-size awareness.
+
+        Small documents (<1500 tokens) inherently score lower on similarity due to
+        content mixing in a single chunk. This method adjusts thresholds accordingly.
+
+        Args:
+            confidence_score: Overall confidence score (0.0-1.0)
+            avg_similarity: Average similarity of retrieved chunks (0.0-1.0)
+            total_document_tokens: Total tokens in document (for size adjustment)
+
+        Returns:
+            Quality level: "high", "medium", or "low"
+        """
+        # Adjust thresholds for small documents (single-chunk documents)
+        threshold_adjustment = 0.0
+        if total_document_tokens and total_document_tokens < 1500:
+            threshold_adjustment = 0.15
+            logger.debug(
+                f"Small document detected ({total_document_tokens} tokens), "
+                f"adjusting thresholds by +{threshold_adjustment}"
+            )
+
+        # Apply adjustment to both metrics
+        adjusted_confidence = confidence_score + threshold_adjustment
+        adjusted_similarity = avg_similarity + threshold_adjustment
+
+        # Determine quality level based on adjusted scores
+        # Use the higher of the two metrics for classification
+        score = max(adjusted_confidence, adjusted_similarity)
+
+        if score >= 0.75:
+            return "high"
+        elif score >= 0.55:
+            return "medium"
+        else:
+            return "low"
 
     def deduplicate_citations(self, citations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """

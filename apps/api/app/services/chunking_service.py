@@ -73,17 +73,47 @@ class ChunkingService:
 
     def split_into_sentences(self, text: str) -> list[str]:
         """
-        Split text into sentences using NLTK.
+        Split text into sentences using NLTK with fallback for overly long sentences.
+
+        PDFs often have structured content (bullet lists, tables) that NLTK treats as
+        single "sentences" of 1000+ characters. This method splits such long sentences
+        by paragraph breaks to improve chunking granularity.
 
         Args:
             text: Input text to split
 
         Returns:
-            List of sentences
+            List of sentences (with long sentences split by paragraphs)
         """
         # Use NLTK's punkt tokenizer for sentence splitting
         sentences: list[str] = nltk.sent_tokenize(text)
-        return sentences
+
+        # Fallback: split overly long sentences by paragraph breaks
+        # This handles PDFs with bullet lists, tables, etc.
+        MAX_SENTENCE_CHARS = 500  # If a "sentence" is longer than this, split it
+
+        refined_sentences = []
+        for sentence in sentences:
+            if len(sentence) > MAX_SENTENCE_CHARS:
+                # Split by double newline (paragraph break) or single newline
+                paragraphs = sentence.split('\n\n')
+                if len(paragraphs) == 1:
+                    # Try single newline if no double newlines
+                    paragraphs = sentence.split('\n')
+
+                # Filter out empty paragraphs and add to refined list
+                for para in paragraphs:
+                    para = para.strip()
+                    if para:
+                        refined_sentences.append(para)
+
+                logger.debug(
+                    f"Split long sentence ({len(sentence)} chars) into {len(paragraphs)} paragraphs"
+                )
+            else:
+                refined_sentences.append(sentence)
+
+        return refined_sentences
 
     def chunk_text(
         self,

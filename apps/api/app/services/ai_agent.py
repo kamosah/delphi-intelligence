@@ -25,6 +25,9 @@ from app.agents.query_agent import add_citations
 logger = logging.getLogger(__name__)
 
 # Confidence threshold for "I don't know" fallback (hybrid approach)
+# NOTE: Automatic replacement is currently DISABLED (see _apply_confidence_threshold usage below)
+# The LLM's system prompt already instructs it to express uncertainty naturally.
+# This threshold is kept for potential future features (e.g., UI warnings, quality metrics).
 CONFIDENCE_THRESHOLD = 0.5  # Reject responses below 50% confidence
 
 # Use shared fallback message from query_agent for consistency
@@ -50,6 +53,12 @@ class AIAgentService:
     ) -> tuple[str, list[dict[str, Any]]]:
         """
         Apply confidence threshold to response (hybrid approach).
+
+        NOTE: This method is currently DISABLED in production (not called).
+        It's kept for potential future features like:
+        - UI confidence warnings
+        - Quality metrics dashboards
+        - Admin review queues for low-confidence answers
 
         If confidence is below threshold, replace response with "I don't know" message.
         This provides automatic quality control while the enhanced prompts guide the
@@ -132,9 +141,13 @@ class AIAgentService:
             logger.info(f"Calculated confidence score: {confidence_score:.3f}")
 
         # Apply confidence threshold (hybrid approach)
-        final_response, final_citations = self._apply_confidence_threshold(
-            result["response"], confidence_score, result["citations"]
-        )
+        # DISABLED: Trust LLM's natural uncertainty expression instead of automatic replacement
+        # To re-enable: uncomment the lines below and remove the direct assignment
+        # final_response, final_citations = self._apply_confidence_threshold(
+        #     result["response"], confidence_score, result["citations"]
+        # )
+        final_response = result["response"]
+        final_citations = result["citations"]
 
         num_sources = len(search_results) if search_results else 0
         response_data = {
@@ -288,14 +301,15 @@ class AIAgentService:
             logger.info(f"Streaming query confidence score: {confidence_score:.3f}")
 
         # Apply confidence threshold (hybrid approach)
-        final_response, final_citations = self._apply_confidence_threshold(
-            full_response, confidence_score, state["citations"]
-        )
-
-        # If response was replaced due to low confidence, send replace event
-        if final_response != full_response:
-            # Send a replace event to replace the streamed response
-            yield {"type": "replace", "content": final_response}
+        # DISABLED: Trust LLM's natural uncertainty expression instead of automatic replacement
+        # To re-enable: uncomment the lines below and the replace event logic
+        # final_response, final_citations = self._apply_confidence_threshold(
+        #     full_response, confidence_score, state["citations"]
+        # )
+        # if final_response != full_response:
+        #     yield {"type": "replace", "content": final_response}
+        final_response = full_response
+        final_citations = state["citations"]
 
         # Yield citations with confidence
         if final_citations:

@@ -248,7 +248,7 @@ async def retrieve_context(state: AgentState) -> AgentState:
             db=db,
             space_id=space_id,
             limit=5,  # Top 5 most relevant chunks
-            similarity_threshold=0.3,  # Filter out low-relevance results
+            similarity_threshold=0.4,  # Filter out low-relevance results (raised from 0.3)
         )
 
         logger.info(
