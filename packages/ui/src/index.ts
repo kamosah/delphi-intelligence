@@ -64,6 +64,7 @@ export {
 } from './components/form';
 export { Input } from './components/input';
 export { Label } from './components/label';
+export { List, ListItem } from './components/list';
 export { Progress } from './components/progress';
 export { ScrollArea, ScrollBar } from './components/scroll-area';
 export {
@@ -80,6 +81,7 @@ export {
 } from './components/select';
 export { Separator } from './components/separator';
 export { Skeleton } from './components/skeleton';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/tabs';
 export { Textarea, type TextareaProps } from './components/textarea';
 export {
   Tooltip,
@@ -87,6 +89,11 @@ export {
   TooltipProvider,
   TooltipTrigger,
 } from './components/tooltip';
+export {
+  Typography,
+  typographyVariants,
+  type TypographyProps,
+} from './components/typography';
 
 // Utilities
 export { cn } from './lib/utils';
