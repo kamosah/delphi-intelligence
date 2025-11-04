@@ -1,6 +1,7 @@
 'use client';
 
 import { useSpace } from '@/contexts/SpaceContext';
+import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useQueryResults } from '@/hooks/useQueryResults';
 import {
   Button,
@@ -12,12 +13,30 @@ import {
 } from '@olympus/ui';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, type ComponentProps } from 'react';
 import { ThreadListItem } from './ThreadListItem';
 
 interface ThreadsPanelProps {
   className?: string;
   initialExpanded?: boolean;
+  onMinimize?: () => void;
+}
+
+/**
+ * ThreadsPanelTabTrigger - Custom TabTrigger with Hex-style underline design
+ *
+ * Supports optional className prop for additional customization
+ */
+function ThreadsPanelTabTrigger({
+  className,
+  ...props
+}: ComponentProps<typeof TabsTrigger>) {
+  return (
+    <TabsTrigger
+      {...props}
+      className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3 ${className || ''}`}
+    />
+  );
 }
 
 /**
@@ -32,20 +51,31 @@ interface ThreadsPanelProps {
  * - Uses SpaceContext for spaceId access
  * - Navigates to individual thread pages on click
  * - Configurable initial expanded/collapsed state
+ * - External minimize control via onMinimize callback
  *
  */
 export function ThreadsPanel({
   className,
   initialExpanded = true,
+  onMinimize,
 }: ThreadsPanelProps) {
   const { spaceId } = useSpace();
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  const { isExpanded, toggle, minimize, expand } = useThreadsPanel();
   const { queryResults, isLoading } = useQueryResults(spaceId);
+  const prevInitialExpanded = useRef(initialExpanded);
 
-  // Sync expanded state when navigating between routes
+  // Only sync expanded state when initialExpanded actually changes
+  // (i.e., when navigating between routes)
   useEffect(() => {
-    setIsExpanded(initialExpanded);
-  }, [initialExpanded]);
+    if (prevInitialExpanded.current !== initialExpanded) {
+      if (initialExpanded) {
+        expand();
+      } else {
+        minimize();
+      }
+      prevInitialExpanded.current = initialExpanded;
+    }
+  }, [initialExpanded, expand, minimize]);
 
   return (
     <motion.div
@@ -59,7 +89,7 @@ export function ThreadsPanel({
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={toggle}
           className="h-6 w-12 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50"
           aria-label={isExpanded ? 'Minimize panel' : 'Expand panel'}
         >
@@ -79,30 +109,16 @@ export function ThreadsPanel({
         {/* Tabs List - Always shown */}
         <div className="px-6 pt-4 border-b border-gray-200 shrink-0">
           <TabsList className="h-auto bg-transparent p-0 gap-6">
-            <TabsTrigger
-              value="threads"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3"
-            >
+            <ThreadsPanelTabTrigger value="threads">
               Threads
-            </TabsTrigger>
-            <TabsTrigger
-              value="documents"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3"
-            >
+            </ThreadsPanelTabTrigger>
+            <ThreadsPanelTabTrigger value="documents">
               Documents
-            </TabsTrigger>
-            <TabsTrigger
-              value="data"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3"
-            >
-              Data
-            </TabsTrigger>
-            <TabsTrigger
-              value="projects"
-              className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3"
-            >
+            </ThreadsPanelTabTrigger>
+            <ThreadsPanelTabTrigger value="data">Data</ThreadsPanelTabTrigger>
+            <ThreadsPanelTabTrigger value="projects">
               Projects
-            </TabsTrigger>
+            </ThreadsPanelTabTrigger>
           </TabsList>
         </div>
 

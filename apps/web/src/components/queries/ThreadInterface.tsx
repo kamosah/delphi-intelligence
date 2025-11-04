@@ -1,14 +1,15 @@
 'use client';
 
 import { useSpace } from '@/contexts/SpaceContext';
+import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import type { QueryResult } from '@/hooks/useQueryResults';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import { ScrollArea } from '@olympus/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
-import { ThreadInput } from './ThreadInput';
 import { QueryMessage } from './QueryMessage';
 import { QueryResponse } from './QueryResponse';
+import { ThreadInput } from './ThreadInput';
 
 interface ThreadInterfaceProps {
   onQuerySubmit?: () => void;
@@ -42,6 +43,7 @@ export function ThreadInterface({
   initialThread,
 }: ThreadInterfaceProps) {
   const { spaceId } = useSpace();
+  const { minimize } = useThreadsPanel();
   const [currentQuery, setCurrentQuery] = useState('');
   const [conversationHistory, setConversationHistory] = useState<
     Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }>
@@ -82,6 +84,24 @@ export function ThreadInterface({
     reset,
   } = useStreamingQuery();
 
+  // Auto-minimize ThreadsPanel when streaming starts on first message
+  useEffect(() => {
+    // Only minimize if this is the first message (new conversation)
+    const isFirstMessage = conversationHistory.length === 1;
+    if (isStreaming && isFirstMessage) {
+      minimize();
+    }
+  }, [isStreaming, conversationHistory.length, minimize]);
+
+  // Navigate to new thread when queryId becomes available
+  useEffect(() => {
+    // If we have a queryId and no initialThread, this is a new conversation
+    // Navigate to the individual thread page
+    if (queryId && !initialThread && onThreadCreated) {
+      onThreadCreated(queryId);
+    }
+  }, [queryId, initialThread, onThreadCreated]);
+
   // Handle new query submission
   const handleSubmitQuery = async (query: string) => {
     setCurrentQuery(query);
@@ -116,11 +136,6 @@ export function ThreadInterface({
           timestamp: new Date(),
         },
       ]);
-
-      // Notify parent of thread creation if this was a new thread
-      if (queryId && onThreadCreated) {
-        onThreadCreated(queryId);
-      }
     } catch (err) {
       console.error('Query streaming failed:', err);
     }

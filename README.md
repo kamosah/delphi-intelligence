@@ -744,7 +744,7 @@ This approach provides full migration capabilities while working around Supabase
 
 ### Package Naming
 
-- All packages use `@athena/*` naming convention
+- All packages use `@olympus/*` naming convention
 - Private packages are marked as `"private": true`
 - Workspace dependencies are managed via npm workspaces
 

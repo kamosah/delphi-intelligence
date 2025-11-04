@@ -1,6 +1,7 @@
 'use client';
 
 import { SpaceProvider } from '@/contexts/SpaceContext';
+import { ThreadsPanelProvider } from '@/contexts/ThreadsPanelContext';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
@@ -38,15 +39,17 @@ export default function ThreadsLayout({
 
   return (
     <SpaceProvider spaceId={spaceId}>
-      <div className="flex flex-col h-[calc(100vh-3.5rem)] -m-8 bg-white">
-        {/* Main content area */}
-        <div className="flex-1 overflow-hidden">{children}</div>
+      <ThreadsPanelProvider>
+        <div className="flex flex-col h-[calc(100vh-3.5rem)] -m-8 bg-white">
+          {/* Main content area */}
+          <div className="flex-1 overflow-hidden">{children}</div>
 
-        {/* ThreadsPanel - Always present, initially expanded on landing, collapsed on individual threads */}
-        <AnimatePresence>
-          <ThreadsPanel initialExpanded={isLandingPage} />
-        </AnimatePresence>
-      </div>
+          {/* ThreadsPanel - Always present, initially expanded on landing, collapsed on individual threads */}
+          <AnimatePresence>
+            <ThreadsPanel initialExpanded={isLandingPage} />
+          </AnimatePresence>
+        </div>
+      </ThreadsPanelProvider>
     </SpaceProvider>
   );
 }
