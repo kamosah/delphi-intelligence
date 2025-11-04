@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { fn } from '@storybook/test';
 import React from 'react';
-import { QueryInput } from './QueryInput';
+import { ThreadInput } from './ThreadInput';
 
 const meta = {
-  title: 'Queries/QueryInput',
-  component: QueryInput,
+  title: 'Threads/ThreadInput',
+  component: ThreadInput,
   parameters: {
     layout: 'fullscreen',
   },
@@ -30,13 +30,13 @@ const meta = {
   args: {
     onSubmit: fn(),
   },
-} satisfies Meta<typeof QueryInput>;
+} satisfies Meta<typeof ThreadInput>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * Default query input ready for user interaction.
+ * Default thread input ready for user interaction.
  */
 export const Default: Story = {
   args: {
@@ -46,7 +46,7 @@ export const Default: Story = {
 };
 
 /**
- * Query input in streaming state (loading).
+ * Thread input in streaming state (loading).
  * Button shows loading spinner and input is disabled.
  */
 export const Streaming: Story = {
@@ -56,7 +56,7 @@ export const Streaming: Story = {
 };
 
 /**
- * Disabled query input.
+ * Disabled thread input.
  */
 export const Disabled: Story = {
   args: {
@@ -89,12 +89,12 @@ export const Interactive: Story = {
       }, 3000);
     };
 
-    return <QueryInput onSubmit={handleSubmit} isStreaming={isStreaming} />;
+    return <ThreadInput onSubmit={handleSubmit} isStreaming={isStreaming} />;
   },
 };
 
 /**
- * Query input with helpful tip about character limit.
+ * Thread input with helpful tip about character limit.
  */
 export const WithCharacterLimit: Story = {
   render: () => {
@@ -110,14 +110,14 @@ export const WithCharacterLimit: Story = {
             character limit warning.
           </p>
         </div>
-        <QueryInput onSubmit={handleSubmit} />
+        <ThreadInput onSubmit={handleSubmit} />
       </div>
     );
   },
 };
 
 /**
- * Query input in a chat-style layout.
+ * Thread input in a chat-style layout.
  */
 export const InChatLayout: Story = {
   render: () => {
@@ -143,8 +143,8 @@ export const InChatLayout: Story = {
           </div>
         </div>
 
-        {/* Query input at bottom */}
-        <QueryInput onSubmit={handleSubmit} />
+        {/* Thread input at bottom */}
+        <ThreadInput onSubmit={handleSubmit} />
       </div>
     );
   },

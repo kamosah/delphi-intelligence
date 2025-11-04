@@ -16,7 +16,6 @@ import {
   Database,
   FileText,
   MessageSquare,
-  Search,
   Settings,
 } from 'lucide-react';
 
@@ -30,7 +29,6 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Database, label: 'Spaces', href: '/dashboard/spaces' },
   { icon: MessageSquare, label: 'Threads', href: '/dashboard/threads' },
   { icon: FileText, label: 'Documents', href: '/dashboard/documents' },
-  { icon: Search, label: 'Queries', href: '/dashboard/queries' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 

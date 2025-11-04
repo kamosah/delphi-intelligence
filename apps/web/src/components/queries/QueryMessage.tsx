@@ -45,13 +45,7 @@ export function QueryMessage({
     : null;
 
   return (
-    <div
-      className={cn(
-        'flex gap-3 px-4 py-4',
-        isUser ? 'bg-gray-50' : 'bg-white',
-        className
-      )}
-    >
+    <div className={cn('flex gap-3 px-4 py-4', className)}>
       {/* Avatar */}
       <div
         className={cn(

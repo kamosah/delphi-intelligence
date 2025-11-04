@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server';
  * Checks for authentication state in cookies (set by client-side auth via setAuthCookies).
  * Redirects unauthorized users to login and prevents authenticated users from accessing auth pages.
  *
- * Protected routes: /dashboard, /spaces, /documents, /queries, /settings
+ * Protected routes: /dashboard, /spaces, /documents, /settings
  * Public routes: /, /login, /signup, /forgot-password, /reset-password, /verify-email, /auth/confirm
  */
 export function middleware(request: NextRequest) {
@@ -17,13 +17,7 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!authToken?.value;
 
   // Define protected routes (require authentication)
-  const protectedRoutes = [
-    '/dashboard',
-    '/spaces',
-    '/documents',
-    '/queries',
-    '/settings',
-  ];
+  const protectedRoutes = ['/dashboard', '/spaces', '/documents', '/settings'];
 
   // Define auth routes (login, signup - should redirect if authenticated)
   const authRoutes = ['/login', '/signup'];
