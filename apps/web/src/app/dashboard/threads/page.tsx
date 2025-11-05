@@ -1,16 +1,16 @@
 'use client';
 
-import type { Metadata } from 'next';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { SpaceCardSkeletonGrid } from '@/components/threads/SpaceCardSkeleton';
 import { useSpaces } from '@/hooks/useSpaces';
 import {
+  Alert,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { MessageSquare, Sparkles } from 'lucide-react';
+import { AlertCircle, MessageSquare, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 /**
@@ -21,27 +21,16 @@ import Link from 'next/link';
  * - Quick access to threads within each space
  * - Unified conversational AI interface
  * - Supports mentions for documents and data sources
+ * - Consistent title across all states (loading, error, success)
+ * - Skeleton loading state
+ * - Error handling with retry
  */
 export default function ThreadsPage() {
-  const { user } = useAuthStore();
-  const { spaces, isLoading } = useSpaces();
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Threads</h1>
-          <p className="text-gray-600">
-            Loading your conversational AI workspaces...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const { spaces, isLoading, isSuccess, error, refetch } = useSpaces();
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Always visible with consistent structure */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <MessageSquare className="h-7 w-7 text-blue-600" />
@@ -53,8 +42,34 @@ export default function ThreadsPage() {
         </p>
       </div>
 
-      {/* Empty State */}
-      {spaces.length === 0 && (
+      {/* Loading State - Skeleton Grid */}
+      {isLoading && <SpaceCardSkeletonGrid count={3} />}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <div className="ml-2 flex-1">
+            <p className="text-sm font-medium text-red-800">
+              Failed to load spaces
+            </p>
+            <p className="text-sm text-red-700 mt-1">
+              {error instanceof Error
+                ? error.message
+                : 'An error occurred while loading your spaces.'}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="text-sm text-red-600 hover:text-red-700 font-medium underline mt-2"
+            >
+              Try again
+            </button>
+          </div>
+        </Alert>
+      )}
+
+      {/* Empty State - Only show when query succeeded with no spaces */}
+      {isSuccess && !error && spaces.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Sparkles className="h-12 w-12 text-gray-300 mb-4" />
@@ -75,8 +90,8 @@ export default function ThreadsPage() {
         </Card>
       )}
 
-      {/* Spaces Grid with Thread Access */}
-      {spaces.length > 0 && (
+      {/* Success State - Spaces Grid with Thread Access */}
+      {isSuccess && !error && spaces.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {spaces.map((space) => (
             <Link key={space.id} href={`/dashboard/spaces/${space.id}/threads`}>

@@ -43,6 +43,7 @@ export function useSpaces(options?: { limit?: number; offset?: number }) {
   return {
     spaces: query.data?.spaces || [],
     isLoading: query.isLoading,
+    isSuccess: query.isSuccess,
     error: query.error,
     refetch: query.refetch,
   };
