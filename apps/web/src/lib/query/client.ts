@@ -1,44 +1,11 @@
-import { QueryClient } from '@tanstack/react-query';
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Stale time: How long data is considered fresh (5 minutes)
-      staleTime: 1000 * 60 * 5,
-
-      // Cache time: How long data stays in cache after component unmounts (10 minutes)
-      gcTime: 1000 * 60 * 10,
-
-      // Retry configuration
-      retry: (failureCount, error: any) => {
-        // Don't retry on 4xx errors (client errors)
-        if (error?.status >= 400 && error?.status < 500) {
-          return false;
-        }
-        // Retry up to 3 times for other errors
-        return failureCount < 3;
-      },
-
-      // Retry delay with exponential backoff
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-
-      // Refetch on window focus (useful for keeping data fresh)
-      refetchOnWindowFocus: false,
-
-      // Refetch on reconnect
-      refetchOnReconnect: true,
-    },
-    mutations: {
-      // Retry mutations once
-      retry: 1,
-
-      // Retry delay for mutations
-      retryDelay: 1000,
-    },
-  },
-});
-
-// Query keys factory for consistent query key management
+/**
+ * Query keys factory for consistent query key management across the application.
+ *
+ * Usage:
+ * - Import queryKeys from this file
+ * - Use in React Query hooks: useQuery({ queryKey: queryKeys.spaces.all })
+ * - Use for invalidation: queryClient.invalidateQueries({ queryKey: queryKeys.spaces.all })
+ */
 export const queryKeys = {
   // Auth queries
   auth: {

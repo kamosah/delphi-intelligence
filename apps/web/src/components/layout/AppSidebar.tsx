@@ -18,6 +18,8 @@ import {
   MessageSquare,
   Settings,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -34,6 +36,16 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppSidebar() {
   const { sidebarOpen, sidebarVisible, toggleSidebar } = useUIStore();
+  const [mounted, setMounted] = useState(false);
+
+  // Only render after hydration to prevent flash of wrong state
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -68,7 +80,7 @@ export function AppSidebar() {
                         )}
                         asChild
                       >
-                        <a href={item.href}>
+                        <Link href={item.href}>
                           <Icon className="h-5 w-5 shrink-0" />
                           <motion.span
                             initial={false}
@@ -81,7 +93,7 @@ export function AppSidebar() {
                           >
                             {item.label}
                           </motion.span>
-                        </a>
+                        </Link>
                       </Button>
                     </TooltipTrigger>
                     {!sidebarOpen && (
