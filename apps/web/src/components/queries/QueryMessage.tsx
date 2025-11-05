@@ -117,7 +117,7 @@ function AIMessage({
 }: AIMessageProps) {
   return (
     <div className={cn('flex justify-start px-4 py-4', className)}>
-      <div className="flex gap-3 max-w-4xl">
+      <div className="flex gap-3 max-w-3xl">
         <MessageAvatar role="assistant" />
         <div className="flex-1 min-w-0">
           <MessageHeader
