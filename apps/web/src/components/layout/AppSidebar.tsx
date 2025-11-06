@@ -10,14 +10,7 @@ import {
   TooltipTrigger,
 } from '@olympus/ui';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Database,
-  FileText,
-  MessageSquare,
-  Settings,
-} from 'lucide-react';
+import { Database, FileText, MessageSquare, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -35,7 +28,8 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function AppSidebar() {
-  const { sidebarOpen, sidebarVisible, toggleSidebar } = useUIStore();
+  const { sidebarIconMode, sidebarVisible, toggleSidebarIconMode } =
+    useUIStore();
   const [mounted, setMounted] = useState(false);
 
   // Only render after hydration to prevent flash of wrong state
@@ -50,21 +44,35 @@ export function AppSidebar() {
   return (
     <AnimatePresence mode="wait">
       {sidebarVisible && (
-        <TooltipProvider>
+        <TooltipProvider disableHoverableContent>
           <motion.aside
             className={cn(
               'h-[calc(100vh-3.5rem)] bg-card border-r flex-shrink-0',
               'flex flex-col'
             )}
-            initial={false}
-            animate={{
-              width: sidebarOpen ? 256 : 80,
+            // initial={false}
+            initial={{
+              width: 0,
+              opacity: 0,
             }}
-            exit={{ width: 0, opacity: 0 }}
+            animate={{
+              width: sidebarIconMode ? 80 : 256,
+              opacity: 1,
+              // Disable pointer events during animation
+              pointerEvents: 'auto',
+            }}
+            exit={{
+              width: 0,
+              opacity: 0,
+            }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{
+              // This ensures pointer events are disabled *during* animation
+              pointerEvents: sidebarVisible ? 'auto' : 'none',
+            }}
           >
             {/* Navigation Items */}
-            <nav className="flex-1 space-y-2 p-4">
+            <nav className="space-y-2 p-4">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
 
@@ -73,22 +81,22 @@ export function AppSidebar() {
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
-                        size={sidebarOpen ? 'default' : 'icon'}
+                        size={sidebarIconMode ? 'icon' : 'default'}
                         className={cn(
                           'w-full',
-                          sidebarOpen && 'justify-start gap-3'
+                          !sidebarIconMode && 'justify-start gap-3'
                         )}
                         asChild
                       >
                         <Link href={item.href}>
                           <Icon className="h-5 w-5 shrink-0" />
                           <motion.span
-                            initial={false}
+                            initial={{ opacity: 0, width: 0 }}
                             animate={{
-                              width: sidebarOpen ? 'auto' : 0,
-                              opacity: sidebarOpen ? 1 : 0,
+                              width: sidebarIconMode ? 0 : 'auto',
+                              opacity: sidebarIconMode ? 0 : 1,
                             }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            transition={{ duration: 0.2, ease: 'easeInOut' }}
                             className="overflow-hidden whitespace-nowrap"
                           >
                             {item.label}
@@ -96,7 +104,7 @@ export function AppSidebar() {
                         </Link>
                       </Button>
                     </TooltipTrigger>
-                    {!sidebarOpen && (
+                    {sidebarIconMode && (
                       <TooltipContent side="right">
                         <p>{item.label}</p>
                       </TooltipContent>
@@ -106,22 +114,12 @@ export function AppSidebar() {
               })}
             </nav>
 
-            {/* Footer - Toggle to collapse to icons (<<  / >>) */}
-            <div className="p-2 border-t flex justify-end">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className="h-8 w-8"
-                title={sidebarOpen ? 'Collapse to icons' : 'Expand sidebar'}
-              >
-                {sidebarOpen ? (
-                  <ChevronLeft className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            {/* Clickable space to toggle icon-only mode */}
+            <div
+              className="flex-1 cursor-pointer"
+              onClick={toggleSidebarIconMode}
+              title={sidebarIconMode ? 'Expand sidebar' : 'Collapse to icons'}
+            />
           </motion.aside>
         </TooltipProvider>
       )}
