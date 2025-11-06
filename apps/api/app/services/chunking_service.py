@@ -90,22 +90,22 @@ class ChunkingService:
 
         # Fallback: split overly long sentences by paragraph breaks
         # This handles PDFs with bullet lists, tables, etc.
-        MAX_SENTENCE_CHARS = 500  # If a "sentence" is longer than this, split it
+        max_sentence_chars = 500  # If a "sentence" is longer than this, split it
 
         refined_sentences = []
         for sentence in sentences:
-            if len(sentence) > MAX_SENTENCE_CHARS:
+            if len(sentence) > max_sentence_chars:
                 # Split by double newline (paragraph break) or single newline
-                paragraphs = sentence.split('\n\n')
+                paragraphs = sentence.split("\n\n")
                 if len(paragraphs) == 1:
                     # Try single newline if no double newlines
-                    paragraphs = sentence.split('\n')
+                    paragraphs = sentence.split("\n")
 
                 # Filter out empty paragraphs and add to refined list
                 for para in paragraphs:
-                    para = para.strip()
-                    if para:
-                        refined_sentences.append(para)
+                    para_stripped = para.strip()
+                    if para_stripped:
+                        refined_sentences.append(para_stripped)
 
                 logger.debug(
                     f"Split long sentence ({len(sentence)} chars) into {len(paragraphs)} paragraphs"

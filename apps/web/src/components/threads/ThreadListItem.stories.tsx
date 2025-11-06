@@ -1,7 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import { ThreadListItem } from './ThreadListItem';
 import { SpaceProvider } from '@/contexts/SpaceContext';
 import { List } from '@olympus/ui';
+import { QueryStatusEnum } from '@/lib/api/generated';
 
 const meta = {
   title: 'Threads/ThreadListItem',
@@ -41,7 +42,7 @@ export const Default: Story = {
       sources: [],
       agentSteps: null,
       modelUsed: 'gpt-4',
-      status: 'completed',
+      status: QueryStatusEnum.Completed,
       errorMessage: null,
       processingTimeMs: 1500,
       tokensUsed: 250,
@@ -68,7 +69,7 @@ export const LongQuery: Story = {
       sources: [],
       agentSteps: null,
       modelUsed: 'gpt-4',
-      status: 'completed',
+      status: QueryStatusEnum.Completed,
       errorMessage: null,
       processingTimeMs: 2500,
       tokensUsed: 450,
@@ -94,7 +95,7 @@ export const RecentThread: Story = {
       sources: [],
       agentSteps: null,
       modelUsed: 'gpt-4',
-      status: 'completed',
+      status: QueryStatusEnum.Completed,
       errorMessage: null,
       processingTimeMs: 1200,
       tokensUsed: 180,
@@ -106,6 +107,29 @@ export const RecentThread: Story = {
 };
 
 export const MultipleItems: Story = {
+  args: {
+    thread: {
+      id: '1',
+      queryText: 'What are the top performing products?',
+      createdAt: new Date('2024-01-15').toISOString(),
+      result: 'Based on sales data...',
+      spaceId: 'test-space-id',
+      createdBy: 'user-1',
+      title: null,
+      context: null,
+      confidenceScore: 0.95,
+      sources: [],
+      agentSteps: null,
+      modelUsed: 'gpt-4',
+      status: QueryStatusEnum.Completed,
+      errorMessage: null,
+      processingTimeMs: 1500,
+      tokensUsed: 250,
+      costUsd: 0.05,
+      completedAt: new Date('2024-01-15').toISOString(),
+      updatedAt: new Date('2024-01-15').toISOString(),
+    },
+  },
   render: () => (
     <>
       <ThreadListItem
@@ -122,7 +146,7 @@ export const MultipleItems: Story = {
           sources: [],
           agentSteps: null,
           modelUsed: 'gpt-4',
-          status: 'completed',
+          status: QueryStatusEnum.Completed,
           errorMessage: null,
           processingTimeMs: 1500,
           tokensUsed: 250,
@@ -145,7 +169,7 @@ export const MultipleItems: Story = {
           sources: [],
           agentSteps: null,
           modelUsed: 'gpt-4',
-          status: 'completed',
+          status: QueryStatusEnum.Completed,
           errorMessage: null,
           processingTimeMs: 2200,
           tokensUsed: 380,
@@ -168,7 +192,7 @@ export const MultipleItems: Story = {
           sources: [],
           agentSteps: null,
           modelUsed: 'gpt-4',
-          status: 'completed',
+          status: QueryStatusEnum.Completed,
           errorMessage: null,
           processingTimeMs: 1800,
           tokensUsed: 290,
