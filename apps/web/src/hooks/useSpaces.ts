@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { queryKeys } from '@/lib/query/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateSpaceMutation,
@@ -37,6 +38,10 @@ export function useSpaces(options?: { limit?: number; offset?: number }) {
     },
     {
       enabled: !!accessToken,
+      queryKey: queryKeys.spaces.list({
+        limit: options?.limit,
+        offset: options?.offset,
+      }),
     }
   );
 
@@ -64,6 +69,7 @@ export function useSpace(id: string) {
     { id },
     {
       enabled: !!accessToken && !!id,
+      queryKey: queryKeys.spaces.detail(id),
     }
   );
 
@@ -96,8 +102,8 @@ export function useCreateSpace() {
 
   const mutation = useCreateSpaceMutation({
     onSuccess: () => {
-      // Invalidate spaces list to refetch
-      queryClient.invalidateQueries({ queryKey: ['GetSpaces'] });
+      // Invalidate all spaces lists to refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.spaces.lists() });
     },
   });
 
@@ -129,11 +135,11 @@ export function useUpdateSpace() {
 
   const mutation = useUpdateSpaceMutation({
     onSuccess: (data, variables) => {
-      // Invalidate spaces list to refetch
-      queryClient.invalidateQueries({ queryKey: ['GetSpaces'] });
-      // Invalidate specific space
+      // Invalidate all spaces lists to refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.spaces.lists() });
+      // Invalidate specific space detail
       queryClient.invalidateQueries({
-        queryKey: ['GetSpace', { id: variables.id }],
+        queryKey: queryKeys.spaces.detail(variables.id),
       });
     },
   });
@@ -163,11 +169,11 @@ export function useDeleteSpace() {
 
   const mutation = useDeleteSpaceMutation({
     onSuccess: (data, variables) => {
-      // Invalidate spaces list to refetch
-      queryClient.invalidateQueries({ queryKey: ['GetSpaces'] });
-      // Remove from cache
+      // Invalidate all spaces lists to refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.spaces.lists() });
+      // Remove specific space from cache
       queryClient.removeQueries({
-        queryKey: ['GetSpace', { id: variables.id }],
+        queryKey: queryKeys.spaces.detail(variables.id),
       });
     },
   });
