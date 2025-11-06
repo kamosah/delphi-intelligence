@@ -140,12 +140,9 @@ class AIAgentService:
             )
             logger.info(f"Calculated confidence score: {confidence_score:.3f}")
 
-        # Apply confidence threshold (hybrid approach)
-        # DISABLED: Trust LLM's natural uncertainty expression instead of automatic replacement
-        # To re-enable: uncomment the lines below and remove the direct assignment
-        # final_response, final_citations = self._apply_confidence_threshold(
-        #     result["response"], confidence_score, result["citations"]
-        # )
+        # NOTE: Confidence threshold filtering is disabled
+        # We trust the LLM's natural uncertainty expression instead of automatic replacement
+        # The _apply_confidence_threshold method remains available if needed in the future
         final_response = result["response"]
         final_citations = result["citations"]
 
@@ -300,14 +297,8 @@ class AIAgentService:
             )
             logger.info(f"Streaming query confidence score: {confidence_score:.3f}")
 
-        # Apply confidence threshold (hybrid approach)
-        # DISABLED: Trust LLM's natural uncertainty expression instead of automatic replacement
-        # To re-enable: uncomment the lines below and the replace event logic
-        # final_response, final_citations = self._apply_confidence_threshold(
-        #     full_response, confidence_score, state["citations"]
-        # )
-        # if final_response != full_response:
-        #     yield {"type": "replace", "content": final_response}
+        # NOTE: Confidence threshold filtering is disabled
+        # We trust the LLM's natural uncertainty expression instead of automatic replacement
         final_response = full_response
         final_citations = state["citations"]
 

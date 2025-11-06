@@ -15,7 +15,7 @@ import {
 import { Menu, Moon, Sun, User } from 'lucide-react';
 
 export function Header() {
-  const { isDarkMode, toggleDarkMode, toggleSidebar } = useUIStore();
+  const { isDarkMode, toggleDarkMode, toggleSidebarVisibility } = useUIStore();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -24,7 +24,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={toggleSidebar}
+            onClick={toggleSidebarVisibility}
             className="md:hidden"
           >
             <Menu className="h-5 w-5" />

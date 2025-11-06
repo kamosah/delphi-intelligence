@@ -3,11 +3,11 @@ import { persist } from 'zustand/middleware';
 
 interface UIState {
   isDarkMode: boolean;
-  sidebarOpen: boolean;
+  sidebarIconMode: boolean;
   sidebarVisible: boolean;
   toggleDarkMode: () => void;
-  toggleSidebar: () => void;
-  setSidebarOpen: (open: boolean) => void;
+  toggleSidebarIconMode: () => void;
+  setSidebarIconMode: (iconMode: boolean) => void;
   toggleSidebarVisibility: () => void;
   setSidebarVisible: (visible: boolean) => void;
 }
@@ -16,7 +16,7 @@ export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
       isDarkMode: false,
-      sidebarOpen: true,
+      sidebarIconMode: false,
       sidebarVisible: true,
       toggleDarkMode: () =>
         set((state) => {
@@ -31,9 +31,10 @@ export const useUIStore = create<UIState>()(
           }
           return { isDarkMode: newMode };
         }),
-      toggleSidebar: () =>
-        set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-      setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
+      toggleSidebarIconMode: () =>
+        set((state) => ({ sidebarIconMode: !state.sidebarIconMode })),
+      setSidebarIconMode: (iconMode: boolean) =>
+        set({ sidebarIconMode: iconMode }),
       toggleSidebarVisibility: () =>
         set((state) => ({ sidebarVisible: !state.sidebarVisible })),
       setSidebarVisible: (visible: boolean) => set({ sidebarVisible: visible }),

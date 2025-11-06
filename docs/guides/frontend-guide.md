@@ -365,7 +365,7 @@ export function useSpace(id: string) {
 }
 
 // Query with UI type transformation
-export function useSpacesForList() {
+export function useSpaces() {
   const { data, ...rest } = useSpaces();
 
   const listItems: SpaceListItem[] | undefined = data?.map((space) => ({
@@ -664,7 +664,7 @@ export function useStreamingQuery(options?: UseStreamingQueryOptions) {
 }
 
 // Usage in component
-function QueryInterface() {
+function ThreadInterface() {
   const { response, isStreaming, startStreaming } = useStreamingQuery({
     onComplete: (fullResponse) => {
       // Optionally save to React Query cache after streaming completes

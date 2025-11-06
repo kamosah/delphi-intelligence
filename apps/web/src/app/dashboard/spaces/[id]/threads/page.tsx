@@ -1,62 +1,40 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import {
-  QueryInterface,
-  QueryInterfaceRef,
-} from '@/components/queries/QueryInterface';
-import { QueryPanel } from '@/components/queries/QueryPanel';
-import type { QueryResult } from '@/hooks/useQueryResults';
-import { AnimatePresence } from 'framer-motion';
-
-interface ThreadsPageProps {
-  params: {
-    id: string;
-  };
-}
+import { ThreadInterface } from '@/components/queries/ThreadInterface';
+import { useRouter } from 'next/navigation';
 
 /**
- * Threads page for a specific space.
+ * Threads landing page for a specific space.
  *
  * Layout:
- * - QueryInterface (main area) - full-width chat interface
- * - QueryHistoryHorizontal (bottom) - horizontal scrolling history (shows on landing, hides in conversation)
+ * - ThreadInterface (main area) - chat interface with constrained width
+ * - ThreadsPanel (bottom) - provided by layout, shown expanded
  *
  * Features:
- * - Chat-style conversational interface
- * - Horizontal query history at bottom (Hex-inspired)
+ * - Chat-style conversational interface (Hex-inspired design)
+ * - Messages flow within input width
  * - Real-time streaming AI responses
  * - Source citations with document links
  * - Confidence scoring
- * - Search and filter history
+ * - Navigate to new thread page after first message (auto-collapses ThreadsPanel)
+ * - ThreadsPanel navigates to individual thread pages
+ *
+ * Note: SpaceProvider, ThreadsPanel, and positioning provided by threads layout.
  */
-export default function ThreadsPage({ params }: ThreadsPageProps) {
-  const spaceId = params.id;
-  const queryInterfaceRef = useRef<QueryInterfaceRef>(null);
-  const [isInConversation, setIsInConversation] = useState(false);
+export default function ThreadsPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
 
-  const handleSelectQuery = (query: QueryResult) => {
-    queryInterfaceRef.current?.loadQuery(query);
-    setIsInConversation(true);
+  const handleThreadCreated = (threadId: string) => {
+    // Navigate to the new thread page (layout will auto-collapse ThreadsPanel)
+    router.push(`/dashboard/spaces/${params.id}/threads/${threadId}`);
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] -m-8 bg-white">
-      {/* Main Chat Interface - Full width, transparent background */}
-      <div className="flex-1 p-6 overflow-hidden">
-        <QueryInterface
-          ref={queryInterfaceRef}
-          spaceId={spaceId}
-          onQuerySubmit={() => setIsInConversation(true)}
-        />
-      </div>
-
-      {/* Query Panel - Bottom (show on landing, hide in conversation) */}
-      <AnimatePresence>
-        {!isInConversation && (
-          <QueryPanel spaceId={spaceId} onSelectQuery={handleSelectQuery} />
-        )}
-      </AnimatePresence>
-    </div>
+    <ThreadInterface
+      onQuerySubmit={() => {
+        // Optional: Add any additional logic when query is submitted
+      }}
+      onThreadCreated={handleThreadCreated}
+    />
   );
 }

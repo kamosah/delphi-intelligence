@@ -12,7 +12,6 @@ export interface Notification {
 
 interface AppState {
   // UI State
-  sidebarOpen: boolean;
   theme: 'light' | 'dark' | 'system';
   isLoading: boolean;
 
@@ -24,8 +23,6 @@ interface AppState {
   notifications: Notification[];
 
   // Actions
-  setSidebarOpen: (open: boolean) => void;
-  toggleSidebar: () => void;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setLoading: (loading: boolean) => void;
   setCurrentSpace: (spaceId: string | null) => void;
@@ -43,7 +40,6 @@ export const useAppStore = create<AppState>()(
     persist(
       (set, get) => ({
         // Initial state
-        sidebarOpen: true,
         theme: 'system',
         isLoading: false,
         currentSpaceId: null,
@@ -51,11 +47,6 @@ export const useAppStore = create<AppState>()(
         notifications: [],
 
         // Actions
-        setSidebarOpen: (open) => set({ sidebarOpen: open }),
-
-        toggleSidebar: () =>
-          set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-
         setTheme: (theme) => set({ theme }),
 
         setLoading: (isLoading) => set({ isLoading }),
@@ -94,7 +85,6 @@ export const useAppStore = create<AppState>()(
       {
         name: 'olympus-app-storage',
         partialize: (state) => ({
-          sidebarOpen: state.sidebarOpen,
           theme: state.theme,
           currentSpaceId: state.currentSpaceId,
         }),

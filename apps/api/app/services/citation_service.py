@@ -225,10 +225,9 @@ class CitationService:
 
         if score >= 0.75:
             return "high"
-        elif score >= 0.55:
+        if score >= 0.55:
             return "medium"
-        else:
-            return "low"
+        return "low"
 
     def deduplicate_citations(self, citations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
