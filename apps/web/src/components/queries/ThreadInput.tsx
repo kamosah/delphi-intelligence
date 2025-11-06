@@ -89,7 +89,7 @@ export function ThreadInput({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmitForm)}
-        className={`bg-white p-4 pb-10 ${className || ''}`}
+        className={`bg-white p-4 ${className || ''}`}
       >
         <div className="max-w-3xl mx-auto">
           {/* Input container with button inside */}

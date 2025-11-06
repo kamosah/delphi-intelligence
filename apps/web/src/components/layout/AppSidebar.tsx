@@ -37,38 +37,35 @@ export function AppSidebar() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
-
   return (
     <AnimatePresence mode="wait">
-      {sidebarVisible && (
+      {sidebarVisible && mounted && (
         <TooltipProvider disableHoverableContent>
           <motion.aside
             className={cn(
               'h-[calc(100vh-3.5rem)] bg-card border-r flex-shrink-0',
-              'flex flex-col'
+              'flex flex-col overflow-hidden'
             )}
-            // initial={false}
             initial={{
-              width: 0,
               opacity: 0,
+              scaleX: 0,
+              width: 0,
             }}
             animate={{
-              width: sidebarIconMode ? 80 : 256,
               opacity: 1,
-              // Disable pointer events during animation
               pointerEvents: 'auto',
+              scaleX: 1,
+              width: sidebarIconMode ? 80 : 256,
             }}
             exit={{
-              width: 0,
               opacity: 0,
+              pointerEvents: 'none',
+              scaleX: 0,
+              width: 0,
             }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            style={{
-              // This ensures pointer events are disabled *during* animation
-              pointerEvents: sidebarVisible ? 'auto' : 'none',
+            transition={{
+              duration: 0.3,
+              ease: 'easeInOut',
             }}
           >
             {/* Navigation Items */}

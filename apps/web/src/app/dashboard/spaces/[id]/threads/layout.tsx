@@ -35,7 +35,10 @@ export default function ThreadsLayout({
   const pathname = usePathname();
 
   // Check if we're on the landing page or individual thread page
-  const isLandingPage = pathname === `/dashboard/spaces/${spaceId}/threads`;
+  // Normalize pathname to handle trailing slashes (defense-in-depth)
+  const normalizedPath = pathname.replace(/\/$/, '');
+  const isLandingPage =
+    normalizedPath === `/dashboard/spaces/${spaceId}/threads`;
 
   return (
     <SpaceProvider spaceId={spaceId}>

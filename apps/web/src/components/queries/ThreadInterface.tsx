@@ -94,11 +94,13 @@ export function ThreadInterface({
     queryId,
     startStreaming,
     retry,
-    reset,
   } = useStreamingQuery();
 
   // Track which queryId we've added to conversation history to prevent duplicates
   const addedQueryId = useRef<string | null>(null);
+
+  // Track which queryId we've cached to prevent duplicate cache updates
+  const cachedQueryId = useRef<string | null>(null);
 
   // Auto-minimize ThreadsPanel when streaming starts on first message
   useEffect(() => {
@@ -112,7 +114,13 @@ export function ThreadInterface({
   // Populate cache with thread data when streaming completes
   // This prevents loading state when navigating to individual thread page
   useEffect(() => {
-    if (!isStreaming && queryId && currentQuery && response) {
+    if (
+      !isStreaming &&
+      queryId &&
+      currentQuery &&
+      response &&
+      cachedQueryId.current !== queryId
+    ) {
       // Build thread data that matches GraphQL query shape
       const threadData = {
         query: {
@@ -128,6 +136,9 @@ export function ThreadInterface({
 
       // Populate cache so individual thread page loads instantly
       queryClient.setQueryData(queryKeys.threads.detail(queryId), threadData);
+
+      // Mark this queryId as cached to prevent duplicates
+      cachedQueryId.current = queryId;
     }
   }, [
     isStreaming,
@@ -279,7 +290,7 @@ export function ThreadInterface({
       </ScrollArea>
 
       {/* Input Area - Empty state sits naturally above input */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 pb-4">
         {/* Empty State - Shows above input when no messages */}
         {conversationHistory.length === 0 && !isStreaming && (
           <div className="flex items-center justify-center py-12">

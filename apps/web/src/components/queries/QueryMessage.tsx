@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { User, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import { MarkdownContent } from '../common/MarkdownContent';
-import type { ReactNode } from 'react';
 
 interface QueryMessageProps {
   role: 'user' | 'assistant';

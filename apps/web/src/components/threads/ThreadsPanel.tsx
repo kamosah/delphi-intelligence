@@ -10,6 +10,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  cn,
 } from '@olympus/ui';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -34,7 +35,14 @@ function ThreadsPanelTabTrigger({
   return (
     <TabsTrigger
       {...props}
-      className={`data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3 ${className || ''}`}
+      className={cn(
+        'data-[state=active]:bg-transparent',
+        'data-[state=active]:shadow-none',
+        'data-[state=active]:border-b-2',
+        'data-[state=active]:border-blue-600',
+        'rounded-none px-0 pb-3',
+        className
+      )}
     />
   );
 }
@@ -64,8 +72,32 @@ export function ThreadsPanel({
   const { queryResults, isLoading } = useQueryResults(spaceId);
   const prevInitialExpanded = useRef(initialExpanded);
 
-  // Only sync expanded state when initialExpanded actually changes
-  // (i.e., when navigating between routes)
+  /**
+   * Hybrid Controlled/Uncontrolled Pattern
+   *
+   * This component uses a hybrid approach for state management:
+   *
+   * 1. **Internal State (ThreadsPanelContext)**:
+   *    - Manages user-initiated toggles via the drag handle button
+   *    - Persists across renders and route changes within the same layout
+   *    - Allows users to manually expand/collapse the panel
+   *
+   * 2. **Prop-based Sync (initialExpanded)**:
+   *    - Sets the initial state based on route context
+   *    - Landing page (/threads): expanded by default
+   *    - Individual thread page (/threads/[id]): collapsed by default
+   *    - Only syncs when the prop actually changes (route navigation)
+   *
+   * **Why this pattern is necessary**:
+   * - User control: Users can toggle the panel at any time
+   * - Route awareness: Different routes have different default states
+   * - State persistence: Manual toggles persist until route change
+   *
+   * Alternative approaches considered:
+   * - Fully controlled: Would require lifting all state to parent, losing
+   *   the ability to toggle from within the component
+   * - Fully uncontrolled: Would lose route-based initial state control
+   */
   useEffect(() => {
     if (prevInitialExpanded.current !== initialExpanded) {
       if (initialExpanded) {

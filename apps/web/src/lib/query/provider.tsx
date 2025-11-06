@@ -2,7 +2,6 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState } from 'react';
 
 interface QueryProviderProps {
   children: React.ReactNode;
@@ -66,10 +65,9 @@ function getQueryClient() {
 }
 
 export function QueryProvider({ children }: QueryProviderProps) {
-  // NOTE: Avoid useState when initializing the query client if you don't
-  //       have a suspense boundary between this and the code that may
-  //       suspend because React will throw away the client on the initial
-  //       render if it suspends and there is no boundary
+  // NOTE: Using a singleton pattern instead of useState to initialize the query client.
+  //       This ensures the client persists across re-renders when React suspends,
+  //       avoiding the client being thrown away on the initial render.
   const queryClient = getQueryClient();
 
   return (

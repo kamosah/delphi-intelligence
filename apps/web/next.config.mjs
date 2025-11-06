@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  trailingSlash: false, // Ensure URLs never have trailing slashes
   experimental: {
     // Enable experimental features as needed
   },
