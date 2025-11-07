@@ -1,8 +1,8 @@
 """
-Query processing agent using LangGraph.
+Thread processing agent using LangGraph.
 
 This module implements a stateful agent for processing natural language queries
-with document context retrieval and citation support.
+in conversation threads with document context retrieval and citation support.
 """
 
 import logging
@@ -464,9 +464,9 @@ async def add_citations(state: AgentState) -> AgentState:
     return state
 
 
-def create_query_agent() -> CompiledStateGraph:
+def create_thread_agent() -> CompiledStateGraph:
     """
-    Create and compile the query processing agent workflow.
+    Create and compile the thread processing agent workflow.
 
     The agent follows this flow:
     1. Retrieve relevant context from documents
@@ -477,7 +477,7 @@ def create_query_agent() -> CompiledStateGraph:
         Compiled StateGraph agent ready for execution
 
     Example:
-        >>> agent = create_query_agent()
+        >>> agent = create_thread_agent()
         >>> result = await agent.ainvoke(
         ...     {
         ...         "query": "What is artificial intelligence?",

@@ -8,8 +8,8 @@ import strawberry
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
-from app.models.query import Query as QueryModel
 from app.models.space import Space as SpaceModel
+from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 
 
@@ -217,8 +217,8 @@ class UpdateSpaceInput:
 
 
 @strawberry.enum
-class QueryStatusEnum(str, Enum):
-    """GraphQL enum for query processing status."""
+class ThreadStatusEnum(str, Enum):
+    """GraphQL enum for thread processing status."""
 
     PENDING = "pending"
     PROCESSING = "processing"
@@ -240,10 +240,11 @@ class Citation:
 
 
 @strawberry.input
-class CreateQueryInput:
-    """Input type for creating a new query (manual creation, not via streaming)."""
+class CreateThreadInput:
+    """Input type for creating a new thread (manual creation, not via streaming)."""
 
-    space_id: strawberry.ID
+    organization_id: strawberry.ID
+    space_id: strawberry.ID | None = None  # Optional: threads can be org-wide
     query_text: str
     result: str | None = None
     title: str | None = None
@@ -251,19 +252,20 @@ class CreateQueryInput:
 
 
 @strawberry.input
-class UpdateQueryInput:
-    """Input type for updating an existing query."""
+class UpdateThreadInput:
+    """Input type for updating an existing thread."""
 
     title: str | None = None
     result: str | None = None
 
 
 @strawberry.type
-class QueryResult:
-    """GraphQL QueryResult type for AI agent query execution results."""
+class Thread:
+    """GraphQL Thread type for AI agent conversation threads."""
 
     id: strawberry.ID
-    space_id: strawberry.ID
+    organization_id: strawberry.ID
+    space_id: strawberry.ID | None  # Optional: threads can be org-wide
     created_by: strawberry.ID
     query_text: str
     result: str | None
@@ -273,7 +275,7 @@ class QueryResult:
     agent_steps: strawberry.scalars.JSON | None  # type: ignore[valid-type]
     sources: strawberry.scalars.JSON | None  # type: ignore[valid-type]
     model_used: str | None
-    status: QueryStatusEnum | None
+    status: ThreadStatusEnum | None
     error_message: str | None
     processing_time_ms: int | None
     tokens_used: int | None
@@ -283,31 +285,32 @@ class QueryResult:
     updated_at: datetime
 
     @classmethod
-    def from_model(cls, query: QueryModel) -> "QueryResult":
-        """Convert SQLAlchemy Query model to GraphQL QueryResult type."""
-        # Convert QueryStatus enum to QueryStatusEnum if present
+    def from_model(cls, thread: ThreadModel) -> "Thread":
+        """Convert SQLAlchemy Thread model to GraphQL Thread type."""
+        # Convert ThreadStatus enum to ThreadStatusEnum if present
         status = None
-        if query.status:
-            status = QueryStatusEnum[query.status.name]
+        if thread.status:
+            status = ThreadStatusEnum[thread.status.name]
 
         return cls(
-            id=strawberry.ID(str(query.id)),
-            space_id=strawberry.ID(str(query.space_id)),
-            created_by=strawberry.ID(str(query.created_by)),
-            query_text=query.query_text,
-            result=query.result,
-            title=query.title,
-            context=query.context,
-            confidence_score=query.confidence_score,
-            agent_steps=query.agent_steps,
-            sources=query.sources,
-            model_used=query.model_used,
+            id=strawberry.ID(str(thread.id)),
+            organization_id=strawberry.ID(str(thread.organization_id)),
+            space_id=strawberry.ID(str(thread.space_id)) if thread.space_id else None,
+            created_by=strawberry.ID(str(thread.created_by)),
+            query_text=thread.query_text,
+            result=thread.result,
+            title=thread.title,
+            context=thread.context,
+            confidence_score=thread.confidence_score,
+            agent_steps=thread.agent_steps,
+            sources=thread.sources,
+            model_used=thread.model_used,
             status=status,
-            error_message=query.error_message,
-            processing_time_ms=query.processing_time_ms,
-            tokens_used=query.tokens_used,
-            cost_usd=float(query.cost_usd) if query.cost_usd else None,
-            completed_at=query.completed_at,
-            created_at=query.created_at,
-            updated_at=query.updated_at,
+            error_message=thread.error_message,
+            processing_time_ms=thread.processing_time_ms,
+            tokens_used=thread.tokens_used,
+            cost_usd=float(thread.cost_usd) if thread.cost_usd else None,
+            completed_at=thread.completed_at,
+            created_at=thread.created_at,
+            updated_at=thread.updated_at,
         )

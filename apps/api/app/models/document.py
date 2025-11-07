@@ -13,8 +13,8 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .document_chunk import DocumentChunk
-    from .query_document import QueryDocument
     from .space import Space
+    from .thread_document import ThreadDocument
     from .user import User
 
 
@@ -78,8 +78,8 @@ class Document(Base):
         "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
     )
 
-    query_documents: Mapped[list["QueryDocument"]] = relationship(
-        "QueryDocument", back_populates="document", cascade="all, delete-orphan"
+    thread_documents: Mapped[list["ThreadDocument"]] = relationship(
+        "ThreadDocument", back_populates="document", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

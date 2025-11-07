@@ -1,16 +1,16 @@
 """
 Unit tests for AI agent components.
 
-Tests the LangGraph query agent, AI agent service, and streaming functionality.
+Tests the LangGraph thread agent, AI agent service, and streaming functionality.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.agents.query_agent import (
+from app.agents.thread_agent import (
     add_citations,
-    create_query_agent,
+    create_thread_agent,
     extract_citations,
     generate_response,
     retrieve_context,
@@ -19,8 +19,8 @@ from app.services.ai_agent import AIAgentService, ai_agent_service
 from app.services.vector_search_service import SearchResult
 
 
-class TestQueryAgent:
-    """Tests for the query agent components."""
+class TestThreadAgent:
+    """Tests for the thread agent components."""
 
     @pytest.mark.asyncio
     async def test_retrieve_context_placeholder(self) -> None:
@@ -51,7 +51,7 @@ class TestQueryAgent:
         mock_response = MagicMock()
         mock_response.content = "Artificial Intelligence (AI) is a test response."
 
-        with patch("app.agents.query_agent.get_llm") as mock_get_llm:
+        with patch("app.agents.thread_agent.get_llm") as mock_get_llm:
             mock_llm = AsyncMock()
             mock_llm.ainvoke.return_value = mock_response
             mock_get_llm.return_value = mock_llm
@@ -125,9 +125,9 @@ class TestQueryAgent:
 
         assert len(result["citations"]) == 0
 
-    def test_create_query_agent(self) -> None:
-        """Test query agent creation and compilation."""
-        agent = create_query_agent()
+    def test_create_thread_agent(self) -> None:
+        """Test thread agent creation and compilation."""
+        agent = create_thread_agent()
 
         # Should be a compiled StateGraph
         assert agent is not None
@@ -201,8 +201,8 @@ class TestAIAgentService:
             assert result["confidence_score"] == 0.85
 
     @pytest.mark.asyncio
-    async def test_process_query_stream(self) -> None:
-        """Test streaming query processing."""
+    async def test_process_thread_stream(self) -> None:
+        """Test streaming thread processing."""
         service = AIAgentService()
 
         # Collect events
@@ -217,7 +217,7 @@ class TestAIAgentService:
             "app.services.ai_agent.generate_response_streaming",
             side_effect=mock_generate_streaming,
         ):
-            async for event in service.process_query_stream("Test query"):
+            async for event in service.process_thread_stream("Test query"):
                 events.append(event)
 
         # Should have token events and done event

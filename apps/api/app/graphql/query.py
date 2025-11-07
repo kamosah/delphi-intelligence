@@ -8,12 +8,12 @@ import strawberry
 
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
-from app.models.query import Query as QueryModel
+from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
-from .types import Document, QueryResult, SearchDocumentsInput, SearchResult, Space, User
+from .types import Document, Thread, SearchDocumentsInput, SearchResult, Space, User
 
 logger = logging.getLogger(__name__)
 
@@ -339,27 +339,29 @@ class Query:
         return None
 
     @strawberry.field
-    async def queries(
+    async def threads(
         self,
         info: strawberry.types.Info,
-        space_id: strawberry.ID,
+        space_id: strawberry.ID | None = None,
+        organization_id: strawberry.ID | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[QueryResult]:
+    ) -> list[Thread]:
         """
-        Get a list of queries for a specific space.
+        Get a list of threads for a specific space or organization.
 
         Args:
-            space_id: The space ID to filter queries
-            limit: Maximum number of queries to return (default: 50)
-            offset: Number of queries to skip for pagination
+            space_id: Optional space ID to filter threads (if not provided, returns org-wide threads)
+            organization_id: Optional organization ID to filter threads
+            limit: Maximum number of threads to return (default: 50)
+            offset: Number of threads to skip for pagination
 
         Returns:
-            List of queries ordered by creation date (most recent first)
+            List of threads ordered by creation date (most recent first)
 
         Example query:
             query {
-              queries(spaceId: "space-uuid", limit: 20) {
+              threads(spaceId: "space-uuid", limit: 20) {
                 id
                 queryText
                 result
@@ -379,57 +381,84 @@ class Query:
                 return []
 
             user_id = user.id
-            space_uuid = UUID(str(space_id))
 
-            # Verify user has access to this space
-            space_access_stmt = (
-                select(SpaceModel.id)
-                .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
-                .where(
-                    (SpaceModel.id == space_uuid)
-                    & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
-                )
-                .distinct()
-            )
-            space_result = await session.execute(space_access_stmt)
-            if not space_result.scalar_one_or_none():
-                # User doesn't have access to this space
-                logger.warning(
-                    f"User {user_id} attempted to access queries for unauthorized space {space_uuid}"
-                )
-                return []
+            # Build query based on filters
+            if space_id:
+                # Filter by specific space
+                space_uuid = UUID(str(space_id))
 
-            # Get queries for the space
-            stmt = (
-                select(QueryModel)
-                .where(QueryModel.space_id == space_uuid)
-                .order_by(QueryModel.created_at.desc())
-                .limit(limit)
-                .offset(offset)
-            )
+                # Verify user has access to this space
+                space_access_stmt = (
+                    select(SpaceModel.id)
+                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                    .where(
+                        (SpaceModel.id == space_uuid)
+                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    )
+                    .distinct()
+                )
+                space_result = await session.execute(space_access_stmt)
+                if not space_result.scalar_one_or_none():
+                    # User doesn't have access to this space
+                    logger.warning(
+                        f"User {user_id} attempted to access threads for unauthorized space {space_uuid}"
+                    )
+                    return []
+
+                # Get threads for the space
+                stmt = (
+                    select(ThreadModel)
+                    .where(ThreadModel.space_id == space_uuid)
+                    .order_by(ThreadModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            elif organization_id:
+                # Filter by organization (org-wide threads)
+                org_uuid = UUID(str(organization_id))
+
+                # TODO: Add organization membership verification once we have organization_members access control
+                # For now, just filter by organization_id
+                stmt = (
+                    select(ThreadModel)
+                    .where(ThreadModel.organization_id == org_uuid)
+                    .where(ThreadModel.space_id.is_(None))  # Only org-wide threads
+                    .order_by(ThreadModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
+            else:
+                # No filters - return threads user created
+                stmt = (
+                    select(ThreadModel)
+                    .where(ThreadModel.created_by == user_id)
+                    .order_by(ThreadModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
 
             result = await session.execute(stmt)
-            query_models = result.scalars().all()
+            thread_models = result.scalars().all()
 
-            logger.info(f"Retrieved {len(query_models)} queries for space {space_uuid}")
-            return [QueryResult.from_model(query) for query in query_models]
+            logger.info(f"Retrieved {len(thread_models)} threads for user {user_id}")
+            return [Thread.from_model(thread) for thread in thread_models]
 
         return []
 
     @strawberry.field
-    async def query(self, info: strawberry.types.Info, id: strawberry.ID) -> QueryResult | None:
+    async def thread(self, info: strawberry.types.Info, id: strawberry.ID) -> Thread | None:
         """
-        Get a single query by ID.
+        Get a single thread by ID.
 
         Args:
-            id: The query ID
+            id: The thread ID
 
         Returns:
-            The query if found and user has access, None otherwise
+            The thread if found and user has access, None otherwise
 
         Example query:
             query {
-              query(id: "query-uuid") {
+              thread(id: "thread-uuid") {
                 id
                 queryText
                 result
@@ -449,25 +478,41 @@ class Query:
                     return None
 
                 user_id = user.id
-                query_id = UUID(str(id))
+                thread_id = UUID(str(id))
 
-                # Get query and verify user has access via space membership
+                # Get thread and verify user has access
+                # For threads with space_id: check space membership
+                # For org-wide threads (no space_id): check organization membership (TODO)
                 stmt = (
-                    select(QueryModel)
-                    .join(SpaceModel, SpaceModel.id == QueryModel.space_id)
+                    select(ThreadModel)
+                    .outerjoin(SpaceModel, SpaceModel.id == ThreadModel.space_id)
                     .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
                     .where(
-                        (QueryModel.id == query_id)
-                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                        (ThreadModel.id == thread_id)
+                        & (
+                            # Access via space membership
+                            (
+                                (ThreadModel.space_id.isnot(None))
+                                & (
+                                    (SpaceModel.owner_id == user_id)
+                                    | (SpaceMemberModel.user_id == user_id)
+                                )
+                            )
+                            # OR thread creator for org-wide threads (TODO: add org membership check)
+                            | (
+                                (ThreadModel.space_id.is_(None))
+                                & (ThreadModel.created_by == user_id)
+                            )
+                        )
                     )
                     .distinct()
                 )
 
                 result = await session.execute(stmt)
-                query_model = result.scalar_one_or_none()
+                thread_model = result.scalar_one_or_none()
 
-                if query_model:
-                    return QueryResult.from_model(query_model)
+                if thread_model:
+                    return Thread.from_model(thread_model)
                 return None
 
             except ValueError:

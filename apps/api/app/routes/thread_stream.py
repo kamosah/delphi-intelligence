@@ -1,8 +1,8 @@
 """
-Query streaming endpoint using Server-Sent Events (SSE).
+Thread streaming endpoint using Server-Sent Events (SSE).
 
-Provides real-time streaming of AI agent responses with vector search,
-citation tracking, and confidence scoring for progressive display in the UI.
+Provides real-time streaming of AI agent responses in conversation threads
+with vector search, citation tracking, and confidence scoring for progressive display in the UI.
 """
 
 import asyncio
@@ -21,10 +21,10 @@ from app.services.ai_agent import ai_agent_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/query", tags=["query-streaming"])
+router = APIRouter(prefix="/api/thread", tags=["thread-streaming"])
 
-# Timeout configuration for query processing
-QUERY_TIMEOUT_SECONDS = 120  # 2 minutes max for query processing
+# Timeout configuration for thread processing
+THREAD_TIMEOUT_SECONDS = 120  # 2 minutes max for thread processing
 
 
 async def generate_sse_events(
@@ -51,8 +51,8 @@ async def generate_sse_events(
     """
     try:
         # Stream events with hard timeout protection
-        async with asyncio.timeout(QUERY_TIMEOUT_SECONDS):
-            async for event in ai_agent_service.process_query_stream(
+        async with asyncio.timeout(THREAD_TIMEOUT_SECONDS):
+            async for event in ai_agent_service.process_thread_stream(
                 query=query,
                 db=db,
                 space_id=space_id,
@@ -63,10 +63,10 @@ async def generate_sse_events(
                 yield f"data: {json.dumps(event)}\n\n"
 
     except TimeoutError:
-        logger.exception(f"Query timeout after {QUERY_TIMEOUT_SECONDS}s: {query[:100]}")
+        logger.exception(f"Thread timeout after {THREAD_TIMEOUT_SECONDS}s: {query[:100]}")
         error_event = {
             "type": "error",
-            "message": f"Query processing timed out after {QUERY_TIMEOUT_SECONDS} seconds. Please try asking a simpler question or refine your query for better results.",
+            "message": f"Thread processing timed out after {THREAD_TIMEOUT_SECONDS} seconds. Please try asking a simpler question or refine your query for better results.",
             "error_code": "TIMEOUT",
         }
         yield f"data: {json.dumps(error_event)}\n\n"
@@ -96,19 +96,21 @@ async def generate_sse_events(
 
 
 @router.get("/stream")
-async def stream_query_response(
-    query: Annotated[str, QueryParam(description="Natural language question to process")],
+async def stream_thread_response(
+    query: Annotated[str, QueryParam(description="Natural language question to process in thread")],
     db: Annotated[AsyncSession, Depends(get_session)],
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
     ] = None,
-    user_id: Annotated[UUID | None, QueryParam(description="User ID for query attribution")] = None,
+    user_id: Annotated[
+        UUID | None, QueryParam(description="User ID for thread attribution")
+    ] = None,
     save_to_db: Annotated[
-        bool, QueryParam(description="Save query and results to database")
+        bool, QueryParam(description="Save thread and results to database")
     ] = False,
 ) -> StreamingResponse:
     """
-    Stream AI agent response using Server-Sent Events with RAG pipeline.
+    Stream AI agent response for conversation threads using Server-Sent Events with RAG pipeline.
 
     This endpoint provides real-time token streaming with vector search,
     citation tracking, and confidence scoring for progressive response display.
@@ -116,7 +118,7 @@ async def stream_query_response(
     The client receives events with the following types:
     - `token`: Individual response tokens as they are generated
     - `citations`: Source citations with document metadata and confidence scores
-    - `done`: Completion signal with overall confidence and query ID
+    - `done`: Completion signal with overall confidence and thread ID
     - `error`: Error information if processing fails
 
     Args:
@@ -124,7 +126,7 @@ async def stream_query_response(
         db: Database session (injected)
         space_id: Optional space ID to filter documents for search
         user_id: Optional user ID for attribution (required if save_to_db=True)
-        save_to_db: Whether to save the query and results to database
+        save_to_db: Whether to save the thread and results to database
 
     Returns:
         StreamingResponse with text/event-stream content type
@@ -138,7 +140,7 @@ async def stream_query_response(
           save_to_db: "true"
         });
 
-        const eventSource = new EventSource(`/api/query/stream?${params}`);
+        const eventSource = new EventSource(`/api/thread/stream?${params}`);
 
         eventSource.onmessage = (event) => {
           const data = JSON.parse(event.data);

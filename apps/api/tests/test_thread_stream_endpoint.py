@@ -1,16 +1,18 @@
 """
-Integration tests for SSE query streaming endpoint.
+Integration tests for SSE thread streaming endpoint.
 
-Tests the /api/query/stream endpoint including:
+Tests the /api/thread/stream endpoint including:
 - SSE event formatting and delivery
 - Timeout handling and error recovery
 - Error categorization and messaging
 - Authentication and authorization
-- Query parameter validation
+- Thread parameter validation
 """
 
 import asyncio
 import json
+from typing import Any
+from collections.abc import AsyncGenerator
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -18,11 +20,11 @@ import pytest
 from httpx import AsyncClient
 
 
-class TestQueryStreamEndpoint:
+class TestThreadStreamEndpoint:
     """Integration tests for SSE streaming endpoint."""
 
     @pytest.mark.asyncio
-    async def test_successful_query_streaming(self, async_client: AsyncClient):
+    async def test_successful_thread_streaming(self, async_client: AsyncClient) -> None:
         """Test successful SSE streaming with all event types."""
         # Mock AI agent service
         mock_events = [
@@ -49,11 +51,13 @@ class TestQueryStreamEndpoint:
             },
         ]
 
-        async def mock_stream(*args, **kwargs):
+        async def mock_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[dict[str, Any], None]:
             for event in mock_events:
                 yield event
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             # Return the generator itself, not the result of calling it
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
@@ -65,7 +69,7 @@ class TestQueryStreamEndpoint:
                 "save_to_db": "false",
             }
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 assert response.status_code == 200
                 assert "text/event-stream" in response.headers["content-type"]
                 assert response.headers["cache-control"] == "no-cache"
@@ -85,19 +89,21 @@ class TestQueryStreamEndpoint:
         assert events[4]["type"] == "done"
 
     @pytest.mark.asyncio
-    async def test_query_timeout_handling(self, async_client: AsyncClient):
-        """Test that queries timeout after QUERY_TIMEOUT_SECONDS."""
+    async def test_query_timeout_handling(self, async_client: AsyncClient) -> None:
+        """Test that queries timeout after THREAD_TIMEOUT_SECONDS."""
         # Mock timeout to 2 seconds for faster test
         mock_timeout = 2
 
-        async def slow_stream(*args, **kwargs):
+        async def slow_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[dict[str, Any], None]:
             # Simulate a query that takes too long
             await asyncio.sleep(mock_timeout + 1)
             yield {"type": "token", "content": "Too late"}
 
         with (
-            patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process,
-            patch("app.routes.query_stream.QUERY_TIMEOUT_SECONDS", mock_timeout),
+            patch(
+                "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+            ) as mock_process,
+            patch("app.routes.thread_stream.THREAD_TIMEOUT_SECONDS", mock_timeout),
         ):
             mock_process.side_effect = lambda *args, **kwargs: slow_stream(*args, **kwargs)
 
@@ -106,7 +112,7 @@ class TestQueryStreamEndpoint:
                 "space_id": str(uuid4()),
             }
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 events = []
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -130,12 +136,14 @@ class TestQueryStreamEndpoint:
                 yield  # Make it a generator
             raise Exception("OpenAI rate limit exceeded. Please try again later.")
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: rate_limit_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 events = []
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -158,12 +166,14 @@ class TestQueryStreamEndpoint:
                 yield  # Make it a generator
             raise Exception("OpenAI API connection failed")
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: api_error_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 events = []
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -186,12 +196,14 @@ class TestQueryStreamEndpoint:
                 yield  # Make it a generator
             raise Exception("Database connection error: timeout")
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: db_error_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 events = []
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -214,12 +226,14 @@ class TestQueryStreamEndpoint:
                 yield  # Make it a generator
             raise Exception("Something unexpected happened")
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: unknown_error_stream(*args, **kwargs)
 
             params = {"query": "Test query"}
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 events = []
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -235,14 +249,14 @@ class TestQueryStreamEndpoint:
     @pytest.mark.asyncio
     async def test_missing_query_parameter(self, async_client: AsyncClient):
         """Test validation when query parameter is missing."""
-        response = await async_client.get("/api/query/stream")
+        response = await async_client.get("/api/thread/stream")
 
         assert response.status_code == 422  # Validation error
 
     @pytest.mark.asyncio
     async def test_empty_query_parameter(self, async_client: AsyncClient):
         """Test validation when query parameter is empty."""
-        response = await async_client.get("/api/query/stream", params={"query": ""})
+        response = await async_client.get("/api/thread/stream", params={"query": ""})
 
         assert response.status_code == 400
         assert "required" in response.json()["detail"].lower()
@@ -256,7 +270,7 @@ class TestQueryStreamEndpoint:
             # Missing user_id
         }
 
-        response = await async_client.get("/api/query/stream", params=params)
+        response = await async_client.get("/api/thread/stream", params=params)
 
         assert response.status_code == 400
         assert "user_id" in response.json()["detail"].lower()
@@ -273,12 +287,14 @@ class TestQueryStreamEndpoint:
             for event in mock_events:
                 yield event
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {"query": "Test"}
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 raw_lines = []
                 async for line in response.aiter_lines():
                     raw_lines.append(line)
@@ -303,7 +319,9 @@ class TestQueryStreamEndpoint:
             assert kwargs.get("space_id") == space_id
             yield {"type": "done", "confidence_score": 0.8}
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {
@@ -311,7 +329,7 @@ class TestQueryStreamEndpoint:
                 "space_id": str(space_id),
             }
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 async for _ in response.aiter_lines():
                     pass  # Consume stream
 
@@ -332,7 +350,9 @@ class TestQueryStreamEndpoint:
                 "query_id": str(uuid4()),
             }
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {
@@ -341,7 +361,7 @@ class TestQueryStreamEndpoint:
                 "save_to_db": "true",
             }
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 events = []
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
@@ -360,12 +380,14 @@ class TestQueryStreamEndpoint:
         async def mock_stream(*args, **kwargs):
             yield {"type": "done", "confidence_score": 0.8}
 
-        with patch("app.routes.query_stream.ai_agent_service.process_query_stream") as mock_process:
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {"query": "Test"}
 
-            async with async_client.stream("GET", "/api/query/stream", params=params) as response:
+            async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
                 # Verify header
                 assert response.headers.get("x-accel-buffering") == "no"
                 async for _ in response.aiter_lines():

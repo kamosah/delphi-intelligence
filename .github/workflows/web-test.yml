@@ -100,7 +100,7 @@ jobs:
                   exit 1
 
     summary:
-        name: Test Summary
+        name: Web Test Summary
         runs-on: ubuntu-latest
         needs: [storybook-tests, e2e-tests]
         if: always()

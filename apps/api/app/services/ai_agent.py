@@ -1,7 +1,7 @@
 """
-AI Agent service for query processing and response generation.
+AI Agent service for thread processing and response generation.
 
-Provides a high-level interface for using the LangGraph query agent with
+Provides a high-level interface for using the LangGraph thread agent with
 streaming support for real-time responses, confidence scoring, and database storage.
 """
 
@@ -10,17 +10,19 @@ from typing import Any
 from uuid import UUID
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.query_agent import (
+from app.agents.thread_agent import (
     AgentState,
     NO_CONTEXT_FALLBACK_MESSAGE,
-    create_query_agent,
+    create_thread_agent,
     generate_response_streaming,
+    add_citations,
 )
-from app.models.query import Query
+from app.models.space import Space
+from app.models.thread import Thread
 from app.services.citation_service import get_citation_service
-from app.agents.query_agent import add_citations
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +40,15 @@ class AIAgentService:
     """
     Service for AI agent operations.
 
-    Handles query processing, response generation, citation extraction,
-    confidence scoring, and database storage using the LangGraph query agent.
+    Handles thread processing, response generation, citation extraction,
+    confidence scoring, and database storage using the LangGraph thread agent.
     """
 
     def __init__(self) -> None:
         """Initialize the AI agent service with compiled workflow."""
-        self.agent = create_query_agent()
+        self.agent = create_thread_agent()
         self.citation_service = get_citation_service()
-        logger.info("Initialized AIAgentService with LangGraph agent")
+        logger.info("Initialized AIAgentService with LangGraph thread agent")
 
     def _apply_confidence_threshold(
         self, response: str, confidence_score: float, citations: list[dict[str, Any]]
@@ -157,7 +159,7 @@ class AIAgentService:
 
         # Save to database if requested
         if save_to_db and db and space_id and user_id:
-            query_record = await self._save_query_to_db(
+            thread_record = await self._save_query_to_db(
                 db=db,
                 query_text=query,
                 space_id=space_id,
@@ -167,7 +169,7 @@ class AIAgentService:
                 confidence_score=confidence_score,
                 agent_state=dict(result),
             )
-            response_data["query_id"] = str(query_record.id)
+            response_data["thread_id"] = str(thread_record.id)
 
         return response_data
 
@@ -181,9 +183,9 @@ class AIAgentService:
         citations: list[dict[str, Any]],
         confidence_score: float,
         agent_state: dict[str, Any],
-    ) -> Query:
+    ) -> Thread:
         """
-        Save query and results to the database.
+        Save thread and results to the database.
 
         Args:
             db: Database session
@@ -196,9 +198,15 @@ class AIAgentService:
             agent_state: Complete agent state for debugging
 
         Returns:
-            Saved Query record
+            Saved Thread record
         """
-        query_record = Query(
+        # Get organization_id from space
+        space_stmt = select(Space.organization_id).where(Space.id == space_id)
+        space_result = await db.execute(space_stmt)
+        organization_id = space_result.scalar_one()
+
+        thread_record = Thread(
+            organization_id=organization_id,
             query_text=query_text,
             space_id=space_id,
             created_by=user_id,
@@ -211,18 +219,18 @@ class AIAgentService:
             },
         )
 
-        db.add(query_record)
+        db.add(thread_record)
         await db.commit()
-        await db.refresh(query_record)
+        await db.refresh(thread_record)
 
         logger.info(
-            f"Saved query to database: id={query_record.id}, "
+            f"Saved thread to database: id={thread_record.id}, "
             f"confidence={confidence_score:.3f}, citations={len(citations)}"
         )
 
-        return query_record
+        return thread_record
 
-    async def process_query_stream(
+    async def process_thread_stream(
         self,
         query: str,
         db: AsyncSession | None = None,
@@ -232,7 +240,7 @@ class AIAgentService:
         save_to_db: bool = False,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
-        Process query with streaming support for real-time token delivery.
+        Process thread query with streaming support for real-time token delivery.
 
         Yields events as the response is generated, suitable for SSE endpoints.
 
@@ -240,9 +248,9 @@ class AIAgentService:
             query: User's natural language question
             db: Database session for vector search and storage
             space_id: Space ID to filter search results
-            user_id: User ID for query attribution (required if save_to_db=True)
+            user_id: User ID for thread attribution (required if save_to_db=True)
             context: Optional pre-retrieved document chunks (bypasses vector search)
-            save_to_db: Whether to save query and results to database
+            save_to_db: Whether to save thread and results to database
 
         Yields:
             Event dictionaries with types: 'token', 'citations', 'confidence', 'done'
@@ -250,7 +258,7 @@ class AIAgentService:
         Example:
             >>> service = AIAgentService()
             >>> async with get_db() as db:
-            ...     async for event in service.process_query_stream(
+            ...     async for event in service.process_thread_stream(
             ...         "What is AI?",
             ...         db=db,
             ...         space_id=space_uuid,
@@ -273,7 +281,7 @@ class AIAgentService:
         # Step 1: Retrieve context (if not provided)
         if not context:
             # Import here to avoid circular imports when vector search is available
-            from app.agents.query_agent import retrieve_context
+            from app.agents.thread_agent import retrieve_context
 
             state = await retrieve_context(state)
 
@@ -311,9 +319,9 @@ class AIAgentService:
             }
 
         # Step 5: Save to database if requested
-        query_id = None
+        thread_id = None
         if save_to_db and db and space_id and user_id:
-            query_record = await self._save_query_to_db(
+            thread_record = await self._save_query_to_db(
                 db=db,
                 query_text=query,
                 space_id=space_id,
@@ -323,7 +331,7 @@ class AIAgentService:
                 confidence_score=confidence_score,
                 agent_state=dict(state),
             )
-            query_id = str(query_record.id)
+            thread_id = str(thread_record.id)
 
         # Signal completion
         num_sources = len(search_results) if search_results else 0
@@ -332,7 +340,7 @@ class AIAgentService:
             "context_used": len(state["context"]) > 0,
             "num_sources": num_sources,
             "confidence_score": confidence_score,
-            "query_id": query_id,
+            "thread_id": thread_id,
         }
 
 

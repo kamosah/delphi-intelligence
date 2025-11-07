@@ -1,28 +1,31 @@
 """GraphQL mutation resolvers."""
 
+import logging
 from uuid import UUID
 
+import strawberry
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-import strawberry
 
 from app.db.session import get_session
-from app.models.query import Query as QueryModel
 from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as SpaceMemberModel
+from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 from app.utils.slug import generate_unique_slug
 
 from .types import (
-    CreateQueryInput,
     CreateSpaceInput,
+    CreateThreadInput,
     CreateUserInput,
-    QueryResult,
     Space,
-    UpdateQueryInput,
+    Thread,
     UpdateSpaceInput,
+    UpdateThreadInput,
     UpdateUserInput,
     User,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
@@ -326,23 +329,24 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def delete_query(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:
+    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:  # noqa: PLR0915
         """
-        Delete a query by ID.
+        Delete a thread by ID.
 
         Args:
-            id: The query ID
+            id: The thread ID
 
         Returns:
             True if deleted successfully, False otherwise
 
         Authorization:
-            - Only the query creator or space owner can delete
-            - Must have access to the space containing the query
+            - Only the thread creator or space owner can delete
+            - For space threads: Must have access to the space containing the thread
+            - For org-wide threads: Only creator can delete (TODO: add org admin check)
 
         Example mutation:
             mutation {
-              deleteQuery(id: "query-uuid")
+              deleteThread(id: "thread-uuid")
             }
         """
         async for session in get_session():
@@ -352,77 +356,108 @@ class Mutation:
                 user = getattr(request.state, "user", None)
 
                 if not user:
-                    return False
-
-                user_id = user.id
-                query_id = UUID(str(id))
-
-                # Get query with space information
-                stmt = (
-                    select(QueryModel)
-                    .join(SpaceModel, SpaceModel.id == QueryModel.space_id)
-                    .where(QueryModel.id == query_id)
-                )
-                result = await session.execute(stmt)
-                query_model = result.scalar_one_or_none()
-
-                if not query_model:
-                    return False
-
-                # Check authorization: creator, space owner, or space member
-                is_creator = query_model.created_by == user_id
-                is_owner = query_model.space.owner_id == user_id
-
-                # Check if user is a member of the space
-                member_stmt = select(SpaceMemberModel).where(
-                    (SpaceMemberModel.space_id == query_model.space_id)
-                    & (SpaceMemberModel.user_id == user_id)
-                )
-                member_result = await session.execute(member_stmt)
-                is_member = member_result.scalar_one_or_none() is not None
-
-                if not is_creator and not is_owner and not is_member:
-                    msg = "Insufficient permissions to delete this query"
+                    msg = "Authentication required"
                     raise ValueError(msg)
 
-                await session.delete(query_model)
+                user_id = user.id
+                thread_id = UUID(str(id))
+
+                # Get thread
+                stmt = select(ThreadModel).where(ThreadModel.id == thread_id)
+                result = await session.execute(stmt)
+                thread_model = result.scalar_one_or_none()
+
+                if not thread_model:
+                    msg = "Thread not found"
+                    raise ValueError(msg)
+
+                # Check authorization based on thread type
+                is_creator = thread_model.created_by == user_id
+
+                if thread_model.space_id:
+                    # Space thread - check space permissions
+                    space_stmt = select(SpaceModel).where(SpaceModel.id == thread_model.space_id)
+                    space_result = await session.execute(space_stmt)
+                    space_model = space_result.scalar_one_or_none()
+
+                    if not space_model:
+                        msg = "Space not found"
+                        raise ValueError(msg)
+
+                    is_owner = space_model.owner_id == user_id
+
+                    # Check if user is a member of the space
+                    member_stmt = select(SpaceMemberModel).where(
+                        (SpaceMemberModel.space_id == thread_model.space_id)
+                        & (SpaceMemberModel.user_id == user_id)
+                    )
+                    member_result = await session.execute(member_stmt)
+                    is_member = member_result.scalar_one_or_none() is not None
+
+                    if not is_creator and not is_owner and not is_member:
+                        msg = "Insufficient permissions to delete this thread"
+                        raise ValueError(msg)
+                elif not is_creator:
+                    msg = "Only the creator can delete org-wide threads"
+                    raise ValueError(msg)
+
+                await session.delete(thread_model)
                 await session.commit()
 
                 return True
 
-            except ValueError as e:
+            except IntegrityError as e:
                 await session.rollback()
-                # Re-raise authorization errors
-                if "permissions" in str(e):
-                    raise
-                # Invalid UUID format
-                return False
+                error_str = str(e).lower()
+
+                # Parse IntegrityError and provide user-friendly messages
+                # while hiding database schema details
+                if "fk_threads_organization_id" in error_str:
+                    msg = "Invalid organization specified"
+                elif "fk_threads_space_id" in error_str or "fk_spaces_" in error_str:
+                    msg = "Invalid space specified"
+                elif "not-null constraint" in error_str:
+                    msg = "Required field missing"
+                elif "unique constraint" in error_str:
+                    msg = "Duplicate entry already exists"
+                else:
+                    # Generic message for unknown integrity errors
+                    msg = "Invalid data provided"
+
+                logger.exception("IntegrityError in mutation")
+
+                raise ValueError(msg) from e
+            except ValueError:
+                await session.rollback()
+                raise  # Re-raise ValueError to propagate to GraphQL
 
         return False
 
     @strawberry.mutation
-    async def create_query(
-        self, info: strawberry.types.Info, input: CreateQueryInput
-    ) -> QueryResult | None:
+    async def create_thread(
+        self, info: strawberry.types.Info, input: CreateThreadInput
+    ) -> Thread | None:
         """
-        Create a new query manually (not via streaming).
+        Create a new thread manually (not via streaming).
 
         Args:
-            input: CreateQueryInput with space_id, query_text, and optional result/title
+            input: CreateThreadInput with organization_id, optional space_id, query_text, and optional result/title
 
         Returns:
-            The created QueryResult or None if creation fails
+            The created Thread or None if creation fails
 
         Authorization:
-            - User must have access to the space
+            - User must have access to the organization
+            - If space_id provided, user must have access to the space
 
         Example mutation:
             mutation {
-              createQuery(input: {
+              createThread(input: {
+                organizationId: "org-uuid",
                 spaceId: "space-uuid",
                 queryText: "What are the key findings?",
                 result: "The key findings are...",
-                title: "Key Findings Query"
+                title: "Key Findings Thread"
               }) {
                 id
                 queryText
@@ -437,33 +472,47 @@ class Mutation:
                 user = getattr(request.state, "user", None)
 
                 if not user:
-                    return None
-
-                user_id = user.id
-                space_id = UUID(str(input.space_id))
-
-                # Verify user has access to the space
-                stmt = select(SpaceModel).where(SpaceModel.id == space_id)
-                result = await session.execute(stmt)
-                space_model = result.scalar_one_or_none()
-
-                if not space_model:
-                    return None
-
-                # Check if user is owner or member
-                is_owner = space_model.owner_id == user_id
-                member_stmt = select(SpaceMemberModel).where(
-                    (SpaceMemberModel.space_id == space_id) & (SpaceMemberModel.user_id == user_id)
-                )
-                member_result = await session.execute(member_stmt)
-                is_member = member_result.scalar_one_or_none() is not None
-
-                if not is_owner and not is_member:
-                    msg = "Insufficient permissions to create query in this space"
+                    msg = "Authentication required"
                     raise ValueError(msg)
 
-                # Create new query
-                query_model = QueryModel(
+                user_id = user.id
+                org_id = UUID(str(input.organization_id))
+                space_id = UUID(str(input.space_id)) if input.space_id else None
+
+                # TODO: Verify user has access to the organization (via organization_members)
+                # For now, we just check space access if space_id is provided
+
+                if space_id:
+                    # Verify user has access to the space
+                    stmt = select(SpaceModel).where(SpaceModel.id == space_id)
+                    result = await session.execute(stmt)
+                    space_model = result.scalar_one_or_none()
+
+                    if not space_model:
+                        msg = "Space not found"
+                        raise ValueError(msg)
+
+                    # Verify space belongs to the organization
+                    if space_model.organization_id != org_id:
+                        msg = "Space does not belong to the specified organization"
+                        raise ValueError(msg)
+
+                    # Check if user is owner or member
+                    is_owner = space_model.owner_id == user_id
+                    member_stmt = select(SpaceMemberModel).where(
+                        (SpaceMemberModel.space_id == space_id)
+                        & (SpaceMemberModel.user_id == user_id)
+                    )
+                    member_result = await session.execute(member_stmt)
+                    is_member = member_result.scalar_one_or_none() is not None
+
+                    if not is_owner and not is_member:
+                        msg = "Insufficient permissions to create thread in this space"
+                        raise ValueError(msg)
+
+                # Create new thread
+                thread_model = ThreadModel(
+                    organization_id=org_id,
                     space_id=space_id,
                     created_by=user_id,
                     query_text=input.query_text,
@@ -472,39 +521,61 @@ class Mutation:
                     confidence_score=input.confidence_score,
                 )
 
-                session.add(query_model)
+                session.add(thread_model)
                 await session.commit()
-                await session.refresh(query_model)
+                await session.refresh(thread_model)
 
-                return QueryResult.from_model(query_model)
+                return Thread.from_model(thread_model)
 
-            except (ValueError, IntegrityError):
+            except IntegrityError as e:
                 await session.rollback()
-                return None
+                error_str = str(e).lower()
+
+                # Parse IntegrityError and provide user-friendly messages
+                # while hiding database schema details
+                if "fk_threads_organization_id" in error_str:
+                    msg = "Invalid organization specified"
+                elif "fk_threads_space_id" in error_str or "fk_spaces_" in error_str:
+                    msg = "Invalid space specified"
+                elif "not-null constraint" in error_str:
+                    msg = "Required field missing"
+                elif "unique constraint" in error_str:
+                    msg = "Duplicate entry already exists"
+                else:
+                    # Generic message for unknown integrity errors
+                    msg = "Invalid data provided"
+
+                logger.exception("IntegrityError in mutation")
+
+                raise ValueError(msg) from e
+            except ValueError:
+                await session.rollback()
+                raise  # Re-raise ValueError to propagate to GraphQL
 
         return None
 
     @strawberry.mutation
-    async def update_query(
-        self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateQueryInput
-    ) -> QueryResult | None:
+    async def update_thread(  # noqa: PLR0915
+        self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateThreadInput
+    ) -> Thread | None:
         """
-        Update an existing query.
+        Update an existing thread.
 
         Args:
-            id: The query ID
-            input: UpdateQueryInput with optional title and result
+            id: The thread ID
+            input: UpdateThreadInput with optional title and result
 
         Returns:
-            The updated QueryResult or None if update fails
+            The updated Thread or None if update fails
 
         Authorization:
-            - Only the query creator or space owner can update
+            - Only the thread creator or space owner can update (for space threads)
+            - Only the thread creator can update org-wide threads (TODO: add org admin check)
 
         Example mutation:
             mutation {
-              updateQuery(
-                id: "query-uuid",
+              updateThread(
+                id: "thread-uuid",
                 input: {
                   title: "Updated Title",
                   result: "Updated result text"
@@ -523,44 +594,77 @@ class Mutation:
                 user = getattr(request.state, "user", None)
 
                 if not user:
-                    return None
+                    msg = "Authentication required"
+                    raise ValueError(msg)
 
                 user_id = user.id
-                query_id = UUID(str(id))
+                thread_id = UUID(str(id))
 
-                # Get query with space information
-                stmt = (
-                    select(QueryModel)
-                    .join(SpaceModel, SpaceModel.id == QueryModel.space_id)
-                    .where(QueryModel.id == query_id)
-                )
+                # Get thread
+                stmt = select(ThreadModel).where(ThreadModel.id == thread_id)
                 result = await session.execute(stmt)
-                query_model = result.scalar_one_or_none()
+                thread_model = result.scalar_one_or_none()
 
-                if not query_model:
-                    return None
+                if not thread_model:
+                    msg = "Thread not found"
+                    raise ValueError(msg)
 
-                # Check authorization: creator or space owner
-                is_creator = query_model.created_by == user_id
-                is_owner = query_model.space.owner_id == user_id
+                # Check authorization based on thread type
+                is_creator = thread_model.created_by == user_id
 
-                if not is_creator and not is_owner:
-                    msg = "Insufficient permissions to update this query"
+                if thread_model.space_id:
+                    # Space thread - check space permissions
+                    space_stmt = select(SpaceModel).where(SpaceModel.id == thread_model.space_id)
+                    space_result = await session.execute(space_stmt)
+                    space_model = space_result.scalar_one_or_none()
+
+                    if not space_model:
+                        msg = "Space not found"
+                        raise ValueError(msg)
+
+                    is_owner = space_model.owner_id == user_id
+
+                    if not is_creator and not is_owner:
+                        msg = "Insufficient permissions to update this thread"
+                        raise ValueError(msg)
+                elif not is_creator:
+                    msg = "Only the creator can update org-wide threads"
                     raise ValueError(msg)
 
                 # Update fields if provided
                 if input.title is not None:
-                    query_model.title = input.title
+                    thread_model.title = input.title
                 if input.result is not None:
-                    query_model.result = input.result
+                    thread_model.result = input.result
 
                 await session.commit()
-                await session.refresh(query_model)
+                await session.refresh(thread_model)
 
-                return QueryResult.from_model(query_model)
+                return Thread.from_model(thread_model)
 
+            except IntegrityError as e:
+                await session.rollback()
+                error_str = str(e).lower()
+
+                # Parse IntegrityError and provide user-friendly messages
+                # while hiding database schema details
+                if "fk_threads_organization_id" in error_str:
+                    msg = "Invalid organization specified"
+                elif "fk_threads_space_id" in error_str or "fk_spaces_" in error_str:
+                    msg = "Invalid space specified"
+                elif "not-null constraint" in error_str:
+                    msg = "Required field missing"
+                elif "unique constraint" in error_str:
+                    msg = "Duplicate entry already exists"
+                else:
+                    # Generic message for unknown integrity errors
+                    msg = "Invalid data provided"
+
+                logger.exception("IntegrityError in mutation")
+
+                raise ValueError(msg) from e
             except ValueError:
                 await session.rollback()
-                return None
+                raise  # Re-raise ValueError to propagate to GraphQL
 
         return None

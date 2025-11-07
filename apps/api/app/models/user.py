@@ -12,8 +12,10 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .document import Document
-    from .query import Query
+    from .organization import Organization
+    from .organization_member import OrganizationMember
     from .space import Space, SpaceMember
+    from .thread import Thread
     from .user_preferences import UserPreferences
 
 
@@ -63,6 +65,14 @@ class User(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
+    owned_organizations: Mapped[list["Organization"]] = relationship(
+        "Organization", back_populates="owner", cascade="all, delete-orphan"
+    )
+
+    organization_memberships: Mapped[list["OrganizationMember"]] = relationship(
+        "OrganizationMember", back_populates="user", cascade="all, delete-orphan"
+    )
+
     owned_spaces: Mapped[list["Space"]] = relationship(
         "Space", back_populates="owner", cascade="all, delete-orphan"
     )
@@ -75,8 +85,8 @@ class User(Base):
         "Document", back_populates="uploader", cascade="all, delete-orphan"
     )
 
-    created_queries: Mapped[list["Query"]] = relationship(
-        "Query", back_populates="creator", cascade="all, delete-orphan"
+    created_threads: Mapped[list["Thread"]] = relationship(
+        "Thread", back_populates="creator", cascade="all, delete-orphan"
     )
 
     preferences: Mapped["UserPreferences | None"] = relationship(

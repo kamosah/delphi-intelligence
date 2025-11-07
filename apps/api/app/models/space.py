@@ -19,7 +19,8 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .document import Document
-    from .query import Query
+    from .organization import Organization
+    from .thread import Thread
     from .user import User
 
 
@@ -37,6 +38,13 @@ class Space(Base):
     __tablename__ = "spaces"
 
     # Space fields
+    organization_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
@@ -54,6 +62,8 @@ class Space(Base):
     )
 
     # Relationships - use selectin for automatic eager loading
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="spaces")
+
     owner: Mapped["User"] = relationship("User", back_populates="owned_spaces")
 
     members: Mapped[list["SpaceMember"]] = relationship(
@@ -70,8 +80,8 @@ class Space(Base):
         cascade="all, delete-orphan",
     )
 
-    queries: Mapped[list["Query"]] = relationship(
-        "Query",
+    threads: Mapped[list["Thread"]] = relationship(
+        "Thread",
         back_populates="space",
         lazy="selectin",  # Always eager load to avoid async lazy-loading issues
         cascade="all, delete-orphan",

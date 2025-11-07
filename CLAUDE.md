@@ -439,6 +439,27 @@ See [Frontend Guide - GraphQL Queries & React Query Hooks](./docs/guides/fronten
 - Keep commit messages professional and project-focused
 - Follow conventional commit format (e.g., `feat:`, `fix:`, `docs:`)
 
+### GitHub Operations
+
+**IMPORTANT**: Use GitHub MCP tools instead of `gh` CLI for all GitHub operations:
+
+- **PR operations**: Use `mcp__github__get_pull_request`, `mcp__github__get_pull_request_comments`, `mcp__github__create_pull_request`, etc.
+- **Issue management**: Use `mcp__github__create_issue`, `mcp__github__list_issues`, `mcp__github__get_issue`, etc.
+- **Repository operations**: Use `mcp__github__get_file_contents`, `mcp__github__push_files`, `mcp__github__create_branch`, etc.
+- **Code review**: Use `mcp__github__create_pull_request_review`, `mcp__github__get_pull_request_files`, etc.
+
+**Rationale**: GitHub MCP provides better integration and doesn't require `gh` CLI to be installed in the Docker environment.
+
+**Example PR review workflow**:
+
+```bash
+# Fetch PR details
+mcp__github__get_pull_request(owner="kamosah", repo="olympus", pull_number=11)
+
+# Get PR comments
+mcp__github__get_pull_request_comments(owner="kamosah", repo="olympus", pull_number=11)
+```
+
 ### GraphQL Workflow
 
 After any backend GraphQL schema changes:

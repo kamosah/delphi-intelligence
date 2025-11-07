@@ -13,9 +13,14 @@ We use the following format for ADRs:
 
 ## ADR Index
 
-| ADR                                          | Title                                            | Status   |
-| -------------------------------------------- | ------------------------------------------------ | -------- |
-| [ADR-0001](./0001-data-fetching-strategy.md) | Data Fetching Strategy: RTK Query vs React Query | Proposed |
+| ADR                                                | Title                                            | Status   |
+| -------------------------------------------------- | ------------------------------------------------ | -------- |
+| [ADR-001](./001-state-management.md)               | Client-Side State Management Strategy            | Accepted |
+| [ADR-002](./002-ai-agent-orchestration.md)         | AI Agent Orchestration                           | Accepted |
+| [ADR-003](./003-mentions-implementation-tiptap.md) | Mentions Implementation with Tiptap              | Accepted |
+| [ADR-004](./004-document-folder-management-ui.md)  | Document and Folder Management UI Architecture   | Proposed |
+| [ADR-005](./005-threads-standalone-route.md)       | Threads as Standalone Route with Mentions System | Accepted |
+| [ADR-006](./006-rename-query-to-thread-backend.md) | Rename "Query" to "Thread" in Backend            | Accepted |
 
 ## Naming Convention
 

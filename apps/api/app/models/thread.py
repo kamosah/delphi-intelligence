@@ -1,4 +1,4 @@
-"""Query model for storing AI agent queries and results."""
+"""Thread model for storing AI agent conversations and results."""
 
 from datetime import datetime
 from enum import Enum as PyEnum
@@ -11,13 +11,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
-    from .query_document import QueryDocument
+    from .organization import Organization
     from .space import Space
+    from .thread_document import ThreadDocument
     from .user import User
 
 
-class QueryStatus(str, PyEnum):
-    """Query processing status."""
+class ThreadStatus(str, PyEnum):
+    """Thread processing status."""
 
     PENDING = "pending"
     PROCESSING = "processing"
@@ -25,9 +26,9 @@ class QueryStatus(str, PyEnum):
     FAILED = "failed"
 
 
-class Query(Base):
+class Thread(Base):
     """
-    Query model for storing AI agent queries and their results.
+    Thread model for storing AI agent conversations and their results.
 
     Stores the complete RAG pipeline output including:
     - User query text
@@ -37,18 +38,26 @@ class Query(Base):
     - Agent reasoning steps
     """
 
-    __tablename__ = "queries"
+    __tablename__ = "threads"
 
-    # Query fields (aligned with Supabase after migration)
-    space_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False, index=True
+    # Organization-level scoping (required)
+    organization_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Space-level scoping (optional - for backwards compat and space-specific threads)
+    space_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=True, index=True
     )
 
     created_by: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
 
-    # Core query fields
+    # Core thread fields
     query_text: Mapped[str] = mapped_column(Text, nullable=False)
 
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -70,14 +79,14 @@ class Query(Base):
     # Structure: {"citations": [{"index": 1, "document_title": "...", ...}], "count": N}
     sources: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
-    # Metadata fields from Supabase
+    # Metadata fields
     model_used: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
-    # Status using query_status enum from Supabase
-    status: Mapped[QueryStatus | None] = mapped_column(
-        SQLEnum(QueryStatus, name="query_status", values_callable=lambda x: [e.value for e in x]),
+    # Status using thread_status enum
+    status: Mapped[ThreadStatus | None] = mapped_column(
+        SQLEnum(ThreadStatus, name="thread_status", values_callable=lambda x: [e.value for e in x]),
         nullable=True,
-        default=QueryStatus.PENDING,
+        default=ThreadStatus.PENDING,
     )
 
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -88,20 +97,21 @@ class Query(Base):
 
     cost_usd: Mapped[float | None] = mapped_column(Numeric(10, 6), nullable=True)
 
-    # Fixed: completed_at should be DateTime not Text
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    space: Mapped["Space"] = relationship("Space", back_populates="queries")
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="threads")
+
+    space: Mapped["Space | None"] = relationship("Space", back_populates="threads")
 
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
-    query_documents: Mapped[list["QueryDocument"]] = relationship(
-        "QueryDocument", back_populates="query", cascade="all, delete-orphan"
+    thread_documents: Mapped[list["ThreadDocument"]] = relationship(
+        "ThreadDocument", back_populates="thread", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
-        """String representation of the query."""
+        """String representation of the thread."""
         confidence = f", confidence={self.confidence_score:.2f}" if self.confidence_score else ""
         query_preview = self.query_text[:50] if len(self.query_text) > 50 else self.query_text
-        return f"<Query(id={self.id}, query_text={query_preview}...{confidence})>"
+        return f"<Thread(id={self.id}, query_text={query_preview}...{confidence})>"
