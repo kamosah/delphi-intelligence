@@ -44,7 +44,7 @@ export default function ThreadPage({ params }: ThreadPageProps) {
     );
   }
 
-  if (!data?.query) {
+  if (!data?.thread) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-gray-500">Thread not found</p>
@@ -53,5 +53,5 @@ export default function ThreadPage({ params }: ThreadPageProps) {
   }
 
   // Pass initial thread data to ThreadInterface
-  return <ThreadInterface initialThread={data.query} />;
+  return <ThreadInterface initialThread={data.thread} />;
 }

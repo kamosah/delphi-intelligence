@@ -187,7 +187,7 @@ export function useStreamingQuery() {
                   // Invalidate query history to refetch with new query
                   if (params.spaceId && params.saveToDb) {
                     queryClient.invalidateQueries({
-                      queryKey: queryKeys.queries.list({
+                      queryKey: queryKeys.threads.list({
                         spaceId: params.spaceId,
                       }),
                     });

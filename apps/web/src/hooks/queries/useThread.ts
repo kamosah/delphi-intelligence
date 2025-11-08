@@ -1,13 +1,13 @@
-import { useGetQueryResultQuery } from '@/lib/api/hooks.generated';
+import { useGetThreadQuery } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/client';
 
 // Re-export types for convenience (from generated, safe from cycles)
-export type { GetQueryResultQuery } from '@/lib/api/generated';
+export type { GetThreadQuery } from '@/lib/api/generated';
 
 /**
- * Hook to fetch a specific thread/query by ID.
+ * Hook to fetch a specific thread by ID.
  *
- * Wrapper around generated useGetQueryResultQuery hook with sensible defaults
+ * Wrapper around generated useGetThreadQuery hook with sensible defaults
  * and centralized query key for consistent cache management.
  *
  * @param threadId - The ID of the thread to fetch
@@ -18,13 +18,13 @@ export type { GetQueryResultQuery } from '@/lib/api/generated';
  *
  * if (isLoading) return <Loading />;
  * if (error) return <Error message={error.message} />;
- * if (!data?.query) return <NotFound />;
+ * if (!data?.thread) return <NotFound />;
  *
- * const thread = data.query;
+ * const thread = data.thread;
  * return <ThreadView thread={thread} />;
  */
 export function useThread(threadId: string) {
-  return useGetQueryResultQuery(
+  return useGetThreadQuery(
     { id: threadId },
     {
       queryKey: queryKeys.threads.detail(threadId),

@@ -1,10 +1,11 @@
 # ============================================
-# Query Result Mutation Operations
+# Thread Mutation Operations
 # ============================================
 
-mutation CreateQuery($input: CreateQueryInput!) {
-  createQuery(input: $input) {
+mutation CreateThread($input: CreateThreadInput!) {
+  createThread(input: $input) {
     id
+    organizationId
     spaceId
     createdBy
     queryText
@@ -26,9 +27,10 @@ mutation CreateQuery($input: CreateQueryInput!) {
   }
 }
 
-mutation UpdateQuery($id: ID!, $input: UpdateQueryInput!) {
-  updateQuery(id: $id, input: $input) {
+mutation UpdateThread($id: ID!, $input: UpdateThreadInput!) {
+  updateThread(id: $id, input: $input) {
     id
+    organizationId
     spaceId
     createdBy
     queryText
@@ -50,6 +52,6 @@ mutation UpdateQuery($id: ID!, $input: UpdateQueryInput!) {
   }
 }
 
-mutation DeleteQueryResult($id: ID!) {
-  deleteQuery(id: $id)
+mutation DeleteThread($id: ID!) {
+  deleteThread(id: $id)
 }

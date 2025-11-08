@@ -2,7 +2,7 @@
 
 import { useSpace } from '@/contexts/SpaceContext';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
-import { useQueryResults } from '@/hooks/useQueryResults';
+import { useThreads } from '@/hooks/useThreads';
 import {
   Button,
   List,
@@ -69,7 +69,7 @@ export function ThreadsPanel({
 }: ThreadsPanelProps) {
   const { spaceId } = useSpace();
   const { isExpanded, toggle, minimize, expand } = useThreadsPanel();
-  const { queryResults, isLoading } = useQueryResults(spaceId);
+  const { threads, isLoading } = useThreads({ spaceId });
   const prevInitialExpanded = useRef(initialExpanded);
 
   /**
@@ -164,12 +164,12 @@ export function ThreadsPanel({
                   <div className="text-sm text-gray-500">
                     Loading threads...
                   </div>
-                ) : queryResults.length === 0 ? (
+                ) : threads.length === 0 ? (
                   <div className="text-sm text-gray-500">No recent threads</div>
                 ) : (
                   <List>
-                    {queryResults.slice(0, 5).map((query) => (
-                      <ThreadListItem key={query.id} thread={query} />
+                    {threads.slice(0, 5).map((thread) => (
+                      <ThreadListItem key={thread.id} thread={thread} />
                     ))}
                   </List>
                 )}

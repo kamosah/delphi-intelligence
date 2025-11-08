@@ -29,18 +29,19 @@ export type Scalars = {
   JSON: { input: any; output: any };
 };
 
-export type CreateQueryInput = {
-  confidenceScore?: InputMaybe<Scalars['Float']['input']>;
-  queryText: Scalars['String']['input'];
-  result?: InputMaybe<Scalars['String']['input']>;
-  spaceId: Scalars['ID']['input'];
-  title?: InputMaybe<Scalars['String']['input']>;
-};
-
 export type CreateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+};
+
+export type CreateThreadInput = {
+  confidenceScore?: InputMaybe<Scalars['Float']['input']>;
+  organizationId: Scalars['ID']['input'];
+  queryText: Scalars['String']['input'];
+  result?: InputMaybe<Scalars['String']['input']>;
+  spaceId?: InputMaybe<Scalars['ID']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CreateUserInput = {
@@ -83,34 +84,34 @@ export type DocumentChunk = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  createQuery?: Maybe<QueryResult>;
   createSpace: Space;
+  createThread?: Maybe<Thread>;
   createUser: User;
-  deleteQuery: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
+  deleteThread: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
-  updateQuery?: Maybe<QueryResult>;
   updateSpace?: Maybe<Space>;
+  updateThread?: Maybe<Thread>;
   updateUser?: Maybe<User>;
-};
-
-export type MutationCreateQueryArgs = {
-  input: CreateQueryInput;
 };
 
 export type MutationCreateSpaceArgs = {
   input: CreateSpaceInput;
 };
 
+export type MutationCreateThreadArgs = {
+  input: CreateThreadInput;
+};
+
 export type MutationCreateUserArgs = {
   input: CreateUserInput;
 };
 
-export type MutationDeleteQueryArgs = {
+export type MutationDeleteSpaceArgs = {
   id: Scalars['ID']['input'];
 };
 
-export type MutationDeleteSpaceArgs = {
+export type MutationDeleteThreadArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -118,14 +119,14 @@ export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
 };
 
-export type MutationUpdateQueryArgs = {
-  id: Scalars['ID']['input'];
-  input: UpdateQueryInput;
-};
-
 export type MutationUpdateSpaceArgs = {
   id: Scalars['ID']['input'];
   input: UpdateSpaceInput;
+};
+
+export type MutationUpdateThreadArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateThreadInput;
 };
 
 export type MutationUpdateUserArgs = {
@@ -137,11 +138,11 @@ export type Query = {
   __typename?: 'Query';
   documents: Array<Document>;
   health: Scalars['String']['output'];
-  queries: Array<QueryResult>;
-  query?: Maybe<QueryResult>;
   searchDocuments: Array<SearchResult>;
   space?: Maybe<Space>;
   spaces: Array<Space>;
+  thread?: Maybe<Thread>;
+  threads: Array<Thread>;
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
   users: Array<User>;
@@ -151,16 +152,6 @@ export type QueryDocumentsArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
   spaceId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type QueryQueriesArgs = {
-  limit?: Scalars['Int']['input'];
-  offset?: Scalars['Int']['input'];
-  spaceId: Scalars['ID']['input'];
-};
-
-export type QueryQueryArgs = {
-  id: Scalars['ID']['input'];
 };
 
 export type QuerySearchDocumentsArgs = {
@@ -176,6 +167,17 @@ export type QuerySpacesArgs = {
   offset?: Scalars['Int']['input'];
 };
 
+export type QueryThreadArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QueryThreadsArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
+  spaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
 export type QueryUserArgs = {
   id: Scalars['ID']['input'];
 };
@@ -188,36 +190,6 @@ export type QueryUsersArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
 };
-
-export type QueryResult = {
-  __typename?: 'QueryResult';
-  agentSteps?: Maybe<Scalars['JSON']['output']>;
-  completedAt?: Maybe<Scalars['DateTime']['output']>;
-  confidenceScore?: Maybe<Scalars['Float']['output']>;
-  context?: Maybe<Scalars['String']['output']>;
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  createdBy: Scalars['ID']['output'];
-  errorMessage?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  modelUsed?: Maybe<Scalars['String']['output']>;
-  processingTimeMs?: Maybe<Scalars['Int']['output']>;
-  queryText: Scalars['String']['output'];
-  result?: Maybe<Scalars['String']['output']>;
-  sources?: Maybe<Scalars['JSON']['output']>;
-  spaceId: Scalars['ID']['output'];
-  status?: Maybe<QueryStatusEnum>;
-  title?: Maybe<Scalars['String']['output']>;
-  tokensUsed?: Maybe<Scalars['Int']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export enum QueryStatusEnum {
-  Completed = 'COMPLETED',
-  Failed = 'FAILED',
-  Pending = 'PENDING',
-  Processing = 'PROCESSING',
-}
 
 export type SearchDocumentsInput = {
   documentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -251,15 +223,46 @@ export type Space = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type UpdateQueryInput = {
-  result?: InputMaybe<Scalars['String']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
+export type Thread = {
+  __typename?: 'Thread';
+  agentSteps?: Maybe<Scalars['JSON']['output']>;
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  confidenceScore?: Maybe<Scalars['Float']['output']>;
+  context?: Maybe<Scalars['String']['output']>;
+  costUsd?: Maybe<Scalars['Float']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Scalars['ID']['output'];
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  modelUsed?: Maybe<Scalars['String']['output']>;
+  organizationId: Scalars['ID']['output'];
+  processingTimeMs?: Maybe<Scalars['Int']['output']>;
+  queryText: Scalars['String']['output'];
+  result?: Maybe<Scalars['String']['output']>;
+  sources?: Maybe<Scalars['JSON']['output']>;
+  spaceId?: Maybe<Scalars['ID']['output']>;
+  status?: Maybe<ThreadStatusEnum>;
+  title?: Maybe<Scalars['String']['output']>;
+  tokensUsed?: Maybe<Scalars['Int']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
 };
+
+export enum ThreadStatusEnum {
+  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+}
 
 export type UpdateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateThreadInput = {
+  result?: InputMaybe<Scalars['String']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type UpdateUserInput = {
@@ -279,16 +282,17 @@ export type User = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type CreateQueryMutationVariables = Exact<{
-  input: CreateQueryInput;
+export type CreateThreadMutationVariables = Exact<{
+  input: CreateThreadInput;
 }>;
 
-export type CreateQueryMutation = {
+export type CreateThreadMutation = {
   __typename?: 'Mutation';
-  createQuery?: {
-    __typename?: 'QueryResult';
+  createThread?: {
+    __typename?: 'Thread';
     id: string;
-    spaceId: string;
+    organizationId: string;
+    spaceId?: string | null;
     createdBy: string;
     queryText: string;
     result?: string | null;
@@ -298,7 +302,7 @@ export type CreateQueryMutation = {
     agentSteps?: any | null;
     sources?: any | null;
     modelUsed?: string | null;
-    status?: QueryStatusEnum | null;
+    status?: ThreadStatusEnum | null;
     errorMessage?: string | null;
     processingTimeMs?: number | null;
     tokensUsed?: number | null;
@@ -309,17 +313,18 @@ export type CreateQueryMutation = {
   } | null;
 };
 
-export type UpdateQueryMutationVariables = Exact<{
+export type UpdateThreadMutationVariables = Exact<{
   id: Scalars['ID']['input'];
-  input: UpdateQueryInput;
+  input: UpdateThreadInput;
 }>;
 
-export type UpdateQueryMutation = {
+export type UpdateThreadMutation = {
   __typename?: 'Mutation';
-  updateQuery?: {
-    __typename?: 'QueryResult';
+  updateThread?: {
+    __typename?: 'Thread';
     id: string;
-    spaceId: string;
+    organizationId: string;
+    spaceId?: string | null;
     createdBy: string;
     queryText: string;
     result?: string | null;
@@ -329,7 +334,7 @@ export type UpdateQueryMutation = {
     agentSteps?: any | null;
     sources?: any | null;
     modelUsed?: string | null;
-    status?: QueryStatusEnum | null;
+    status?: ThreadStatusEnum | null;
     errorMessage?: string | null;
     processingTimeMs?: number | null;
     tokensUsed?: number | null;
@@ -340,13 +345,13 @@ export type UpdateQueryMutation = {
   } | null;
 };
 
-export type DeleteQueryResultMutationVariables = Exact<{
+export type DeleteThreadMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
-export type DeleteQueryResultMutation = {
+export type DeleteThreadMutation = {
   __typename?: 'Mutation';
-  deleteQuery: boolean;
+  deleteThread: boolean;
 };
 
 export type CreateSpaceMutationVariables = Exact<{
@@ -476,18 +481,20 @@ export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
 
-export type GetQueryResultsQueryVariables = Exact<{
-  spaceId: Scalars['ID']['input'];
+export type GetThreadsQueryVariables = Exact<{
+  spaceId?: InputMaybe<Scalars['ID']['input']>;
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
-export type GetQueryResultsQuery = {
+export type GetThreadsQuery = {
   __typename?: 'Query';
-  queries: Array<{
-    __typename?: 'QueryResult';
+  threads: Array<{
+    __typename?: 'Thread';
     id: string;
-    spaceId: string;
+    organizationId: string;
+    spaceId?: string | null;
     createdBy: string;
     queryText: string;
     result?: string | null;
@@ -497,7 +504,7 @@ export type GetQueryResultsQuery = {
     sources?: any | null;
     agentSteps?: any | null;
     modelUsed?: string | null;
-    status?: QueryStatusEnum | null;
+    status?: ThreadStatusEnum | null;
     errorMessage?: string | null;
     processingTimeMs?: number | null;
     tokensUsed?: number | null;
@@ -508,16 +515,17 @@ export type GetQueryResultsQuery = {
   }>;
 };
 
-export type GetQueryResultQueryVariables = Exact<{
+export type GetThreadQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
-export type GetQueryResultQuery = {
+export type GetThreadQuery = {
   __typename?: 'Query';
-  query?: {
-    __typename?: 'QueryResult';
+  thread?: {
+    __typename?: 'Thread';
     id: string;
-    spaceId: string;
+    organizationId: string;
+    spaceId?: string | null;
     createdBy: string;
     queryText: string;
     result?: string | null;
@@ -527,7 +535,7 @@ export type GetQueryResultQuery = {
     sources?: any | null;
     agentSteps?: any | null;
     modelUsed?: string | null;
-    status?: QueryStatusEnum | null;
+    status?: ThreadStatusEnum | null;
     errorMessage?: string | null;
     processingTimeMs?: number | null;
     tokensUsed?: number | null;

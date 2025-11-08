@@ -33,21 +33,12 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.documents.details(), id] as const,
   },
 
-  // Queries (AI-powered queries on documents)
-  queries: {
-    all: ['queries'] as const,
-    lists: () => [...queryKeys.queries.all, 'list'] as const,
-    list: (filters: Record<string, any>) =>
-      [...queryKeys.queries.lists(), filters] as const,
-    details: () => [...queryKeys.queries.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.queries.details(), id] as const,
-  },
-
-  // Threads (individual query conversations)
+  // Threads (AI-powered queries/conversations on documents)
   threads: {
     all: ['threads'] as const,
     lists: () => [...queryKeys.threads.all, 'list'] as const,
-    list: (spaceId: string) => [...queryKeys.threads.lists(), spaceId] as const,
+    list: (filters?: Record<string, any>) =>
+      [...queryKeys.threads.lists(), filters] as const,
     details: () => [...queryKeys.threads.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.threads.details(), id] as const,
   },

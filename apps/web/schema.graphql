@@ -9,6 +9,15 @@ input CreateSpaceInput {
   name: String!
 }
 
+input CreateThreadInput {
+  confidenceScore: Float = null
+  organizationId: ID!
+  queryText: String!
+  result: String = null
+  spaceId: ID = null
+  title: String = null
+}
+
 input CreateUserInput {
   avatarUrl: String = null
   bio: String = null
@@ -55,54 +64,27 @@ scalar JSON
 
 type Mutation {
   createSpace(input: CreateSpaceInput!): Space!
+  createThread(input: CreateThreadInput!): Thread
   createUser(input: CreateUserInput!): User!
-  deleteQuery(id: ID!): Boolean!
   deleteSpace(id: ID!): Boolean!
+  deleteThread(id: ID!): Boolean!
   deleteUser(id: ID!): Boolean!
   updateSpace(id: ID!, input: UpdateSpaceInput!): Space
+  updateThread(id: ID!, input: UpdateThreadInput!): Thread
   updateUser(id: ID!, input: UpdateUserInput!): User
 }
 
 type Query {
   documents(limit: Int! = 100, offset: Int! = 0, spaceId: ID = null): [Document!]!
   health: String!
-  queries(limit: Int! = 50, offset: Int! = 0, spaceId: ID!): [QueryResult!]!
-  query(id: ID!): QueryResult
   searchDocuments(input: SearchDocumentsInput!): [SearchResult!]!
   space(id: ID!): Space
   spaces(limit: Int! = 10, offset: Int! = 0): [Space!]!
+  thread(id: ID!): Thread
+  threads(limit: Int! = 50, offset: Int! = 0, organizationId: ID = null, spaceId: ID = null): [Thread!]!
   user(id: ID!): User
   userByEmail(email: String!): User
   users(limit: Int! = 10, offset: Int! = 0): [User!]!
-}
-
-type QueryResult {
-  agentSteps: JSON
-  completedAt: DateTime
-  confidenceScore: Float
-  context: String
-  costUsd: Float
-  createdAt: DateTime!
-  createdBy: ID!
-  errorMessage: String
-  id: ID!
-  modelUsed: String
-  processingTimeMs: Int
-  queryText: String!
-  result: String
-  sources: JSON
-  spaceId: ID!
-  status: QueryStatusEnum
-  title: String
-  tokensUsed: Int
-  updatedAt: DateTime!
-}
-
-enum QueryStatusEnum {
-  COMPLETED
-  FAILED
-  PENDING
-  PROCESSING
 }
 
 input SearchDocumentsInput {
@@ -135,10 +117,45 @@ type Space {
   updatedAt: DateTime!
 }
 
+type Thread {
+  agentSteps: JSON
+  completedAt: DateTime
+  confidenceScore: Float
+  context: String
+  costUsd: Float
+  createdAt: DateTime!
+  createdBy: ID!
+  errorMessage: String
+  id: ID!
+  modelUsed: String
+  organizationId: ID!
+  processingTimeMs: Int
+  queryText: String!
+  result: String
+  sources: JSON
+  spaceId: ID
+  status: ThreadStatusEnum
+  title: String
+  tokensUsed: Int
+  updatedAt: DateTime!
+}
+
+enum ThreadStatusEnum {
+  COMPLETED
+  FAILED
+  PENDING
+  PROCESSING
+}
+
 input UpdateSpaceInput {
   description: String = null
   iconColor: String = null
   name: String = null
+}
+
+input UpdateThreadInput {
+  result: String = null
+  title: String = null
 }
 
 input UpdateUserInput {

@@ -2,7 +2,7 @@
 
 import { useSpace } from '@/contexts/SpaceContext';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
-import type { QueryResult } from '@/hooks/useQueryResults';
+import type { Thread } from '@/hooks/useThreads';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import type { Citation } from '@/lib/api/queries-client';
 import { ScrollArea } from '@olympus/ui';
@@ -18,7 +18,7 @@ import { ThreadInput } from './ThreadInput';
 interface ThreadInterfaceProps {
   onQuerySubmit?: () => void;
   onThreadCreated?: (threadId: string) => void;
-  initialThread?: QueryResult;
+  initialThread?: Thread;
 }
 
 /**

@@ -1,10 +1,11 @@
 # ============================================
-# Query Result Query Operations
+# Thread Query Operations
 # ============================================
 
-query GetQueryResults($spaceId: ID!, $limit: Int, $offset: Int) {
-  queries(spaceId: $spaceId, limit: $limit, offset: $offset) {
+query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
+  threads(spaceId: $spaceId, organizationId: $organizationId, limit: $limit, offset: $offset) {
     id
+    organizationId
     spaceId
     createdBy
     queryText
@@ -26,9 +27,10 @@ query GetQueryResults($spaceId: ID!, $limit: Int, $offset: Int) {
   }
 }
 
-query GetQueryResult($id: ID!) {
-  query(id: $id) {
+query GetThread($id: ID!) {
+  thread(id: $id) {
     id
+    organizationId
     spaceId
     createdBy
     queryText

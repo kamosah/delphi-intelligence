@@ -1,12 +1,12 @@
 'use client';
 
-import type { QueryResult } from '@/hooks/useQueryResults';
+import type { Thread } from '@/hooks/useThreads';
 import { useSpace } from '@/contexts/SpaceContext';
 import { ListItem, Typography } from '@olympus/ui';
 import Link from 'next/link';
 
 interface ThreadListItemProps {
-  thread: QueryResult;
+  thread: Thread;
 }
 
 /**

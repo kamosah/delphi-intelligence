@@ -266,17 +266,26 @@ class TestThreadMutations:
     async def test_delete_org_thread_only_creator_can_delete(
         self, mock_info, mock_db_session, mock_user, mock_org_thread, mock_get_session
     ):
-        """Test deleting an org-wide thread fails with 'Only the creator' when not creator."""
+        """Test deleting an org-wide thread fails when not creator and not org admin."""
         # Mock org thread with different creator
         mock_org_thread.created_by = uuid4()
 
         mock_thread_result = MagicMock()
         mock_thread_result.scalar_one_or_none = MagicMock(return_value=mock_org_thread)
-        mock_db_session.execute.return_value = mock_thread_result
+
+        # Mock org member result (user is not an org admin)
+        mock_org_member_result = MagicMock()
+        mock_org_member_result.scalar_one_or_none = MagicMock(return_value=None)
+
+        # Configure execute to return different results based on call order
+        mock_db_session.execute.side_effect = [mock_thread_result, mock_org_member_result]
 
         with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
             mutation = Mutation()
-            with pytest.raises(ValueError, match="Only the creator can delete org-wide threads"):
+            with pytest.raises(
+                ValueError,
+                match="Only the creator or organization admin can delete org-wide threads",
+            ):
                 await mutation.delete_thread(mock_info, str(mock_org_thread.id))
 
             assert mock_db_session.rollback.called

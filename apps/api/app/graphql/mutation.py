@@ -8,6 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import get_session
+from app.models.organization_member import (
+    OrganizationMember as OrganizationMemberModel,
+    OrganizationRole,
+)
 from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
@@ -342,7 +346,7 @@ class Mutation:
         Authorization:
             - Only the thread creator or space owner can delete
             - For space threads: Must have access to the space containing the thread
-            - For org-wide threads: Only creator can delete (TODO: add org admin check)
+            - For org-wide threads: Only creator or organization admin/owner can delete
 
         Example mutation:
             mutation {
@@ -398,8 +402,22 @@ class Mutation:
                         msg = "Insufficient permissions to delete this thread"
                         raise ValueError(msg)
                 elif not is_creator:
-                    msg = "Only the creator can delete org-wide threads"
-                    raise ValueError(msg)
+                    # Check if user is organization admin or owner
+                    org_member_stmt = select(OrganizationMemberModel).where(
+                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
+                        & (OrganizationMemberModel.user_id == user_id)
+                        & (
+                            OrganizationMemberModel.organization_role.in_(
+                                [OrganizationRole.ADMIN, OrganizationRole.OWNER]
+                            )
+                        )
+                    )
+                    org_member_result = await session.execute(org_member_stmt)
+                    is_org_admin = org_member_result.scalar_one_or_none() is not None
+
+                    if not is_org_admin:
+                        msg = "Only the creator or organization admin can delete org-wide threads"
+                        raise ValueError(msg)
 
                 await session.delete(thread_model)
                 await session.commit()
@@ -570,7 +588,7 @@ class Mutation:
 
         Authorization:
             - Only the thread creator or space owner can update (for space threads)
-            - Only the thread creator can update org-wide threads (TODO: add org admin check)
+            - Only the thread creator or organization admin/owner can update org-wide threads
 
         Example mutation:
             mutation {
@@ -628,8 +646,22 @@ class Mutation:
                         msg = "Insufficient permissions to update this thread"
                         raise ValueError(msg)
                 elif not is_creator:
-                    msg = "Only the creator can update org-wide threads"
-                    raise ValueError(msg)
+                    # Check if user is organization admin or owner
+                    org_member_stmt = select(OrganizationMemberModel).where(
+                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
+                        & (OrganizationMemberModel.user_id == user_id)
+                        & (
+                            OrganizationMemberModel.organization_role.in_(
+                                [OrganizationRole.ADMIN, OrganizationRole.OWNER]
+                            )
+                        )
+                    )
+                    org_member_result = await session.execute(org_member_stmt)
+                    is_org_admin = org_member_result.scalar_one_or_none() is not None
+
+                    if not is_org_admin:
+                        msg = "Only the creator or organization admin can update org-wide threads"
+                        raise ValueError(msg)
 
                 # Update fields if provided
                 if input.title is not None:
