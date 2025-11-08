@@ -3,6 +3,18 @@ schema {
   mutation: Mutation
 }
 
+input AddOrganizationMemberInput {
+  organizationId: ID!
+  role: OrganizationRole! = MEMBER
+  userId: ID!
+}
+
+input CreateOrganizationInput {
+  description: String = null
+  name: String!
+  slug: String = null
+}
+
 input CreateSpaceInput {
   description: String = null
   iconColor: String = null
@@ -63,20 +75,57 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](https:/
 scalar JSON
 
 type Mutation {
+  addOrganizationMember(input: AddOrganizationMemberInput!): OrganizationMember!
+  createOrganization(input: CreateOrganizationInput!): Organization!
   createSpace(input: CreateSpaceInput!): Space!
   createThread(input: CreateThreadInput!): Thread
   createUser(input: CreateUserInput!): User!
+  deleteOrganization(id: ID!): Boolean!
   deleteSpace(id: ID!): Boolean!
   deleteThread(id: ID!): Boolean!
   deleteUser(id: ID!): Boolean!
+  removeOrganizationMember(organizationId: ID!, userId: ID!): Boolean!
+  updateMemberRole(organizationId: ID!, role: OrganizationRole!, userId: ID!): OrganizationMember
+  updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization
   updateSpace(id: ID!, input: UpdateSpaceInput!): Space
   updateThread(id: ID!, input: UpdateThreadInput!): Thread
   updateUser(id: ID!, input: UpdateUserInput!): User
 }
 
+type Organization {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  memberCount: Int!
+  name: String!
+  ownerId: ID
+  slug: String!
+  spaceCount: Int!
+  threadCount: Int!
+  updatedAt: DateTime!
+}
+
+type OrganizationMember {
+  createdAt: DateTime!
+  id: ID!
+  organizationId: ID!
+  role: OrganizationRole!
+  userId: ID!
+}
+
+enum OrganizationRole {
+  ADMIN
+  MEMBER
+  OWNER
+  VIEWER
+}
+
 type Query {
   documents(limit: Int! = 100, offset: Int! = 0, spaceId: ID = null): [Document!]!
   health: String!
+  organization(id: ID!): Organization
+  organizationMembers(limit: Int! = 50, offset: Int! = 0, organizationId: ID!): [OrganizationMember!]!
+  organizations(limit: Int! = 10, offset: Int! = 0): [Organization!]!
   searchDocuments(input: SearchDocumentsInput!): [SearchResult!]!
   space(id: ID!): Space
   spaces(limit: Int! = 10, offset: Int! = 0): [Space!]!
@@ -145,6 +194,11 @@ enum ThreadStatusEnum {
   FAILED
   PENDING
   PROCESSING
+}
+
+input UpdateOrganizationInput {
+  description: String = null
+  name: String = null
 }
 
 input UpdateSpaceInput {

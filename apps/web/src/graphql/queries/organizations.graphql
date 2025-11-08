@@ -1,0 +1,39 @@
+query GetOrganizations($limit: Int, $offset: Int) {
+  organizations(limit: $limit, offset: $offset) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+
+query GetOrganization($id: ID!) {
+  organization(id: $id) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+
+query GetOrganizationMembers($organizationId: ID!, $limit: Int, $offset: Int) {
+  organizationMembers(organizationId: $organizationId, limit: $limit, offset: $offset) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}

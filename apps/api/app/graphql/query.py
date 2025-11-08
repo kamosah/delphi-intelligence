@@ -8,12 +8,23 @@ import strawberry
 
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
+from app.models.organization import Organization as OrganizationModel
+from app.models.organization_member import OrganizationMember as OrganizationMemberModel
 from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
-from .types import Document, Thread, SearchDocumentsInput, SearchResult, Space, User
+from .types import (
+    Document,
+    Organization,
+    OrganizationMember,
+    SearchDocumentsInput,
+    SearchResult,
+    Space,
+    Thread,
+    User,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -520,3 +531,211 @@ class Query:
                 return None
 
         return None
+
+    @strawberry.field
+    async def organizations(
+        self,
+        info: strawberry.types.Info,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[Organization]:
+        """
+        Get a list of organizations the authenticated user is a member of.
+
+        Args:
+            limit: Maximum number of organizations to return
+            offset: Number of organizations to skip
+
+        Returns:
+            List of organizations the user belongs to
+
+        Authorization:
+            - Requires authentication
+            - Only returns organizations where user is a member
+
+        Example query:
+            query {
+              organizations(limit: 10, offset: 0) {
+                id
+                name
+                slug
+                memberCount
+                spaceCount
+              }
+            }
+        """
+        async for session in get_session():
+            # Get the authenticated user from the request context
+            request = info.context["request"]
+            user = getattr(request.state, "user", None)
+
+            if not user:
+                msg = "Authentication required"
+                raise ValueError(msg)
+
+            user_id = user.id
+
+            # Get organizations where user is a member
+            stmt = (
+                select(OrganizationModel)
+                .join(
+                    OrganizationMemberModel,
+                    OrganizationMemberModel.organization_id == OrganizationModel.id,
+                )
+                .where(OrganizationMemberModel.user_id == user_id)
+                .limit(limit)
+                .offset(offset)
+            )
+
+            result = await session.execute(stmt)
+            organization_models = result.scalars().all()
+
+            return [Organization.from_model(org) for org in organization_models]
+
+        return []
+
+    @strawberry.field
+    async def organization(
+        self, info: strawberry.types.Info, id: strawberry.ID
+    ) -> Organization | None:
+        """
+        Get an organization by ID.
+
+        Args:
+            id: The organization ID
+
+        Returns:
+            The organization if found and user has access, None otherwise
+
+        Authorization:
+            - Requires authentication
+            - User must be a member of the organization
+
+        Example query:
+            query {
+              organization(id: "org-uuid") {
+                id
+                name
+                description
+                memberCount
+                spaceCount
+                threadCount
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                user_id = user.id
+                organization_id = UUID(str(id))
+
+                # Check if user is a member of the organization
+                member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == organization_id)
+                    & (OrganizationMemberModel.user_id == user_id)
+                )
+                member_result = await session.execute(member_stmt)
+                is_member = member_result.scalar_one_or_none() is not None
+
+                if not is_member:
+                    msg = "Access denied: not a member of this organization"
+                    raise ValueError(msg)
+
+                # Get the organization
+                stmt = select(OrganizationModel).where(OrganizationModel.id == organization_id)
+                result = await session.execute(stmt)
+                organization_model = result.scalar_one_or_none()
+
+                if organization_model:
+                    return Organization.from_model(organization_model)
+                return None
+
+            except ValueError:
+                # Invalid UUID format or access denied
+                return None
+
+        return None
+
+    @strawberry.field
+    async def organization_members(
+        self,
+        info: strawberry.types.Info,
+        organization_id: strawberry.ID,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[OrganizationMember]:
+        """
+        Get members of an organization.
+
+        Args:
+            organization_id: The organization ID
+            limit: Maximum number of members to return
+            offset: Number of members to skip
+
+        Returns:
+            List of organization members
+
+        Authorization:
+            - Requires authentication
+            - User must be a member of the organization
+
+        Example query:
+            query {
+              organizationMembers(organizationId: "org-uuid") {
+                id
+                userId
+                role
+                createdAt
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                user_id = user.id
+                org_id = UUID(str(organization_id))
+
+                # Check if user is a member of the organization
+                member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == org_id)
+                    & (OrganizationMemberModel.user_id == user_id)
+                )
+                member_result = await session.execute(member_stmt)
+                is_member = member_result.scalar_one_or_none() is not None
+
+                if not is_member:
+                    msg = "Access denied: not a member of this organization"
+                    raise ValueError(msg)
+
+                # Get organization members
+                stmt = (
+                    select(OrganizationMemberModel)
+                    .where(OrganizationMemberModel.organization_id == org_id)
+                    .limit(limit)
+                    .offset(offset)
+                )
+
+                result = await session.execute(stmt)
+                member_models = result.scalars().all()
+
+                return [OrganizationMember.from_model(member) for member in member_models]
+
+            except ValueError:
+                # Invalid UUID format or access denied
+                return []
+
+        return []

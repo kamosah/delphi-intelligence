@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import get_session
+from app.models.organization import Organization as OrganizationModel
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
     OrganizationRole,
@@ -18,11 +19,17 @@ from app.models.user import User as UserModel
 from app.utils.slug import generate_unique_slug
 
 from .types import (
+    AddOrganizationMemberInput,
+    CreateOrganizationInput,
     CreateSpaceInput,
     CreateThreadInput,
     CreateUserInput,
+    Organization,
+    OrganizationMember,
+    OrganizationRole as OrganizationRoleType,
     Space,
     Thread,
+    UpdateOrganizationInput,
     UpdateSpaceInput,
     UpdateThreadInput,
     UpdateUserInput,
@@ -116,6 +123,476 @@ class Mutation:
                 # Invalid UUID format
                 return False
         return False
+
+    @strawberry.mutation
+    async def create_organization(
+        self, info: strawberry.types.Info, input: CreateOrganizationInput
+    ) -> Organization:
+        """
+        Create a new organization.
+
+        Args:
+            input: Organization creation data (name, slug, description)
+
+        Returns:
+            The created organization
+
+        Authorization:
+            - Any authenticated user can create an organization
+            - Creator automatically becomes the owner
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required to create an organization"
+                    raise ValueError(msg)
+
+                user_id = user.id
+
+                # Generate unique slug from organization name if not provided
+                slug = input.slug
+                if not slug:
+                    slug = await generate_unique_slug(input.name, session, OrganizationModel)
+
+                # Create new organization instance
+                org_model = OrganizationModel(
+                    name=input.name,
+                    slug=slug,
+                    description=input.description,
+                    owner_id=user_id,
+                )
+
+                session.add(org_model)
+                await session.flush()  # Flush to get the organization ID
+
+                # Add creator as owner in organization_members
+                org_member = OrganizationMemberModel(
+                    organization_id=org_model.id,
+                    user_id=user_id,
+                    organization_role=OrganizationRole.OWNER,
+                )
+
+                session.add(org_member)
+                await session.commit()
+
+                # Refresh the model (relationships eager loaded via lazy='selectin')
+                await session.refresh(org_model)
+
+                return Organization.from_model(org_model)
+
+            except IntegrityError as e:
+                await session.rollback()
+
+                # Handle slug uniqueness violation
+                if "unique_constraint" in str(e).lower() or "slug" in str(e).lower():
+                    msg = "Organization with this slug already exists"
+                    raise ValueError(msg)
+
+                # For other integrity errors, raise generic error
+                msg = "Failed to create organization due to database constraint"
+                raise ValueError(msg)
+
+        # Fallback if session doesn't yield for MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.mutation
+    async def update_organization(
+        self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateOrganizationInput
+    ) -> Organization | None:
+        """
+        Update an existing organization.
+
+        Args:
+            id: The organization ID
+            input: Organization update data (name, description)
+
+        Returns:
+            The updated organization if found, None otherwise
+
+        Authorization:
+            - Only owner or admins can update
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                user_id = user.id
+                org_id = UUID(str(id))
+
+                # Get organization
+                stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
+                result = await session.execute(stmt)
+                org_model = result.scalar_one_or_none()
+
+                if not org_model:
+                    msg = "Organization not found"
+                    raise ValueError(msg)
+
+                # Check authorization: owner or admin
+                is_owner = org_model.owner_id == user_id
+
+                # Check if user is an admin member
+                member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == org_id)
+                    & (OrganizationMemberModel.user_id == user_id)
+                    & (
+                        OrganizationMemberModel.organization_role.in_(
+                            [OrganizationRole.ADMIN, OrganizationRole.OWNER]
+                        )
+                    )
+                )
+                member_result = await session.execute(member_stmt)
+                is_admin = member_result.scalar_one_or_none() is not None
+
+                if not is_owner and not is_admin:
+                    msg = "Insufficient permissions to update this organization"
+                    raise ValueError(msg)
+
+                # Update fields if provided
+                if input.name is not None:
+                    org_model.name = input.name
+                if input.description is not None:
+                    org_model.description = input.description
+
+                await session.commit()
+                await session.refresh(org_model)
+
+                return Organization.from_model(org_model)
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return None
+
+    @strawberry.mutation
+    async def delete_organization(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:
+        """
+        Delete an organization by ID.
+
+        Args:
+            id: The organization ID
+
+        Returns:
+            True if deleted successfully, False otherwise
+
+        Authorization:
+            - Only the owner can delete an organization
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                user_id = user.id
+                org_id = UUID(str(id))
+
+                # Get organization
+                stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
+                result = await session.execute(stmt)
+                org_model = result.scalar_one_or_none()
+
+                if not org_model:
+                    msg = "Organization not found"
+                    raise ValueError(msg)
+
+                # Check authorization: only owner can delete
+                if org_model.owner_id != user_id:
+                    msg = "Only the owner can delete this organization"
+                    raise ValueError(msg)
+
+                await session.delete(org_model)
+                await session.commit()
+
+                return True
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return False
+
+    @strawberry.mutation
+    async def add_organization_member(
+        self, info: strawberry.types.Info, input: AddOrganizationMemberInput
+    ) -> OrganizationMember:
+        """
+        Add a member to an organization.
+
+        Args:
+            input: AddOrganizationMemberInput with organization_id, user_id, and role
+
+        Returns:
+            The created organization member
+
+        Authorization:
+            - Only owner or admins can add members
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                current_user_id = user.id
+                org_id = UUID(str(input.organization_id))
+                target_user_id = UUID(str(input.user_id))
+
+                # Get organization
+                org_stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
+                org_result = await session.execute(org_stmt)
+                org_model = org_result.scalar_one_or_none()
+
+                if not org_model:
+                    msg = "Organization not found"
+                    raise ValueError(msg)
+
+                # Check authorization: owner or admin
+                is_owner = org_model.owner_id == current_user_id
+
+                member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == org_id)
+                    & (OrganizationMemberModel.user_id == current_user_id)
+                    & (
+                        OrganizationMemberModel.organization_role.in_(
+                            [OrganizationRole.ADMIN, OrganizationRole.OWNER]
+                        )
+                    )
+                )
+                member_result = await session.execute(member_stmt)
+                is_admin = member_result.scalar_one_or_none() is not None
+
+                if not is_owner and not is_admin:
+                    msg = "Insufficient permissions to add members to this organization"
+                    raise ValueError(msg)
+
+                # Verify target user exists
+                user_stmt = select(UserModel).where(UserModel.id == target_user_id)
+                user_result = await session.execute(user_stmt)
+                target_user = user_result.scalar_one_or_none()
+
+                if not target_user:
+                    msg = "User not found"
+                    raise ValueError(msg)
+
+                # Convert GraphQL enum to database enum
+                role = OrganizationRole(input.role.value)
+
+                # Create new organization member
+                new_member = OrganizationMemberModel(
+                    organization_id=org_id,
+                    user_id=target_user_id,
+                    organization_role=role,
+                )
+
+                session.add(new_member)
+                await session.commit()
+                await session.refresh(new_member)
+
+                return OrganizationMember.from_model(new_member)
+
+            except IntegrityError as e:
+                await session.rollback()
+                if "unique" in str(e).lower():
+                    msg = "User is already a member of this organization"
+                    raise ValueError(msg)
+                msg = "Failed to add member due to database constraint"
+                raise ValueError(msg)
+
+        # Fallback if session doesn't yield
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.mutation
+    async def remove_organization_member(
+        self, info: strawberry.types.Info, organization_id: strawberry.ID, user_id: strawberry.ID
+    ) -> bool:
+        """
+        Remove a member from an organization.
+
+        Args:
+            organization_id: The organization ID
+            user_id: The user ID to remove
+
+        Returns:
+            True if removed successfully, False otherwise
+
+        Authorization:
+            - Only owner or admins can remove members
+            - Cannot remove the owner
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                current_user_id = user.id
+                org_id = UUID(str(organization_id))
+                target_user_id = UUID(str(user_id))
+
+                # Get organization
+                org_stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
+                org_result = await session.execute(org_stmt)
+                org_model = org_result.scalar_one_or_none()
+
+                if not org_model:
+                    msg = "Organization not found"
+                    raise ValueError(msg)
+
+                # Cannot remove the owner
+                if org_model.owner_id == target_user_id:
+                    msg = "Cannot remove the organization owner"
+                    raise ValueError(msg)
+
+                # Check authorization: owner or admin
+                is_owner = org_model.owner_id == current_user_id
+
+                member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == org_id)
+                    & (OrganizationMemberModel.user_id == current_user_id)
+                    & (
+                        OrganizationMemberModel.organization_role.in_(
+                            [OrganizationRole.ADMIN, OrganizationRole.OWNER]
+                        )
+                    )
+                )
+                member_result = await session.execute(member_stmt)
+                is_admin = member_result.scalar_one_or_none() is not None
+
+                if not is_owner and not is_admin:
+                    msg = "Insufficient permissions to remove members from this organization"
+                    raise ValueError(msg)
+
+                # Get the member to remove
+                target_member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == org_id)
+                    & (OrganizationMemberModel.user_id == target_user_id)
+                )
+                target_member_result = await session.execute(target_member_stmt)
+                target_member = target_member_result.scalar_one_or_none()
+
+                if not target_member:
+                    msg = "Member not found in this organization"
+                    raise ValueError(msg)
+
+                await session.delete(target_member)
+                await session.commit()
+
+                return True
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return False
+
+    @strawberry.mutation
+    async def update_member_role(
+        self,
+        info: strawberry.types.Info,
+        organization_id: strawberry.ID,
+        user_id: strawberry.ID,
+        role: OrganizationRoleType,
+    ) -> OrganizationMember | None:
+        """
+        Update a member's role in an organization.
+
+        Args:
+            organization_id: The organization ID
+            user_id: The user ID whose role to update
+            role: The new role
+
+        Returns:
+            The updated organization member
+
+        Authorization:
+            - Only the owner can update member roles
+            - Cannot change the owner's role
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                current_user_id = user.id
+                org_id = UUID(str(organization_id))
+                target_user_id = UUID(str(user_id))
+
+                # Get organization
+                org_stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
+                org_result = await session.execute(org_stmt)
+                org_model = org_result.scalar_one_or_none()
+
+                if not org_model:
+                    msg = "Organization not found"
+                    raise ValueError(msg)
+
+                # Only owner can update roles
+                if org_model.owner_id != current_user_id:
+                    msg = "Only the owner can update member roles"
+                    raise ValueError(msg)
+
+                # Cannot change owner's role
+                if org_model.owner_id == target_user_id:
+                    msg = "Cannot change the owner's role"
+                    raise ValueError(msg)
+
+                # Get the member to update
+                member_stmt = select(OrganizationMemberModel).where(
+                    (OrganizationMemberModel.organization_id == org_id)
+                    & (OrganizationMemberModel.user_id == target_user_id)
+                )
+                member_result = await session.execute(member_stmt)
+                member = member_result.scalar_one_or_none()
+
+                if not member:
+                    msg = "Member not found in this organization"
+                    raise ValueError(msg)
+
+                # Convert GraphQL enum to database enum
+                new_role = OrganizationRole(role.value)
+                member.organization_role = new_role
+
+                await session.commit()
+                await session.refresh(member)
+
+                return OrganizationMember.from_model(member)
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return None
 
     @strawberry.mutation
     async def create_space(self, info: strawberry.types.Info, input: CreateSpaceInput) -> Space:

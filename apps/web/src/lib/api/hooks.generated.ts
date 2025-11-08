@@ -36,6 +36,18 @@ export type Scalars = {
   JSON: { input: any; output: any };
 };
 
+export type AddOrganizationMemberInput = {
+  organizationId: Scalars['ID']['input'];
+  role?: OrganizationRole;
+  userId: Scalars['ID']['input'];
+};
+
+export type CreateOrganizationInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  slug?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
@@ -91,15 +103,29 @@ export type DocumentChunk = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  addOrganizationMember: OrganizationMember;
+  createOrganization: Organization;
   createSpace: Space;
   createThread?: Maybe<Thread>;
   createUser: User;
+  deleteOrganization: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
   deleteThread: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  removeOrganizationMember: Scalars['Boolean']['output'];
+  updateMemberRole?: Maybe<OrganizationMember>;
+  updateOrganization?: Maybe<Organization>;
   updateSpace?: Maybe<Space>;
   updateThread?: Maybe<Thread>;
   updateUser?: Maybe<User>;
+};
+
+export type MutationAddOrganizationMemberArgs = {
+  input: AddOrganizationMemberInput;
+};
+
+export type MutationCreateOrganizationArgs = {
+  input: CreateOrganizationInput;
 };
 
 export type MutationCreateSpaceArgs = {
@@ -114,6 +140,10 @@ export type MutationCreateUserArgs = {
   input: CreateUserInput;
 };
 
+export type MutationDeleteOrganizationArgs = {
+  id: Scalars['ID']['input'];
+};
+
 export type MutationDeleteSpaceArgs = {
   id: Scalars['ID']['input'];
 };
@@ -124,6 +154,22 @@ export type MutationDeleteThreadArgs = {
 
 export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type MutationRemoveOrganizationMemberArgs = {
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+export type MutationUpdateMemberRoleArgs = {
+  organizationId: Scalars['ID']['input'];
+  role: OrganizationRole;
+  userId: Scalars['ID']['input'];
+};
+
+export type MutationUpdateOrganizationArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateOrganizationInput;
 };
 
 export type MutationUpdateSpaceArgs = {
@@ -141,10 +187,43 @@ export type MutationUpdateUserArgs = {
   input: UpdateUserInput;
 };
 
+export type Organization = {
+  __typename?: 'Organization';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  memberCount: Scalars['Int']['output'];
+  name: Scalars['String']['output'];
+  ownerId?: Maybe<Scalars['ID']['output']>;
+  slug: Scalars['String']['output'];
+  spaceCount: Scalars['Int']['output'];
+  threadCount: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type OrganizationMember = {
+  __typename?: 'OrganizationMember';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  organizationId: Scalars['ID']['output'];
+  role: OrganizationRole;
+  userId: Scalars['ID']['output'];
+};
+
+export enum OrganizationRole {
+  Admin = 'ADMIN',
+  Member = 'MEMBER',
+  Owner = 'OWNER',
+  Viewer = 'VIEWER',
+}
+
 export type Query = {
   __typename?: 'Query';
   documents: Array<Document>;
   health: Scalars['String']['output'];
+  organization?: Maybe<Organization>;
+  organizationMembers: Array<OrganizationMember>;
+  organizations: Array<Organization>;
   searchDocuments: Array<SearchResult>;
   space?: Maybe<Space>;
   spaces: Array<Space>;
@@ -159,6 +238,21 @@ export type QueryDocumentsArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
   spaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type QueryOrganizationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type QueryOrganizationMembersArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  organizationId: Scalars['ID']['input'];
+};
+
+export type QueryOrganizationsArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
 };
 
 export type QuerySearchDocumentsArgs = {
@@ -261,6 +355,11 @@ export enum ThreadStatusEnum {
   Processing = 'PROCESSING',
 }
 
+export type UpdateOrganizationInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
@@ -287,6 +386,102 @@ export type User = {
   fullName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CreateOrganizationMutationVariables = Exact<{
+  input: CreateOrganizationInput;
+}>;
+
+export type CreateOrganizationMutation = {
+  __typename?: 'Mutation';
+  createOrganization: {
+    __typename?: 'Organization';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    ownerId?: string | null;
+    memberCount: number;
+    spaceCount: number;
+    threadCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type UpdateOrganizationMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateOrganizationInput;
+}>;
+
+export type UpdateOrganizationMutation = {
+  __typename?: 'Mutation';
+  updateOrganization?: {
+    __typename?: 'Organization';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    ownerId?: string | null;
+    memberCount: number;
+    spaceCount: number;
+    threadCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type DeleteOrganizationMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type DeleteOrganizationMutation = {
+  __typename?: 'Mutation';
+  deleteOrganization: boolean;
+};
+
+export type AddOrganizationMemberMutationVariables = Exact<{
+  input: AddOrganizationMemberInput;
+}>;
+
+export type AddOrganizationMemberMutation = {
+  __typename?: 'Mutation';
+  addOrganizationMember: {
+    __typename?: 'OrganizationMember';
+    id: string;
+    organizationId: string;
+    userId: string;
+    role: OrganizationRole;
+    createdAt: string;
+  };
+};
+
+export type RemoveOrganizationMemberMutationVariables = Exact<{
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+}>;
+
+export type RemoveOrganizationMemberMutation = {
+  __typename?: 'Mutation';
+  removeOrganizationMember: boolean;
+};
+
+export type UpdateMemberRoleMutationVariables = Exact<{
+  organizationId: Scalars['ID']['input'];
+  userId: Scalars['ID']['input'];
+  role: OrganizationRole;
+}>;
+
+export type UpdateMemberRoleMutation = {
+  __typename?: 'Mutation';
+  updateMemberRole?: {
+    __typename?: 'OrganizationMember';
+    id: string;
+    organizationId: string;
+    userId: string;
+    role: OrganizationRole;
+    createdAt: string;
+  } | null;
 };
 
 export type CreateThreadMutationVariables = Exact<{
@@ -488,6 +683,67 @@ export type HealthCheckQueryVariables = Exact<{ [key: string]: never }>;
 
 export type HealthCheckQuery = { __typename?: 'Query'; health: string };
 
+export type GetOrganizationsQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetOrganizationsQuery = {
+  __typename?: 'Query';
+  organizations: Array<{
+    __typename?: 'Organization';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    ownerId?: string | null;
+    memberCount: number;
+    spaceCount: number;
+    threadCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetOrganizationQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type GetOrganizationQuery = {
+  __typename?: 'Query';
+  organization?: {
+    __typename?: 'Organization';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    ownerId?: string | null;
+    memberCount: number;
+    spaceCount: number;
+    threadCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type GetOrganizationMembersQueryVariables = Exact<{
+  organizationId: Scalars['ID']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetOrganizationMembersQuery = {
+  __typename?: 'Query';
+  organizationMembers: Array<{
+    __typename?: 'OrganizationMember';
+    id: string;
+    organizationId: string;
+    userId: string;
+    role: OrganizationRole;
+    createdAt: string;
+  }>;
+};
+
 export type GetThreadsQueryVariables = Exact<{
   spaceId?: InputMaybe<Scalars['ID']['input']>;
   organizationId?: InputMaybe<Scalars['ID']['input']>;
@@ -654,6 +910,289 @@ export type GetUserByEmailQuery = {
     updatedAt: string;
   } | null;
 };
+
+export const CreateOrganizationDocument = `
+    mutation CreateOrganization($input: CreateOrganizationInput!) {
+  createOrganization(input: $input) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useCreateOrganizationMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    CreateOrganizationMutation,
+    TError,
+    CreateOrganizationMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    CreateOrganizationMutation,
+    TError,
+    CreateOrganizationMutationVariables,
+    TContext
+  >({
+    mutationKey: ['CreateOrganization'],
+    mutationFn: (variables?: CreateOrganizationMutationVariables) =>
+      graphqlRequestFetcher<
+        CreateOrganizationMutation,
+        CreateOrganizationMutationVariables
+      >(CreateOrganizationDocument, variables)(),
+    ...options,
+  });
+};
+
+useCreateOrganizationMutation.fetcher = (
+  variables: CreateOrganizationMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    CreateOrganizationMutation,
+    CreateOrganizationMutationVariables
+  >(CreateOrganizationDocument, variables, options);
+
+export const UpdateOrganizationDocument = `
+    mutation UpdateOrganization($id: ID!, $input: UpdateOrganizationInput!) {
+  updateOrganization(id: $id, input: $input) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useUpdateOrganizationMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    UpdateOrganizationMutation,
+    TError,
+    UpdateOrganizationMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    UpdateOrganizationMutation,
+    TError,
+    UpdateOrganizationMutationVariables,
+    TContext
+  >({
+    mutationKey: ['UpdateOrganization'],
+    mutationFn: (variables?: UpdateOrganizationMutationVariables) =>
+      graphqlRequestFetcher<
+        UpdateOrganizationMutation,
+        UpdateOrganizationMutationVariables
+      >(UpdateOrganizationDocument, variables)(),
+    ...options,
+  });
+};
+
+useUpdateOrganizationMutation.fetcher = (
+  variables: UpdateOrganizationMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    UpdateOrganizationMutation,
+    UpdateOrganizationMutationVariables
+  >(UpdateOrganizationDocument, variables, options);
+
+export const DeleteOrganizationDocument = `
+    mutation DeleteOrganization($id: ID!) {
+  deleteOrganization(id: $id)
+}
+    `;
+
+export const useDeleteOrganizationMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    DeleteOrganizationMutation,
+    TError,
+    DeleteOrganizationMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    DeleteOrganizationMutation,
+    TError,
+    DeleteOrganizationMutationVariables,
+    TContext
+  >({
+    mutationKey: ['DeleteOrganization'],
+    mutationFn: (variables?: DeleteOrganizationMutationVariables) =>
+      graphqlRequestFetcher<
+        DeleteOrganizationMutation,
+        DeleteOrganizationMutationVariables
+      >(DeleteOrganizationDocument, variables)(),
+    ...options,
+  });
+};
+
+useDeleteOrganizationMutation.fetcher = (
+  variables: DeleteOrganizationMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    DeleteOrganizationMutation,
+    DeleteOrganizationMutationVariables
+  >(DeleteOrganizationDocument, variables, options);
+
+export const AddOrganizationMemberDocument = `
+    mutation AddOrganizationMember($input: AddOrganizationMemberInput!) {
+  addOrganizationMember(input: $input) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}
+    `;
+
+export const useAddOrganizationMemberMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    AddOrganizationMemberMutation,
+    TError,
+    AddOrganizationMemberMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    AddOrganizationMemberMutation,
+    TError,
+    AddOrganizationMemberMutationVariables,
+    TContext
+  >({
+    mutationKey: ['AddOrganizationMember'],
+    mutationFn: (variables?: AddOrganizationMemberMutationVariables) =>
+      graphqlRequestFetcher<
+        AddOrganizationMemberMutation,
+        AddOrganizationMemberMutationVariables
+      >(AddOrganizationMemberDocument, variables)(),
+    ...options,
+  });
+};
+
+useAddOrganizationMemberMutation.fetcher = (
+  variables: AddOrganizationMemberMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    AddOrganizationMemberMutation,
+    AddOrganizationMemberMutationVariables
+  >(AddOrganizationMemberDocument, variables, options);
+
+export const RemoveOrganizationMemberDocument = `
+    mutation RemoveOrganizationMember($organizationId: ID!, $userId: ID!) {
+  removeOrganizationMember(organizationId: $organizationId, userId: $userId)
+}
+    `;
+
+export const useRemoveOrganizationMemberMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    RemoveOrganizationMemberMutation,
+    TError,
+    RemoveOrganizationMemberMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    RemoveOrganizationMemberMutation,
+    TError,
+    RemoveOrganizationMemberMutationVariables,
+    TContext
+  >({
+    mutationKey: ['RemoveOrganizationMember'],
+    mutationFn: (variables?: RemoveOrganizationMemberMutationVariables) =>
+      graphqlRequestFetcher<
+        RemoveOrganizationMemberMutation,
+        RemoveOrganizationMemberMutationVariables
+      >(RemoveOrganizationMemberDocument, variables)(),
+    ...options,
+  });
+};
+
+useRemoveOrganizationMemberMutation.fetcher = (
+  variables: RemoveOrganizationMemberMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    RemoveOrganizationMemberMutation,
+    RemoveOrganizationMemberMutationVariables
+  >(RemoveOrganizationMemberDocument, variables, options);
+
+export const UpdateMemberRoleDocument = `
+    mutation UpdateMemberRole($organizationId: ID!, $userId: ID!, $role: OrganizationRole!) {
+  updateMemberRole(organizationId: $organizationId, userId: $userId, role: $role) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}
+    `;
+
+export const useUpdateMemberRoleMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    UpdateMemberRoleMutation,
+    TError,
+    UpdateMemberRoleMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    UpdateMemberRoleMutation,
+    TError,
+    UpdateMemberRoleMutationVariables,
+    TContext
+  >({
+    mutationKey: ['UpdateMemberRole'],
+    mutationFn: (variables?: UpdateMemberRoleMutationVariables) =>
+      graphqlRequestFetcher<
+        UpdateMemberRoleMutation,
+        UpdateMemberRoleMutationVariables
+      >(UpdateMemberRoleDocument, variables)(),
+    ...options,
+  });
+};
+
+useUpdateMemberRoleMutation.fetcher = (
+  variables: UpdateMemberRoleMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    UpdateMemberRoleMutation,
+    UpdateMemberRoleMutationVariables
+  >(UpdateMemberRoleDocument, variables, options);
 
 export const CreateThreadDocument = `
     mutation CreateThread($input: CreateThreadInput!) {
@@ -1126,6 +1665,178 @@ useHealthCheckQuery.fetcher = (
     variables,
     options
   );
+
+export const GetOrganizationsDocument = `
+    query GetOrganizations($limit: Int, $offset: Int) {
+  organizations(limit: $limit, offset: $offset) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetOrganizationsQuery = <
+  TData = GetOrganizationsQuery,
+  TError = Error,
+>(
+  variables?: GetOrganizationsQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetOrganizationsQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<
+      GetOrganizationsQuery,
+      TError,
+      TData
+    >['queryKey'];
+  }
+) => {
+  return useQuery<GetOrganizationsQuery, TError, TData>({
+    queryKey:
+      variables === undefined
+        ? ['GetOrganizations']
+        : ['GetOrganizations', variables],
+    queryFn: graphqlRequestFetcher<
+      GetOrganizationsQuery,
+      GetOrganizationsQueryVariables
+    >(GetOrganizationsDocument, variables),
+    ...options,
+  });
+};
+
+useGetOrganizationsQuery.getKey = (
+  variables?: GetOrganizationsQueryVariables
+) =>
+  variables === undefined
+    ? ['GetOrganizations']
+    : ['GetOrganizations', variables];
+
+useGetOrganizationsQuery.fetcher = (
+  variables?: GetOrganizationsQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetOrganizationsQuery, GetOrganizationsQueryVariables>(
+    GetOrganizationsDocument,
+    variables,
+    options
+  );
+
+export const GetOrganizationDocument = `
+    query GetOrganization($id: ID!) {
+  organization(id: $id) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetOrganizationQuery = <
+  TData = GetOrganizationQuery,
+  TError = Error,
+>(
+  variables: GetOrganizationQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetOrganizationQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<GetOrganizationQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<GetOrganizationQuery, TError, TData>({
+    queryKey: ['GetOrganization', variables],
+    queryFn: graphqlRequestFetcher<
+      GetOrganizationQuery,
+      GetOrganizationQueryVariables
+    >(GetOrganizationDocument, variables),
+    ...options,
+  });
+};
+
+useGetOrganizationQuery.getKey = (variables: GetOrganizationQueryVariables) => [
+  'GetOrganization',
+  variables,
+];
+
+useGetOrganizationQuery.fetcher = (
+  variables: GetOrganizationQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetOrganizationQuery, GetOrganizationQueryVariables>(
+    GetOrganizationDocument,
+    variables,
+    options
+  );
+
+export const GetOrganizationMembersDocument = `
+    query GetOrganizationMembers($organizationId: ID!, $limit: Int, $offset: Int) {
+  organizationMembers(
+    organizationId: $organizationId
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}
+    `;
+
+export const useGetOrganizationMembersQuery = <
+  TData = GetOrganizationMembersQuery,
+  TError = Error,
+>(
+  variables: GetOrganizationMembersQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetOrganizationMembersQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<
+      GetOrganizationMembersQuery,
+      TError,
+      TData
+    >['queryKey'];
+  }
+) => {
+  return useQuery<GetOrganizationMembersQuery, TError, TData>({
+    queryKey: ['GetOrganizationMembers', variables],
+    queryFn: graphqlRequestFetcher<
+      GetOrganizationMembersQuery,
+      GetOrganizationMembersQueryVariables
+    >(GetOrganizationMembersDocument, variables),
+    ...options,
+  });
+};
+
+useGetOrganizationMembersQuery.getKey = (
+  variables: GetOrganizationMembersQueryVariables
+) => ['GetOrganizationMembers', variables];
+
+useGetOrganizationMembersQuery.fetcher = (
+  variables: GetOrganizationMembersQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    GetOrganizationMembersQuery,
+    GetOrganizationMembersQueryVariables
+  >(GetOrganizationMembersDocument, variables, options);
 
 export const GetThreadsDocument = `
     query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {

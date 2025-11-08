@@ -1,0 +1,57 @@
+mutation CreateOrganization($input: CreateOrganizationInput!) {
+  createOrganization(input: $input) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateOrganization($id: ID!, $input: UpdateOrganizationInput!) {
+  updateOrganization(id: $id, input: $input) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteOrganization($id: ID!) {
+  deleteOrganization(id: $id)
+}
+
+mutation AddOrganizationMember($input: AddOrganizationMemberInput!) {
+  addOrganizationMember(input: $input) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}
+
+mutation RemoveOrganizationMember($organizationId: ID!, $userId: ID!) {
+  removeOrganizationMember(organizationId: $organizationId, userId: $userId)
+}
+
+mutation UpdateMemberRole($organizationId: ID!, $userId: ID!, $role: OrganizationRole!) {
+  updateMemberRole(organizationId: $organizationId, userId: $userId, role: $role) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}

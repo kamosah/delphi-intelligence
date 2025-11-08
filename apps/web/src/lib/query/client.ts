@@ -5,14 +5,10 @@
  * - Import queryKeys from this file
  * - Use in React Query hooks: useQuery({ queryKey: queryKeys.spaces.all })
  * - Use for invalidation: queryClient.invalidateQueries({ queryKey: queryKeys.spaces.all })
+ *
+ * Note: Auth is handled via REST endpoints and stored in Zustand, not React Query.
  */
 export const queryKeys = {
-  // Auth queries
-  auth: {
-    all: ['auth'] as const,
-    user: () => [...queryKeys.auth.all, 'user'] as const,
-  },
-
   // Spaces queries
   spaces: {
     all: ['spaces'] as const,
@@ -41,5 +37,27 @@ export const queryKeys = {
       [...queryKeys.threads.lists(), filters] as const,
     details: () => [...queryKeys.threads.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.threads.details(), id] as const,
+  },
+
+  // Organizations queries
+  organizations: {
+    all: ['organizations'] as const,
+    lists: () => [...queryKeys.organizations.all, 'list'] as const,
+    list: (filters?: Record<string, any>) =>
+      [...queryKeys.organizations.lists(), filters] as const,
+    details: () => [...queryKeys.organizations.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.organizations.details(), id] as const,
+  },
+
+  // Organization members queries
+  organizationMembers: {
+    all: ['organizationMembers'] as const,
+    lists: () => [...queryKeys.organizationMembers.all, 'list'] as const,
+    list: (organizationId: string, filters?: Record<string, any>) =>
+      [
+        ...queryKeys.organizationMembers.lists(),
+        organizationId,
+        filters,
+      ] as const,
   },
 } as const;

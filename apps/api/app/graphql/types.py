@@ -8,6 +8,10 @@ import strawberry
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
+from app.models.organization import Organization as OrganizationModel
+from app.models.organization_member import (
+    OrganizationMember as OrganizationMemberModel,
+)
 from app.models.space import Space as SpaceModel
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
@@ -56,6 +60,96 @@ class UpdateUserInput:
     full_name: str | None = None
     avatar_url: str | None = None
     bio: str | None = None
+
+
+@strawberry.enum
+class OrganizationRole(str, Enum):
+    """Enum for organization member roles."""
+
+    OWNER = "owner"
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+
+@strawberry.type
+class Organization:
+    """GraphQL Organization type."""
+
+    id: strawberry.ID
+    name: str
+    slug: str
+    description: str | None
+    owner_id: strawberry.ID | None
+    member_count: int
+    space_count: int
+    thread_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, organization: OrganizationModel) -> "Organization":
+        """Convert SQLAlchemy Organization model to GraphQL Organization type."""
+        return cls(
+            id=strawberry.ID(str(organization.id)),
+            name=organization.name,
+            slug=organization.slug,
+            description=organization.description,
+            owner_id=strawberry.ID(str(organization.owner_id)) if organization.owner_id else None,
+            member_count=organization.member_count,
+            space_count=organization.space_count,
+            thread_count=organization.thread_count,
+            created_at=organization.created_at,
+            updated_at=organization.updated_at,
+        )
+
+
+@strawberry.type
+class OrganizationMember:
+    """GraphQL OrganizationMember type."""
+
+    id: strawberry.ID
+    organization_id: strawberry.ID
+    user_id: strawberry.ID
+    role: OrganizationRole
+    created_at: datetime
+
+    @classmethod
+    def from_model(cls, member: OrganizationMemberModel) -> "OrganizationMember":
+        """Convert SQLAlchemy OrganizationMember model to GraphQL OrganizationMember type."""
+        return cls(
+            id=strawberry.ID(str(member.id)),
+            organization_id=strawberry.ID(str(member.organization_id)),
+            user_id=strawberry.ID(str(member.user_id)),
+            role=OrganizationRole[member.organization_role.name],
+            created_at=member.created_at,
+        )
+
+
+@strawberry.input
+class CreateOrganizationInput:
+    """Input type for creating a new organization."""
+
+    name: str
+    slug: str | None = None
+    description: str | None = None
+
+
+@strawberry.input
+class UpdateOrganizationInput:
+    """Input type for updating an existing organization."""
+
+    name: str | None = None
+    description: str | None = None
+
+
+@strawberry.input
+class AddOrganizationMemberInput:
+    """Input type for adding a member to an organization."""
+
+    organization_id: strawberry.ID
+    user_id: strawberry.ID
+    role: OrganizationRole = OrganizationRole.MEMBER
 
 
 @strawberry.type

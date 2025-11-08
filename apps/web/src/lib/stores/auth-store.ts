@@ -11,6 +11,17 @@ export interface User {
   email_confirmed?: boolean;
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  ownerId?: string | null;
+  memberCount: number;
+  spaceCount: number;
+  threadCount: number;
+}
+
 interface AuthState {
   // Authentication state
   user: User | null;
@@ -19,10 +30,14 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 
+  // Organization state
+  currentOrganization: Organization | null;
+
   // Actions
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
+  setCurrentOrganization: (organization: Organization | null) => void;
   logout: () => void;
   clearAuth: () => void;
 }
@@ -37,6 +52,7 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
+        currentOrganization: null,
 
         // Actions
         setTokens: (accessToken, refreshToken) =>
@@ -50,12 +66,16 @@ export const useAuthStore = create<AuthState>()(
 
         setLoading: (loading) => set({ isLoading: loading }),
 
+        setCurrentOrganization: (organization) =>
+          set({ currentOrganization: organization }),
+
         logout: () =>
           set({
             user: null,
             accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
+            currentOrganization: null,
           }),
 
         clearAuth: () =>
@@ -64,6 +84,7 @@ export const useAuthStore = create<AuthState>()(
             accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
+            currentOrganization: null,
           }),
       }),
       {
@@ -73,6 +94,7 @@ export const useAuthStore = create<AuthState>()(
           accessToken: state.accessToken,
           refreshToken: state.refreshToken,
           isAuthenticated: state.isAuthenticated,
+          currentOrganization: state.currentOrganization,
         }),
       }
     ),
