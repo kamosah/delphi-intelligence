@@ -270,6 +270,80 @@ export function DatabaseConnectionCard({ connection }) {
 
 See [Component Development Guide](./docs/guides/component-development.md) and [hex-component-mapping.md](./docs/guides/hex-component-mapping.md) for complete best practices.
 
+### Component Organization Patterns
+
+For **all complex components** (tables, navigation, forms, modals, etc.), follow these conventions:
+
+**Core Principles**:
+
+1. **Feature-based colocation** - Keep related code together in one directory
+2. **Shared types in packages** - Common interfaces in `@olympus/types` for reuse
+3. **Composable components** - Build smaller, reusable pieces
+4. **Colocated utilities** - Keep helper functions with components
+5. **Configuration-driven** - Separate data from UI logic
+
+**File Organization**:
+
+```
+apps/web/src/components/[feature]/
+├── [Feature].tsx                    # Main component (PascalCase)
+├── [Feature]Item.tsx                # Sub-component (PascalCase)
+├── [feature]-config.ts              # Configuration data (kebab-case)
+├── [feature]-utils.ts               # Utility functions (kebab-case)
+└── [feature]-actions.tsx            # Extracted actions (kebab-case)
+
+packages/types/src/
+├── [feature].ts                     # Shared types
+└── index.ts                         # Re-export
+```
+
+**Naming Conventions**:
+
+- **Components**: PascalCase (e.g., `NavItem.tsx`, `OrganizationMembers.tsx`)
+- **Configs**: kebab-case (e.g., `sidebar-navigation.ts`, `table-columns.ts`)
+- **Utils**: kebab-case (e.g., `sidebar-utils.ts`, `form-validation.ts`)
+- **Shared Types**: In `@olympus/types` (e.g., `navigation.ts`, `forms.ts`)
+
+**When to Extract**:
+
+- **Configs**: Arrays/objects >20 lines
+- **Utils**: Functions used 2+ times or complex logic
+- **Components**: Sections >50 lines or repeated patterns
+- **Types**: Interfaces used across multiple apps
+
+**Example - Navigation**:
+
+```
+apps/web/src/components/layout/
+├── AppSidebar.tsx (169 lines - main component)
+├── NavItem.tsx (reusable nav item)
+├── NavSection.tsx (reusable nav section)
+├── sidebar-navigation.ts (DASHBOARD_NAV_ITEMS config)
+└── sidebar-utils.ts (resolveHref, isNavItemActive)
+
+packages/types/src/navigation.ts (NavItem, NavSection types)
+```
+
+**Example - Tables**:
+
+```
+apps/web/src/components/organizations/
+├── OrganizationMembers.tsx (main table)
+├── organization-members-columns.tsx (column definitions)
+└── organization-members-row-actions.tsx (extracted actions)
+
+packages/types/src/tables.ts (future shared table types)
+```
+
+**Rationale**:
+
+- Everything related to a feature in one place (easy to find/modify)
+- Shared types enable reuse across apps (web, mobile, admin)
+- Composable components reduce duplication and improve maintainability
+- Hybrid naming (PascalCase vs kebab-case) provides semantic clarity
+
+See [Frontend Component Organization Guide](./docs/guides/frontend-component-organization.md) for complete patterns, examples, and migration strategies. Also see [Table Component Patterns](./docs/guides/table-component-patterns.md) for table-specific details.
+
 ## Backend Development
 
 ### Application Structure
@@ -335,6 +409,8 @@ For in-depth information, refer to these topic-specific guides:
 - **[Development Commands](./docs/guides/development-commands.md)** - Complete command reference for frontend, backend, and database operations
 - **[Environment Setup](./docs/guides/environment-setup.md)** - Environment variables, MCP server configuration, database setup
 - **[Component Development](./docs/guides/component-development.md)** - Component architecture, creation rules, best practices, Storybook
+- **[Frontend Component Organization](./docs/guides/frontend-component-organization.md)** - **General patterns for all complex components** (tables, navigation, forms, modals) - colocation, composability, shared types
+- **[Table Component Patterns](./docs/guides/table-component-patterns.md)** - TanStack Table organization, naming conventions, file structure, best practices
 
 ### Architecture Guides
 
@@ -441,23 +517,43 @@ See [Frontend Guide - GraphQL Queries & React Query Hooks](./docs/guides/fronten
 
 ### GitHub Operations
 
-**IMPORTANT**: Use GitHub MCP tools instead of `gh` CLI for all GitHub operations:
+**Primary Method**: Use `gh` CLI for all GitHub operations (installed and authenticated):
 
-- **PR operations**: Use `mcp__github__get_pull_request`, `mcp__github__get_pull_request_comments`, `mcp__github__create_pull_request`, etc.
-- **Issue management**: Use `mcp__github__create_issue`, `mcp__github__list_issues`, `mcp__github__get_issue`, etc.
-- **Repository operations**: Use `mcp__github__get_file_contents`, `mcp__github__push_files`, `mcp__github__create_branch`, etc.
-- **Code review**: Use `mcp__github__create_pull_request_review`, `mcp__github__get_pull_request_files`, etc.
+```bash
+# PR operations
+gh pr view 14                              # View PR details
+gh pr comment 14 --body "Comment text"     # Add comment
+gh pr list                                 # List PRs
+gh pr create --title "Title" --body "Body" # Create PR
+gh pr diff 14                              # View PR diff
+gh pr checks 14                            # View PR checks
 
-**Rationale**: GitHub MCP provides better integration and doesn't require `gh` CLI to be installed in the Docker environment.
+# Issue operations
+gh issue create --title "Title" --body "Body"  # Create issue
+gh issue list                                  # List issues
+gh issue view 14                               # View issue
+gh issue comment 14 --body "Comment text"      # Add comment
+
+# Repository operations
+gh repo view                               # View repository
+gh api repos/kamosah/olympus/pulls/14      # API access
+```
 
 **Example PR review workflow**:
 
 ```bash
 # Fetch PR details
-mcp__github__get_pull_request(owner="kamosah", repo="olympus", pull_number=11)
+gh pr view 14
 
-# Get PR comments
-mcp__github__get_pull_request_comments(owner="kamosah", repo="olympus", pull_number=11)
+# Get PR diff and comments
+gh pr diff 14
+gh pr view 14 --comments
+
+# Add review comment
+gh pr comment 14 --body "Review comment text"
+
+# Check PR status
+gh pr checks 14
 ```
 
 ### GraphQL Workflow

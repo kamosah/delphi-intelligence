@@ -200,6 +200,7 @@ export type OrganizationMember = {
   id: Scalars['ID']['output'];
   organizationId: Scalars['ID']['output'];
   role: OrganizationRole;
+  user?: Maybe<User>;
   userId: Scalars['ID']['output'];
 };
 
@@ -734,6 +735,13 @@ export type GetOrganizationMembersQuery = {
     userId: string;
     role: OrganizationRole;
     createdAt: string;
+    user?: {
+      __typename?: 'User';
+      id: string;
+      email: string;
+      fullName?: string | null;
+      avatarUrl?: string | null;
+    } | null;
   }>;
 };
 

@@ -4,6 +4,7 @@ import logging
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 import strawberry
 
 from app.db.session import get_session
@@ -724,13 +725,14 @@ class Query:
                 # Get organization members
                 stmt = (
                     select(OrganizationMemberModel)
+                    .options(joinedload(OrganizationMemberModel.user))
                     .where(OrganizationMemberModel.organization_id == org_id)
                     .limit(limit)
                     .offset(offset)
                 )
 
                 result = await session.execute(stmt)
-                member_models = result.scalars().all()
+                member_models = result.unique().scalars().all()
 
                 return [OrganizationMember.from_model(member) for member in member_models]
 

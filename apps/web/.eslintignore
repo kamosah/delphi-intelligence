@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+.next
+out
+dist
+
+# Generated files
+src/lib/api/generated.ts
+src/lib/api/hooks.generated.ts
+
+# Build artifacts
+.turbo
+storybook-static
+build
+coverage
+
+# Environment files
+.env
+.env.local
+.env.production.local
+.env.development.local

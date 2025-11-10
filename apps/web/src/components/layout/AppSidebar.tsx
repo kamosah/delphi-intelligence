@@ -1,37 +1,33 @@
 'use client';
 
+import { OrganizationSwitcher } from '@/components/layout/OrganizationSwitcher';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
-import {
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@olympus/ui';
+import { TooltipProvider } from '@olympus/ui';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Database, FileText, MessageSquare, Settings } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { OrganizationSwitcher } from '@/components/layout/OrganizationSwitcher';
-
-interface NavItem {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  href: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { icon: Database, label: 'Spaces', href: '/dashboard/spaces' },
-  { icon: MessageSquare, label: 'Threads', href: '/dashboard/threads' },
-  { icon: FileText, label: 'Documents', href: '/dashboard/documents' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
-];
+import { NavItem } from './NavItem';
+import { NavSection } from './NavSection';
+import {
+  DASHBOARD_NAV_ITEMS,
+  SETTINGS_NAV_ITEM,
+  SETTINGS_NAV_SECTIONS,
+} from './sidebar-navigation';
+import { isNavItemActive, resolveHref } from './sidebar-utils';
 
 export function AppSidebar() {
+  const pathname = usePathname();
   const { sidebarIconMode, sidebarVisible, toggleSidebarIconMode } =
     useUIStore();
+  const { currentOrganization } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+
+  const isSettingsRoute = pathname.startsWith('/settings');
+  const orgId = currentOrganization?.id;
 
   // Only render after hydration to prevent flash of wrong state
   useEffect(() => {
@@ -69,62 +65,93 @@ export function AppSidebar() {
               ease: 'easeInOut',
             }}
           >
-            {/* Organization Switcher */}
-            <div className="p-4 border-b border-gray-200">
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{
-                  width: sidebarIconMode ? 0 : 'auto',
-                  opacity: sidebarIconMode ? 0 : 1,
-                }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                {!sidebarIconMode && <OrganizationSwitcher />}
-              </motion.div>
+            {/* Header: Back button (Settings) or Org Switcher (Dashboard) */}
+            <div className="border-b border-gray-200 p-4">
+              {isSettingsRoute ? (
+                // Settings: Back button
+                <motion.div
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{
+                    width: sidebarIconMode ? 0 : 'auto',
+                    opacity: sidebarIconMode ? 0 : 1,
+                  }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  {!sidebarIconMode && (
+                    <Link
+                      href="/dashboard"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Settings
+                    </Link>
+                  )}
+                </motion.div>
+              ) : (
+                // Dashboard: Organization Switcher
+                <motion.div
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{
+                    width: sidebarIconMode ? 0 : 'auto',
+                    opacity: sidebarIconMode ? 0 : 1,
+                  }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  {!sidebarIconMode && <OrganizationSwitcher />}
+                </motion.div>
+              )}
             </div>
 
-            {/* Navigation Items */}
-            <nav className="space-y-2 p-4">
-              {NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
+            {/* Navigation */}
+            <nav className="overflow-y-auto p-4">
+              {isSettingsRoute ? (
+                // Settings Navigation (grouped sections)
+                <div className="space-y-6">
+                  {SETTINGS_NAV_SECTIONS.map((section) => (
+                    <NavSection
+                      key={section.id}
+                      section={section}
+                      iconMode={sidebarIconMode}
+                      orgId={orgId}
+                    />
+                  ))}
+                </div>
+              ) : (
+                // Dashboard Navigation (flat list + Settings link)
+                <div className="space-y-2">
+                  {DASHBOARD_NAV_ITEMS.map((item) => {
+                    const href = resolveHref(item.href, orgId);
+                    const isActive = isNavItemActive(item, pathname, orgId);
 
-                return (
-                  <Tooltip key={item.label} delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size={sidebarIconMode ? 'icon' : 'default'}
-                        className={cn(
-                          'w-full',
-                          !sidebarIconMode && 'justify-start gap-3'
-                        )}
-                        asChild
-                      >
-                        <Link href={item.href}>
-                          <Icon className="h-5 w-5 shrink-0" />
-                          <motion.span
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{
-                              width: sidebarIconMode ? 0 : 'auto',
-                              opacity: sidebarIconMode ? 0 : 1,
-                            }}
-                            transition={{ duration: 0.2, ease: 'easeInOut' }}
-                            className="overflow-hidden whitespace-nowrap"
-                          >
-                            {item.label}
-                          </motion.span>
-                        </Link>
-                      </Button>
-                    </TooltipTrigger>
-                    {sidebarIconMode && (
-                      <TooltipContent side="right">
-                        <p>{item.label}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                );
-              })}
+                    return (
+                      <NavItem
+                        key={item.id}
+                        item={item}
+                        isActive={isActive}
+                        iconMode={sidebarIconMode}
+                        href={href}
+                      />
+                    );
+                  })}
+
+                  {/* Divider */}
+                  <div className="my-2 h-px bg-gray-200" />
+
+                  {/* Settings Link */}
+                  <NavItem
+                    item={SETTINGS_NAV_ITEM}
+                    isActive={false}
+                    iconMode={sidebarIconMode}
+                    href={
+                      orgId
+                        ? resolveHref(SETTINGS_NAV_ITEM.href, orgId)
+                        : '/settings/profile'
+                    }
+                  />
+                </div>
+              )}
             </nav>
 
             {/* Clickable space to toggle icon-only mode */}

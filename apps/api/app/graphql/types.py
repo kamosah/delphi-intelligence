@@ -113,6 +113,7 @@ class OrganizationMember:
     user_id: strawberry.ID
     role: OrganizationRole
     created_at: datetime
+    user: "User | None"
 
     @classmethod
     def from_model(cls, member: OrganizationMemberModel) -> "OrganizationMember":
@@ -123,6 +124,7 @@ class OrganizationMember:
             user_id=strawberry.ID(str(member.user_id)),
             role=OrganizationRole[member.organization_role.name],
             created_at=member.created_at,
+            user=User.from_model(member.user) if member.user else None,
         )
 
 

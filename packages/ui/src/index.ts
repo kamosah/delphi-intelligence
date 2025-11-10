@@ -25,6 +25,7 @@ export {
   CardHeader,
   CardTitle,
 } from './components/card';
+export { Checkbox } from './components/checkbox';
 export {
   Dialog,
   DialogClose,
@@ -57,6 +58,7 @@ export {
 export {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -81,7 +83,18 @@ export {
 } from './components/select';
 export { Separator } from './components/separator';
 export { Skeleton } from './components/skeleton';
-export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/tabs';
+export { Switch } from './components/switch';
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/table';
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/tabs';
 export { Textarea, type TextareaProps } from './components/textarea';
 export {
   Tooltip,

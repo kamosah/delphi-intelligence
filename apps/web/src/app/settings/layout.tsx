@@ -1,10 +1,9 @@
 'use client';
 
-import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 
-export default function DashboardLayout({
+export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -15,14 +14,11 @@ export default function DashboardLayout({
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* AppSidebar - Toggleable navigation (pushes content) */}
+        {/* AppSidebar - Context-aware (shows settings navigation) */}
         <AppSidebar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto p-8">
-          <EmailVerificationBanner />
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto p-8">{children}</main>
       </div>
     </div>
   );

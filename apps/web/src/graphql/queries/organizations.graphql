@@ -35,5 +35,11 @@ query GetOrganizationMembers($organizationId: ID!, $limit: Int, $offset: Int) {
     userId
     role
     createdAt
+    user {
+      id
+      email
+      fullName
+      avatarUrl
+    }
   }
 }
