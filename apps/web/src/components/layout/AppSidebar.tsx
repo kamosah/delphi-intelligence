@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Database, FileText, MessageSquare, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { OrganizationSwitcher } from '@/components/layout/OrganizationSwitcher';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -68,6 +69,21 @@ export function AppSidebar() {
               ease: 'easeInOut',
             }}
           >
+            {/* Organization Switcher */}
+            <div className="p-4 border-b border-gray-200">
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{
+                  width: sidebarIconMode ? 0 : 'auto',
+                  opacity: sidebarIconMode ? 0 : 1,
+                }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                {!sidebarIconMode && <OrganizationSwitcher />}
+              </motion.div>
+            </div>
+
             {/* Navigation Items */}
             <nav className="space-y-2 p-4">
               {NAV_ITEMS.map((item) => {

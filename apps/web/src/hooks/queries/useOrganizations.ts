@@ -8,7 +8,6 @@ import {
   useCreateOrganizationMutation,
   useUpdateOrganizationMutation,
   useDeleteOrganizationMutation,
-  type GetOrganizationsQueryVariables,
   type CreateOrganizationMutationVariables,
   type UpdateOrganizationMutationVariables,
   type DeleteOrganizationMutationVariables,
