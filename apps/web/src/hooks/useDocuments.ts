@@ -72,7 +72,6 @@ export function useUploadDocument() {
       // Add the uploaded document with 'uploaded' status to DocumentList
       // SSE will handle transitions: uploaded → processing → processed
       const fileId = variables.fileId || variables.file.name;
-      const queryKey = queryKeys.documents.list(variables.space_id);
 
       // Transform REST API response (snake_case) to match GraphQL format (camelCase)
       const document = {
@@ -92,30 +91,33 @@ export function useUploadDocument() {
         updatedAt: data.updated_at,
       };
 
-      // Immediately add the real document to the list with 'uploaded' status
-      queryClient.setQueryData(queryKey, (oldData: any) => {
-        if (!oldData) {
-          return { documents: [document] };
+      // Optimistically add document to ALL matching document list queries for this space
+      queryClient.setQueriesData(
+        { queryKey: [...queryKeys.documents.lists(), variables.space_id] },
+        (oldData: any) => {
+          if (!oldData) {
+            return { documents: [document] };
+          }
+
+          // Check if document already exists (shouldn't, but defensive)
+          const exists = (oldData.documents || []).some(
+            (doc: any) => doc.id === document.id
+          );
+
+          if (exists) {
+            return oldData;
+          }
+
+          return {
+            documents: [document, ...(oldData.documents || [])],
+          };
         }
+      );
 
-        // Check if document already exists (shouldn't, but defensive)
-        const exists = (oldData.documents || []).some(
-          (doc: any) => doc.id === document.id
-        );
-
-        if (exists) {
-          return oldData;
-        }
-
-        return {
-          documents: [document, ...(oldData.documents || [])],
-        };
-      });
-
-      // Invalidate to ensure we have the latest data
-      // This will pick up any server-side changes
+      // Invalidate to ensure we have the latest data from server
+      // This will refetch and pick up any server-side changes
       queryClient.invalidateQueries({
-        queryKey: queryKeys.documents.list(variables.space_id),
+        queryKey: [...queryKeys.documents.lists(), variables.space_id],
       });
 
       // Clear progress for this file
@@ -152,23 +154,33 @@ export function useUploadDocument() {
  * Returns documents with camelCase fields (GraphQL convention).
  *
  * @example
- * const { documents, isLoading } = useDocuments(spaceId);
+ * const { documents, isLoading } = useDocuments({ spaceId });
+ *
+ * @example
+ * const { documents, isLoading } = useDocuments({ limit: 3 }); // All accessible documents, top 3
  *
  * @example
  * const { documents, isLoading } = useDocuments(); // All accessible documents
  */
-export function useDocuments(spaceId?: string) {
+export function useDocuments(options?: {
+  spaceId?: string;
+  limit?: number;
+  offset?: number;
+}) {
   const { accessToken } = useAuthStore();
+  const spaceId = options?.spaceId;
+  const limit = options?.limit ?? 100;
+  const offset = options?.offset ?? 0;
 
   const query = useGetDocumentsQuery(
     {
       spaceId: spaceId || null,
-      limit: 100,
-      offset: 0,
+      limit,
+      offset,
     },
     {
       enabled: !!accessToken,
-      queryKey: queryKeys.documents.list(spaceId || null),
+      queryKey: queryKeys.documents.list(spaceId || null, { limit, offset }),
     }
   );
 
@@ -238,42 +250,50 @@ export function useDeleteDocument() {
     },
     // Optimistically update the cache before mutation runs
     onMutate: async (variables) => {
-      const queryKey = queryKeys.documents.list(variables.spaceId);
+      const queryKeyPrefix = [
+        ...queryKeys.documents.lists(),
+        variables.spaceId,
+      ];
 
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: queryKeyPrefix });
 
-      // Snapshot the previous value for rollback
-      const previousDocuments = queryClient.getQueryData(queryKey);
-
-      // Optimistically remove the document from the cache
-      queryClient.setQueryData(queryKey, (oldData: any) => {
-        if (!oldData) return oldData;
-
-        return {
-          documents: (oldData.documents || []).filter(
-            (doc: any) => doc.id !== variables.documentId
-          ),
-        };
+      // Snapshot all matching queries for rollback
+      const previousQueries = queryClient.getQueriesData({
+        queryKey: queryKeyPrefix,
       });
 
-      // Return context object with the snapshot
-      return { previousDocuments };
+      // Optimistically remove the document from ALL matching cache entries
+      queryClient.setQueriesData(
+        { queryKey: queryKeyPrefix },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+
+          return {
+            documents: (oldData.documents || []).filter(
+              (doc: any) => doc.id !== variables.documentId
+            ),
+          };
+        }
+      );
+
+      // Return context object with the snapshots
+      return { previousQueries };
     },
     // Rollback on error
     onError: (error, variables, context) => {
-      // Restore the previous state
-      if (context?.previousDocuments) {
-        queryClient.setQueryData(
-          queryKeys.documents.list(variables.spaceId),
-          context.previousDocuments
-        );
+      // Restore all previous states
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
     },
     // Always refetch after error or success to ensure consistency
     onSettled: (data, error, variables) => {
+      // Invalidate all document list queries for this space
       queryClient.invalidateQueries({
-        queryKey: queryKeys.documents.list(variables.spaceId),
+        queryKey: [...queryKeys.documents.lists(), variables.spaceId],
       });
 
       // Remove from detail cache

@@ -60,4 +60,11 @@ export const queryKeys = {
         filters,
       ] as const,
   },
+
+  // Dashboard queries
+  dashboard: {
+    all: ['dashboard'] as const,
+    stats: (organizationId?: string | null) =>
+      [...queryKeys.dashboard.all, 'stats', organizationId] as const,
+  },
 } as const;

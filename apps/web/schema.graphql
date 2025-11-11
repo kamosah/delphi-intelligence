@@ -19,6 +19,7 @@ input CreateSpaceInput {
   description: String = null
   iconColor: String = null
   name: String!
+  organizationId: ID!
 }
 
 input CreateThreadInput {
@@ -35,6 +36,13 @@ input CreateUserInput {
   bio: String = null
   email: String!
   fullName: String = null
+}
+
+type DashboardStats {
+  threadsThisMonth: Int!
+  totalDocuments: Int!
+  totalSpaces: Int!
+  totalThreads: Int!
 }
 
 """Date with time (isoformat)"""
@@ -110,6 +118,7 @@ type OrganizationMember {
   id: ID!
   organizationId: ID!
   role: OrganizationRole!
+  user: User
   userId: ID!
 }
 
@@ -121,6 +130,7 @@ enum OrganizationRole {
 }
 
 type Query {
+  dashboardStats(organizationId: ID = null): DashboardStats!
   documents(limit: Int! = 100, offset: Int! = 0, spaceId: ID = null): [Document!]!
   health: String!
   organization(id: ID!): Organization

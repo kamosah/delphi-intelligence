@@ -45,6 +45,7 @@ export type CreateSpaceInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   iconColor?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+  organizationId: Scalars['ID']['input'];
 };
 
 export type CreateThreadInput = {
@@ -61,6 +62,14 @@ export type CreateUserInput = {
   bio?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
   fullName?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type DashboardStats = {
+  __typename?: 'DashboardStats';
+  threadsThisMonth: Scalars['Int']['output'];
+  totalDocuments: Scalars['Int']['output'];
+  totalSpaces: Scalars['Int']['output'];
+  totalThreads: Scalars['Int']['output'];
 };
 
 export type Document = {
@@ -213,6 +222,7 @@ export enum OrganizationRole {
 
 export type Query = {
   __typename?: 'Query';
+  dashboardStats: DashboardStats;
   documents: Array<Document>;
   health: Scalars['String']['output'];
   organization?: Maybe<Organization>;
@@ -226,6 +236,10 @@ export type Query = {
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
   users: Array<User>;
+};
+
+export type QueryDashboardStatsArgs = {
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type QueryDocumentsArgs = {
@@ -604,6 +618,21 @@ export type DeleteSpaceMutationVariables = Exact<{
 export type DeleteSpaceMutation = {
   __typename?: 'Mutation';
   deleteSpace: boolean;
+};
+
+export type GetDashboardStatsQueryVariables = Exact<{
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+export type GetDashboardStatsQuery = {
+  __typename?: 'Query';
+  dashboardStats: {
+    __typename?: 'DashboardStats';
+    totalDocuments: number;
+    totalSpaces: number;
+    totalThreads: number;
+    threadsThisMonth: number;
+  };
 };
 
 export type GetDocumentsQueryVariables = Exact<{

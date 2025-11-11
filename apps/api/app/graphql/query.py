@@ -1,9 +1,10 @@
 """GraphQL query resolvers."""
 
 import logging
+from datetime import datetime, UTC
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import extract, func, select
 from sqlalchemy.orm import joinedload
 import strawberry
 
@@ -17,6 +18,7 @@ from app.models.user import User as UserModel
 from app.services.vector_search_service import get_vector_search_service
 
 from .types import (
+    DashboardStats,
     Document,
     Organization,
     OrganizationMember,
@@ -741,3 +743,117 @@ class Query:
                 return []
 
         return []
+
+    @strawberry.field
+    async def dashboard_stats(
+        self,
+        info: strawberry.types.Info,
+        organization_id: strawberry.ID | None = None,
+    ) -> DashboardStats:
+        """
+        Get dashboard statistics for the authenticated user.
+
+        Performs efficient COUNT queries instead of loading all data.
+
+        Args:
+            organization_id: Optional organization ID to scope stats to a specific org
+
+        Returns:
+            Dashboard statistics including document, space, and thread counts
+
+        Authorization:
+            - Requires authentication
+            - Returns stats for accessible resources only
+
+        Example query:
+            query {
+              dashboardStats(organizationId: "org-uuid") {
+                totalDocuments
+                totalSpaces
+                totalThreads
+                threadsThisMonth
+              }
+            }
+        """
+        async for session in get_session():
+            # Get the authenticated user from the request context
+            request = info.context["request"]
+            user = getattr(request.state, "user", None)
+
+            if not user:
+                return DashboardStats(
+                    total_documents=0,
+                    total_spaces=0,
+                    total_threads=0,
+                    threads_this_month=0,
+                )
+
+            user_id = user.id
+            org_id = UUID(str(organization_id)) if organization_id else None
+
+            # Get accessible space IDs (where user is owner or member)
+            space_ids_stmt = (
+                select(SpaceModel.id)
+                .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                .distinct()
+            )
+            if org_id:
+                space_ids_stmt = space_ids_stmt.where(SpaceModel.organization_id == org_id)
+
+            space_result = await session.execute(space_ids_stmt)
+            space_ids = [row[0] for row in space_result.all()]
+
+            # Count documents in accessible spaces
+            if space_ids:
+                doc_count_stmt = select(func.count(DocumentModel.id)).where(
+                    DocumentModel.space_id.in_(space_ids)
+                )
+                doc_count = await session.scalar(doc_count_stmt) or 0
+            else:
+                doc_count = 0
+
+            # Count accessible spaces
+            space_count = len(space_ids)
+
+            # Count threads (scoped to org or user)
+            thread_count_stmt = select(func.count(ThreadModel.id))
+            if org_id:
+                thread_count_stmt = thread_count_stmt.where(ThreadModel.organization_id == org_id)
+            else:
+                thread_count_stmt = thread_count_stmt.where(ThreadModel.created_by == user_id)
+            thread_count = await session.scalar(thread_count_stmt) or 0
+
+            # Count threads created this month
+            current_year = datetime.now(UTC).year
+            current_month = datetime.now(UTC).month
+
+            threads_month_stmt = select(func.count(ThreadModel.id)).where(
+                extract("year", ThreadModel.created_at) == current_year,
+                extract("month", ThreadModel.created_at) == current_month,
+            )
+            if org_id:
+                threads_month_stmt = threads_month_stmt.where(ThreadModel.organization_id == org_id)
+            else:
+                threads_month_stmt = threads_month_stmt.where(ThreadModel.created_by == user_id)
+            threads_this_month = await session.scalar(threads_month_stmt) or 0
+
+            logger.info(
+                f"Dashboard stats for user {user_id}: "
+                f"docs={doc_count}, spaces={space_count}, "
+                f"threads={thread_count}, threads_this_month={threads_this_month}"
+            )
+
+            return DashboardStats(
+                total_documents=doc_count,
+                total_spaces=space_count,
+                total_threads=thread_count,
+                threads_this_month=threads_this_month,
+            )
+
+        return DashboardStats(
+            total_documents=0,
+            total_spaces=0,
+            total_threads=0,
+            threads_this_month=0,
+        )

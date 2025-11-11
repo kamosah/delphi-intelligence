@@ -298,6 +298,7 @@ class Space:
 class CreateSpaceInput:
     """Input type for creating a new space."""
 
+    organization_id: strawberry.ID
     name: str
     description: str | None = None
     icon_color: str | None = None
@@ -410,3 +411,13 @@ class Thread:
             created_at=thread.created_at,
             updated_at=thread.updated_at,
         )
+
+
+@strawberry.type
+class DashboardStats:
+    """Dashboard statistics for the authenticated user."""
+
+    total_documents: int
+    total_spaces: int
+    total_threads: int
+    threads_this_month: int

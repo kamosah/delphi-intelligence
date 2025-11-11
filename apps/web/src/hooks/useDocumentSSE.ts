@@ -115,9 +115,10 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
           const message: SSEMessage = JSON.parse(event.data);
           console.log('[SSE] Document status update:', message);
 
-          // Invalidate the document list query for this space
+          // Invalidate ALL document list queries for this space (prefix matching)
+          // This will trigger a refetch and update the document status in the UI
           queryClient.invalidateQueries({
-            queryKey: queryKeys.documents.list(spaceId),
+            queryKey: [...queryKeys.documents.lists(), spaceId],
           });
 
           // If we have a document ID, also invalidate the detail query

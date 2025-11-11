@@ -19,7 +19,7 @@ export default function SpaceDetailPage() {
   const spaceId = params.id as string;
 
   const { space } = useSpace(spaceId);
-  const { documents, isLoading } = useDocuments(spaceId);
+  const { documents, isLoading } = useDocuments({ spaceId });
 
   // Subscribe to real-time document status updates via SSE
   useDocumentSSE(spaceId);

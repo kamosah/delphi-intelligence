@@ -372,6 +372,7 @@ class TestCreateSpaceMutation:
         """
 
         input_data = {
+            "organizationId": str(uuid4()),
             "name": "New Test Space",
             "description": "A brand new test space",
             "iconColor": "#10B981",
@@ -667,6 +668,7 @@ class TestSpaceIdempotency:
         """
 
         input_data = {
+            "organizationId": str(uuid4()),
             "name": "Duplicate Test Space",
             "description": "Testing idempotency",
         }

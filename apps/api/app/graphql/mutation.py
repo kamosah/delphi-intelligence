@@ -620,12 +620,14 @@ class Mutation:
                     raise ValueError(msg)
 
                 user_id = user.id
+                organization_id = UUID(str(input.organization_id))
 
                 # Generate unique slug from space name
                 slug = await generate_unique_slug(input.name, session, SpaceModel)
 
                 # Create new space instance
                 space_model = SpaceModel(
+                    organization_id=organization_id,
                     name=input.name,
                     slug=slug,
                     description=input.description,

@@ -65,7 +65,7 @@ export function VectorSearchDebugger() {
 
   // Fetch documents (filtered by selected space)
   const { documents, isLoading: documentsLoading } = useDocuments(
-    spaceId !== 'all' ? spaceId : undefined
+    spaceId !== 'all' ? { spaceId } : undefined
   );
 
   // Debounce search query and range inputs to avoid excessive API calls (500ms delay)

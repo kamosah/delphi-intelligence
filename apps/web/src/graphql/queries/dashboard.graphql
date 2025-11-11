@@ -1,0 +1,12 @@
+# ============================================
+# Dashboard Query Operations
+# ============================================
+
+query GetDashboardStats($organizationId: ID) {
+  dashboardStats(organizationId: $organizationId) {
+    totalDocuments
+    totalSpaces
+    totalThreads
+    threadsThisMonth
+  }
+}

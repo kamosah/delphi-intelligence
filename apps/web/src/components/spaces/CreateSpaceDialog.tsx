@@ -9,6 +9,7 @@ import {
 } from '@olympus/ui';
 import { SpaceForm, SpaceFormData } from './SpaceForm';
 import { useCreateSpace } from '@/hooks/useSpaces';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { toast } from 'sonner';
 
 interface CreateSpaceDialogProps {
@@ -21,11 +22,18 @@ export function CreateSpaceDialog({
   onOpenChange,
 }: CreateSpaceDialogProps) {
   const { createSpace, isCreating, error } = useCreateSpace();
+  const { currentOrganization } = useAuthStore();
 
   const handleSubmit = async (data: SpaceFormData) => {
+    if (!currentOrganization) {
+      toast.error('Please select an organization first');
+      return;
+    }
+
     try {
       await createSpace({
         input: {
+          organizationId: currentOrganization.id,
           name: data.name,
           description: data.description || null,
           iconColor: data.iconColor || null,
