@@ -177,12 +177,13 @@ class AIAgentService:
         self,
         db: AsyncSession,
         query_text: str,
-        space_id: UUID,
         user_id: UUID,
         result_text: str | None,
         citations: list[dict[str, Any]],
         confidence_score: float,
         agent_state: dict[str, Any],
+        organization_id: UUID | None = None,
+        space_id: UUID | None = None,
     ) -> Thread:
         """
         Save thread and results to the database.
@@ -190,25 +191,30 @@ class AIAgentService:
         Args:
             db: Database session
             query_text: Original query text
-            space_id: Space ID
             user_id: User ID
             result_text: Generated response text
             citations: Citation metadata
             confidence_score: Overall confidence score
             agent_state: Complete agent state for debugging
+            organization_id: Organization ID (required if space_id not provided)
+            space_id: Optional Space ID (for space-scoped threads)
 
         Returns:
             Saved Thread record
         """
-        # Get organization_id from space
-        space_stmt = select(Space.organization_id).where(Space.id == space_id)
-        space_result = await db.execute(space_stmt)
-        organization_id = space_result.scalar_one()
+        # Get organization_id from space if not provided directly
+        if not organization_id and space_id:
+            space_stmt = select(Space.organization_id).where(Space.id == space_id)
+            space_result = await db.execute(space_stmt)
+            organization_id = space_result.scalar_one()
+        elif not organization_id:
+            msg = "Either organization_id or space_id must be provided"
+            raise ValueError(msg)
 
         thread_record = Thread(
             organization_id=organization_id,
             query_text=query_text,
-            space_id=space_id,
+            space_id=space_id,  # Can be None for org-wide threads
             created_by=user_id,
             result=result_text,
             confidence_score=confidence_score,
@@ -234,6 +240,7 @@ class AIAgentService:
         self,
         query: str,
         db: AsyncSession | None = None,
+        organization_id: UUID | None = None,
         space_id: UUID | None = None,
         user_id: UUID | None = None,
         context: list[str] | None = None,
@@ -247,7 +254,8 @@ class AIAgentService:
         Args:
             query: User's natural language question
             db: Database session for vector search and storage
-            space_id: Space ID to filter search results
+            organization_id: Organization ID (required if save_to_db=True and space_id not provided)
+            space_id: Optional space ID to filter search results
             user_id: User ID for thread attribution (required if save_to_db=True)
             context: Optional pre-retrieved document chunks (bypasses vector search)
             save_to_db: Whether to save thread and results to database
@@ -261,7 +269,7 @@ class AIAgentService:
             ...     async for event in service.process_thread_stream(
             ...         "What is AI?",
             ...         db=db,
-            ...         space_id=space_uuid,
+            ...         organization_id=org_uuid,
             ...         save_to_db=True,
             ...     ):
             ...         if event["type"] == "token":
@@ -320,10 +328,11 @@ class AIAgentService:
 
         # Step 5: Save to database if requested
         thread_id = None
-        if save_to_db and db and space_id and user_id:
+        if save_to_db and db and user_id and (space_id or organization_id):
             thread_record = await self._save_query_to_db(
                 db=db,
                 query_text=query,
+                organization_id=organization_id,
                 space_id=space_id,
                 user_id=user_id,
                 result_text=final_response,

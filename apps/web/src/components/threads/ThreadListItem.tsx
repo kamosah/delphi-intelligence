@@ -1,7 +1,6 @@
 'use client';
 
 import type { Thread } from '@/hooks/useThreads';
-import { useSpace } from '@/contexts/SpaceContext';
 import { ListItem, Typography } from '@olympus/ui';
 import Link from 'next/link';
 
@@ -18,14 +17,13 @@ interface ThreadListItemProps {
  * - Hover state for interactivity
  * - Truncates long text
  * - Semantic list item markup
+ * - Links to org-wide thread route (/threads/[id])
  */
 export function ThreadListItem({ thread }: ThreadListItemProps) {
-  const { spaceId } = useSpace();
-
   return (
     <ListItem>
       <Link
-        href={`/dashboard/spaces/${spaceId}/threads/${thread.id}`}
+        href={`/threads/${thread.id}`}
         className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors text-left w-full"
       >
         <div className="flex-1 min-w-0">

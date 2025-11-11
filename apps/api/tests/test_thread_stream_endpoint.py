@@ -339,11 +339,13 @@ class TestThreadStreamEndpoint:
     async def test_streaming_with_database_save(self, async_client: AsyncClient):
         """Test that save_to_db flag is respected."""
         user_id = uuid4()
+        organization_id = uuid4()
 
         async def mock_stream(*args, **kwargs):
             # Verify save_to_db was passed
             assert kwargs.get("save_to_db") is True
             assert kwargs.get("user_id") == user_id
+            assert kwargs.get("organization_id") == organization_id
             yield {
                 "type": "done",
                 "confidence_score": 0.8,
@@ -358,6 +360,7 @@ class TestThreadStreamEndpoint:
             params = {
                 "query": "Test",
                 "user_id": str(user_id),
+                "organization_id": str(organization_id),
                 "save_to_db": "true",
             }
 

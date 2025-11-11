@@ -977,7 +977,7 @@ export default async function DocumentPage({
 
 ## Additional Resources
 
-- [ADR-004: Next.js SSR with React Query](../adr/004-nextjs-ssr-react-query.md) - Full architecture decision record
+- [ADR-009: Next.js SSR with React Query](../adr/009-nextjs-ssr-react-query.md) - Full architecture decision record
 - [TanStack Query SSR Guide](https://tanstack.com/query/latest/docs/framework/react/guides/ssr)
 - [Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components)
 - [Frontend Masters: React Query with Server Components](https://frontendmasters.com/blog/combining-react-server-components-with-react-query-for-easy-data-management/)

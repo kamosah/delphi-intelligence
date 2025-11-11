@@ -55,6 +55,7 @@ export function useStreamingQuery() {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentParamsRef = useRef<{
     query: string;
+    organizationId?: string;
     spaceId?: string;
     saveToDb?: boolean;
   } | null>(null);
@@ -95,6 +96,7 @@ export function useStreamingQuery() {
     async (
       params: {
         query: string;
+        organizationId?: string;
         spaceId?: string;
         saveToDb?: boolean;
       },
@@ -129,6 +131,7 @@ export function useStreamingQuery() {
         // Build stream URL with auth token
         const streamUrl = buildStreamUrl({
           query: params.query,
+          organizationId: params.organizationId,
           spaceId: params.spaceId,
           userId: user?.id,
           saveToDb: params.saveToDb,
@@ -185,12 +188,20 @@ export function useStreamingQuery() {
                   }));
 
                   // Invalidate query history to refetch with new query
-                  if (params.spaceId && params.saveToDb) {
-                    queryClient.invalidateQueries({
-                      queryKey: queryKeys.threads.list({
-                        spaceId: params.spaceId,
-                      }),
-                    });
+                  if (params.saveToDb) {
+                    if (params.spaceId) {
+                      queryClient.invalidateQueries({
+                        queryKey: queryKeys.threads.list({
+                          spaceId: params.spaceId,
+                        }),
+                      });
+                    } else if (params.organizationId) {
+                      queryClient.invalidateQueries({
+                        queryKey: queryKeys.threads.list({
+                          organizationId: params.organizationId,
+                        }),
+                      });
+                    }
                   }
 
                   eventSource.close();
@@ -294,6 +305,7 @@ export function useStreamingQuery() {
   const startStreaming = useCallback(
     async (params: {
       query: string;
+      organizationId?: string;
       spaceId?: string;
       saveToDb?: boolean;
     }): Promise<void> => {

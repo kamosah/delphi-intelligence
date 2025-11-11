@@ -1,4 +1,4 @@
-# ADR-004: Next.js SSR with React Query Implementation Strategy
+# ADR-009: Next.js SSR with React Query Implementation Strategy
 
 **Status**: Proposed
 **Date**: 2025-11-10

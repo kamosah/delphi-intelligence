@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@olympus/ui';
 import type { ReactNode } from 'react';
 
 interface SettingsRowProps {
@@ -12,6 +13,8 @@ interface SettingsRowProps {
   className?: string;
   /** Whether the row is disabled */
   disabled?: boolean;
+  /** Whether to show loading skeleton */
+  loading?: boolean;
 }
 
 /**
@@ -31,6 +34,7 @@ export function SettingsRow({
   children,
   className,
   disabled = false,
+  loading = false,
 }: SettingsRowProps) {
   return (
     <div
@@ -43,19 +47,32 @@ export function SettingsRow({
     >
       {/* Left: Label and description */}
       <div className="flex-1 space-y-1">
-        <label
-          className={cn(
-            'text-sm font-medium text-gray-900',
-            disabled && 'cursor-not-allowed'
-          )}
-        >
-          {label}
-        </label>
-        {description && <p className="text-sm text-gray-500">{description}</p>}
+        {loading ? (
+          <>
+            <Skeleton className="h-4 w-32" />
+            {description && <Skeleton className="h-3 w-64" />}
+          </>
+        ) : (
+          <>
+            <label
+              className={cn(
+                'text-sm font-medium text-gray-900',
+                disabled && 'cursor-not-allowed'
+              )}
+            >
+              {label}
+            </label>
+            {description && (
+              <p className="text-sm text-gray-500">{description}</p>
+            )}
+          </>
+        )}
       </div>
 
       {/* Right: Action slot */}
-      <div className="flex-shrink-0">{children}</div>
+      <div className="flex-shrink-0">
+        {loading ? <Skeleton className="h-10 w-64" /> : children}
+      </div>
     </div>
   );
 }

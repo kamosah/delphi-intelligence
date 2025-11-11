@@ -28,7 +28,7 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="h-full overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
       <AuthenticatedRedirect />
       <LandingNav />
       <HeroSection />

@@ -17,7 +17,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-background via-muted/20 to-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <AuthenticatedRedirect />
 
       {/* Back button */}

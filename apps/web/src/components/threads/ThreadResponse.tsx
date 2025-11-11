@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { Citation } from '@/lib/api/queries-client';
-import { QueryMessage } from './QueryMessage';
+import { ThreadMessage } from './ThreadMessage';
 import { CitationList } from './CitationList';
 import { Alert } from '@olympus/ui';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -20,7 +20,7 @@ const ERROR_TITLES: Record<string, string> = {
   UNKNOWN: 'Query Failed',
 };
 
-interface QueryResponseProps {
+interface ThreadResponseProps {
   response: string;
   citations: Citation[];
   isStreaming: boolean;
@@ -33,7 +33,7 @@ interface QueryResponseProps {
 }
 
 /**
- * QueryResponse component displays AI response with streaming support.
+ * ThreadResponse component displays AI response with streaming support.
  *
  * Features:
  * - Real-time token streaming display
@@ -43,7 +43,7 @@ interface QueryResponseProps {
  * - Auto-scroll to bottom as content streams
  *
  * @example
- * <QueryResponse
+ * <ThreadResponse
  *   response={response}
  *   citations={citations}
  *   isStreaming={isStreaming}
@@ -51,7 +51,7 @@ interface QueryResponseProps {
  *   confidenceScore={confidenceScore}
  * />
  */
-export function QueryResponse({
+export function ThreadResponse({
   response,
   citations,
   isStreaming,
@@ -61,7 +61,7 @@ export function QueryResponse({
   confidenceScore,
   onRetry,
   className,
-}: QueryResponseProps) {
+}: ThreadResponseProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom as content streams in
@@ -144,7 +144,7 @@ export function QueryResponse({
   return (
     <div ref={containerRef} className={`space-y-4 ${className || ''}`}>
       {/* AI Response Message */}
-      <QueryMessage
+      <ThreadMessage
         role="assistant"
         content={response}
         timestamp={new Date()}

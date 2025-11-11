@@ -66,7 +66,7 @@ function ConfirmContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
+    <div className="h-full overflow-y-auto flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
       <Card className="w-full max-w-md">
         {status === 'loading' && (
           <>

@@ -77,9 +77,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${dmSans.variable} ${ibmPlexMono.variable}`}>
-      <body className="min-h-screen bg-gray-50 font-sans">
+      <body className="h-screen overflow-hidden bg-gray-50 font-sans">
         <QueryProvider>
-          <div id="root" className="min-h-screen">
+          <div id="root" className="h-full">
             {children}
           </div>
           <Toaster position="top-right" richColors duration={5000} />

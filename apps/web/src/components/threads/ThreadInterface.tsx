@@ -1,24 +1,25 @@
 'use client';
 
-import { useSpace } from '@/contexts/SpaceContext';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
-import type { Thread } from '@/hooks/useThreads';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
+import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
-import { ScrollArea } from '@olympus/ui';
-import { useEffect, useState, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '@/lib/stores';
+import { ScrollArea } from '@olympus/ui';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
-import { QueryMessage } from './QueryMessage';
-import { QueryResponse } from './QueryResponse';
 import { CitationList } from './CitationList';
+import { ThreadMessage } from './ThreadMessage';
+import { ThreadResponse } from './ThreadResponse';
 import { ThreadInput } from './ThreadInput';
 
 interface ThreadInterfaceProps {
   onQuerySubmit?: () => void;
   onThreadCreated?: (threadId: string) => void;
   initialThread?: Thread;
+  spaceId?: string;
 }
 
 /**
@@ -30,13 +31,17 @@ interface ThreadInterfaceProps {
  * - Citation display with source links
  * - Thread input with keyboard shortcuts
  * - Clean, constrained-width interface
- * - Uses SpaceContext for spaceId access
+ * - Supports both org-wide and space-scoped threads
+ * - Uses Zustand auth store for organization context
  * - Can load initial thread data for existing conversations
  * - Navigates to new thread page after first message
  *
  * @example
- * // New conversation
+ * // New org-wide conversation (uses currentOrganization from Zustand)
  * <ThreadInterface />
+ *
+ * // Space-scoped conversation
+ * <ThreadInterface spaceId="space-uuid" />
  *
  * // Load existing thread
  * <ThreadInterface initialThread={threadData} />
@@ -45,8 +50,9 @@ export function ThreadInterface({
   onQuerySubmit,
   onThreadCreated,
   initialThread,
+  spaceId,
 }: ThreadInterfaceProps) {
-  const { spaceId } = useSpace();
+  const { currentOrganization } = useAuthStore();
   const { minimize } = useThreadsPanel();
   const queryClient = useQueryClient();
   const [currentQuery, setCurrentQuery] = useState('');
@@ -219,6 +225,7 @@ export function ThreadInterface({
       // Start streaming response
       await startStreaming({
         query,
+        organizationId: currentOrganization?.id,
         spaceId,
         saveToDb: true, // Save to database for history
       });
@@ -255,7 +262,7 @@ export function ThreadInterface({
           <div className="max-w-3xl mx-auto">
             {conversationHistory.map((message, index) => (
               <div key={index}>
-                <QueryMessage
+                <ThreadMessage
                   role={message.role}
                   content={message.content}
                   timestamp={message.timestamp}
@@ -274,7 +281,7 @@ export function ThreadInterface({
 
             {/* Active Streaming Response - Only show while actively streaming or completed but not yet in history */}
             {shouldShowActiveResponse && (
-              <QueryResponse
+              <ThreadResponse
                 response={response}
                 citations={citations}
                 isStreaming={isStreaming}
@@ -290,7 +297,7 @@ export function ThreadInterface({
       </ScrollArea>
 
       {/* Input Area - Empty state sits naturally above input */}
-      <div className="flex-shrink-0 pb-4">
+      <div className="flex-shrink-0 pb-2">
         {/* Empty State - Shows above input when no messages */}
         {conversationHistory.length === 0 && !isStreaming && (
           <div className="flex items-center justify-center py-12">

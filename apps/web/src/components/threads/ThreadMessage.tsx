@@ -5,7 +5,7 @@ import { User, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import { MarkdownContent } from '../common/MarkdownContent';
 
-interface QueryMessageProps {
+interface ThreadMessageProps {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date | string;
@@ -132,7 +132,7 @@ function AIMessage({
 }
 
 /**
- * QueryMessage component displays a single message in the conversation.
+ * ThreadMessage component displays a single message in the conversation.
  *
  * Features:
  * - User messages: Right-aligned with light gray bubble
@@ -143,19 +143,19 @@ function AIMessage({
  * - Markdown rendering for AI messages
  *
  * @example
- * <QueryMessage
+ * <ThreadMessage
  *   role="user"
  *   content="What are the key risks?"
  *   timestamp={new Date()}
  * />
  */
-export function QueryMessage({
+export function ThreadMessage({
   role,
   content,
   timestamp,
   confidenceScore,
   className,
-}: QueryMessageProps) {
+}: ThreadMessageProps) {
   // Format timestamp
   const formattedTime = timestamp
     ? format(new Date(timestamp), 'h:mm a')

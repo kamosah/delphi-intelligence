@@ -14,6 +14,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Skeleton,
 } from '@olympus/ui';
 import { Check, ChevronDown, Building2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -73,8 +74,8 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
           className
         )}
       >
-        <Building2 className="h-4 w-4 text-gray-400" />
-        <span className="text-sm text-gray-400">Loading...</span>
+        <Skeleton className="h-4 w-4 rounded" />
+        <Skeleton className="h-4 flex-1" />
       </div>
     );
   }

@@ -30,6 +30,7 @@ THREAD_TIMEOUT_SECONDS = 120  # 2 minutes max for thread processing
 async def generate_sse_events(
     query: str,
     db: AsyncSession,
+    organization_id: UUID | None = None,
     space_id: UUID | None = None,
     user_id: UUID | None = None,
     save_to_db: bool = False,
@@ -42,6 +43,7 @@ async def generate_sse_events(
     Args:
         query: User's natural language question
         db: Database session for vector search and storage
+        organization_id: Optional organization ID (required if save_to_db=True and space_id not provided)
         space_id: Optional space ID to filter search results
         user_id: Optional user ID for query attribution
         save_to_db: Whether to save query and results to database
@@ -55,6 +57,7 @@ async def generate_sse_events(
             async for event in ai_agent_service.process_thread_stream(
                 query=query,
                 db=db,
+                organization_id=organization_id,
                 space_id=space_id,
                 user_id=user_id,
                 save_to_db=save_to_db,
@@ -99,6 +102,12 @@ async def generate_sse_events(
 async def stream_thread_response(
     query: Annotated[str, QueryParam(description="Natural language question to process in thread")],
     db: Annotated[AsyncSession, Depends(get_session)],
+    organization_id: Annotated[
+        UUID | None,
+        QueryParam(
+            description="Organization ID (required if save_to_db=true and space_id not provided)"
+        ),
+    ] = None,
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
     ] = None,
@@ -199,10 +208,17 @@ async def stream_thread_response(
     if save_to_db and not user_id:
         raise HTTPException(status_code=400, detail="user_id is required when save_to_db=true")
 
+    if save_to_db and not space_id and not organization_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Either space_id or organization_id is required when save_to_db=true",
+        )
+
     return StreamingResponse(
         generate_sse_events(
             query=query,
             db=db,
+            organization_id=organization_id,
             space_id=space_id,
             user_id=user_id,
             save_to_db=save_to_db,

@@ -51,7 +51,8 @@ type OrganizationSettingsFormValues = z.infer<
 export default function OrganizationSettingsPage() {
   const params = useParams();
   const organizationId = params.orgId as string;
-  const { organization, isLoading } = useOrganization(organizationId);
+  const { organization, isLoading, isSuccess } =
+    useOrganization(organizationId);
   const { updateOrganization, isUpdating } = useUpdateOrganization();
 
   // Local state for toggles (not yet wired to backend)
@@ -97,15 +98,7 @@ export default function OrganizationSettingsPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  if (!organization) {
+  if (!organization && !isLoading && isSuccess) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
         <p className="text-gray-500">Organization not found</p>
@@ -141,6 +134,7 @@ export default function OrganizationSettingsPage() {
               <SettingsRow
                 label="Organization name"
                 description="This is your organization's visible name"
+                loading={isLoading}
               >
                 <FormItem className="space-y-1">
                   <FormControl>
@@ -161,9 +155,10 @@ export default function OrganizationSettingsPage() {
           <SettingsRow
             label="Slug"
             description="Your organization's URL identifier (read-only)"
+            loading={isLoading}
           >
             <Input
-              value={organization.slug}
+              value={organization?.slug || ''}
               className="w-64"
               disabled
               placeholder="organization-slug"
@@ -179,6 +174,7 @@ export default function OrganizationSettingsPage() {
               <SettingsRow
                 label="Description"
                 description="A brief description of your organization"
+                loading={isLoading}
               >
                 <FormItem className="space-y-1">
                   <FormControl>
@@ -200,18 +196,19 @@ export default function OrganizationSettingsPage() {
         <SettingsInfoCard
           title="Organization Statistics"
           description="Overview of your organization's activity"
+          loading={isLoading}
           items={[
             {
               label: 'Members',
-              value: organization.memberCount,
+              value: organization?.memberCount || 0,
             },
             {
               label: 'Spaces',
-              value: organization.spaceCount,
+              value: organization?.spaceCount || 0,
             },
             {
               label: 'Threads',
-              value: organization.threadCount,
+              value: organization?.threadCount || 0,
             },
             {
               label: 'Status',
@@ -232,6 +229,7 @@ export default function OrganizationSettingsPage() {
             description="Automatically archive spaces with no activity for 90 days"
             checked={autoArchive}
             onCheckedChange={setAutoArchive}
+            loading={isLoading}
           />
 
           <SettingsSectionDivider />
@@ -241,6 +239,7 @@ export default function OrganizationSettingsPage() {
             description="New members must be approved before joining"
             checked={requireApproval}
             onCheckedChange={setRequireApproval}
+            loading={isLoading}
           />
         </SettingsSection>
 

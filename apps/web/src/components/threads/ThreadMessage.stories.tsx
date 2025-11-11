@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import { QueryMessage } from './QueryMessage';
+import { ThreadMessage } from './ThreadMessage';
 
 const meta = {
-  title: 'Queries/QueryMessage',
-  component: QueryMessage,
+  title: 'Threads/ThreadMessage',
+  component: ThreadMessage,
   parameters: {
     layout: 'fullscreen',
   },
@@ -27,7 +27,7 @@ const meta = {
       description: 'AI confidence score (0-1) for assistant messages',
     },
   },
-} satisfies Meta<typeof QueryMessage>;
+} satisfies Meta<typeof ThreadMessage>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -172,23 +172,23 @@ export const Conversation: Story = {
   },
   render: () => (
     <div className="flex flex-col">
-      <QueryMessage
+      <ThreadMessage
         role="user"
         content="What were the total sales in Q4?"
         timestamp={new Date('2024-01-15T10:00:00')}
       />
-      <QueryMessage
+      <ThreadMessage
         role="assistant"
         content="Total sales in Q4 2024 were **$125.5 million**, representing a 23% increase compared to Q4 2023."
         timestamp={new Date('2024-01-15T10:00:15')}
         confidenceScore={0.96}
       />
-      <QueryMessage
+      <ThreadMessage
         role="user"
         content="What drove that growth?"
         timestamp={new Date('2024-01-15T10:01:00')}
       />
-      <QueryMessage
+      <ThreadMessage
         role="assistant"
         content={`The growth was driven by three main factors:
 

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@olympus/ui';
 import type { ReactNode } from 'react';
 
 interface SettingsInfoItem {
@@ -17,6 +18,8 @@ interface SettingsInfoCardProps {
   items: SettingsInfoItem[];
   /** Optional className for custom styling */
   className?: string;
+  /** Whether to show loading skeleton */
+  loading?: boolean;
 }
 
 /**
@@ -40,6 +43,7 @@ export function SettingsInfoCard({
   description,
   items,
   className,
+  loading = false,
 }: SettingsInfoCardProps) {
   return (
     <div
@@ -51,26 +55,51 @@ export function SettingsInfoCard({
       {/* Header */}
       {(title || description) && (
         <div className="border-b border-gray-200 px-6 py-4">
-          {title && (
-            <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-          )}
-          {description && (
-            <p className="mt-1 text-sm text-gray-500">{description}</p>
+          {loading ? (
+            <>
+              {title && <Skeleton className="h-6 w-48" />}
+              {description && <Skeleton className="h-4 w-64 mt-1" />}
+            </>
+          ) : (
+            <>
+              {title && (
+                <h3 className="text-base font-semibold text-gray-900">
+                  {title}
+                </h3>
+              )}
+              {description && (
+                <p className="mt-1 text-sm text-gray-500">{description}</p>
+              )}
+            </>
           )}
         </div>
       )}
 
       {/* Info items */}
       <div className="divide-y divide-gray-100">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between px-6 py-4"
-          >
-            <dt className="text-sm font-medium text-gray-500">{item.label}</dt>
-            <dd className="text-sm text-gray-900">{item.value}</dd>
-          </div>
-        ))}
+        {loading
+          ? // Show skeleton items when loading
+            Array.from({ length: items.length || 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between px-6 py-4"
+              >
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))
+          : // Show actual items when loaded
+            items.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between px-6 py-4"
+              >
+                <dt className="text-sm font-medium text-gray-500">
+                  {item.label}
+                </dt>
+                <dd className="text-sm text-gray-900">{item.value}</dd>
+              </div>
+            ))}
       </div>
     </div>
   );

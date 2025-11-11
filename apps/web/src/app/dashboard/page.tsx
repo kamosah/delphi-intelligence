@@ -1,9 +1,5 @@
 'use client';
 
-import { useDocuments } from '@/hooks/useDocuments';
-import { useThreads } from '@/hooks/useThreads';
-import { useDashboardStats } from '@/hooks/queries/useDashboardStats';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import {
   DashboardStatCard,
   DashboardStatCardSkeleton,
@@ -16,7 +12,11 @@ import {
   RecentThreadItem,
   RecentThreadItemSkeleton,
 } from '@/components/dashboard/RecentThreadItem';
-import { FileText, MessageSquare, Database, Zap } from 'lucide-react';
+import { useDashboardStats } from '@/hooks/queries/useDashboardStats';
+import { useDocuments } from '@/hooks/useDocuments';
+import { useThreads } from '@/hooks/useThreads';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { Database, FileText, MessageSquare, Zap } from 'lucide-react';
 
 export default function DashboardPage() {
   const { currentOrganization } = useAuthStore();

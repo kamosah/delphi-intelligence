@@ -104,7 +104,7 @@ export default function AuthCallbackPage() {
   }, [router, setTokens, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="h-full overflow-y-auto flex items-center justify-center">
       <div className="text-center">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
         <p className="text-gray-600">Processing authentication...</p>

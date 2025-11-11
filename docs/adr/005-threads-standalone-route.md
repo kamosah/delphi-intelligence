@@ -1,9 +1,27 @@
 # ADR-005: Threads as Standalone Route with Mentions System
 
-**Status**: Accepted
+**Status**: Implemented ✅
 **Date**: 2025-11-06
+**Implementation Date**: 2025-11-10
 **Deciders**: Engineering Team
-**Technical Story**: Related to LOG-186 (view types analysis), mentions system implementation
+**Technical Story**: LOG-201 (move threads to top-level route)
+
+---
+
+## Implementation Summary
+
+**Completed**: 2025-11-10 as part of LOG-201
+
+**Key changes**:
+
+- ✅ Moved threads from `/dashboard/threads` to `/threads` (top-level route)
+- ✅ Added AppHeader and AppSidebar to threads layout
+- ✅ ThreadsPanel positioned at bottom with proper spacing (`gap-6` between interface and panel)
+- ✅ Backend supports org-wide threads (`organization_id` required, `space_id` optional)
+- ✅ Updated all navigation links and route references
+- ✅ Skeleton loading for OrganizationSwitcher
+
+**Note**: Mentions system (from this ADR) is planned for future phase - threads currently use org-wide queries without explicit mention syntax.
 
 ---
 

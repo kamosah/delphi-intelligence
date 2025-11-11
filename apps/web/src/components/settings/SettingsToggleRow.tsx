@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Switch } from '@olympus/ui';
+import { Skeleton, Switch } from '@olympus/ui';
 
 interface SettingsToggleRowProps {
   /** Settings label (e.g., "Display full names", "Convert text emoticons") */
@@ -14,6 +14,8 @@ interface SettingsToggleRowProps {
   disabled?: boolean;
   /** Optional className for custom styling */
   className?: string;
+  /** Whether to show loading skeleton */
+  loading?: boolean;
 }
 
 /**
@@ -37,6 +39,7 @@ export function SettingsToggleRow({
   onCheckedChange,
   disabled = false,
   className,
+  loading = false,
 }: SettingsToggleRowProps) {
   return (
     <div
@@ -49,25 +52,40 @@ export function SettingsToggleRow({
     >
       {/* Left: Label and description */}
       <div className="flex-1 space-y-1">
-        <label
-          htmlFor={label}
-          className={cn(
-            'text-sm font-medium text-gray-900',
-            !disabled && 'cursor-pointer'
-          )}
-        >
-          {label}
-        </label>
-        {description && <p className="text-sm text-gray-500">{description}</p>}
+        {loading ? (
+          <>
+            <Skeleton className="h-4 w-40" />
+            {description && <Skeleton className="h-3 w-80" />}
+          </>
+        ) : (
+          <>
+            <label
+              htmlFor={label}
+              className={cn(
+                'text-sm font-medium text-gray-900',
+                !disabled && 'cursor-pointer'
+              )}
+            >
+              {label}
+            </label>
+            {description && (
+              <p className="text-sm text-gray-500">{description}</p>
+            )}
+          </>
+        )}
       </div>
 
       {/* Right: Toggle switch */}
-      <Switch
-        id={label}
-        checked={checked}
-        onCheckedChange={onCheckedChange}
-        disabled={disabled}
-      />
+      {loading ? (
+        <Skeleton className="h-6 w-11 rounded-full" />
+      ) : (
+        <Switch
+          id={label}
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 }

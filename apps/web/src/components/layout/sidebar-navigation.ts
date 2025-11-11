@@ -28,7 +28,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
     id: 'threads',
     icon: MessageSquare,
     label: 'Threads',
-    href: '/dashboard/threads',
+    href: '/threads',
     description: 'Conversational analytics',
   },
   {

@@ -1,8 +1,8 @@
 'use client';
 
-import { useSpace } from '@/contexts/SpaceContext';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useThreads } from '@/hooks/useThreads';
+import { useAuthStore } from '@/lib/stores';
 import {
   Button,
   List,
@@ -21,6 +21,7 @@ interface ThreadsPanelProps {
   className?: string;
   initialExpanded?: boolean;
   onMinimize?: () => void;
+  spaceId?: string;
 }
 
 /**
@@ -56,7 +57,8 @@ function ThreadsPanelTabTrigger({
  * - Smooth animations for open/close states
  * - Flush with sides (no padding, no borders)
  * - Minimizes to toolbar height only
- * - Uses SpaceContext for spaceId access
+ * - Supports both org-wide and space-scoped threads
+ * - Uses Zustand auth store for organization context
  * - Navigates to individual thread pages on click
  * - Configurable initial expanded/collapsed state
  * - External minimize control via onMinimize callback
@@ -66,10 +68,14 @@ export function ThreadsPanel({
   className,
   initialExpanded = true,
   onMinimize,
+  spaceId,
 }: ThreadsPanelProps) {
-  const { spaceId } = useSpace();
+  const { currentOrganization } = useAuthStore();
   const { isExpanded, toggle, minimize, expand } = useThreadsPanel();
-  const { threads, isLoading } = useThreads({ spaceId });
+  const { threads, isLoading } = useThreads({
+    organizationId: currentOrganization?.id,
+    spaceId,
+  });
   const prevInitialExpanded = useRef(initialExpanded);
 
   /**
@@ -109,6 +115,10 @@ export function ThreadsPanel({
     }
   }, [initialExpanded, expand, minimize]);
 
+  const onTabClick = () => {
+    expand();
+  };
+
   return (
     <motion.div
       initial={false}
@@ -141,14 +151,16 @@ export function ThreadsPanel({
         {/* Tabs List - Always shown */}
         <div className="px-6 pt-4 border-b border-gray-200 shrink-0">
           <TabsList className="h-auto bg-transparent p-0 gap-6">
-            <ThreadsPanelTabTrigger value="threads">
+            <ThreadsPanelTabTrigger onClick={onTabClick} value="threads">
               Threads
             </ThreadsPanelTabTrigger>
-            <ThreadsPanelTabTrigger value="documents">
+            <ThreadsPanelTabTrigger onClick={onTabClick} value="documents">
               Documents
             </ThreadsPanelTabTrigger>
-            <ThreadsPanelTabTrigger value="data">Data</ThreadsPanelTabTrigger>
-            <ThreadsPanelTabTrigger value="projects">
+            <ThreadsPanelTabTrigger onClick={onTabClick} value="data">
+              Data
+            </ThreadsPanelTabTrigger>
+            <ThreadsPanelTabTrigger onClick={onTabClick} value="projects">
               Projects
             </ThreadsPanelTabTrigger>
           </TabsList>

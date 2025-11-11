@@ -32,7 +32,8 @@ interface ThreadInputProps {
  * - Enter to send, Shift+Enter for new line
  * - Disabled state during streaming
  * - Send button with loading state
- * - Constrained width matching message layout
+ * - Responsive width with padding on mobile (px-4) and tablet (sm:px-6)
+ * - Constrained max-width (max-w-3xl) matching message layout on desktop
  * - React Hook Form integration with Shadcn Form components
  *
  * @example
@@ -89,9 +90,9 @@ export function ThreadInput({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmitForm)}
-        className={`bg-white p-4 ${className || ''}`}
+        className={`${className || ''}`}
       >
-        <div className="max-w-3xl mx-auto">
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-0">
           {/* Input container with button inside */}
           <div className="relative">
             <FormField

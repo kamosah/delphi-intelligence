@@ -1,7 +1,7 @@
-# ADR 003: Routing Architecture for Multi-Tenant Organization Context
+# ADR-007: Routing Architecture for Multi-Tenant Organization Context
 
 **Status:** Accepted
-**Date:** 2025-01-08
+**Date:** 2025-11-09
 **Deciders:** Development Team
 **Tags:** architecture, routing, multi-tenancy, ux
 

@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import React from 'react';
-import { QueryResponse } from './QueryResponse';
+import { ThreadResponse } from './ThreadResponse';
 import type { Citation } from '@/lib/api/queries-client';
 import { fn } from '@storybook/test';
 
 const meta = {
-  title: 'Queries/QueryResponse',
-  component: QueryResponse,
+  title: 'Threads/ThreadResponse',
+  component: ThreadResponse,
   parameters: {
     layout: 'padded',
   },
@@ -14,7 +14,7 @@ const meta = {
   args: {
     onRetry: fn(),
   },
-} satisfies Meta<typeof QueryResponse>;
+} satisfies Meta<typeof ThreadResponse>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -267,7 +267,7 @@ export const StreamingAnimation: Story = {
             {isStreaming ? 'Streaming...' : 'Start Streaming'}
           </button>
         </div>
-        <QueryResponse
+        <ThreadResponse
           response={response}
           citations={citations}
           isStreaming={isStreaming}

@@ -79,12 +79,14 @@ export type SSEEvent =
  */
 export function buildStreamUrl(params: {
   query: string;
+  organizationId?: string;
   spaceId?: string;
   userId?: string;
   saveToDb?: boolean;
 }): string {
   const searchParams = new URLSearchParams({
     query: params.query,
+    ...(params.organizationId && { organization_id: params.organizationId }),
     ...(params.spaceId && { space_id: params.spaceId }),
     ...(params.userId && { user_id: params.userId }),
     ...(params.saveToDb !== undefined && {

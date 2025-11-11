@@ -1,4 +1,4 @@
-# ADR-003: Micro Frontend Architecture for Olympus Dashboard
+# ADR-008: Micro Frontend Architecture for Olympus Dashboard
 
 **Status**: Proposed
 **Date**: 2025-11-10

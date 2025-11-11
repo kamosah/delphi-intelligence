@@ -1,25 +1,25 @@
 'use client';
 
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { queryKeys } from '@/lib/query/client';
 import {
-  useGetOrganizationsQuery,
-  useGetOrganizationQuery,
   useCreateOrganizationMutation,
-  useUpdateOrganizationMutation,
   useDeleteOrganizationMutation,
+  useGetOrganizationQuery,
+  useGetOrganizationsQuery,
+  useUpdateOrganizationMutation,
   type CreateOrganizationMutationVariables,
-  type UpdateOrganizationMutationVariables,
   type DeleteOrganizationMutationVariables,
+  type UpdateOrganizationMutationVariables,
 } from '@/lib/api/hooks.generated';
+import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { useQueryClient } from '@tanstack/react-query';
 
 // Re-export generated types
 export type {
-  Organization,
   CreateOrganizationInput,
-  UpdateOrganizationInput,
+  Organization,
   OrganizationRole,
+  UpdateOrganizationInput,
 } from '@/lib/api/generated';
 
 /**
@@ -71,6 +71,7 @@ export function useOrganization(id: string | undefined) {
     organization: query.data?.organization || null,
     isLoading: query.isLoading,
     error: query.error,
+    isSuccess: query.isSuccess,
     refetch: query.refetch,
   };
 }
