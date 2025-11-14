@@ -27,7 +27,7 @@ export default function ThreadsPage() {
   const isLandingPage = normalizedPath === '/threads';
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col h-full gap-8">
       {/* ThreadInterface - Main chat interface */}
       <div className="flex-1 overflow-hidden">
         <ThreadInterface onThreadCreated={handleThreadCreated} />

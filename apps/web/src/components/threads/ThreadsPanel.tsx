@@ -115,14 +115,10 @@ export function ThreadsPanel({
     }
   }, [initialExpanded, expand, minimize]);
 
-  const onTabClick = () => {
-    expand();
-  };
-
   return (
     <motion.div
       initial={false}
-      animate={{ height: isExpanded ? '30vh' : '60px' }}
+      animate={{ height: isExpanded ? '30vh' : '10px' }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       className={`bg-white border-t border-gray-200 flex flex-col relative ${className || ''}`}
     >
@@ -151,16 +147,14 @@ export function ThreadsPanel({
         {/* Tabs List - Always shown */}
         <div className="px-6 pt-4 border-b border-gray-200 shrink-0">
           <TabsList className="h-auto bg-transparent p-0 gap-6">
-            <ThreadsPanelTabTrigger onClick={onTabClick} value="threads">
+            <ThreadsPanelTabTrigger value="threads">
               Threads
             </ThreadsPanelTabTrigger>
-            <ThreadsPanelTabTrigger onClick={onTabClick} value="documents">
+            <ThreadsPanelTabTrigger value="documents">
               Documents
             </ThreadsPanelTabTrigger>
-            <ThreadsPanelTabTrigger onClick={onTabClick} value="data">
-              Data
-            </ThreadsPanelTabTrigger>
-            <ThreadsPanelTabTrigger onClick={onTabClick} value="projects">
+            <ThreadsPanelTabTrigger value="data">Data</ThreadsPanelTabTrigger>
+            <ThreadsPanelTabTrigger value="projects">
               Projects
             </ThreadsPanelTabTrigger>
           </TabsList>

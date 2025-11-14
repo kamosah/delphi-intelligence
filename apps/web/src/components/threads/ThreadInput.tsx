@@ -1,23 +1,14 @@
 'use client';
 
-import {
-  Button,
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  Textarea,
-} from '@olympus/ui';
+import { TipTapEditor } from '@/components/editor/TipTapEditor';
+import { useEditorIsEmpty } from '@/hooks/useEditorState';
+import { Button } from '@olympus/ui';
+import type { Editor } from '@tiptap/react';
 import { Loader2, Send } from 'lucide-react';
-import { useEffect, useRef, type KeyboardEvent } from 'react';
-import { useForm } from 'react-hook-form';
-
-interface ThreadInputFormData {
-  query: string;
-}
+import { useState, useCallback } from 'react';
 
 interface ThreadInputProps {
-  onSubmit: (query: string) => void;
+  onSubmit: (message: string) => void;
   isStreaming?: boolean;
   disabled?: boolean;
   placeholder?: string;
@@ -25,20 +16,20 @@ interface ThreadInputProps {
 }
 
 /**
- * ThreadInput component for submitting natural language queries in threads.
+ * ThreadInput component for submitting messages in threads.
  *
  * Features:
- * - Auto-resizing textarea
+ * - TipTap rich text editor with mentions support (Phase 2)
  * - Enter to send, Shift+Enter for new line
  * - Disabled state during streaming
  * - Send button with loading state
  * - Responsive width with padding on mobile (px-4) and tablet (sm:px-6)
  * - Constrained max-width (max-w-3xl) matching message layout on desktop
- * - React Hook Form integration with Shadcn Form components
+ * - Uses useSyncExternalStore to read editor.isEmpty directly (no separate state)
  *
  * @example
  * <ThreadInput
- *   onSubmit={(query) => startStreaming({ query, spaceId })}
+ *   onSubmit={(message) => handleSubmit(message)}
  *   isStreaming={isStreaming}
  * />
  */
@@ -49,90 +40,76 @@ export function ThreadInput({
   placeholder = 'Ask a question about your documents...',
   className,
 }: ThreadInputProps) {
-  const form = useForm<ThreadInputFormData>({
-    defaultValues: { query: '' },
-  });
+  const [editor, setEditor] = useState<Editor | null>(null);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const query = form.watch('query');
+  // Subscribe to editor state using useSyncExternalStore
+  // This reads editor.isEmpty directly and re-renders when it changes
+  const isEmpty = useEditorIsEmpty(editor);
 
-  // Auto-focus textarea on mount
-  useEffect(() => {
-    if (textareaRef.current && !isStreaming) {
-      textareaRef.current.focus();
+  // Memoize callbacks to prevent editor recreation on every render
+  // This fixes the infinite loop issue
+  const handleEditorSubmit = useCallback(
+    (content: string) => {
+      const trimmedMessage = content.trim();
+
+      if (trimmedMessage && !isStreaming && !disabled) {
+        onSubmit(trimmedMessage);
+        // Note: Editor is cleared by hook's Enter keydown handler (useTipTapEditor.ts:102)
+        // The send button below uses a different clearing mechanism (editor.chain().clearContent())
+        // useEditorIsEmpty will automatically re-render when editor clears via either method
+      }
+    },
+    [onSubmit, isStreaming, disabled]
+  );
+
+  // Handle send button click
+  const handleSendClick = useCallback(() => {
+    if (!editor) return;
+
+    const content = editor.getText().trim();
+
+    if (content && !isStreaming && !disabled) {
+      onSubmit(content);
+      // Clear editor immediately after submission using chain API
+      editor.chain().clearContent().run();
+      // useEditorIsEmpty will automatically re-render when editor clears
     }
-  }, [isStreaming]);
+  }, [editor, onSubmit, isStreaming, disabled]);
 
-  // Handle form submission
-  const onSubmitForm = (data: ThreadInputFormData) => {
-    const trimmedQuery = data.query.trim();
-
-    if (trimmedQuery && !isStreaming && !disabled) {
-      onSubmit(trimmedQuery);
-      form.reset(); // Clear input after submission
-    }
-  };
-
-  // Handle keyboard shortcuts
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter without Shift submits the form
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      form.handleSubmit(onSubmitForm)();
-    }
-    // Shift+Enter adds a new line (default behavior)
-  };
-
-  const isDisabled = disabled || isStreaming;
-  const canSubmit = query?.trim().length > 0 && !isDisabled;
+  // Only disable button during streaming, keep input enabled
+  const canSubmit = !isEmpty && !isStreaming && !disabled;
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmitForm)}
-        className={`${className || ''}`}
-      >
-        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-0">
-          {/* Input container with button inside */}
-          <div className="relative">
-            <FormField
-              control={form.control}
-              name="query"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      ref={textareaRef}
-                      onKeyDown={handleKeyDown}
-                      placeholder={placeholder}
-                      disabled={isDisabled}
-                      rows={3}
-                      className="resize-none pr-12"
-                      aria-label="Query input"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+    <div className={`${className || ''}`}>
+      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-0">
+        {/* Input container with button inside */}
+        <div className="relative">
+          <TipTapEditor
+            placeholder={placeholder}
+            onSubmit={handleEditorSubmit}
+            onEditorReady={setEditor}
+            disabled={disabled}
+            autofocus={true}
+            className="pr-12"
+            data-testid="thread-input-editor"
+          />
 
-            {/* Send Button - Positioned inside input */}
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              size="icon"
-              className="absolute bottom-2 right-2 h-8 w-8 shrink-0"
-              aria-label="Send query"
-            >
-              {isStreaming ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          {/* Send Button - Positioned inside input */}
+          <Button
+            onClick={handleSendClick}
+            disabled={!canSubmit}
+            size="icon"
+            className="absolute bottom-2 right-2 h-8 w-8 shrink-0"
+            aria-label="Send message"
+          >
+            {isStreaming ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
         </div>
-      </form>
-    </Form>
+      </div>
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import type { NavItem, NavSection } from '@olympus/types';
 import {
   Bell,
   Building2,
@@ -10,7 +11,6 @@ import {
   User,
   Users,
 } from 'lucide-react';
-import type { NavItem, NavSection } from '@olympus/types';
 
 /**
  * Dashboard navigation items (flat list)
@@ -29,7 +29,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
     icon: MessageSquare,
     label: 'Threads',
     href: '/threads',
-    description: 'Conversational analytics',
+    description: 'Conversational queries',
   },
   {
     id: 'documents',

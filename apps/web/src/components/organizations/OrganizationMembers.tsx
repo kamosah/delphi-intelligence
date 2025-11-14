@@ -4,7 +4,7 @@ import {
   useOrganizationMembers,
   useRemoveOrganizationMember,
   useUpdateMemberRole,
-} from '@/hooks/queries/useOrganizationMembers';
+} from '@/hooks/useOrganizationMembers';
 import { OrganizationRole } from '@/lib/api/generated';
 import {
   Button,

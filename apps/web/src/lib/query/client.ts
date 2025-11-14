@@ -67,4 +67,11 @@ export const queryKeys = {
     stats: (organizationId?: string | null) =>
       [...queryKeys.dashboard.all, 'stats', organizationId] as const,
   },
+
+  // Search queries
+  search: {
+    all: ['search'] as const,
+    documents: (input: Record<string, any>) =>
+      [...queryKeys.search.all, 'documents', input] as const,
+  },
 } as const;

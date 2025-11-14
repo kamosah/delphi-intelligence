@@ -2,10 +2,7 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import {
-  useOrganizations,
-  type Organization,
-} from '@/hooks/queries/useOrganizations';
+import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
 import {
   Button,
   DropdownMenu,

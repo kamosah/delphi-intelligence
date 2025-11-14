@@ -19,6 +19,7 @@ from app.agents.thread_agent import (
     create_thread_agent,
     generate_response_streaming,
     add_citations,
+    retrieve_context,
 )
 from app.models.space import Space
 from app.models.thread import Thread
@@ -261,7 +262,7 @@ class AIAgentService:
             save_to_db: Whether to save thread and results to database
 
         Yields:
-            Event dictionaries with types: 'token', 'citations', 'confidence', 'done'
+            Event dictionaries with types: 'start', 'token', 'citations', 'done'
 
         Example:
             >>> service = AIAgentService()
@@ -275,7 +276,47 @@ class AIAgentService:
             ...         if event["type"] == "token":
             ...             print(event["content"], end="", flush=True)
         """
-        # Initialize state
+        # Step 1: Create thread BEFORE streaming (if save_to_db=True)
+        # This enables immediate navigation to thread page while streaming continues
+        thread_id = None
+        if save_to_db and db and user_id and (space_id or organization_id):
+            # Get organization_id from space if not provided directly
+            resolved_org_id = organization_id
+            if not resolved_org_id and space_id:
+                space_stmt = select(Space.organization_id).where(Space.id == space_id)
+                space_result = await db.execute(space_stmt)
+                resolved_org_id = space_result.scalar_one()
+            elif not resolved_org_id:
+                msg = "Either organization_id or space_id must be provided"
+                raise ValueError(msg)
+
+            # Create thread with empty result (will be updated after streaming)
+            thread_record = Thread(
+                organization_id=resolved_org_id,
+                query_text=query,
+                space_id=space_id,  # Can be None for org-wide threads
+                created_by=user_id,
+                result="",  # Empty initially, updated after streaming
+                confidence_score=0.0,  # Calculated after streaming
+                sources={"citations": [], "count": 0},  # Updated after streaming
+                agent_steps={},  # Updated after streaming
+            )
+
+            db.add(thread_record)
+            await db.commit()
+            await db.refresh(thread_record)
+
+            thread_id = str(thread_record.id)
+
+            logger.info(f"Created thread before streaming: id={thread_id}")
+
+            # Yield thread_id immediately so frontend can navigate
+            yield {
+                "type": "start",
+                "thread_id": thread_id,
+            }
+
+        # Step 2: Initialize state
         state: AgentState = {
             "query": query,
             "context": context or [],
@@ -286,25 +327,22 @@ class AIAgentService:
             "search_results": None,
         }
 
-        # Step 1: Retrieve context (if not provided)
+        # Step 3: Retrieve context (if not provided)
         if not context:
-            # Import here to avoid circular imports when vector search is available
-            from app.agents.thread_agent import retrieve_context
-
             state = await retrieve_context(state)
 
-        # Step 2: Stream response generation
+        # Step 4: Stream response generation
         full_response = ""
         async for token in generate_response_streaming(state):
             full_response += token
             yield {"type": "token", "content": token}
 
-        # Step 3: Extract citations
+        # Step 5: Extract citations
         state["response"] = full_response
 
         state = await add_citations(state)
 
-        # Step 4: Calculate confidence score
+        # Step 6: Calculate confidence score
         confidence_score = 0.0
         search_results = state.get("search_results")
         if search_results:
@@ -326,30 +364,40 @@ class AIAgentService:
                 "confidence_score": confidence_score,
             }
 
-        # Step 5: Save to database if requested
-        thread_id = None
-        if save_to_db and db and user_id and (space_id or organization_id):
-            thread_record = await self._save_query_to_db(
-                db=db,
-                query_text=query,
-                organization_id=organization_id,
-                space_id=space_id,
-                user_id=user_id,
-                result_text=final_response,
-                citations=final_citations,
-                confidence_score=confidence_score,
-                agent_state=dict(state),
-            )
-            thread_id = str(thread_record.id)
+        # Step 7: Update thread with final results (if already created)
+        if thread_id and db:
+            from sqlalchemy import update
 
-        # Signal completion
+            # Update existing thread record with final results
+            stmt = (
+                update(Thread)
+                .where(Thread.id == UUID(thread_id))
+                .values(
+                    result=final_response,
+                    confidence_score=confidence_score,
+                    sources={"citations": final_citations, "count": len(final_citations)},
+                    agent_steps={
+                        "context_count": len(state.get("context", [])),
+                        "search_results_count": len(search_results) if search_results else 0,
+                    },
+                )
+            )
+            await db.execute(stmt)
+            await db.commit()
+
+            logger.info(
+                f"Updated thread with final results: id={thread_id}, "
+                f"confidence={confidence_score:.3f}, citations={len(final_citations)}"
+            )
+
+        # Step 8: Signal completion
         num_sources = len(search_results) if search_results else 0
         yield {
             "type": "done",
             "context_used": len(state["context"]) > 0,
             "num_sources": num_sources,
             "confidence_score": confidence_score,
-            "thread_id": thread_id,
+            "thread_id": thread_id,  # Keep for backward compatibility
         }
 
 

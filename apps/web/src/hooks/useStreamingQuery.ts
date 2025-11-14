@@ -1,20 +1,18 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import {
+  MAX_RETRY_ATTEMPTS,
+  MAX_RETRY_DELAY_MS,
+  NON_RETRYABLE_ERRORS,
+  RETRY_DELAY_MS,
+} from '@/constants/streaming';
 import {
   buildStreamUrl,
   type Citation,
   type SSEEvent,
 } from '@/lib/api/queries-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/query/client';
-import {
-  MAX_RETRY_ATTEMPTS,
-  RETRY_DELAY_MS,
-  MAX_RETRY_DELAY_MS,
-  NON_RETRYABLE_ERRORS,
-} from '@/constants/streaming';
+import { useCallback, useRef, useState } from 'react';
 
 interface StreamingState {
   response: string;
@@ -22,7 +20,7 @@ interface StreamingState {
   confidenceScore: number | null;
   isStreaming: boolean;
   error: string | null;
-  queryId: string | null;
+  threadId: string | null;
   retryCount: number;
   errorCode?: string;
 }
@@ -50,7 +48,6 @@ interface StreamingState {
  */
 export function useStreamingQuery() {
   const { accessToken, user } = useAuthStore();
-  const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentParamsRef = useRef<{
@@ -66,7 +63,7 @@ export function useStreamingQuery() {
     confidenceScore: null,
     isStreaming: false,
     error: null,
-    queryId: null,
+    threadId: null,
     retryCount: 0,
   });
 
@@ -152,6 +149,14 @@ export function useStreamingQuery() {
               const data: SSEEvent = JSON.parse(event.data);
 
               switch (data.type) {
+                case 'start':
+                  // Thread created - set threadId immediately for early navigation
+                  setState((prev) => ({
+                    ...prev,
+                    threadId: data.thread_id,
+                  }));
+                  break;
+
                 case 'token':
                   // Append token to response
                   setState((prev) => ({
@@ -183,26 +188,12 @@ export function useStreamingQuery() {
                     ...prev,
                     isStreaming: false,
                     confidenceScore: data.confidence_score,
-                    queryId: data.query_id || null,
+                    threadId: data.thread_id || prev.threadId,
                     retryCount: 0, // Reset retry count on success
                   }));
 
-                  // Invalidate query history to refetch with new query
-                  if (params.saveToDb) {
-                    if (params.spaceId) {
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.threads.list({
-                          spaceId: params.spaceId,
-                        }),
-                      });
-                    } else if (params.organizationId) {
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.threads.list({
-                          organizationId: params.organizationId,
-                        }),
-                      });
-                    }
-                  }
+                  // Note: No query invalidation here - ThreadInterface handles UI updates optimistically
+                  // ThreadsPanel will refetch naturally on mount or navigation
 
                   eventSource.close();
                   resolve();
@@ -296,7 +287,7 @@ export function useStreamingQuery() {
         throw error;
       }
     },
-    [accessToken, user?.id, queryClient]
+    [accessToken, user?.id]
   );
 
   /**
@@ -319,7 +310,7 @@ export function useStreamingQuery() {
         confidenceScore: null,
         isStreaming: true,
         error: null,
-        queryId: null,
+        threadId: null,
         retryCount: 0,
       });
 
@@ -375,7 +366,7 @@ export function useStreamingQuery() {
       confidenceScore: null,
       isStreaming: false,
       error: null,
-      queryId: null,
+      threadId: null,
       retryCount: 0,
     });
   }, [stopStreaming]);
@@ -387,7 +378,7 @@ export function useStreamingQuery() {
     isStreaming: state.isStreaming,
     error: state.error,
     errorCode: state.errorCode,
-    queryId: state.queryId,
+    threadId: state.threadId,
     retryCount: state.retryCount,
     startStreaming,
     stopStreaming,

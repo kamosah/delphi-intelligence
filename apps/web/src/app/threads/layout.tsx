@@ -21,7 +21,7 @@ interface ThreadsLayoutProps {
  */
 export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-white">
       {/* Top Navigation */}
       <AppHeader />
 

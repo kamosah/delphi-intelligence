@@ -11,7 +11,7 @@ import {
   useOrganization,
   useUpdateOrganization,
   type UpdateOrganizationInput,
-} from '@/hooks/queries/useOrganizations';
+} from '@/hooks/useOrganizations';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Badge,

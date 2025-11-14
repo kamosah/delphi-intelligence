@@ -12,7 +12,7 @@ import {
   RecentThreadItem,
   RecentThreadItemSkeleton,
 } from '@/components/dashboard/RecentThreadItem';
-import { useDashboardStats } from '@/hooks/queries/useDashboardStats';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useThreads } from '@/hooks/useThreads';
 import { useAuthStore } from '@/lib/stores/auth-store';

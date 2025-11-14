@@ -14,7 +14,7 @@ import {
 import {
   useCreateOrganization,
   type Organization,
-} from '@/hooks/queries/useOrganizations';
+} from '@/hooks/useOrganizations';
 import { toast } from 'sonner';
 
 interface CreateOrganizationDialogProps {

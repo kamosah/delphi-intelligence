@@ -1,5 +1,5 @@
-// SSE streaming utilities for query execution
-// Note: All query CRUD operations (create, read, update, delete) use GraphQL
+// SSE streaming utilities for thread execution
+// Note: All thread CRUD operations (create, read, update, delete) use GraphQL
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -17,6 +17,11 @@ export interface Citation {
   page_number?: number;
   confidence_level?: 'high' | 'medium' | 'low';
 }
+
+export type SSEStartEvent = {
+  type: 'start';
+  thread_id: string;
+};
 
 export type SSETokenEvent = {
   type: 'token';
@@ -37,7 +42,7 @@ export type SSECitationsEvent = {
 export type SSEDoneEvent = {
   type: 'done';
   confidence_score: number;
-  query_id?: string;
+  thread_id?: string;
 };
 
 export type SSEErrorEvent = {
@@ -52,6 +57,7 @@ export type SSEErrorEvent = {
 };
 
 export type SSEEvent =
+  | SSEStartEvent
   | SSETokenEvent
   | SSEReplaceEvent
   | SSECitationsEvent
@@ -94,5 +100,5 @@ export function buildStreamUrl(params: {
     }),
   });
 
-  return `${API_BASE_URL}/api/query/stream?${searchParams.toString()}`;
+  return `${API_BASE_URL}/api/thread/stream?${searchParams.toString()}`;
 }

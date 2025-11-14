@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { User, Bot } from 'lucide-react';
 import { format } from 'date-fns';
+import { AlertTriangle } from 'lucide-react';
 import { MarkdownContent } from '../common/MarkdownContent';
 
 interface ThreadMessageProps {
@@ -10,11 +10,7 @@ interface ThreadMessageProps {
   content: string;
   timestamp?: Date | string;
   confidenceScore?: number;
-  className?: string;
-}
-
-interface MessageAvatarProps {
-  role: 'user' | 'assistant';
+  isFailed?: boolean;
   className?: string;
 }
 
@@ -27,6 +23,7 @@ interface MessageHeaderProps {
 interface UserMessageProps {
   content: string;
   timestamp?: string;
+  isFailed?: boolean;
   className?: string;
 }
 
@@ -35,25 +32,6 @@ interface AIMessageProps {
   timestamp?: string;
   confidenceScore?: number;
   className?: string;
-}
-
-/**
- * MessageAvatar - Reusable avatar component for user and AI messages
- */
-function MessageAvatar({ role, className }: MessageAvatarProps) {
-  const isUser = role === 'user';
-
-  return (
-    <div
-      className={cn(
-        'shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
-        isUser ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600',
-        className
-      )}
-    >
-      {isUser ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
-    </div>
-  );
 }
 
 /**
@@ -89,17 +67,35 @@ function MessageHeader({
 /**
  * UserMessage - Right-aligned message bubble for user messages
  */
-function UserMessage({ content, timestamp, className }: UserMessageProps) {
+function UserMessage({
+  content,
+  timestamp,
+  isFailed,
+  className,
+}: UserMessageProps) {
   return (
     <div className={cn('flex justify-end px-4 py-4', className)}>
-      <div className="flex gap-3 max-w-3xl bg-gray-100 rounded-lg px-4 py-3">
-        <div className="flex-1 min-w-0">
-          <MessageHeader role="user" timestamp={timestamp} />
-          <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-            {content}
-          </div>
+      <div
+        className={cn(
+          'max-w-3xl rounded-lg px-4 py-3',
+          isFailed ? 'bg-red-50 border border-red-200' : 'bg-gray-100'
+        )}
+      >
+        <MessageHeader role="user" timestamp={timestamp} />
+        <div
+          className={cn(
+            'text-sm whitespace-pre-wrap break-words',
+            isFailed ? 'text-red-900' : 'text-gray-800'
+          )}
+        >
+          {content}
         </div>
-        <MessageAvatar role="user" />
+        {isFailed && (
+          <div className="text-xs text-red-600 mt-2 flex items-center gap-1">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Message failed to send</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -116,16 +112,13 @@ function AIMessage({
 }: AIMessageProps) {
   return (
     <div className={cn('flex justify-start px-4 py-4', className)}>
-      <div className="flex gap-3 max-w-3xl">
-        <MessageAvatar role="assistant" />
-        <div className="flex-1 min-w-0">
-          <MessageHeader
-            role="assistant"
-            timestamp={timestamp}
-            confidenceScore={confidenceScore}
-          />
-          <MarkdownContent content={content} />
-        </div>
+      <div className="max-w-3xl">
+        <MessageHeader
+          role="assistant"
+          timestamp={timestamp}
+          confidenceScore={confidenceScore}
+        />
+        <MarkdownContent content={content} />
       </div>
     </div>
   );
@@ -135,12 +128,13 @@ function AIMessage({
  * ThreadMessage component displays a single message in the conversation.
  *
  * Features:
- * - User messages: Right-aligned with light gray bubble
+ * - User messages: Right-aligned with light gray bubble (or red if failed)
  * - AI messages: Left-aligned, transparent (no bubble)
- * - Avatar icons
  * - Timestamp display
  * - Confidence score for assistant messages
  * - Markdown rendering for AI messages
+ * - Clean interface without avatar icons
+ * - Failed message state with visual indicator
  *
  * @example
  * <ThreadMessage
@@ -154,6 +148,7 @@ export function ThreadMessage({
   content,
   timestamp,
   confidenceScore,
+  isFailed,
   className,
 }: ThreadMessageProps) {
   // Format timestamp
@@ -166,6 +161,7 @@ export function ThreadMessage({
       <UserMessage
         content={content}
         timestamp={formattedTime}
+        isFailed={isFailed}
         className={className}
       />
     );

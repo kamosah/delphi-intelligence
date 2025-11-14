@@ -1,10 +1,11 @@
 'use client';
 
 import {
+  SearchDocumentsInput,
   useSearchDocumentsQuery,
-  type SearchDocumentsInput,
 } from '@/lib/api/hooks.generated';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '../lib/stores';
 
 // Re-export types for convenience
 export type {
@@ -44,6 +45,7 @@ export function useSearchDocuments(input: SearchDocumentsInput) {
     { input },
     {
       enabled: !!accessToken && !!input.query && input.query.trim().length > 0,
+      queryKey: queryKeys.search.documents(input),
     }
   );
 
@@ -51,8 +53,5 @@ export function useSearchDocuments(input: SearchDocumentsInput) {
     results: query.data?.searchDocuments || [],
     isLoading: query.isLoading,
     error: query.error,
-    refetch: query.refetch,
-    // Expose raw query for advanced use cases
-    query,
   };
 }

@@ -156,8 +156,28 @@
 
   /* Composer (input) styles */
   [data-assistant-ui-composer-input] {
-    @apply flex-1 resize-none rounded-lg border p-3 
+    @apply flex-1 resize-none rounded-lg border p-3
            focus:outline-none focus:ring-2 focus:ring-primary
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
+
+  /* TipTap Editor Styles */
+  .tiptap-editor .ProseMirror {
+    @apply outline-none;
+  }
+
+  .tiptap-editor .ProseMirror p {
+    @apply m-0;
+  }
+
+  .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-gray-400 h-0 pointer-events-none;
+    content: attr(data-placeholder);
+    display: block;
+  }
+
+  /* Phase 2: Mention styles (currently commented in TipTapEditor.tsx) */
+  /* .tiptap-editor .mention {
+    @apply bg-blue-500/10 rounded px-1 py-0.5 text-blue-600 font-medium;
+  } */
 }
