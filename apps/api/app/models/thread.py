@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
+    from .message import Message
     from .organization import Organization
     from .space import Space
     from .thread_document import ThreadDocument
@@ -108,6 +109,13 @@ class Thread(Base):
 
     thread_documents: Mapped[list["ThreadDocument"]] = relationship(
         "ThreadDocument", back_populates="thread", cascade="all, delete-orphan"
+    )
+
+    messages: Mapped[list["Message"]] = relationship(
+        "Message",
+        back_populates="thread",
+        cascade="all, delete-orphan",
+        order_by="Message.created_at",
     )
 
     def __repr__(self) -> str:

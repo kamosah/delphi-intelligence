@@ -3,6 +3,7 @@
 from .base import Base
 from .document import Document, DocumentStatus
 from .document_chunk import DocumentChunk
+from .message import Message, MessageRole
 from .organization import Organization
 from .organization_member import OrganizationMember, OrganizationRole
 from .space import MemberRole, Space, SpaceMember
@@ -25,6 +26,8 @@ __all__ = [
     "Document",
     "DocumentStatus",
     "DocumentChunk",
+    "Message",
+    "MessageRole",
     "Thread",
     "ThreadStatus",
     "ThreadDocument",
