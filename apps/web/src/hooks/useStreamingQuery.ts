@@ -31,7 +31,9 @@ interface StreamingState {
  * Handles real-time token streaming, citation extraction, confidence scoring,
  * and automatic reconnection on transient failures with exponential backoff.
  *
- * @example
+ * Supports both new thread creation and multi-turn continuation of existing threads.
+ *
+ * @example New thread
  * const { response, citations, isStreaming, startStreaming, stopStreaming, retry } = useStreamingQuery();
  *
  * const handleSubmit = async (query: string) => {
@@ -45,6 +47,13 @@ interface StreamingState {
  *     console.error('Query failed:', error);
  *   }
  * };
+ *
+ * @example Continue existing thread (multi-turn)
+ * await startStreaming({
+ *   query: 'Tell me more about that',
+ *   threadId: 'thread-123',
+ *   saveToDb: true,
+ * });
  */
 export function useStreamingQuery() {
   const { accessToken, user } = useAuthStore();
@@ -52,6 +61,7 @@ export function useStreamingQuery() {
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentParamsRef = useRef<{
     query: string;
+    threadId?: string;
     organizationId?: string;
     spaceId?: string;
     saveToDb?: boolean;
@@ -93,6 +103,7 @@ export function useStreamingQuery() {
     async (
       params: {
         query: string;
+        threadId?: string;
         organizationId?: string;
         spaceId?: string;
         saveToDb?: boolean;
@@ -128,6 +139,7 @@ export function useStreamingQuery() {
         // Build stream URL with auth token
         const streamUrl = buildStreamUrl({
           query: params.query,
+          threadId: params.threadId,
           organizationId: params.organizationId,
           spaceId: params.spaceId,
           userId: user?.id,
@@ -296,6 +308,7 @@ export function useStreamingQuery() {
   const startStreaming = useCallback(
     async (params: {
       query: string;
+      threadId?: string;
       organizationId?: string;
       spaceId?: string;
       saveToDb?: boolean;

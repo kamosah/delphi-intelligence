@@ -28,6 +28,8 @@ interface ThreadInterfaceProps {
  * Features:
  * - Chat-style conversation display (Hex-inspired design)
  * - Real-time streaming responses with immediate navigation
+ * - Multi-turn conversation support (ChatGPT-style follow-ups)
+ * - Loads full conversation history from backend messages
  * - Citation display with source links
  * - Thread input with keyboard shortcuts
  * - Clean, constrained-width interface
@@ -44,7 +46,7 @@ interface ThreadInterfaceProps {
  * // Space-scoped conversation
  * <ThreadInterface spaceId="space-uuid" />
  *
- * // Load existing thread
+ * // Load existing thread with full message history (multi-turn)
  * <ThreadInterface initialThread={threadData} />
  */
 export function ThreadInterface({
@@ -68,28 +70,24 @@ export function ThreadInterface({
       isFailed?: boolean;
     }>
   >(() => {
-    // Initialize conversation history from initialThread if provided
-    if (initialThread) {
-      return [
-        {
-          id: `user-${crypto.randomUUID()}`,
-          role: 'user',
-          content: initialThread.queryText,
-          timestamp: new Date(initialThread.createdAt),
-        },
-        ...(initialThread.result
-          ? [
-              {
-                id: `assistant-${crypto.randomUUID()}`,
-                role: 'assistant' as const,
-                content: initialThread.result,
-                timestamp: new Date(initialThread.updatedAt),
-                citations: initialThread.sources || [],
-                confidenceScore: initialThread.confidenceScore || undefined,
-              },
-            ]
-          : []),
-      ];
+    // Initialize conversation history from initialThread messages if provided
+    if (initialThread?.messages && initialThread.messages.length > 0) {
+      return initialThread.messages.map((msg) => {
+        // Parse message metadata for citations and confidence score
+        const metadata = msg.messageMetadata as {
+          citations?: Citation[];
+          confidence_score?: number;
+        };
+
+        return {
+          id: msg.id,
+          role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.createdAt),
+          citations: metadata?.citations,
+          confidenceScore: metadata?.confidence_score,
+        };
+      });
     }
     return [];
   });
@@ -254,6 +252,7 @@ export function ThreadInterface({
       // Start streaming response
       await startStreaming({
         query: message,
+        threadId: initialThread?.id, // Pass threadId for follow-up messages (multi-turn)
         organizationId: currentOrganization?.id,
         spaceId,
         saveToDb: true, // Save to database for history
