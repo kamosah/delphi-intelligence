@@ -50,6 +50,7 @@ export const Default: Story = {
       costUsd: 0.05,
       completedAt: new Date('2024-01-15').toISOString(),
       updatedAt: new Date('2024-01-15').toISOString(),
+      messages: [],
     },
   },
 };
@@ -78,6 +79,7 @@ export const LongQuery: Story = {
       costUsd: 0.08,
       completedAt: new Date('2024-01-10').toISOString(),
       updatedAt: new Date('2024-01-10').toISOString(),
+      messages: [],
     },
   },
 };
@@ -105,6 +107,7 @@ export const RecentThread: Story = {
       costUsd: 0.03,
       completedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      messages: [],
     },
   },
 };
@@ -132,6 +135,7 @@ export const MultipleItems: Story = {
       costUsd: 0.05,
       completedAt: new Date('2024-01-15').toISOString(),
       updatedAt: new Date('2024-01-15').toISOString(),
+      messages: [],
     },
   },
   render: () => (
@@ -158,6 +162,7 @@ export const MultipleItems: Story = {
           costUsd: 0.05,
           completedAt: new Date('2024-01-15').toISOString(),
           updatedAt: new Date('2024-01-15').toISOString(),
+          messages: [],
         }}
       />
       <ThreadListItem
@@ -182,6 +187,7 @@ export const MultipleItems: Story = {
           costUsd: 0.07,
           completedAt: new Date('2024-01-12').toISOString(),
           updatedAt: new Date('2024-01-12').toISOString(),
+          messages: [],
         }}
       />
       <ThreadListItem
@@ -206,6 +212,7 @@ export const MultipleItems: Story = {
           costUsd: 0.05,
           completedAt: new Date('2024-01-10').toISOString(),
           updatedAt: new Date('2024-01-15').toISOString(),
+          messages: [],
         }}
       />
     </>

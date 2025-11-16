@@ -24,6 +24,15 @@ query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
     completedAt
     createdAt
     updatedAt
+    messages {
+      id
+      threadId
+      messageRole
+      content
+      messageMetadata
+      createdAt
+      updatedAt
+    }
   }
 }
 
@@ -49,5 +58,14 @@ query GetThread($id: ID!) {
     completedAt
     createdAt
     updatedAt
+    messages {
+      id
+      threadId
+      messageRole
+      content
+      messageMetadata
+      createdAt
+      updatedAt
+    }
   }
 }
