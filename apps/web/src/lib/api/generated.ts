@@ -103,6 +103,23 @@ export type DocumentChunk = {
   tokenCount: Scalars['Int']['output'];
 };
 
+export type Message = {
+  __typename?: 'Message';
+  content: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  messageMetadata: Scalars['JSON']['output'];
+  messageRole: MessageRole;
+  threadId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export enum MessageRole {
+  Assistant = 'ASSISTANT',
+  System = 'SYSTEM',
+  User = 'USER',
+}
+
 export type Mutation = {
   __typename?: 'Mutation';
   addOrganizationMember: OrganizationMember;
@@ -343,6 +360,7 @@ export type Thread = {
   createdBy: Scalars['ID']['output'];
   errorMessage?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  messages: Array<Message>;
   modelUsed?: Maybe<Scalars['String']['output']>;
   organizationId: Scalars['ID']['output'];
   processingTimeMs?: Maybe<Scalars['Int']['output']>;
@@ -805,6 +823,16 @@ export type GetThreadsQuery = {
     completedAt?: string | null;
     createdAt: string;
     updatedAt: string;
+    messages: Array<{
+      __typename?: 'Message';
+      id: string;
+      threadId: string;
+      messageRole: MessageRole;
+      content: string;
+      messageMetadata: any;
+      createdAt: string;
+      updatedAt: string;
+    }>;
   }>;
 };
 
@@ -836,6 +864,16 @@ export type GetThreadQuery = {
     completedAt?: string | null;
     createdAt: string;
     updatedAt: string;
+    messages: Array<{
+      __typename?: 'Message';
+      id: string;
+      threadId: string;
+      messageRole: MessageRole;
+      content: string;
+      messageMetadata: any;
+      createdAt: string;
+      updatedAt: string;
+    }>;
   } | null;
 };
 

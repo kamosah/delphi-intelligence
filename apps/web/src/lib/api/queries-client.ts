@@ -73,10 +73,18 @@ export type SSEEvent =
  *
  * This is the ONLY REST endpoint for queries - all CRUD operations use GraphQL.
  *
- * @example
+ * @example New thread
  * const url = buildStreamUrl({
  *   query: 'What are the key findings?',
  *   spaceId: 'space-123',
+ *   userId: 'user-123',
+ *   saveToDb: true,
+ * });
+ *
+ * @example Continue existing thread
+ * const url = buildStreamUrl({
+ *   query: 'Tell me more about that',
+ *   threadId: 'thread-123',
  *   userId: 'user-123',
  *   saveToDb: true,
  * });
@@ -85,6 +93,7 @@ export type SSEEvent =
  */
 export function buildStreamUrl(params: {
   query: string;
+  threadId?: string;
   organizationId?: string;
   spaceId?: string;
   userId?: string;
@@ -92,6 +101,7 @@ export function buildStreamUrl(params: {
 }): string {
   const searchParams = new URLSearchParams({
     query: params.query,
+    ...(params.threadId && { thread_id: params.threadId }),
     ...(params.organizationId && { organization_id: params.organizationId }),
     ...(params.spaceId && { space_id: params.spaceId }),
     ...(params.userId && { user_id: params.userId }),
