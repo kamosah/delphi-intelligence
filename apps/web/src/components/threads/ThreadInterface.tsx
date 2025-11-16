@@ -72,22 +72,27 @@ export function ThreadInterface({
   >(() => {
     // Initialize conversation history from initialThread messages if provided
     if (initialThread?.messages && initialThread.messages.length > 0) {
-      return initialThread.messages.map((msg) => {
-        // Parse message metadata for citations and confidence score
-        const metadata = msg.messageMetadata as {
-          citations?: Citation[];
-          confidence_score?: number;
-        };
+      return (
+        initialThread.messages
+          // Filter out system messages (internal prompts, not for display)
+          .filter((msg) => msg.messageRole !== 'SYSTEM')
+          .map((msg) => {
+            // Parse message metadata for citations and confidence score
+            const metadata = msg.messageMetadata as {
+              citations?: Citation[];
+              confidence_score?: number;
+            };
 
-        return {
-          id: msg.id,
-          role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
-          content: msg.content,
-          timestamp: new Date(msg.createdAt),
-          citations: metadata?.citations,
-          confidenceScore: metadata?.confidence_score,
-        };
-      });
+            return {
+              id: msg.id,
+              role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
+              content: msg.content,
+              timestamp: new Date(msg.createdAt),
+              citations: metadata?.citations,
+              confidenceScore: metadata?.confidence_score,
+            };
+          })
+      );
     }
     return [];
   });
