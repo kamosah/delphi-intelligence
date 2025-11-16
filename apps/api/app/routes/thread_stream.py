@@ -34,19 +34,22 @@ async def generate_sse_events(
     space_id: UUID | None = None,
     user_id: UUID | None = None,
     save_to_db: bool = False,
+    thread_id: UUID | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     Generate Server-Sent Events for streaming query responses.
 
+    Supports both new threads and continuation of existing multi-turn conversations.
     Includes vector search, citation tracking, confidence scoring, and timeout handling.
 
     Args:
         query: User's natural language question
         db: Database session for vector search and storage
-        organization_id: Optional organization ID (required if save_to_db=True and space_id not provided)
+        organization_id: Optional organization ID (required if save_to_db=True and space_id not provided for new threads)
         space_id: Optional space ID to filter search results
         user_id: Optional user ID for query attribution
         save_to_db: Whether to save query and results to database
+        thread_id: Optional existing thread ID for multi-turn conversation continuation
 
     Yields:
         SSE formatted events (data: {...}\\n\\n)
@@ -61,6 +64,7 @@ async def generate_sse_events(
                 space_id=space_id,
                 user_id=user_id,
                 save_to_db=save_to_db,
+                thread_id=thread_id,
             ):
                 # Format as SSE
                 yield f"data: {json.dumps(event)}\n\n"
@@ -105,7 +109,7 @@ async def stream_thread_response(
     organization_id: Annotated[
         UUID | None,
         QueryParam(
-            description="Organization ID (required if save_to_db=true and space_id not provided)"
+            description="Organization ID (required for new threads if save_to_db=true and space_id not provided)"
         ),
     ] = None,
     space_id: Annotated[
@@ -117,6 +121,10 @@ async def stream_thread_response(
     save_to_db: Annotated[
         bool, QueryParam(description="Save thread and results to database")
     ] = False,
+    thread_id: Annotated[
+        UUID | None,
+        QueryParam(description="Existing thread ID for multi-turn conversation continuation"),
+    ] = None,
 ) -> StreamingResponse:
     """
     Stream AI agent response for conversation threads using Server-Sent Events with RAG pipeline.
@@ -208,10 +216,11 @@ async def stream_thread_response(
     if save_to_db and not user_id:
         raise HTTPException(status_code=400, detail="user_id is required when save_to_db=true")
 
-    if save_to_db and not space_id and not organization_id:
+    # For new threads (no thread_id), require organization_id or space_id
+    if save_to_db and not thread_id and not space_id and not organization_id:
         raise HTTPException(
             status_code=400,
-            detail="Either space_id or organization_id is required when save_to_db=true",
+            detail="Either space_id or organization_id is required for new threads when save_to_db=true",
         )
 
     return StreamingResponse(
@@ -222,6 +231,7 @@ async def stream_thread_response(
             space_id=space_id,
             user_id=user_id,
             save_to_db=save_to_db,
+            thread_id=thread_id,
         ),
         media_type="text/event-stream",
         headers={

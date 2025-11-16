@@ -8,6 +8,7 @@ import strawberry
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
+from app.models.message import Message as MessageModel
 from app.models.organization import Organization as OrganizationModel
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
@@ -380,6 +381,7 @@ class Thread:
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    messages: list["Message"]
 
     @classmethod
     def from_model(cls, thread: ThreadModel) -> "Thread":
@@ -388,6 +390,9 @@ class Thread:
         status = None
         if thread.status:
             status = ThreadStatusEnum[thread.status.name]
+
+        # Convert messages
+        messages = [Message.from_model(msg) for msg in thread.messages] if thread.messages else []
 
         return cls(
             id=strawberry.ID(str(thread.id)),
@@ -410,7 +415,53 @@ class Thread:
             completed_at=thread.completed_at,
             created_at=thread.created_at,
             updated_at=thread.updated_at,
+            messages=messages,
         )
+
+
+@strawberry.enum
+class MessageRole(str, Enum):
+    """Enum for message roles in conversations."""
+
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+
+
+@strawberry.type
+class Message:
+    """GraphQL Message type for individual messages within multi-turn conversations."""
+
+    id: strawberry.ID
+    thread_id: strawberry.ID
+    message_role: MessageRole
+    content: str
+    message_metadata: strawberry.scalars.JSON  # type: ignore[valid-type]
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, message: MessageModel) -> "Message":
+        """Convert SQLAlchemy Message model to GraphQL Message type."""
+        return cls(
+            id=strawberry.ID(str(message.id)),
+            thread_id=strawberry.ID(str(message.thread_id)),
+            message_role=MessageRole[message.message_role.name],
+            content=message.content,
+            message_metadata=message.message_metadata,
+            created_at=message.created_at,
+            updated_at=message.updated_at,
+        )
+
+
+@strawberry.input
+class CreateMessageInput:
+    """Input type for creating a new message in a thread."""
+
+    thread_id: strawberry.ID
+    message_role: MessageRole
+    content: str
+    message_metadata: strawberry.scalars.JSON | None = None  # type: ignore[valid-type]
 
 
 @strawberry.type

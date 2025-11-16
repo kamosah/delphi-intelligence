@@ -11,6 +11,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from app.models.message import Message, MessageRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
@@ -71,7 +72,7 @@ def mock_space(mock_user, mock_organization):
 
 @pytest.fixture()
 def mock_thread(mock_user, mock_organization, mock_space):
-    """Create a mock thread (space-scoped) for testing."""
+    """Create a mock thread (space-scoped) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
     thread.query_text = "What are the key findings?"
@@ -85,12 +86,30 @@ def mock_thread(mock_user, mock_organization, mock_space):
     thread.organization = mock_organization
     thread.space = mock_space
     thread.creator = mock_user
+
+    # Add mock messages for multi-turn conversation support
+    user_msg = MagicMock(spec=Message)
+    user_msg.id = uuid4()
+    user_msg.thread_id = thread.id
+    user_msg.message_role = MessageRole.USER
+    user_msg.content = "What are the key findings?"
+    user_msg.message_metadata = {}
+
+    assistant_msg = MagicMock(spec=Message)
+    assistant_msg.id = uuid4()
+    assistant_msg.thread_id = thread.id
+    assistant_msg.message_role = MessageRole.ASSISTANT
+    assistant_msg.content = "Based on the analysis, here are the key findings..."
+    assistant_msg.message_metadata = {"confidence_score": 0.85}
+
+    thread.messages = [user_msg, assistant_msg]
+
     return thread
 
 
 @pytest.fixture()
 def mock_org_thread(mock_user, mock_organization):
-    """Create a mock org-wide thread (no space) for testing."""
+    """Create a mock org-wide thread (no space) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
     thread.query_text = "Org-wide query across all spaces"
@@ -104,6 +123,24 @@ def mock_org_thread(mock_user, mock_organization):
     thread.organization = mock_organization
     thread.space = None
     thread.creator = mock_user
+
+    # Add mock messages for multi-turn conversation support
+    user_msg = MagicMock(spec=Message)
+    user_msg.id = uuid4()
+    user_msg.thread_id = thread.id
+    user_msg.message_role = MessageRole.USER
+    user_msg.content = "Org-wide query across all spaces"
+    user_msg.message_metadata = {}
+
+    assistant_msg = MagicMock(spec=Message)
+    assistant_msg.id = uuid4()
+    assistant_msg.thread_id = thread.id
+    assistant_msg.message_role = MessageRole.ASSISTANT
+    assistant_msg.content = "Here's the org-wide analysis..."
+    assistant_msg.message_metadata = {}
+
+    thread.messages = [user_msg, assistant_msg]
+
     return thread
 
 

@@ -422,6 +422,7 @@ class Query:
                 # Get threads for the space
                 stmt = (
                     select(ThreadModel)
+                    .options(joinedload(ThreadModel.messages))  # Eager load messages
                     .where(ThreadModel.space_id == space_uuid)
                     .order_by(ThreadModel.created_at.desc())
                     .limit(limit)
@@ -435,6 +436,7 @@ class Query:
                 # For now, just filter by organization_id
                 stmt = (
                     select(ThreadModel)
+                    .options(joinedload(ThreadModel.messages))  # Eager load messages
                     .where(ThreadModel.organization_id == org_uuid)
                     .where(ThreadModel.space_id.is_(None))  # Only org-wide threads
                     .order_by(ThreadModel.created_at.desc())
@@ -445,6 +447,7 @@ class Query:
                 # No filters - return threads user created
                 stmt = (
                     select(ThreadModel)
+                    .options(joinedload(ThreadModel.messages))  # Eager load messages
                     .where(ThreadModel.created_by == user_id)
                     .order_by(ThreadModel.created_at.desc())
                     .limit(limit)
@@ -499,6 +502,7 @@ class Query:
                 # For org-wide threads (no space_id): check organization membership (TODO)
                 stmt = (
                     select(ThreadModel)
+                    .options(joinedload(ThreadModel.messages))  # Eager load messages
                     .outerjoin(SpaceModel, SpaceModel.id == ThreadModel.space_id)
                     .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
                     .where(

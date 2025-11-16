@@ -10,8 +10,9 @@ from typing import Any
 from uuid import UUID
 from collections.abc import AsyncGenerator
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.agents.thread_agent import (
     AgentState,
@@ -21,7 +22,8 @@ from app.agents.thread_agent import (
     add_citations,
     retrieve_context,
 )
-from app.models.space import Space
+from app.models.message import Message, MessageRole
+from app.models.space import Space, SpaceMember
 from app.models.thread import Thread
 from app.services.citation_service import get_citation_service
 
@@ -237,7 +239,7 @@ class AIAgentService:
 
         return thread_record
 
-    async def process_thread_stream(
+    async def process_thread_stream(  # noqa: PLR0915
         self,
         query: str,
         db: AsyncSession | None = None,
@@ -246,9 +248,12 @@ class AIAgentService:
         user_id: UUID | None = None,
         context: list[str] | None = None,
         save_to_db: bool = False,
+        thread_id: UUID | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Process thread query with streaming support for real-time token delivery.
+
+        Supports both new threads and continuation of existing multi-turn conversations.
 
         Yields events as the response is generated, suitable for SSE endpoints.
 
@@ -257,29 +262,115 @@ class AIAgentService:
             db: Database session for vector search and storage
             organization_id: Organization ID (required if save_to_db=True and space_id not provided)
             space_id: Optional space ID to filter search results
-            user_id: User ID for thread attribution (required if save_to_db=True)
+            user_id: User ID for thread attribution (required if save_to_db=True or if thread_id is provided for authorization)
             context: Optional pre-retrieved document chunks (bypasses vector search)
             save_to_db: Whether to save thread and results to database
+            thread_id: Optional existing thread ID for multi-turn conversation continuation
 
         Yields:
             Event dictionaries with types: 'start', 'token', 'citations', 'done'
 
-        Example:
+        Example (new thread):
             >>> service = AIAgentService()
             >>> async with get_db() as db:
             ...     async for event in service.process_thread_stream(
             ...         "What is AI?",
             ...         db=db,
             ...         organization_id=org_uuid,
+            ...         user_id=user_uuid,
             ...         save_to_db=True,
             ...     ):
             ...         if event["type"] == "token":
             ...             print(event["content"], end="", flush=True)
+
+        Example (continue thread):
+            >>> async for event in service.process_thread_stream(
+            ...     "Tell me more about that",
+            ...     db=db,
+            ...     user_id=user_uuid,
+            ...     thread_id=existing_thread_id,
+            ...     save_to_db=True,
+            ... ):
+            ...     if event["type"] == "token":
+            ...         print(event["content"], end="", flush=True)
         """
-        # Step 1: Create thread BEFORE streaming (if save_to_db=True)
-        # This enables immediate navigation to thread page while streaming continues
-        thread_id = None
-        if save_to_db and db and user_id and (space_id or organization_id):
+        # Step 1: Handle thread creation or continuation
+        saved_thread_id = None
+        conversation_history: list[dict[str, str]] = []
+
+        if thread_id and db:
+            # CONTINUATION: Load existing thread and verify user has access
+            # Use same authorization logic as GraphQL thread query (query.py:500-534)
+            if not user_id:
+                error_msg = "user_id is required when continuing a thread"
+                raise ValueError(error_msg)
+
+            # Load thread with space access checks
+            stmt = (
+                select(Thread)
+                .options(joinedload(Thread.messages))
+                .outerjoin(Space, Space.id == Thread.space_id)
+                .outerjoin(SpaceMember, SpaceMember.space_id == Space.id)
+                .where(
+                    (Thread.id == thread_id)
+                    & (
+                        # Access via space membership
+                        (
+                            (Thread.space_id.isnot(None))
+                            & ((Space.owner_id == user_id) | (SpaceMember.user_id == user_id))
+                        )
+                        # OR thread creator for org-wide threads
+                        | ((Thread.space_id.is_(None)) & (Thread.created_by == user_id))
+                    )
+                )
+                .distinct()
+            )
+            result = await db.execute(stmt)
+            thread_record = result.scalar_one_or_none()
+
+            if not thread_record:
+                error_msg = (
+                    f"Thread not found or access denied: {thread_id}. "
+                    "You must be the thread creator, space owner, or space member to continue this thread."
+                )
+                raise ValueError(error_msg)
+
+            saved_thread_id = str(thread_record.id)
+
+            # Build conversation history from existing messages
+            for msg in thread_record.messages:
+                conversation_history.append(
+                    {
+                        "role": msg.message_role.value,
+                        "content": msg.content,
+                    }
+                )
+
+            # Create user message for new query
+            if save_to_db:
+                user_message = Message(
+                    thread_id=thread_id,
+                    message_role=MessageRole.USER,
+                    content=query,
+                    message_metadata={},
+                )
+                db.add(user_message)
+                await db.commit()
+
+            logger.info(
+                f"Continuing thread: id={saved_thread_id}, history_length={len(conversation_history)}"
+            )
+
+            # Yield thread_id immediately so frontend knows which thread
+            yield {
+                "type": "start",
+                "thread_id": saved_thread_id,
+            }
+
+        elif save_to_db and db and user_id and (space_id or organization_id):
+            # NEW THREAD: Create thread before streaming
+            # This enables immediate navigation to thread page while streaming continues
+
             # Get organization_id from space if not provided directly
             resolved_org_id = organization_id
             if not resolved_org_id and space_id:
@@ -287,8 +378,8 @@ class AIAgentService:
                 space_result = await db.execute(space_stmt)
                 resolved_org_id = space_result.scalar_one()
             elif not resolved_org_id:
-                msg = "Either organization_id or space_id must be provided"
-                raise ValueError(msg)
+                error_msg = "Either organization_id or space_id must be provided"
+                raise ValueError(error_msg)
 
             # Create thread with empty result (will be updated after streaming)
             thread_record = Thread(
@@ -306,17 +397,27 @@ class AIAgentService:
             await db.commit()
             await db.refresh(thread_record)
 
-            thread_id = str(thread_record.id)
+            saved_thread_id = str(thread_record.id)
 
-            logger.info(f"Created thread before streaming: id={thread_id}")
+            # Create user message for the query
+            user_message = Message(
+                thread_id=thread_record.id,
+                message_role=MessageRole.USER,
+                content=query,
+                message_metadata={},
+            )
+            db.add(user_message)
+            await db.commit()
+
+            logger.info(f"Created new thread before streaming: id={saved_thread_id}")
 
             # Yield thread_id immediately so frontend can navigate
             yield {
                 "type": "start",
-                "thread_id": thread_id,
+                "thread_id": saved_thread_id,
             }
 
-        # Step 2: Initialize state
+        # Step 2: Initialize state with conversation history for multi-turn support
         state: AgentState = {
             "query": query,
             "context": context or [],
@@ -325,6 +426,7 @@ class AIAgentService:
             "db": db,
             "space_id": space_id,
             "search_results": None,
+            "conversation_history": conversation_history,
         }
 
         # Step 3: Retrieve context (if not provided)
@@ -364,14 +466,28 @@ class AIAgentService:
                 "confidence_score": confidence_score,
             }
 
-        # Step 7: Update thread with final results (if already created)
-        if thread_id and db:
-            from sqlalchemy import update
+        # Step 7: Save assistant message with final results
+        if saved_thread_id and db and save_to_db:
+            # Create assistant message with the response
+            assistant_metadata = {
+                "citations": final_citations,
+                "confidence_score": confidence_score,
+                "context_count": len(state.get("context", [])),
+                "search_results_count": len(search_results) if search_results else 0,
+            }
 
-            # Update existing thread record with final results
-            stmt = (
+            assistant_message = Message(
+                thread_id=UUID(saved_thread_id),
+                message_role=MessageRole.ASSISTANT,
+                content=final_response,
+                message_metadata=assistant_metadata,
+            )
+            db.add(assistant_message)
+
+            # Also update thread record for backward compatibility (legacy fields)
+            update_stmt = (
                 update(Thread)
-                .where(Thread.id == UUID(thread_id))
+                .where(Thread.id == UUID(saved_thread_id))
                 .values(
                     result=final_response,
                     confidence_score=confidence_score,
@@ -382,11 +498,11 @@ class AIAgentService:
                     },
                 )
             )
-            await db.execute(stmt)
+            await db.execute(update_stmt)
             await db.commit()
 
             logger.info(
-                f"Updated thread with final results: id={thread_id}, "
+                f"Saved assistant message to thread: id={saved_thread_id}, "
                 f"confidence={confidence_score:.3f}, citations={len(final_citations)}"
             )
 
@@ -397,7 +513,7 @@ class AIAgentService:
             "context_used": len(state["context"]) > 0,
             "num_sources": num_sources,
             "confidence_score": confidence_score,
-            "thread_id": thread_id,  # Keep for backward compatibility
+            "thread_id": saved_thread_id,
         }
 
 

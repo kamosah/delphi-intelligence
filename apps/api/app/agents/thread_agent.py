@@ -12,7 +12,7 @@ from uuid import UUID
 from collections.abc import AsyncGenerator
 
 import tiktoken
-from langchain.schema import HumanMessage, SystemMessage
+from langchain.schema import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -203,6 +203,7 @@ class AgentState(TypedDict, total=False):
         db: Database session for vector search (optional)
         space_id: Space ID to filter search results (optional)
         search_results: Full search results with metadata (optional)
+        conversation_history: Previous messages in the conversation for multi-turn support (optional)
     """
 
     query: str
@@ -212,6 +213,7 @@ class AgentState(TypedDict, total=False):
     db: AsyncSession | None
     space_id: UUID | None
     search_results: list[SearchResult] | None
+    conversation_history: list[dict[str, str]]
 
 
 async def retrieve_context(state: AgentState) -> AgentState:
@@ -319,11 +321,24 @@ Instructions:
 
 {NO_CONTEXT_FALLBACK_MESSAGE}"""
 
-    # Generate response
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ]
+    # Build messages array with conversation history for multi-turn support
+    messages: list[BaseMessage] = [SystemMessage(content=SYSTEM_PROMPT)]
+
+    # Add conversation history if present (for multi-turn conversations)
+    conversation_history = state.get("conversation_history", [])
+    if conversation_history:
+        for msg in conversation_history:
+            role = msg.get("role")
+            msg_content = msg.get("content", "")
+
+            if role == "user":
+                messages.append(HumanMessage(content=msg_content))
+            elif role == "assistant":
+                messages.append(AIMessage(content=msg_content))
+            # Skip system messages from history as we already have the system prompt
+
+    # Add current query
+    messages.append(HumanMessage(content=prompt))
 
     response = await llm.ainvoke(messages)
     # response.content can be str or list, we only want str
@@ -373,11 +388,24 @@ Instructions:
 
 {NO_CONTEXT_FALLBACK_MESSAGE}"""
 
-    # Generate streaming response
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ]
+    # Build messages array with conversation history for multi-turn support
+    messages: list[BaseMessage] = [SystemMessage(content=SYSTEM_PROMPT)]
+
+    # Add conversation history if present (for multi-turn conversations)
+    conversation_history = state.get("conversation_history", [])
+    if conversation_history:
+        for msg in conversation_history:
+            role = msg.get("role")
+            content = msg.get("content", "")
+
+            if role == "user":
+                messages.append(HumanMessage(content=content))
+            elif role == "assistant":
+                messages.append(AIMessage(content=content))
+            # Skip system messages from history as we already have the system prompt
+
+    # Add current query
+    messages.append(HumanMessage(content=prompt))
 
     async for chunk in llm.astream(messages):
         if chunk.content:
