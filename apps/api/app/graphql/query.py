@@ -455,7 +455,7 @@ class Query:
                 )
 
             result = await session.execute(stmt)
-            thread_models = result.scalars().all()
+            thread_models = result.unique().scalars().all()
 
             logger.info(f"Retrieved {len(thread_models)} threads for user {user_id}")
             return [Thread.from_model(thread) for thread in thread_models]
@@ -527,7 +527,7 @@ class Query:
                 )
 
                 result = await session.execute(stmt)
-                thread_model = result.scalar_one_or_none()
+                thread_model = result.unique().scalar_one_or_none()
 
                 if thread_model:
                     return Thread.from_model(thread_model)
