@@ -7,8 +7,12 @@ import {
   RETRY_DELAY_MS,
 } from '@/constants/streaming';
 import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
+import type { GetThreadQuery } from '@/lib/api/generated';
+import { MessageRole, ThreadStatusEnum } from '@/lib/api/generated';
+import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
 
 /**
@@ -48,8 +52,15 @@ import { useCallback, useEffect, useRef } from 'react';
  */
 export function useStreamingQuery(threadId?: string) {
   const { accessToken, user } = useAuthStore();
-  const { getSession, startSession, updateSession, endSession, cleanupStale } =
-    useStreamingStore();
+  const {
+    getSession,
+    startSession,
+    updateSession,
+    endSession,
+    removeSession,
+    cleanupStale,
+  } = useStreamingStore();
+  const queryClient = useQueryClient();
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,6 +71,15 @@ export function useStreamingQuery(threadId?: string) {
     spaceId?: string;
     saveToDb?: boolean;
   } | null>(null);
+
+  // Token batching with requestAnimationFrame (reduces re-renders from ~100/sec to ~60fps)
+  const batchRef = useRef<{
+    tokens: string[];
+    rafId: number | null;
+  }>({
+    tokens: [],
+    rafId: null,
+  });
 
   // Clean up stale sessions on mount
   useEffect(() => {
@@ -127,6 +147,13 @@ export function useStreamingQuery(threadId?: string) {
           retryTimeoutRef.current = null;
         }
 
+        // Clear any pending token batch
+        if (batchRef.current.rafId) {
+          cancelAnimationFrame(batchRef.current.rafId);
+          batchRef.current.rafId = null;
+          batchRef.current.tokens = [];
+        }
+
         // Build stream URL with auth token
         const streamUrl = buildStreamUrl({
           query: params.query,
@@ -161,14 +188,65 @@ export function useStreamingQuery(threadId?: string) {
                   updateSession(data.thread_id, {
                     retryCount,
                   });
+
+                  // Optimistically update React Query cache with user message
+                  queryClient.setQueryData<GetThreadQuery>(
+                    queryKeys.threads.detail(data.thread_id),
+                    {
+                      thread: {
+                        __typename: 'Thread',
+                        id: data.thread_id,
+                        queryText: params.query,
+                        organizationId: params.organizationId || '',
+                        spaceId: params.spaceId || null,
+                        createdBy: user?.id || '',
+                        createdAt: new Date().toISOString(),
+                        status: ThreadStatusEnum.Processing,
+                        messages: [
+                          {
+                            __typename: 'Message',
+                            id: `temp-user-${Date.now()}`,
+                            threadId: data.thread_id,
+                            messageRole: MessageRole.User,
+                            content: params.query,
+                            messageMetadata: {},
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                          },
+                        ],
+                        result: null,
+                        sources: null,
+                        confidenceScore: null,
+                        agentSteps: null,
+                        errorMessage: null,
+                        completedAt: null,
+                        processingTimeMs: null,
+                        modelUsed: null,
+                        costUsd: null,
+                        title: null,
+                        context: null,
+                        updatedAt: new Date().toISOString(),
+                      },
+                    }
+                  );
                   break;
 
                 case 'token':
-                  // Append token to response in store
-                  if (activeId) {
-                    const currentSession = getSession(activeId);
-                    updateSession(activeId, {
-                      response: (currentSession?.response || '') + data.content,
+                  // Batch tokens using requestAnimationFrame (~60fps instead of ~100/sec)
+                  batchRef.current.tokens.push(data.content);
+
+                  if (!batchRef.current.rafId) {
+                    batchRef.current.rafId = requestAnimationFrame(() => {
+                      const batch = batchRef.current.tokens.join('');
+                      batchRef.current.tokens = [];
+                      batchRef.current.rafId = null;
+
+                      if (activeId) {
+                        const currentSession = getSession(activeId);
+                        updateSession(activeId, {
+                          response: (currentSession?.response || '') + batch,
+                        });
+                      }
                     });
                   }
                   break;
@@ -200,10 +278,55 @@ export function useStreamingQuery(threadId?: string) {
                       retryCount: 0, // Reset retry count on success
                     });
                     endSession(activeId);
+
+                    // Manually update React Query cache with final assistant message
+                    const currentSession = getSession(activeId);
+                    if (currentSession) {
+                      queryClient.setQueryData<GetThreadQuery>(
+                        queryKeys.threads.detail(activeId),
+                        (oldData) => {
+                          if (!oldData?.thread) return oldData;
+
+                          return {
+                            thread: {
+                              ...oldData.thread,
+                              status: ThreadStatusEnum.Completed,
+                              result: currentSession.response,
+                              sources: currentSession.citations as any,
+                              confidenceScore: data.confidence_score,
+                              completedAt: new Date().toISOString(),
+                              messages: [
+                                ...oldData.thread.messages,
+                                {
+                                  __typename: 'Message',
+                                  id: `assistant-${Date.now()}`,
+                                  threadId: activeId,
+                                  messageRole: MessageRole.Assistant,
+                                  content: currentSession.response,
+                                  messageMetadata: {
+                                    citations: currentSession.citations,
+                                    confidence_score: data.confidence_score,
+                                  },
+                                  createdAt: new Date().toISOString(),
+                                  updatedAt: new Date().toISOString(),
+                                },
+                              ],
+                            },
+                          };
+                        }
+                      );
+                    }
                   }
 
-                  // Note: No query invalidation here - ThreadInterface handles UI updates
-                  // ThreadsPanel will refetch naturally on mount or navigation
+                  // Note: No query invalidation - we manually updated the cache above
+                  // This prevents unnecessary refetch and ensures smooth UX
+
+                  // Clean up streaming session after short delay (allows UI to read final state)
+                  setTimeout(() => {
+                    if (activeId) {
+                      removeSession(activeId);
+                    }
+                  }, 1000);
 
                   eventSource.close();
                   resolve();
@@ -317,6 +440,8 @@ export function useStreamingQuery(threadId?: string) {
       updateSession,
       endSession,
       getSession,
+      queryClient,
+      removeSession,
     ]
   );
 
@@ -373,6 +498,13 @@ export function useStreamingQuery(threadId?: string) {
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
+    }
+
+    // Clear any pending token batch
+    if (batchRef.current.rafId) {
+      cancelAnimationFrame(batchRef.current.rafId);
+      batchRef.current.rafId = null;
+      batchRef.current.tokens = [];
     }
 
     // Mark session as not streaming
