@@ -95,12 +95,13 @@ export function TipTapEditor({
     autofocus,
   });
 
-  // Notify parent when editor is ready
+  // Notify parent when editor is ready (only once when editor is created)
   useEffect(() => {
     if (editor && onEditorReady) {
       onEditorReady(editor);
     }
-  }, [editor, onEditorReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   if (!editor) {
     return null;

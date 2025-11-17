@@ -6,24 +6,10 @@ import {
   NON_RETRYABLE_ERRORS,
   RETRY_DELAY_MS,
 } from '@/constants/streaming';
-import {
-  buildStreamUrl,
-  type Citation,
-  type SSEEvent,
-} from '@/lib/api/queries-client';
+import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useCallback, useRef, useState } from 'react';
-
-interface StreamingState {
-  response: string;
-  citations: Citation[];
-  confidenceScore: number | null;
-  isStreaming: boolean;
-  error: string | null;
-  threadId: string | null;
-  retryCount: number;
-  errorCode?: string;
-}
+import { useStreamingStore } from '@/lib/stores/streaming-store';
+import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * Custom hook for streaming query responses using Server-Sent Events (SSE).
@@ -33,8 +19,13 @@ interface StreamingState {
  *
  * Supports both new thread creation and multi-turn continuation of existing threads.
  *
+ * **State Management**:
+ * - All streaming state stored in Zustand streaming store
+ * - State persists across navigation and page refreshes
+ * - Supports multiple concurrent streams
+ *
  * @example New thread
- * const { response, citations, isStreaming, startStreaming, stopStreaming, retry } = useStreamingQuery();
+ * const { threadId, isStreaming, startStreaming } = useStreamingQuery();
  *
  * const handleSubmit = async (query: string) => {
  *   try {
@@ -55,8 +46,11 @@ interface StreamingState {
  *   saveToDb: true,
  * });
  */
-export function useStreamingQuery() {
+export function useStreamingQuery(threadId?: string) {
   const { accessToken, user } = useAuthStore();
+  const { getSession, startSession, updateSession, endSession, cleanupStale } =
+    useStreamingStore();
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentParamsRef = useRef<{
@@ -67,15 +61,20 @@ export function useStreamingQuery() {
     saveToDb?: boolean;
   } | null>(null);
 
-  const [state, setState] = useState<StreamingState>({
-    response: '',
-    citations: [],
-    confidenceScore: null,
-    isStreaming: false,
-    error: null,
-    threadId: null,
-    retryCount: 0,
-  });
+  // Clean up stale sessions on mount
+  useEffect(() => {
+    cleanupStale();
+  }, [cleanupStale]);
+
+  // Track the current thread ID being processed
+  const currentThreadIdRef = useRef<string | null>(null);
+
+  // Get current session state from store
+  const session = threadId
+    ? getSession(threadId)
+    : currentThreadIdRef.current
+      ? getSession(currentThreadIdRef.current)
+      : null;
 
   /**
    * Calculate exponential backoff delay
@@ -128,14 +127,6 @@ export function useStreamingQuery() {
           retryTimeoutRef.current = null;
         }
 
-        // Update state
-        setState((prev) => ({
-          ...prev,
-          isStreaming: true,
-          error: null,
-          retryCount,
-        }));
-
         // Build stream URL with auth token
         const streamUrl = buildStreamUrl({
           query: params.query,
@@ -159,52 +150,59 @@ export function useStreamingQuery() {
           eventSource.onmessage = (event) => {
             try {
               const data: SSEEvent = JSON.parse(event.data);
+              // Get active thread ID (from param or ref)
+              const activeId = threadId || currentThreadIdRef.current;
 
               switch (data.type) {
                 case 'start':
-                  // Thread created - set threadId immediately for early navigation
-                  setState((prev) => ({
-                    ...prev,
-                    threadId: data.thread_id,
-                  }));
+                  // Thread created - start session in store immediately
+                  currentThreadIdRef.current = data.thread_id;
+                  startSession(data.thread_id, params.query);
+                  updateSession(data.thread_id, {
+                    retryCount,
+                  });
                   break;
 
                 case 'token':
-                  // Append token to response
-                  setState((prev) => ({
-                    ...prev,
-                    response: prev.response + data.content,
-                  }));
+                  // Append token to response in store
+                  if (activeId) {
+                    const currentSession = getSession(activeId);
+                    updateSession(activeId, {
+                      response: (currentSession?.response || '') + data.content,
+                    });
+                  }
                   break;
 
                 case 'replace':
                   // Replace entire response (used for low-confidence fallback)
-                  setState((prev) => ({
-                    ...prev,
-                    response: data.content,
-                  }));
+                  if (activeId) {
+                    updateSession(activeId, {
+                      response: data.content,
+                    });
+                  }
                   break;
 
                 case 'citations':
                   // Update citations and confidence score
-                  setState((prev) => ({
-                    ...prev,
-                    citations: data.sources,
-                    confidenceScore: data.confidence_score,
-                  }));
+                  if (activeId) {
+                    updateSession(activeId, {
+                      citations: data.sources,
+                      confidenceScore: data.confidence_score,
+                    });
+                  }
                   break;
 
                 case 'done':
                   // Streaming complete
-                  setState((prev) => ({
-                    ...prev,
-                    isStreaming: false,
-                    confidenceScore: data.confidence_score,
-                    threadId: data.thread_id || prev.threadId,
-                    retryCount: 0, // Reset retry count on success
-                  }));
+                  if (activeId) {
+                    updateSession(activeId, {
+                      confidenceScore: data.confidence_score,
+                      retryCount: 0, // Reset retry count on success
+                    });
+                    endSession(activeId);
+                  }
 
-                  // Note: No query invalidation here - ThreadInterface handles UI updates optimistically
+                  // Note: No query invalidation here - ThreadInterface handles UI updates
                   // ThreadsPanel will refetch naturally on mount or navigation
 
                   eventSource.close();
@@ -216,14 +214,15 @@ export function useStreamingQuery() {
                   const error = new Error(data.message) as Error & {
                     errorCode?: string;
                   };
-                  error.errorCode = data.error_code;
+                  error.errorCode = data.error_code || 'UNKNOWN';
 
-                  setState((prev) => ({
-                    ...prev,
-                    isStreaming: false,
-                    error: data.message,
-                    errorCode: data.error_code,
-                  }));
+                  if (activeId) {
+                    updateSession(activeId, {
+                      isStreaming: false,
+                      error: data.message,
+                      errorCode: error.errorCode,
+                    });
+                  }
 
                   eventSource.close();
                   reject(error);
@@ -231,11 +230,16 @@ export function useStreamingQuery() {
               }
             } catch (parseError) {
               console.error('Failed to parse SSE event:', parseError);
-              setState((prev) => ({
-                ...prev,
-                isStreaming: false,
-                error: 'Failed to parse response from server',
-              }));
+
+              const activeId = threadId || currentThreadIdRef.current;
+              if (activeId) {
+                updateSession(activeId, {
+                  isStreaming: false,
+                  error: 'Failed to parse response from server',
+                  errorCode: 'PARSE_ERROR',
+                });
+              }
+
               eventSource.close();
               reject(parseError);
             }
@@ -252,7 +256,8 @@ export function useStreamingQuery() {
         // All errors flow through here - single error handling point!
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        const errorCode = (error as Error & { errorCode?: string }).errorCode;
+        const errorCode =
+          (error as Error & { errorCode?: string }).errorCode || 'UNKNOWN';
 
         // Determine if we should retry
         const canRetry =
@@ -264,11 +269,14 @@ export function useStreamingQuery() {
             `Retrying query in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`
           );
 
-          setState((prev) => ({
-            ...prev,
-            isStreaming: false,
-            error: `${errorMessage} Retrying (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})...`,
-          }));
+          const activeId = threadId || currentThreadIdRef.current;
+          if (activeId) {
+            updateSession(activeId, {
+              isStreaming: false,
+              error: `${errorMessage} Retrying (${retryCount + 1}/${MAX_RETRY_ATTEMPTS})...`,
+              retryCount: retryCount + 1,
+            });
+          }
 
           // Wait for backoff delay with cancellable timeout
           await new Promise<void>((resolve, reject) => {
@@ -289,17 +297,27 @@ export function useStreamingQuery() {
         }
 
         // Max retries exceeded or non-retryable error
-        setState((prev) => ({
-          ...prev,
-          isStreaming: false,
-          error: errorMessage,
-          errorCode,
-        }));
+        const activeId = threadId || currentThreadIdRef.current;
+        if (activeId) {
+          updateSession(activeId, {
+            isStreaming: false,
+            error: errorMessage,
+            errorCode,
+          });
+        }
 
         throw error;
       }
     },
-    [accessToken, user?.id]
+    [
+      accessToken,
+      user?.id,
+      threadId,
+      startSession,
+      updateSession,
+      endSession,
+      getSession,
+    ]
   );
 
   /**
@@ -316,20 +334,16 @@ export function useStreamingQuery() {
       // Store params for manual retry
       currentParamsRef.current = params;
 
-      // Reset state
-      setState({
-        response: '',
-        citations: [],
-        confidenceScore: null,
-        isStreaming: true,
-        error: null,
-        threadId: null,
-        retryCount: 0,
-      });
+      // If threadId provided, start session for that thread and store user query
+      // Otherwise, session will be created when 'start' event arrives
+      if (params.threadId) {
+        currentThreadIdRef.current = params.threadId;
+        startSession(params.threadId, params.query);
+      }
 
       return startStreamingInternal(params, 0);
     },
-    [startStreamingInternal]
+    [startStreamingInternal, startSession]
   );
 
   /**
@@ -361,11 +375,14 @@ export function useStreamingQuery() {
       retryTimeoutRef.current = null;
     }
 
-    setState((prev) => ({
-      ...prev,
-      isStreaming: false,
-    }));
-  }, []);
+    // Mark session as not streaming
+    const activeId = threadId || currentThreadIdRef.current;
+    if (activeId) {
+      updateSession(activeId, {
+        isStreaming: false,
+      });
+    }
+  }, [threadId, updateSession]);
 
   /**
    * Reset state to initial values
@@ -373,26 +390,21 @@ export function useStreamingQuery() {
   const reset = useCallback(() => {
     stopStreaming();
     currentParamsRef.current = null;
-    setState({
-      response: '',
-      citations: [],
-      confidenceScore: null,
-      isStreaming: false,
-      error: null,
-      threadId: null,
-      retryCount: 0,
-    });
+    // Note: We don't clear the store session here, as it may be needed for navigation recovery
   }, [stopStreaming]);
 
   return {
-    response: state.response,
-    citations: state.citations,
-    confidenceScore: state.confidenceScore,
-    isStreaming: state.isStreaming,
-    error: state.error,
-    errorCode: state.errorCode,
-    threadId: state.threadId,
-    retryCount: state.retryCount,
+    // State from store
+    response: session?.response || '',
+    citations: session?.citations || [],
+    confidenceScore: session?.confidenceScore || null,
+    isStreaming: session?.isStreaming || false,
+    error: session?.error || null,
+    errorCode: session?.errorCode,
+    threadId: threadId || currentThreadIdRef.current || null,
+    retryCount: session?.retryCount || 0,
+
+    // Actions
     startStreaming,
     stopStreaming,
     retry,
