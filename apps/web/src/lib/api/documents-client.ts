@@ -6,6 +6,7 @@ export interface Document {
   id: string;
   name: string;
   file_type: string;
+  file_path: string;
   size_bytes: number;
   space_id: string;
   uploaded_by: string;
@@ -96,7 +97,7 @@ export const documentsApi = {
           try {
             const data = JSON.parse(xhr.responseText);
             resolve(data);
-          } catch (error) {
+          } catch (_error) {
             reject(new Error('Failed to parse response'));
           }
         } else {

@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   Button,
@@ -67,7 +67,7 @@ export function ForgotPasswordForm() {
 
       setIsSuccess(true);
       form.reset();
-    } catch (error) {
+    } catch (_error) {
       setErrorMessage(
         'An error occurred. Please try again or contact support if the problem persists.'
       );

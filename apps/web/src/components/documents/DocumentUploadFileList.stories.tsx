@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { expect, fn, within } from '@storybook/test';
-import { DocumentUploadFileList } from './DocumentUploadFileList';
 import type { FileUploadState } from './DocumentUploadFileItem';
+import { DocumentUploadFileList } from './DocumentUploadFileList';
 
 const meta = {
   title: 'Documents/DocumentUploadFileList',
@@ -20,7 +20,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Helper to create mock files
-const createMockFile = (name: string, sizeMB: number): File => {
+const createMockFile = (name: string, _sizeMB: number): File => {
   return new File([''], name, { type: 'application/pdf' });
 };
 

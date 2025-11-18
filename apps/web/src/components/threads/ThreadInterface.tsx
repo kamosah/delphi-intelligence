@@ -1,12 +1,12 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollArea } from '@olympus/ui';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
 import { useAuthStore } from '@/lib/stores';
-import { ScrollArea } from '@olympus/ui';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
 import { CitationList } from './CitationList';
 import { ThreadInput } from './ThreadInput';

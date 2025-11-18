@@ -1,5 +1,5 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { AuthenticatedRedirect } from '@/components/auth/AuthenticatedRedirect';
 
 export const metadata: Metadata = {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Space } from '@/hooks/useSpaces';
+import type { Space } from '@/hooks/useSpaces';
 import { SpaceCard } from './SpaceCard';
 
 interface SpaceGridProps {

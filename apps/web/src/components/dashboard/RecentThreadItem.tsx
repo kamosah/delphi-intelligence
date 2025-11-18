@@ -1,5 +1,5 @@
-import { Skeleton } from '@olympus/ui';
 import { formatDistanceToNow } from 'date-fns';
+import { Skeleton } from '@olympus/ui';
 
 interface RecentThreadItemProps {
   queryText: string;

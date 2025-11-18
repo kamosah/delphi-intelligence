@@ -1,7 +1,5 @@
 'use client';
 
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { queryKeys } from '@/lib/query/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateSpaceMutation,
@@ -10,6 +8,8 @@ import {
   useGetSpacesQuery,
   useUpdateSpaceMutation,
 } from '@/lib/api/hooks.generated';
+import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Re-export generated types for convenience
 export type {

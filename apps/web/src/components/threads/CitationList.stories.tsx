@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import { CitationList } from './CitationList';
 import type { Citation } from '@/lib/api/queries-client';
+import { CitationList } from './CitationList';
 
 const meta = {
   title: 'Queries/CitationList',

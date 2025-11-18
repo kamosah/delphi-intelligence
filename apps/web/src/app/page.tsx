@@ -1,13 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthenticatedRedirect } from '@/components/auth/AuthenticatedRedirect';
 import { FeaturesGrid } from '@/components/landing/FeaturesGrid';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { Footer } from '@/components/layout/Footer';
 import { LandingNav } from '@/components/layout/LandingNav';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 /**
  * Landing page composed of feature components.

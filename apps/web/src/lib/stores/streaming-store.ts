@@ -1,6 +1,6 @@
-import type { Citation } from '@/lib/api/queries-client';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { Citation } from '@/lib/api/queries-client';
 
 /**
  * Streaming session state for a single thread.

@@ -1,12 +1,14 @@
 'use client';
 
-import { useDebounce } from '@/hooks/useDebounce';
-import { useDocuments } from '@/hooks/useDocuments';
-import { useSpaces } from '@/hooks/useSpaces';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
-  useSearchDocuments,
-  type SearchDocumentsInput,
-} from '@/hooks/useVectorSearch';
+  AlertCircle,
+  Clock,
+  FileText,
+  Info,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 import {
   Badge,
   Card,
@@ -30,15 +32,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@olympus/ui';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useDocuments } from '@/hooks/useDocuments';
+import { useSpaces } from '@/hooks/useSpaces';
 import {
-  AlertCircle,
-  Clock,
-  FileText,
-  Info,
-  Search,
-  Sparkles,
-} from 'lucide-react';
-import { memo, useCallback, useMemo, useState } from 'react';
+  useSearchDocuments,
+  type SearchDocumentsInput,
+} from '@/hooks/useVectorSearch';
 
 /**
  * VectorSearchDebugger - Development tool for testing semantic search quality

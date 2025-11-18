@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils';
-import { Separator } from '@olympus/ui';
 import type { ReactNode } from 'react';
+import { Separator } from '@olympus/ui';
+import { cn } from '@/lib/utils';
 
 interface SettingsSectionProps {
   /** Section title (e.g., "General", "Time & region") */

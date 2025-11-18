@@ -1,15 +1,15 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
+import { TooltipProvider } from '@olympus/ui';
 import { OrganizationSwitcher } from '@/components/layout/OrganizationSwitcher';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
-import { TooltipProvider } from '@olympus/ui';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { NavItem } from './NavItem';
 import { NavSection } from './NavSection';
 import {

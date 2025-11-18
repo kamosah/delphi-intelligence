@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Skeleton } from '@olympus/ui';
-import { useSpaces } from '@/hooks/useSpaces';
+import { CreateSpaceDialog } from '@/components/spaces/CreateSpaceDialog';
 import { SpaceGrid } from '@/components/spaces/SpaceGrid';
 import { SpaceListEmpty } from '@/components/spaces/SpaceListEmpty';
-import { CreateSpaceDialog } from '@/components/spaces/CreateSpaceDialog';
+import { useSpaces } from '@/hooks/useSpaces';
 
 export default function SpacesPage() {
   const router = useRouter();

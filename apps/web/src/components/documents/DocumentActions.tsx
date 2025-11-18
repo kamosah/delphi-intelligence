@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@olympus/ui';
 import { Trash2, Download, Loader2 } from 'lucide-react';
+import { Button } from '@olympus/ui';
 
 interface DocumentActionsProps {
   onDelete: () => void;

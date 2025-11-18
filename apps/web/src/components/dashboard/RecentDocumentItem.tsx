@@ -1,6 +1,6 @@
-import { Skeleton } from '@olympus/ui';
-import { FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { FileText } from 'lucide-react';
+import { Skeleton } from '@olympus/ui';
 
 interface RecentDocumentItemProps {
   name: string;

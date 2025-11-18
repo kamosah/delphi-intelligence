@@ -1,5 +1,5 @@
-import { Button } from '@olympus/ui';
 import Link from 'next/link';
+import { Button } from '@olympus/ui';
 
 interface FinalCTAProps {
   title?: string;

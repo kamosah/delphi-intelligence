@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import type { Citation } from '@/lib/api/queries-client';
-import { Badge, Card } from '@olympus/ui';
 import { FileText } from 'lucide-react';
+import { Badge, Card } from '@olympus/ui';
+import type { Citation } from '@/lib/api/queries-client';
 
 interface CitationCardProps {
   citation: Citation;

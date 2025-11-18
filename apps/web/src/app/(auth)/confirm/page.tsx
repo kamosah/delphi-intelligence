@@ -1,5 +1,9 @@
 'use client';
 
+import { Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import {
   AnimatedPageLoader,
   Button,
@@ -10,10 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
 
 type VerificationStatus = 'loading' | 'success' | 'error';
 

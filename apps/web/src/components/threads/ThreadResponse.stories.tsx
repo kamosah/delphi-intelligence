@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/nextjs';
 import React from 'react';
-import { ThreadResponse } from './ThreadResponse';
-import type { Citation } from '@/lib/api/queries-client';
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import { fn } from '@storybook/test';
+import type { Citation } from '@/lib/api/queries-client';
+import { ThreadResponse } from './ThreadResponse';
 
 const meta = {
   title: 'Threads/ThreadResponse',

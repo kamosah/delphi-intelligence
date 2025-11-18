@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -7,9 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@olympus/ui';
-import { SpaceForm, SpaceFormData } from './SpaceForm';
-import { Space, useUpdateSpace } from '@/hooks/useSpaces';
-import { toast } from 'sonner';
+import type { Space } from '@/hooks/useSpaces';
+import { useUpdateSpace } from '@/hooks/useSpaces';
+import type { SpaceFormData } from './SpaceForm';
+import { SpaceForm } from './SpaceForm';
 
 interface EditSpaceDialogProps {
   space: Space;

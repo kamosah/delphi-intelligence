@@ -1,8 +1,8 @@
 'use client';
 
-import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
-import { useThreads } from '@/hooks/useThreads';
-import { useAuthStore } from '@/lib/stores';
+import { useEffect, useRef, type ComponentProps } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Button,
   List,
@@ -12,9 +12,9 @@ import {
   TabsTrigger,
   cn,
 } from '@olympus/ui';
-import { motion } from 'framer-motion';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useEffect, useRef, type ComponentProps } from 'react';
+import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
+import { useThreads } from '@/hooks/useThreads';
+import { useAuthStore } from '@/lib/stores';
 import { ThreadListItem } from './ThreadListItem';
 
 interface ThreadsPanelProps {
@@ -67,7 +67,7 @@ function ThreadsPanelTabTrigger({
 export function ThreadsPanel({
   className,
   initialExpanded = true,
-  onMinimize,
+  onMinimize: _onMinimize,
   spaceId,
 }: ThreadsPanelProps) {
   const { currentOrganization } = useAuthStore();

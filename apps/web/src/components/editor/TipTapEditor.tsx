@@ -10,9 +10,9 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import { EditorContent, type Editor } from '@tiptap/react';
 import { cn } from '@olympus/ui';
-import { useEffect } from 'react';
 import { useTipTapEditor } from '@/hooks/useTipTapEditor';
 
 export interface TipTapEditorProps {

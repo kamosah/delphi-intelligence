@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { LogOut, User, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { LogOut, User, Settings } from 'lucide-react';
 
 /**
  * User menu dropdown component for the dashboard.
@@ -122,7 +122,7 @@ export function UserMenu() {
               Settings
             </button>
 
-            <div className="border-t border-gray-200"></div>
+            <div className="border-t border-gray-200" />
 
             <button
               onClick={handleLogout}

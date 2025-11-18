@@ -1,5 +1,5 @@
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { GraphQLClient } from 'graphql-request';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL

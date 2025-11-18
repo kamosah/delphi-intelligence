@@ -1,6 +1,6 @@
+import type { Meta, StoryObj } from '@storybook/nextjs';
 import type { Document } from '@/lib/api/generated';
 import { withAuth } from '@/lib/storybook/decorators';
-import type { Meta, StoryObj } from '@storybook/nextjs';
 import { DocumentList } from './DocumentList';
 
 const meta = {

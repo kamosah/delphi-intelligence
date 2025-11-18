@@ -8,8 +8,8 @@
  * @see https://react.dev/reference/react/useSyncExternalStore
  */
 
-import type { Editor } from '@tiptap/react';
 import { useSyncExternalStore } from 'react';
+import type { Editor } from '@tiptap/react';
 
 /**
  * Subscribe to TipTap editor state changes and read editor.isEmpty

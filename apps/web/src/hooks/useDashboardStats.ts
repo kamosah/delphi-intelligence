@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { queryKeys } from '@/lib/query/client';
 import { useGetDashboardStatsQuery } from '@/lib/api/hooks.generated';
+import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Re-export generated types
 export type { DashboardStats } from '@/lib/api/generated';

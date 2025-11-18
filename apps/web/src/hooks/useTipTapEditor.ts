@@ -5,12 +5,12 @@
  * Provides editor instance with configured extensions and event handlers
  */
 
+import { useEffect } from 'react';
+import { useEditor, type Editor } from '@tiptap/react';
 import {
   getEditorExtensions,
   type EditorExtensionsConfig,
 } from '@/lib/tiptap/extensions';
-import { useEditor, type Editor } from '@tiptap/react';
-import { useEffect } from 'react';
 
 export interface UseTipTapEditorOptions extends EditorExtensionsConfig {
   /**

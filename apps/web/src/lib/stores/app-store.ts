@@ -38,7 +38,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   devtools(
     persist(
-      (set, get) => ({
+      (set, _get) => ({
         // Initial state
         theme: 'system',
         isLoading: false,

@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -8,14 +9,13 @@ import {
   DialogTitle,
 } from '@olympus/ui';
 import {
-  CreateOrganizationForm,
-  type OrganizationFormData,
-} from './CreateOrganizationForm';
-import {
   useCreateOrganization,
   type Organization,
 } from '@/hooks/useOrganizations';
-import { toast } from 'sonner';
+import {
+  CreateOrganizationForm,
+  type OrganizationFormData,
+} from './CreateOrganizationForm';
 
 interface CreateOrganizationDialogProps {
   open: boolean;

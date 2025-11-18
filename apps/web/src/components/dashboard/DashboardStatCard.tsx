@@ -1,5 +1,5 @@
-import { Skeleton } from '@olympus/ui';
 import type { LucideIcon } from 'lucide-react';
+import { Skeleton } from '@olympus/ui';
 
 interface DashboardStatCardProps {
   icon: LucideIcon;

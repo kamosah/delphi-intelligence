@@ -1,8 +1,8 @@
 'use client';
 
-import type { Document } from '@/lib/api/generated';
-import { Badge } from '@olympus/ui';
 import { FileText, AlertCircle, Clock } from 'lucide-react';
+import { Badge } from '@olympus/ui';
+import type { Document } from '@/lib/api/generated';
 
 interface DocumentStatusBadgeProps {
   status: Document['status'] | 'uploading';

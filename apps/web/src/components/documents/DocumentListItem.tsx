@@ -1,6 +1,7 @@
 'use client';
 
-import type { Document } from '@/lib/api/generated';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,8 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@olympus/ui';
-import { motion } from 'framer-motion';
-import { useState } from 'react';
+import type { Document } from '@/lib/api/generated';
 import { DocumentActions } from './DocumentActions';
 import { DocumentError } from './DocumentError';
 import { DocumentIcon } from './DocumentIcon';
