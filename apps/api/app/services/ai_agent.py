@@ -326,7 +326,7 @@ class AIAgentService:
                 .distinct()
             )
             result = await db.execute(stmt)
-            thread_record = result.scalar_one_or_none()
+            thread_record = result.unique().scalar_one_or_none()
 
             if not thread_record:
                 error_msg = (
