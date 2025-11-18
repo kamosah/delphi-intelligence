@@ -1,8 +1,7 @@
-import { Button } from '@olympus/ui';
 import Link from 'next/link';
+import { Button } from '@olympus/ui';
 
 interface HeroSectionProps {
-  title?: string;
   subtitle?: string;
   ctaText?: string;
   ctaLink?: string;
@@ -14,7 +13,6 @@ interface HeroSectionProps {
  * Inspired by Hex's clean, data-focused aesthetic.
  */
 export function HeroSection({
-  title = 'Meet Athena, Your AI Analyst',
   subtitle = 'The first artificial data analyst built for document intelligence. Athena analyzes documents, extracts insights, and answers questions—so you can focus on strategic work that matters.',
   ctaText = 'Get Started Free',
   ctaLink = '/signup',

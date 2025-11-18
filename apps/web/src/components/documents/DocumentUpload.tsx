@@ -1,16 +1,16 @@
 'use client';
 
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 import { useUploadDocument } from '@/hooks/useDocuments';
 import {
   getValidationErrorMessage,
   parseUploadError,
   validateFilename,
 } from '@/lib/utils/error-parser';
-import { useCallback, useState } from 'react';
-import { toast } from 'sonner';
 import { DocumentUploadDropZone } from './DocumentUploadDropZone';
-import { DocumentUploadFileList } from './DocumentUploadFileList';
 import type { FileUploadState } from './DocumentUploadFileItem';
+import { DocumentUploadFileList } from './DocumentUploadFileList';
 
 interface DocumentUploadProps {
   spaceId: string;

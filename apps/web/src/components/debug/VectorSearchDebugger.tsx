@@ -1,12 +1,14 @@
 'use client';
 
-import { useDebounce } from '@/hooks/useDebounce';
-import { useDocuments } from '@/hooks/useDocuments';
-import { useSpaces } from '@/hooks/useSpaces';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
-  useSearchDocuments,
-  type SearchDocumentsInput,
-} from '@/hooks/useVectorSearch';
+  AlertCircle,
+  Clock,
+  FileText,
+  Info,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 import {
   Badge,
   Card,
@@ -30,15 +32,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@olympus/ui';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useDocuments } from '@/hooks/useDocuments';
+import { useSpaces } from '@/hooks/useSpaces';
 import {
-  AlertCircle,
-  Clock,
-  FileText,
-  Info,
-  Search,
-  Sparkles,
-} from 'lucide-react';
-import { memo, useCallback, useMemo, useState } from 'react';
+  useSearchDocuments,
+  type SearchDocumentsInput,
+} from '@/hooks/useVectorSearch';
+import type { SearchResult } from '@/lib/api/generated';
 
 /**
  * VectorSearchDebugger - Development tool for testing semantic search quality
@@ -482,7 +483,7 @@ const SearchResultCard = memo(function SearchResultCard({
   result,
   rank,
 }: {
-  result: any;
+  result: SearchResult;
   rank: number;
 }) {
   const { chunk, document, similarityScore, distance } = result;

@@ -1,5 +1,23 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import {
+  Badge,
+  Button,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+  Input,
+  Textarea,
+} from '@olympus/ui';
 import { SettingsInfoCard } from '@/components/settings/SettingsInfoCard';
 import { SettingsRow } from '@/components/settings/SettingsRow';
 import {
@@ -12,24 +30,6 @@ import {
   useUpdateOrganization,
   type UpdateOrganizationInput,
 } from '@/hooks/useOrganizations';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Badge,
-  Button,
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-  Input,
-  Textarea,
-} from '@olympus/ui';
-import { Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { z } from 'zod';
 
 // Zod schema for organization settings validation
 const organizationSettingsSchema = z.object({

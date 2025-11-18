@@ -1,20 +1,20 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   MAX_RETRY_ATTEMPTS,
   MAX_RETRY_DELAY_MS,
   NON_RETRYABLE_ERRORS,
   RETRY_DELAY_MS,
 } from '@/constants/streaming';
-import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
 import type { GetThreadQuery } from '@/lib/api/generated';
 import { MessageRole, ThreadStatusEnum } from '@/lib/api/generated';
+import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
 import type { MessageMetadata } from '@/types/ui/messages';
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * Custom hook for streaming query responses using Server-Sent Events (SSE).

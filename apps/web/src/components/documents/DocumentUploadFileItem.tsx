@@ -1,7 +1,7 @@
 'use client';
 
-import { Alert, AlertDescription, Button, Progress } from '@olympus/ui';
 import { AlertCircle, CheckCircle2, File, X } from 'lucide-react';
+import { Alert, AlertDescription, Button, Progress } from '@olympus/ui';
 
 export interface FileUploadState {
   file: File;

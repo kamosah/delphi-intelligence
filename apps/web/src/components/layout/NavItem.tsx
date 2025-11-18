@@ -1,10 +1,10 @@
 'use client';
 
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@olympus/ui';
-import type { NavItem as NavItemType } from '@olympus/types';
-import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import type { NavItem as NavItemType } from '@olympus/types';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@olympus/ui';
+import { cn } from '@/lib/utils';
 
 interface NavItemProps {
   /** Navigation item configuration */

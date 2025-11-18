@@ -1,21 +1,6 @@
 'use client';
 
-import {
-  useOrganizationMembers,
-  useRemoveOrganizationMember,
-  useUpdateMemberRole,
-} from '@/hooks/useOrganizationMembers';
-import { OrganizationRole } from '@/lib/api/generated';
-import {
-  Button,
-  Input,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@olympus/ui';
+import { useCallback, useMemo, useState } from 'react';
 import {
   type ColumnFiltersState,
   type SortingState,
@@ -28,8 +13,23 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { Loader2, UserPlus } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  Button,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@olympus/ui';
+import {
+  useOrganizationMembers,
+  useRemoveOrganizationMember,
+  useUpdateMemberRole,
+} from '@/hooks/useOrganizationMembers';
+import type { OrganizationRole } from '@/lib/api/generated';
 import { createOrganizationMembersColumns } from './organization-members-columns';
 
 interface OrganizationMembersProps {

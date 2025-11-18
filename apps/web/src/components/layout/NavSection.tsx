@@ -1,8 +1,8 @@
 'use client';
 
-import type { NavSection as NavSectionType } from '@olympus/types';
-import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
+import type { NavSection as NavSectionType } from '@olympus/types';
 import { NavItem } from './NavItem';
 import { isNavItemActive, resolveHref } from './sidebar-utils';
 

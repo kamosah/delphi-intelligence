@@ -1,5 +1,4 @@
-import { OrganizationRole } from '@/lib/api/generated';
-import type { GetOrganizationMembersQuery } from '@/lib/api/hooks.generated';
+import { MoreHorizontal, Shield, User, Eye, Trash2 } from 'lucide-react';
 import {
   Button,
   DropdownMenu,
@@ -8,7 +7,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@olympus/ui';
-import { MoreHorizontal, Shield, User, Eye, Trash2 } from 'lucide-react';
+import { OrganizationRole } from '@/lib/api/generated';
+import type { GetOrganizationMembersQuery } from '@/lib/api/hooks.generated';
 
 type OrganizationMember =
   GetOrganizationMembersQuery['organizationMembers'][number];

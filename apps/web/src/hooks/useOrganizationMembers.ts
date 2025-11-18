@@ -1,18 +1,17 @@
 'use client';
 
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { queryKeys } from '@/lib/query/client';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetOrganizationMembersQuery,
   useAddOrganizationMemberMutation,
   useRemoveOrganizationMemberMutation,
   useUpdateMemberRoleMutation,
-  type GetOrganizationMembersQueryVariables,
   type AddOrganizationMemberMutationVariables,
   type RemoveOrganizationMemberMutationVariables,
   type UpdateMemberRoleMutationVariables,
 } from '@/lib/api/hooks.generated';
-import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query/client';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Re-export generated types
 export type {
@@ -121,7 +120,7 @@ export function useUpdateMemberRole() {
   const queryClient = useQueryClient();
 
   const mutation = useUpdateMemberRoleMutation({
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, _variables) => {
       // Invalidate members list for this organization
       queryClient.invalidateQueries({
         queryKey: queryKeys.organizationMembers.lists(),

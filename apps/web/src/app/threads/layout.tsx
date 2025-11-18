@@ -1,10 +1,10 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { ThreadsPanelProvider } from '@/contexts/ThreadsPanelContext';
-import type { ReactNode } from 'react';
 
 interface ThreadsLayoutProps {
   children: ReactNode;

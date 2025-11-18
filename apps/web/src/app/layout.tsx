@@ -1,7 +1,7 @@
-import { QueryProvider } from '@/lib/query/provider';
-import type { Metadata } from 'next';
 import { DM_Sans, IBM_Plex_Mono } from 'next/font/google';
+import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
+import { QueryProvider } from '@/lib/query/provider';
 import './globals.css';
 import 'highlight.js/styles/atom-one-dark.css';
 

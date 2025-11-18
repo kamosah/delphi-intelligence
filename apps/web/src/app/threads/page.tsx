@@ -1,9 +1,9 @@
 'use client';
 
+import { usePathname, useRouter } from 'next/navigation';
+import { AnimatePresence } from 'framer-motion';
 import { ThreadInterface } from '@/components/threads/ThreadInterface';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
-import { AnimatePresence } from 'framer-motion';
-import { usePathname, useRouter } from 'next/navigation';
 
 /**
  * Top-level Threads page - org-wide conversational AI interface.

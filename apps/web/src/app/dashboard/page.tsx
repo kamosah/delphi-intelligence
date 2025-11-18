@@ -1,5 +1,6 @@
 'use client';
 
+import { Database, FileText, MessageSquare, Zap } from 'lucide-react';
 import {
   DashboardStatCard,
   DashboardStatCardSkeleton,
@@ -16,7 +17,6 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useThreads } from '@/hooks/useThreads';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { Database, FileText, MessageSquare, Zap } from 'lucide-react';
 
 export default function DashboardPage() {
   const { currentOrganization } = useAuthStore();

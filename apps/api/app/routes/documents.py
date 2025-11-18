@@ -133,6 +133,7 @@ async def upload_document(
         "id": str(document.id),
         "name": document.name,
         "file_type": document.file_type,
+        "file_path": document.file_path,
         "size_bytes": document.size_bytes,
         "space_id": str(document.space_id),
         "uploaded_by": str(document.uploaded_by),

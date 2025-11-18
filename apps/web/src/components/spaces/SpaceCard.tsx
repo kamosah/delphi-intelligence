@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent } from '@olympus/ui';
-import { Space } from '@/hooks/useSpaces';
+import { useState } from 'react';
 import { MoreVertical } from 'lucide-react';
+import { Card, CardContent } from '@olympus/ui';
 import {
   Button,
   DropdownMenu,
@@ -10,9 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@olympus/ui';
-import { useState } from 'react';
-import { EditSpaceDialog } from './EditSpaceDialog';
+import type { Space } from '@/hooks/useSpaces';
 import { DeleteSpaceDialog } from './DeleteSpaceDialog';
+import { EditSpaceDialog } from './EditSpaceDialog';
 
 interface SpaceCardProps {
   space: Space;

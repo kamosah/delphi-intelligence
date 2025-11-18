@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
+import { Check, ChevronDown, Building2, Plus } from 'lucide-react';
 import {
   Button,
   DropdownMenu,
@@ -13,9 +12,10 @@ import {
   DropdownMenuTrigger,
   Skeleton,
 } from '@olympus/ui';
-import { Check, ChevronDown, Building2, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { CreateOrganizationDialog } from '@/components/organizations/CreateOrganizationDialog';
+import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { cn } from '@/lib/utils';
 
 interface OrganizationSwitcherProps {
   className?: string;

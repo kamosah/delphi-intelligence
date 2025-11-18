@@ -1,8 +1,8 @@
 'use client';
 
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 
 interface MarkdownContentProps {
@@ -30,7 +30,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
         rehypePlugins={[rehypeHighlight]}
         components={{
           // Customize link behavior - open external links in new tab
-          a: ({ node, ...props }) => {
+          a: ({ node: _node, ...props }) => {
             const isExternal = props.href?.startsWith('http');
             return (
               <a
@@ -42,7 +42,14 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
             );
           },
           // Style code blocks
-          code: ({ node, className, children, ...props }: any) => {
+          code: ({
+            node: _node,
+            className,
+            children,
+            ...props
+          }: React.HTMLAttributes<HTMLElement> & {
+            node?: unknown;
+          }) => {
             const inline = !className;
             if (inline) {
               return (
@@ -67,14 +74,14 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
             );
           },
           // Style blockquotes
-          blockquote: ({ node, ...props }) => (
+          blockquote: ({ node: _node, ...props }) => (
             <blockquote
               className="border-l-4 border-blue-500 pl-4 italic text-gray-700 my-4"
               {...props}
             />
           ),
           // Style tables
-          table: ({ node, ...props }) => (
+          table: ({ node: _node, ...props }) => (
             <div className="overflow-x-auto my-4">
               <table
                 className="min-w-full border border-gray-300 divide-y divide-gray-300"
@@ -82,49 +89,49 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
               />
             </div>
           ),
-          th: ({ node, ...props }) => (
+          th: ({ node: _node, ...props }) => (
             <th
               className="px-4 py-2 bg-gray-100 text-left text-sm font-semibold text-gray-900"
               {...props}
             />
           ),
-          td: ({ node, ...props }) => (
+          td: ({ node: _node, ...props }) => (
             <td
               className="px-4 py-2 text-sm text-gray-700 border-t border-gray-300"
               {...props}
             />
           ),
           // Style lists
-          ul: ({ node, ...props }) => (
+          ul: ({ node: _node, ...props }) => (
             <ul className="list-disc list-inside space-y-1 my-2" {...props} />
           ),
-          ol: ({ node, ...props }) => (
+          ol: ({ node: _node, ...props }) => (
             <ol
               className="list-decimal list-inside space-y-1 my-2"
               {...props}
             />
           ),
           // Style headings
-          h1: ({ node, ...props }) => (
+          h1: ({ node: _node, ...props }) => (
             <h1
               className="text-2xl font-bold text-gray-900 mt-6 mb-4"
               {...props}
             />
           ),
-          h2: ({ node, ...props }) => (
+          h2: ({ node: _node, ...props }) => (
             <h2
               className="text-xl font-bold text-gray-900 mt-5 mb-3"
               {...props}
             />
           ),
-          h3: ({ node, ...props }) => (
+          h3: ({ node: _node, ...props }) => (
             <h3
               className="text-lg font-semibold text-gray-900 mt-4 mb-2"
               {...props}
             />
           ),
           // Style paragraphs
-          p: ({ node, ...props }) => (
+          p: ({ node: _node, ...props }) => (
             <p className="text-gray-800 leading-relaxed my-2" {...props} />
           ),
         }}

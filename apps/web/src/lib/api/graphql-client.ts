@@ -1,5 +1,5 @@
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { GraphQLClient } from 'graphql-request';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
@@ -34,8 +34,8 @@ export const graphqlClient = new GraphQLClient(GRAPHQL_ENDPOINT, {
 
 // Helper function to make authenticated requests
 export async function makeGraphQLRequest<
-  TData = any,
-  TVariables extends Record<string, any> = Record<string, any>,
+  TData = unknown,
+  TVariables extends Record<string, unknown> = Record<string, unknown>,
 >(
   query: string,
   variables?: TVariables,
@@ -51,8 +51,8 @@ export async function makeGraphQLRequest<
 
 // React Query v5 compatible fetcher - returns a function that React Query can call
 export function graphqlRequestFetcher<
-  TData = any,
-  TVariables extends Record<string, any> = Record<string, any>,
+  TData = unknown,
+  TVariables extends Record<string, unknown> = Record<string, unknown>,
 >(
   query: string,
   variables?: TVariables,

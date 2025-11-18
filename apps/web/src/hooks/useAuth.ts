@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   authApi,
   type LoginRequest,
@@ -7,7 +8,6 @@ import {
 } from '@/lib/api/auth-client';
 import { clearAuthCookies, setAuthCookies } from '@/lib/auth-cookies';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useEffect } from 'react';
 
 export function useAuth() {
   const {
