@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { isClientError } from '@/lib/utils/type-guards';
 
 interface QueryProviderProps {
   children: React.ReactNode;
@@ -21,11 +22,7 @@ function makeQueryClient() {
         // Retry configuration
         retry: (failureCount, error: unknown) => {
           // Don't retry on 4xx errors (client errors)
-          const status =
-            error && typeof error === 'object' && 'status' in error
-              ? (error.status as number)
-              : undefined;
-          if (status && status >= 400 && status < 500) {
+          if (isClientError(error)) {
             return false;
           }
           // Retry up to 3 times for other errors

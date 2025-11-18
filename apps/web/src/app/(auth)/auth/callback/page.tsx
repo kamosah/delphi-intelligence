@@ -25,7 +25,8 @@ export default function AuthCallbackPage() {
       const error = params.get('error');
       const errorDescription = params.get('error_description');
       const accessToken = params.get('access_token');
-      const _refreshToken = params.get('refresh_token'); // Reserved for future use
+      // Supabase refresh_token intentionally unused - backend manages token lifecycle via exchange-token endpoint
+      const _refreshToken = params.get('refresh_token');
 
       // Handle errors
       if (error) {

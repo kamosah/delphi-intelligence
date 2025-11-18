@@ -49,7 +49,6 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
             ...props
           }: React.HTMLAttributes<HTMLElement> & {
             node?: unknown;
-            className?: string;
           }) => {
             const inline = !className;
             if (inline) {

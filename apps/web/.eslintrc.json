@@ -85,7 +85,7 @@
             "position": "after"
           }
         ],
-        "pathGroupsExcludedImportTypes": ["react"],
+        "pathGroupsExcludedImportTypes": [],
         "newlines-between": "never",
         "alphabetize": {
           "order": "asc",
