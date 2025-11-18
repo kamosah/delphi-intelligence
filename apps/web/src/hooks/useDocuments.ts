@@ -7,7 +7,10 @@ import {
   type Document,
   type UploadDocumentRequest,
 } from '@/lib/api/documents-client';
-import { useGetDocumentsQuery } from '@/lib/api/hooks.generated';
+import {
+  useGetDocumentsQuery,
+  type GetDocumentsQuery,
+} from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -94,14 +97,14 @@ export function useUploadDocument() {
       // Optimistically add document to ALL matching document list queries for this space
       queryClient.setQueriesData(
         { queryKey: [...queryKeys.documents.lists(), variables.space_id] },
-        (oldData: any) => {
+        (oldData: GetDocumentsQuery | undefined) => {
           if (!oldData) {
             return { documents: [document] };
           }
 
           // Check if document already exists (shouldn't, but defensive)
           const exists = (oldData.documents || []).some(
-            (doc: any) => doc.id === document.id
+            (doc) => doc.id === document.id
           );
 
           if (exists) {
@@ -260,12 +263,12 @@ export function useDeleteDocument() {
       // Optimistically remove the document from ALL matching cache entries
       queryClient.setQueriesData(
         { queryKey: queryKeyPrefix },
-        (oldData: any) => {
+        (oldData: GetDocumentsQuery | undefined) => {
           if (!oldData) return oldData;
 
           return {
             documents: (oldData.documents || []).filter(
-              (doc: any) => doc.id !== variables.documentId
+              (doc) => doc.id !== variables.documentId
             ),
           };
         }

@@ -12,7 +12,7 @@ export interface Document {
   uploaded_by: string;
   status: 'uploaded' | 'processing' | 'processed' | 'failed';
   extracted_text?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   processed_at?: string;
   processing_error?: string;
   created_at: string;

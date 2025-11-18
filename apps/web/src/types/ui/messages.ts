@@ -21,5 +21,5 @@ export interface MessageMetadata {
   confidence_score?: number;
 
   /** Allow other metadata fields for extensibility */
-  [key: string]: any;
+  [key: string]: unknown;
 }

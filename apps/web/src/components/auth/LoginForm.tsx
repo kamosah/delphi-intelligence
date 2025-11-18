@@ -101,7 +101,7 @@ export function LoginForm() {
       });
       // Redirect to original destination or dashboard
       router.push(redirectTo);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
 
       // Check if error is email not verified

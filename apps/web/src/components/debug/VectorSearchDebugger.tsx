@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useMemo, useState } from 'react';
+import type { SearchResult } from '@/lib/api/generated';
 import {
   AlertCircle,
   Clock,
@@ -482,7 +483,7 @@ const SearchResultCard = memo(function SearchResultCard({
   result,
   rank,
 }: {
-  result: any;
+  result: SearchResult;
   rank: number;
 }) {
   const { chunk, document, similarityScore, distance } = result;
