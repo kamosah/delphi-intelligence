@@ -96,7 +96,7 @@ export function ThreadInterface({
     threadId,
     startStreaming,
     retry,
-  } = useStreamingQuery();
+  } = useStreamingQuery(initialThread?.id);
 
   // Track which response we've added to conversation history to prevent duplicates
   // Use response content hash to detect new responses in multi-turn conversations
