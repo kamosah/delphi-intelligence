@@ -4,11 +4,9 @@ import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
-import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores';
 import { ScrollArea } from '@olympus/ui';
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
 import { CitationList } from './CitationList';
 import { ThreadInput } from './ThreadInput';
@@ -37,7 +35,7 @@ interface ThreadInterfaceProps {
  * - Uses Zustand auth store for organization context
  * - Can load initial thread data for existing conversations
  * - Navigates to thread page IMMEDIATELY when thread is created (before streaming completes)
- * - Optimistic cache updates during streaming for seamless UX
+ * - Uses Zustand streaming store for persistent state across navigation
  *
  * @example
  * // New org-wide conversation (uses currentOrganization from Zustand)
@@ -57,8 +55,6 @@ export function ThreadInterface({
 }: ThreadInterfaceProps) {
   const { currentOrganization } = useAuthStore();
   const { minimize } = useThreadsPanel();
-  const queryClient = useQueryClient();
-  const [currentMessage, setCurrentMessage] = useState('');
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       id: string;
@@ -76,22 +72,14 @@ export function ThreadInterface({
         initialThread.messages
           // Filter out system messages (internal prompts, not for display)
           .filter((msg) => msg.messageRole !== 'SYSTEM')
-          .map((msg) => {
-            // Parse message metadata for citations and confidence score
-            const metadata = msg.messageMetadata as {
-              citations?: Citation[];
-              confidence_score?: number;
-            };
-
-            return {
-              id: msg.id,
-              role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
-              content: msg.content,
-              timestamp: new Date(msg.createdAt),
-              citations: metadata?.citations,
-              confidenceScore: metadata?.confidence_score,
-            };
-          })
+          .map((msg) => ({
+            id: msg.id,
+            role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: new Date(msg.createdAt),
+            citations: msg.messageMetadata?.citations,
+            confidenceScore: msg.messageMetadata?.confidence_score,
+          }))
       );
     }
     return [];
@@ -108,13 +96,17 @@ export function ThreadInterface({
     threadId,
     startStreaming,
     retry,
-  } = useStreamingQuery();
+  } = useStreamingQuery(initialThread?.id);
 
-  // Track which threadId we've added to conversation history to prevent duplicates
-  const addedThreadId = useRef<string | null>(null);
+  // Track which response we've added to conversation history to prevent duplicates
+  // Use response content hash to detect new responses in multi-turn conversations
+  const addedResponseHash = useRef<string | null>(null);
 
   // Track the ID of the last user message to mark as failed on error
   const lastUserMessageId = useRef<string | null>(null);
+
+  // Note: No longer need to set activeThreadId - removed from store
+  // Each component determines its own threadId from props/params
 
   // Auto-minimize ThreadsPanel when streaming starts on first message
   useEffect(() => {
@@ -134,38 +126,6 @@ export function ThreadInterface({
       onThreadCreated(threadId);
     }
   }, [threadId, initialThread, onThreadCreated]);
-
-  // Populate cache OPTIMISTICALLY as streaming progresses
-  // This prevents loading state when navigating to individual thread page
-  // Updates happen during streaming AND after completion
-  useEffect(() => {
-    if (threadId && currentMessage) {
-      // Build thread data that matches GraphQL query shape
-      // Update with current state (even if streaming is still in progress)
-      const threadData = {
-        query: {
-          id: threadId,
-          queryText: currentMessage,
-          result: response || '', // Empty string if streaming hasn't started yet
-          confidenceScore: confidenceScore || null,
-          sources: citations, // Include citations as they arrive
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      };
-
-      // Populate cache so individual thread page loads instantly
-      // This updates during streaming (optimistic) and after completion (final)
-      queryClient.setQueryData(queryKeys.threads.detail(threadId), threadData);
-    }
-  }, [
-    threadId,
-    currentMessage,
-    response,
-    confidenceScore,
-    citations,
-    queryClient,
-  ]);
 
   // Handle error state - mark the last user message as failed
   useEffect(() => {
@@ -195,31 +155,37 @@ export function ThreadInterface({
     // 1. Streaming is complete (!isStreaming)
     // 2. We have a response
     // 3. We have a threadId (streaming completed successfully)
-    // 4. We haven't already added this threadId to history
+    // 4. We haven't already added this exact response (check by content hash)
     // 5. The last message is from the user (we haven't added assistant response yet)
     if (
       !isStreaming &&
       response &&
       threadId &&
-      addedThreadId.current !== threadId &&
       conversationHistory.length > 0 &&
       conversationHistory[conversationHistory.length - 1].role === 'user'
     ) {
-      setConversationHistory((prev) => [
-        ...prev,
-        {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          content: response,
-          timestamp: new Date(),
-          citations,
-          confidenceScore: confidenceScore || undefined,
-        },
-      ]);
-      // Mark this threadId as added to prevent duplicates
-      addedThreadId.current = threadId;
-      // Clear the failed state tracking since we succeeded
-      lastUserMessageId.current = null;
+      // Create a hash of the response to detect duplicates
+      // In multi-turn conversations, each response will be different
+      // Use full response for robust duplicate detection
+      const responseHash = `${threadId}-${response}`;
+
+      if (addedResponseHash.current !== responseHash) {
+        setConversationHistory((prev) => [
+          ...prev,
+          {
+            id: `assistant-${Date.now()}`,
+            role: 'assistant',
+            content: response,
+            timestamp: new Date(),
+            citations,
+            confidenceScore: confidenceScore || undefined,
+          },
+        ]);
+        // Mark this response as added to prevent duplicates
+        addedResponseHash.current = responseHash;
+        // Clear the failed state tracking since we succeeded
+        lastUserMessageId.current = null;
+      }
     }
   }, [
     isStreaming,
@@ -231,46 +197,53 @@ export function ThreadInterface({
   ]);
 
   // Handle new message submission
-  const handleSubmitMessage = async (message: string) => {
-    setCurrentMessage(message);
+  const handleSubmitMessage = useCallback(
+    async (message: string) => {
+      // Notify parent that a message was submitted
+      onMessageSubmit?.();
 
-    // Notify parent that a message was submitted
-    onMessageSubmit?.();
+      // Generate unique ID for this user message using crypto.randomUUID()
+      // This ensures truly unique IDs even with rapid submissions
+      const messageId = `user-${crypto.randomUUID()}`;
+      lastUserMessageId.current = messageId;
 
-    // Generate unique ID for this user message using crypto.randomUUID()
-    // This ensures truly unique IDs even with rapid submissions
-    const messageId = `user-${crypto.randomUUID()}`;
-    lastUserMessageId.current = messageId;
+      // Add user message to conversation
+      setConversationHistory((prev) => [
+        ...prev,
+        {
+          id: messageId,
+          role: 'user',
+          content: message,
+          timestamp: new Date(),
+        },
+      ]);
 
-    // Add user message to conversation
-    setConversationHistory((prev) => [
-      ...prev,
-      {
-        id: messageId,
-        role: 'user',
-        content: message,
-        timestamp: new Date(),
-      },
-    ]);
-
-    try {
-      // Start streaming response
-      await startStreaming({
-        query: message,
-        threadId: initialThread?.id, // Pass threadId for follow-up messages (multi-turn)
-        organizationId: currentOrganization?.id,
-        spaceId,
-        saveToDb: true, // Save to database for history
-      });
-      // Note: Assistant response will be added by useEffect when streaming completes
-    } catch (err) {
-      console.error('Message streaming failed:', err);
-      // Error handling happens in useEffect based on error state from useStreamingQuery
-    }
-  };
+      try {
+        // Start streaming response
+        await startStreaming({
+          query: message,
+          threadId: initialThread?.id, // Use initialThread for multi-turn conversations
+          organizationId: currentOrganization?.id,
+          spaceId,
+          saveToDb: true, // Save to database for history
+        });
+        // Note: Assistant response will be added by useEffect when streaming completes
+      } catch (err) {
+        console.error('Message streaming failed:', err);
+        // Error handling happens in useEffect based on error state from useStreamingQuery
+      }
+    },
+    [
+      onMessageSubmit,
+      initialThread?.id,
+      currentOrganization?.id,
+      spaceId,
+      startStreaming,
+    ]
+  );
 
   // Handle retry on error - use the retry method from useStreamingQuery
-  const handleRetry = async () => {
+  const handleRetry = useCallback(async () => {
     // Store the message ID before clearing it (needed for clearing failed state)
     const messageId = lastUserMessageId.current;
 
@@ -294,7 +267,7 @@ export function ThreadInterface({
       console.error('Retry failed:', err);
       // Error handling happens in useEffect based on error state from useStreamingQuery
     }
-  };
+  }, [retry]);
 
   // Determine if we should show the active streaming response
   // Show it while streaming OR after completion but before adding to history

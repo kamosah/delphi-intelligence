@@ -153,6 +153,7 @@ class TestThreadContinuation:
         """Test continuing a thread as the thread creator."""
         # Mock database to return the thread when queried
         mock_result = MagicMock()
+        mock_result.unique.return_value = mock_result  # Support .unique() call
         mock_result.scalar_one_or_none.return_value = mock_org_thread
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
@@ -209,6 +210,7 @@ class TestThreadContinuation:
 
         # Mock database to return thread (mock_user is space owner, should have access)
         mock_result = MagicMock()
+        mock_result.unique.return_value = mock_result  # Support .unique() call
         mock_result.scalar_one_or_none.return_value = mock_thread
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
@@ -256,6 +258,7 @@ class TestThreadContinuation:
 
         # Mock database to return thread (member should have access via SpaceMember)
         mock_result = MagicMock()
+        mock_result.unique.return_value = mock_result  # Support .unique() call
         mock_result.scalar_one_or_none.return_value = mock_thread
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
@@ -297,6 +300,7 @@ class TestThreadContinuation:
 
         # Mock database to return None (thread not found or no access)
         mock_result = MagicMock()
+        mock_result.unique.return_value = mock_result  # Support .unique() call
         mock_result.scalar_one_or_none.return_value = None
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
@@ -336,6 +340,7 @@ class TestThreadContinuation:
 
         # Mock database to return None (thread not found)
         mock_result = MagicMock()
+        mock_result.unique.return_value = mock_result  # Support .unique() call
         mock_result.scalar_one_or_none.return_value = None
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
@@ -480,6 +485,7 @@ class TestMessageCreation:
 
         # Mock database to return thread with existing messages
         mock_result = MagicMock()
+        mock_result.unique.return_value = mock_result  # Support .unique() call
         mock_result.scalar_one_or_none.return_value = mock_org_thread
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 

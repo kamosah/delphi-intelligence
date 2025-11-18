@@ -33,7 +33,18 @@ export interface TipTapEditorProps {
   onChange?: (content: string) => void;
 
   /**
-   * Callback to receive the editor instance for external control
+   * Callback to receive the editor instance for external control.
+   * Called once when the editor is created.
+   *
+   * **Important**: Wrap this callback in `useCallback` in the parent component
+   * to prevent stale closures:
+   *
+   * @example
+   * const handleEditorReady = useCallback((editor: Editor) => {
+   *   // Use editor...
+   * }, []); // Or include necessary dependencies
+   *
+   * <TipTapEditor onEditorReady={handleEditorReady} />
    */
   onEditorReady?: (editor: Editor) => void;
 
@@ -95,12 +106,15 @@ export function TipTapEditor({
     autofocus,
   });
 
-  // Notify parent when editor is ready
+  // Notify parent when editor is ready (only once when editor is created)
+  // We intentionally omit onEditorReady from deps to call it only once.
+  // Parent components should wrap onEditorReady in useCallback to prevent stale closures.
   useEffect(() => {
     if (editor && onEditorReady) {
       onEditorReady(editor);
     }
-  }, [editor, onEditorReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   if (!editor) {
     return null;
