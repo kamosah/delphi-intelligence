@@ -77,8 +77,8 @@ export function ThreadInterface({
             role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
             content: msg.content,
             timestamp: new Date(msg.createdAt),
-            citations: msg.messageMetadata.citations,
-            confidenceScore: msg.messageMetadata.confidence_score,
+            citations: msg.messageMetadata?.citations,
+            confidenceScore: msg.messageMetadata?.confidence_score,
           }))
       );
     }
@@ -164,9 +164,10 @@ export function ThreadInterface({
       conversationHistory.length > 0 &&
       conversationHistory[conversationHistory.length - 1].role === 'user'
     ) {
-      // Create a simple hash of the response to detect duplicates
+      // Create a hash of the response to detect duplicates
       // In multi-turn conversations, each response will be different
-      const responseHash = `${threadId}-${response.substring(0, 50)}`;
+      // Use full response for robust duplicate detection
+      const responseHash = `${threadId}-${response}`;
 
       if (addedResponseHash.current !== responseHash) {
         setConversationHistory((prev) => [

@@ -146,18 +146,23 @@ export const useStreamingStore = create<StreamingStore>()(
       },
 
       endSession: (threadId) => {
-        set((state) => ({
-          sessions: {
-            ...state.sessions,
-            [threadId]: state.sessions[threadId]
-              ? {
-                  ...state.sessions[threadId],
-                  isStreaming: false,
-                  lastUpdated: Date.now(),
-                }
-              : ({} as StreamingSession), // Fallback for edge case
-          },
-        }));
+        set((state) => {
+          if (!state.sessions[threadId]) {
+            // Session doesn't exist, no-op
+            return state;
+          }
+
+          return {
+            sessions: {
+              ...state.sessions,
+              [threadId]: {
+                ...state.sessions[threadId],
+                isStreaming: false,
+                lastUpdated: Date.now(),
+              },
+            },
+          };
+        });
       },
 
       getSession: (threadId) => {

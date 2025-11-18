@@ -12,6 +12,7 @@ import { MessageRole, ThreadStatusEnum } from '@/lib/api/generated';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
+import type { MessageMetadata } from '@/types/ui/messages';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -64,6 +65,7 @@ export function useStreamingQuery(threadId?: string) {
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentParamsRef = useRef<{
     query: string;
     threadId?: string;
@@ -81,9 +83,18 @@ export function useStreamingQuery(threadId?: string) {
     rafId: null,
   });
 
-  // Clean up stale sessions on mount
+  // Clean up stale sessions on mount and periodically (every 5 minutes)
   useEffect(() => {
     cleanupStale();
+    const intervalId = setInterval(
+      () => {
+        cleanupStale();
+      },
+      5 * 60 * 1000
+    ); // 5 minutes
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [cleanupStale]);
 
   // Track the current thread ID being processed
@@ -151,6 +162,17 @@ export function useStreamingQuery(threadId?: string) {
         if (batchRef.current.rafId) {
           cancelAnimationFrame(batchRef.current.rafId);
           batchRef.current.rafId = null;
+
+          // Flush remaining tokens before clearing to prevent token loss
+          const activeId = threadId || currentThreadIdRef.current;
+          if (activeId && batchRef.current.tokens.length > 0) {
+            const batch = batchRef.current.tokens.join('');
+            const currentSession = getSession(activeId);
+            updateSession(activeId, {
+              response: (currentSession?.response || '') + batch,
+            });
+          }
+
           batchRef.current.tokens = [];
         }
 
@@ -209,7 +231,7 @@ export function useStreamingQuery(threadId?: string) {
                             threadId: data.thread_id,
                             messageRole: MessageRole.User,
                             content: params.query,
-                            messageMetadata: {},
+                            messageMetadata: {} satisfies MessageMetadata,
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString(),
                           },
@@ -292,7 +314,7 @@ export function useStreamingQuery(threadId?: string) {
                               ...oldData.thread,
                               status: ThreadStatusEnum.Completed,
                               result: currentSession.response,
-                              sources: currentSession.citations as any,
+                              sources: currentSession.citations,
                               confidenceScore: data.confidence_score,
                               completedAt: new Date().toISOString(),
                               messages: [
@@ -306,7 +328,7 @@ export function useStreamingQuery(threadId?: string) {
                                   messageMetadata: {
                                     citations: currentSession.citations,
                                     confidence_score: data.confidence_score,
-                                  },
+                                  } satisfies MessageMetadata,
                                   createdAt: new Date().toISOString(),
                                   updatedAt: new Date().toISOString(),
                                 },
@@ -322,10 +344,11 @@ export function useStreamingQuery(threadId?: string) {
                   // This prevents unnecessary refetch and ensures smooth UX
 
                   // Clean up streaming session after short delay (allows UI to read final state)
-                  setTimeout(() => {
+                  cleanupTimeoutRef.current = setTimeout(() => {
                     if (activeId) {
                       removeSession(activeId);
                     }
+                    cleanupTimeoutRef.current = null;
                   }, 1000);
 
                   eventSource.close();
@@ -500,10 +523,27 @@ export function useStreamingQuery(threadId?: string) {
       retryTimeoutRef.current = null;
     }
 
+    // Cancel pending cleanup timeout
+    if (cleanupTimeoutRef.current) {
+      clearTimeout(cleanupTimeoutRef.current);
+      cleanupTimeoutRef.current = null;
+    }
+
     // Clear any pending token batch
     if (batchRef.current.rafId) {
       cancelAnimationFrame(batchRef.current.rafId);
       batchRef.current.rafId = null;
+
+      // Flush remaining tokens before clearing to prevent token loss
+      const activeId = threadId || currentThreadIdRef.current;
+      if (activeId && batchRef.current.tokens.length > 0) {
+        const batch = batchRef.current.tokens.join('');
+        const currentSession = getSession(activeId);
+        updateSession(activeId, {
+          response: (currentSession?.response || '') + batch,
+        });
+      }
+
       batchRef.current.tokens = [];
     }
 
@@ -514,7 +554,7 @@ export function useStreamingQuery(threadId?: string) {
         isStreaming: false,
       });
     }
-  }, [threadId, updateSession]);
+  }, [threadId, updateSession, getSession]);
 
   /**
    * Reset state to initial values
