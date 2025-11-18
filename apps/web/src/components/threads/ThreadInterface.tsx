@@ -5,7 +5,6 @@ import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
 import { useAuthStore } from '@/lib/stores';
-import { useStreamingStore } from '@/lib/stores/streaming-store';
 import { ScrollArea } from '@olympus/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
@@ -56,7 +55,6 @@ export function ThreadInterface({
 }: ThreadInterfaceProps) {
   const { currentOrganization } = useAuthStore();
   const { minimize } = useThreadsPanel();
-  const [currentMessage, setCurrentMessage] = useState('');
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       id: string;
@@ -74,22 +72,14 @@ export function ThreadInterface({
         initialThread.messages
           // Filter out system messages (internal prompts, not for display)
           .filter((msg) => msg.messageRole !== 'SYSTEM')
-          .map((msg) => {
-            // Parse message metadata for citations and confidence score
-            const metadata = msg.messageMetadata as {
-              citations?: Citation[];
-              confidence_score?: number;
-            };
-
-            return {
-              id: msg.id,
-              role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
-              content: msg.content,
-              timestamp: new Date(msg.createdAt),
-              citations: metadata?.citations,
-              confidenceScore: metadata?.confidence_score,
-            };
-          })
+          .map((msg) => ({
+            id: msg.id,
+            role: msg.messageRole.toLowerCase() as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: new Date(msg.createdAt),
+            citations: msg.messageMetadata.citations,
+            confidenceScore: msg.messageMetadata.confidence_score,
+          }))
       );
     }
     return [];
@@ -208,8 +198,6 @@ export function ThreadInterface({
   // Handle new message submission
   const handleSubmitMessage = useCallback(
     async (message: string) => {
-      setCurrentMessage(message);
-
       // Notify parent that a message was submitted
       onMessageSubmit?.();
 

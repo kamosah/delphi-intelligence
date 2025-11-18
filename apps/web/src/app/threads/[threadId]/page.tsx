@@ -6,7 +6,6 @@ import { useThread } from '@/hooks/useThreads';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
 
 /**
  * Individual Thread page - shows a specific thread conversation.
@@ -34,7 +33,7 @@ export default function ThreadPage() {
       <div className="flex flex-col h-[calc(100vh-4rem)] gap-6">
         {/* ThreadInterface - Shows streaming conversation in real-time */}
         <div className="flex-1 overflow-hidden">
-          <ThreadInterface />
+          <ThreadInterface initialThread={thread || undefined} />
         </div>
 
         {/* ThreadsPanel - Collapsed by default on individual thread pages */}
