@@ -1,5 +1,6 @@
 'use client';
 
+import { FileText } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -7,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { FileText } from 'lucide-react';
 
 interface DocumentListEmptyProps {
   message?: string;

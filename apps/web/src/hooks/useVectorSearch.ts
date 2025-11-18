@@ -1,9 +1,7 @@
 'use client';
 
-import {
-  SearchDocumentsInput,
-  useSearchDocumentsQuery,
-} from '@/lib/api/hooks.generated';
+import type { SearchDocumentsInput } from '@/lib/api/hooks.generated';
+import { useSearchDocumentsQuery } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '../lib/stores';
 

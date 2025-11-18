@@ -1,8 +1,8 @@
 'use client';
 
-import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
-import { useThreads } from '@/hooks/useThreads';
-import { useAuthStore } from '@/lib/stores';
+import { useEffect, useRef, type ComponentProps } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Button,
   List,
@@ -12,15 +12,14 @@ import {
   TabsTrigger,
   cn,
 } from '@olympus/ui';
-import { motion } from 'framer-motion';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useEffect, useRef, type ComponentProps } from 'react';
+import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
+import { useThreads } from '@/hooks/useThreads';
+import { useAuthStore } from '@/lib/stores';
 import { ThreadListItem } from './ThreadListItem';
 
 interface ThreadsPanelProps {
   className?: string;
   initialExpanded?: boolean;
-  onMinimize?: () => void;
   spaceId?: string;
 }
 
@@ -61,13 +60,11 @@ function ThreadsPanelTabTrigger({
  * - Uses Zustand auth store for organization context
  * - Navigates to individual thread pages on click
  * - Configurable initial expanded/collapsed state
- * - External minimize control via onMinimize callback
  *
  */
 export function ThreadsPanel({
   className,
   initialExpanded = true,
-  onMinimize,
   spaceId,
 }: ThreadsPanelProps) {
   const { currentOrganization } = useAuthStore();

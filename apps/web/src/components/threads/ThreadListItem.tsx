@@ -1,8 +1,8 @@
 'use client';
 
-import type { Thread } from '@/hooks/useThreads';
-import { ListItem, Typography } from '@olympus/ui';
 import Link from 'next/link';
+import { ListItem, Typography } from '@olympus/ui';
+import type { Thread } from '@/hooks/useThreads';
 
 interface ThreadListItemProps {
   thread: Thread;

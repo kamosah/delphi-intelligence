@@ -1,19 +1,91 @@
 'use client';
 
-import { FileText } from 'lucide-react';
+import { FileImage, FileSpreadsheet, FileText, File } from 'lucide-react';
 
 interface DocumentIconProps {
   fileType?: string;
 }
 
 /**
+ * Get icon and color scheme based on file type
+ */
+function getFileTypeStyles(fileType?: string) {
+  const type = fileType?.toLowerCase() || '';
+
+  // PDFs
+  if (type.includes('pdf')) {
+    return {
+      icon: FileText,
+      bgColor: 'bg-red-100',
+      iconColor: 'text-red-600',
+    };
+  }
+
+  // Images
+  if (
+    type.includes('image') ||
+    type.includes('png') ||
+    type.includes('jpg') ||
+    type.includes('jpeg') ||
+    type.includes('gif') ||
+    type.includes('webp')
+  ) {
+    return {
+      icon: FileImage,
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+    };
+  }
+
+  // Spreadsheets
+  if (
+    type.includes('sheet') ||
+    type.includes('excel') ||
+    type.includes('csv') ||
+    type.includes('xls')
+  ) {
+    return {
+      icon: FileSpreadsheet,
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600',
+    };
+  }
+
+  // Text documents (Word, plain text, etc.)
+  if (
+    type.includes('document') ||
+    type.includes('word') ||
+    type.includes('doc') ||
+    type.includes('text') ||
+    type.includes('txt')
+  ) {
+    return {
+      icon: FileText,
+      bgColor: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+    };
+  }
+
+  // Default
+  return {
+    icon: File,
+    bgColor: 'bg-gray-100',
+    iconColor: 'text-gray-600',
+  };
+}
+
+/**
  * Document icon component.
- * Displays a file icon with optional file type specific styling.
+ * Displays a file icon with file type specific styling.
  */
 export function DocumentIcon({ fileType }: DocumentIconProps) {
+  const { icon: Icon, bgColor, iconColor } = getFileTypeStyles(fileType);
+
   return (
-    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-      <FileText className="w-5 h-5 text-blue-600" />
+    <div
+      className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}
+    >
+      <Icon className={`w-5 h-5 ${iconColor}`} />
     </div>
   );
 }

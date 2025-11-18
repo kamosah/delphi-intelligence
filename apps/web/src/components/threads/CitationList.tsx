@@ -1,8 +1,8 @@
 'use client';
 
+import { FileQuestion } from 'lucide-react';
 import type { Citation } from '@/lib/api/queries-client';
 import { CitationCard } from './CitationCard';
-import { FileQuestion } from 'lucide-react';
 
 interface CitationListProps {
   citations: Citation[];

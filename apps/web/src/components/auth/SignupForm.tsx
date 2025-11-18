@@ -1,8 +1,11 @@
 'use client';
 
-import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 import {
   Button,
   Form,
@@ -13,11 +16,8 @@ import {
   FormMessage,
   Input,
 } from '@olympus/ui';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
+import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
+import { useAuth } from '@/hooks/useAuth';
 
 const signupSchema = z
   .object({

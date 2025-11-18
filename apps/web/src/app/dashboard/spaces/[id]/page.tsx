@@ -1,10 +1,6 @@
 'use client';
 
-import { DocumentList } from '@/components/documents/DocumentList';
-import { DocumentUpload } from '@/components/documents/DocumentUpload';
-import { useDocuments } from '@/hooks/useDocuments';
-import { useDocumentSSE } from '@/hooks/useDocumentSSE';
-import { useSpace } from '@/hooks/useSpaces';
+import { useParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -12,7 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { useParams } from 'next/navigation';
+import { DocumentList } from '@/components/documents/DocumentList';
+import { DocumentUpload } from '@/components/documents/DocumentUpload';
+import { useDocuments } from '@/hooks/useDocuments';
+import { useDocumentSSE } from '@/hooks/useDocumentSSE';
+import { useSpace } from '@/hooks/useSpaces';
 
 export default function SpaceDetailPage() {
   const params = useParams();

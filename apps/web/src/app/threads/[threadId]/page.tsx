@@ -1,11 +1,11 @@
 'use client';
 
+import { useParams } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { ThreadInterface } from '@/components/threads/ThreadInterface';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 import { useThread } from '@/hooks/useThreads';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
-import { Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
 
 /**
  * Individual Thread page - shows a specific thread conversation.

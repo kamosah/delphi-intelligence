@@ -1,15 +1,18 @@
 'use client';
 
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   documentsApi,
   type Document,
   type UploadDocumentRequest,
 } from '@/lib/api/documents-client';
-import { useGetDocumentsQuery } from '@/lib/api/hooks.generated';
+import {
+  useGetDocumentsQuery,
+  type GetDocumentsQuery,
+} from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 
 /**
  * Sanitize a filename to remove potentially problematic characters.
@@ -78,7 +81,7 @@ export function useUploadDocument() {
         id: data.id,
         name: data.name,
         fileType: data.file_type,
-        filePath: (data as any).file_path || '',
+        filePath: data.file_path,
         sizeBytes: data.size_bytes,
         spaceId: data.space_id,
         uploadedBy: data.uploaded_by,
@@ -94,14 +97,14 @@ export function useUploadDocument() {
       // Optimistically add document to ALL matching document list queries for this space
       queryClient.setQueriesData(
         { queryKey: [...queryKeys.documents.lists(), variables.space_id] },
-        (oldData: any) => {
+        (oldData: GetDocumentsQuery | undefined) => {
           if (!oldData) {
             return { documents: [document] };
           }
 
           // Check if document already exists (shouldn't, but defensive)
           const exists = (oldData.documents || []).some(
-            (doc: any) => doc.id === document.id
+            (doc) => doc.id === document.id
           );
 
           if (exists) {
@@ -236,17 +239,11 @@ export function useDeleteDocument() {
   const { accessToken } = useAuthStore();
 
   const mutation = useMutation({
-    mutationFn: async ({
-      documentId,
-      spaceId,
-    }: {
-      documentId: string;
-      spaceId: string;
-    }) => {
+    mutationFn: async (variables: { documentId: string; spaceId: string }) => {
       if (!accessToken) {
         throw new Error('Authentication required');
       }
-      return documentsApi.delete(documentId, accessToken);
+      return documentsApi.delete(variables.documentId, accessToken);
     },
     // Optimistically update the cache before mutation runs
     onMutate: async (variables) => {
@@ -266,12 +263,12 @@ export function useDeleteDocument() {
       // Optimistically remove the document from ALL matching cache entries
       queryClient.setQueriesData(
         { queryKey: queryKeyPrefix },
-        (oldData: any) => {
+        (oldData: GetDocumentsQuery | undefined) => {
           if (!oldData) return oldData;
 
           return {
             documents: (oldData.documents || []).filter(
-              (doc: any) => doc.id !== variables.documentId
+              (doc) => doc.id !== variables.documentId
             ),
           };
         }

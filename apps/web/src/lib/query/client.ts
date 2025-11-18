@@ -13,7 +13,7 @@ export const queryKeys = {
   spaces: {
     all: ['spaces'] as const,
     lists: () => [...queryKeys.spaces.all, 'list'] as const,
-    list: (filters: Record<string, any>) =>
+    list: (filters: Record<string, unknown>) =>
       [...queryKeys.spaces.lists(), filters] as const,
     details: () => [...queryKeys.spaces.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.spaces.details(), id] as const,
@@ -23,7 +23,7 @@ export const queryKeys = {
   documents: {
     all: ['documents'] as const,
     lists: () => [...queryKeys.documents.all, 'list'] as const,
-    list: (spaceId?: string | null, filters?: Record<string, any>) =>
+    list: (spaceId?: string | null, filters?: Record<string, unknown>) =>
       [...queryKeys.documents.lists(), spaceId, filters] as const,
     details: () => [...queryKeys.documents.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.documents.details(), id] as const,
@@ -33,7 +33,7 @@ export const queryKeys = {
   threads: {
     all: ['threads'] as const,
     lists: () => [...queryKeys.threads.all, 'list'] as const,
-    list: (filters?: Record<string, any>) =>
+    list: (filters?: Record<string, unknown>) =>
       [...queryKeys.threads.lists(), filters] as const,
     details: () => [...queryKeys.threads.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.threads.details(), id] as const,
@@ -43,7 +43,7 @@ export const queryKeys = {
   organizations: {
     all: ['organizations'] as const,
     lists: () => [...queryKeys.organizations.all, 'list'] as const,
-    list: (filters?: Record<string, any>) =>
+    list: (filters?: Record<string, unknown>) =>
       [...queryKeys.organizations.lists(), filters] as const,
     details: () => [...queryKeys.organizations.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.organizations.details(), id] as const,
@@ -53,7 +53,7 @@ export const queryKeys = {
   organizationMembers: {
     all: ['organizationMembers'] as const,
     lists: () => [...queryKeys.organizationMembers.all, 'list'] as const,
-    list: (organizationId: string, filters?: Record<string, any>) =>
+    list: (organizationId: string, filters?: Record<string, unknown>) =>
       [
         ...queryKeys.organizationMembers.lists(),
         organizationId,
@@ -71,7 +71,7 @@ export const queryKeys = {
   // Search queries
   search: {
     all: ['search'] as const,
-    documents: (input: Record<string, any>) =>
+    documents: (input: Record<string, unknown>) =>
       [...queryKeys.search.all, 'documents', input] as const,
   },
 } as const;

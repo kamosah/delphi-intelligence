@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@olympus/ui';
 import { FolderPlus } from 'lucide-react';
+import { Button } from '@olympus/ui';
 
 interface SpaceListEmptyProps {
   onCreateClick: () => void;

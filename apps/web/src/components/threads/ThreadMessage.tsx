@@ -1,8 +1,8 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MarkdownContent } from '../common/MarkdownContent';
 
 interface ThreadMessageProps {

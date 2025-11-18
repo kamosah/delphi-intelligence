@@ -1,5 +1,9 @@
 'use client';
 
+import { Suspense, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Mail } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
@@ -12,10 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { ArrowLeft, Mail } from 'lucide-react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
 
 /**
  * Email verification page content component.
@@ -64,7 +64,7 @@ function VerifyEmailContent() {
           return prev - 1;
         });
       }, 1000);
-    } catch (error) {
+    } catch (_error) {
       setResendError('Failed to resend email. Please try again.');
     } finally {
       setIsResending(false);

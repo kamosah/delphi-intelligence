@@ -1,8 +1,8 @@
-import { OrganizationRole } from '@/lib/api/generated';
-import type { GetOrganizationMembersQuery } from '@/lib/api/hooks.generated';
-import { Badge, Button } from '@olympus/ui';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Crown, Eye, Shield } from 'lucide-react';
+import { Badge, Button } from '@olympus/ui';
+import { OrganizationRole } from '@/lib/api/generated';
+import type { GetOrganizationMembersQuery } from '@/lib/api/hooks.generated';
 import { OrganizationMemberRowActions } from './organization-members-row-actions';
 
 // Extract the OrganizationMember type from the query result

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@olympus/ui';
 import { Menu, Search, Bell } from 'lucide-react';
+import { Button } from '@olympus/ui';
 import { UserMenu } from '@/components/layout/UserMenu';
 import { useUIStore } from '@/store/ui-store';
 

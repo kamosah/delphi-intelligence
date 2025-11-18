@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -7,10 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@olympus/ui';
-import { SpaceForm, SpaceFormData } from './SpaceForm';
 import { useCreateSpace } from '@/hooks/useSpaces';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { toast } from 'sonner';
+import type { SpaceFormData } from './SpaceForm';
+import { SpaceForm } from './SpaceForm';
 
 interface CreateSpaceDialogProps {
   open: boolean;

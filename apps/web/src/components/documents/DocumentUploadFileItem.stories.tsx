@@ -22,7 +22,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Create a mock File object
-const createMockFile = (name: string, size: number): File => {
+const createMockFile = (name: string, _size: number): File => {
   return new File([''], name, { type: 'application/pdf' });
 };
 

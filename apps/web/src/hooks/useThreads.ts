@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateThreadMutation,
   useDeleteThreadMutation,
@@ -9,7 +10,6 @@ import {
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useQueryClient } from '@tanstack/react-query';
 
 // Re-export generated types for convenience
 export type {

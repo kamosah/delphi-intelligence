@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { Citation } from '@/lib/api/queries-client';
-import { ThreadMessage } from './ThreadMessage';
-import { CitationList } from './CitationList';
-import { Alert } from '@olympus/ui';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert } from '@olympus/ui';
 import {
   MAX_RETRY_ATTEMPTS,
   NON_RETRYABLE_ERRORS,
 } from '@/constants/streaming';
+import type { Citation } from '@/lib/api/queries-client';
+import { CitationList } from './CitationList';
+import { ThreadMessage } from './ThreadMessage';
 
 // Error code to title mapping
 const ERROR_TITLES: Record<string, string> = {

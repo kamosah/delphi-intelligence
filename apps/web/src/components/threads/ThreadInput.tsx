@@ -1,11 +1,11 @@
 'use client';
 
-import { TipTapEditor } from '@/components/editor/TipTapEditor';
-import { useEditorIsEmpty } from '@/hooks/useEditorState';
-import { Button } from '@olympus/ui';
+import { useState, useCallback } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Loader2, Send } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { Button } from '@olympus/ui';
+import { TipTapEditor } from '@/components/editor/TipTapEditor';
+import { useEditorIsEmpty } from '@/hooks/useEditorState';
 
 interface ThreadInputProps {
   onSubmit: (message: string) => void;

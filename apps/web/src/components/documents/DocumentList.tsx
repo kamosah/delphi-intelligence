@@ -1,8 +1,6 @@
 'use client';
 
 import { AnimatePresence } from 'framer-motion';
-import { useDeleteDocument, useDownloadDocument } from '@/hooks/useDocuments';
-import type { Document } from '@/lib/api/generated';
 import {
   Card,
   CardContent,
@@ -10,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
+import { useDeleteDocument, useDownloadDocument } from '@/hooks/useDocuments';
+import type { Document } from '@/lib/api/generated';
 import { DocumentListEmpty } from './DocumentListEmpty';
 import { DocumentListItem } from './DocumentListItem';
 import { DocumentListSkeleton } from './DocumentListSkeleton';

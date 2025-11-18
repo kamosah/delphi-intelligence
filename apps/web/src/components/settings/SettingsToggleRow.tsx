@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { Skeleton, Switch } from '@olympus/ui';
+import { cn } from '@/lib/utils';
 
 interface SettingsToggleRowProps {
   /** Settings label (e.g., "Display full names", "Convert text emoticons") */

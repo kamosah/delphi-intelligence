@@ -1,10 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api/auth-client';
 import { setAuthCookies } from '@/lib/auth-cookies';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 /**
  * Client-side auth callback page for Supabase.
@@ -25,7 +25,8 @@ export default function AuthCallbackPage() {
       const error = params.get('error');
       const errorDescription = params.get('error_description');
       const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
+      // Supabase refresh_token intentionally unused - backend manages token lifecycle via exchange-token endpoint
+      const _refreshToken = params.get('refresh_token');
 
       // Handle errors
       if (error) {
@@ -103,10 +104,14 @@ export default function AuthCallbackPage() {
     handleCallback().finally(() => setIsProcessing(false));
   }, [router, setTokens, setUser]);
 
+  if (!isProcessing) {
+    return null; // Redirect will happen, no need to show anything
+  }
+
   return (
     <div className="h-full overflow-y-auto flex items-center justify-center">
       <div className="text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4" />
         <p className="text-gray-600">Processing authentication...</p>
       </div>
     </div>

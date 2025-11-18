@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import { ThreadListItem } from './ThreadListItem';
-import { SpaceProvider } from '@/contexts/SpaceContext';
 import { List } from '@olympus/ui';
+import { SpaceProvider } from '@/contexts/SpaceContext';
 import { ThreadStatusEnum } from '@/lib/api/generated';
+import { ThreadListItem } from './ThreadListItem';
 
 const meta = {
   title: 'Threads/ThreadListItem',

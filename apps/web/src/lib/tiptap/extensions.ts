@@ -10,10 +10,10 @@
 
 import type { AnyExtension } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
-import Paragraph from '@tiptap/extension-paragraph';
-import Text from '@tiptap/extension-text';
 import HardBreak from '@tiptap/extension-hard-break';
+import Paragraph from '@tiptap/extension-paragraph';
 import Placeholder from '@tiptap/extension-placeholder';
+import Text from '@tiptap/extension-text';
 // import Mention from '@tiptap/extension-mention'; // Phase 2: Activate for mentions
 
 export interface EditorExtensionsConfig {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUIStore } from '@/store/ui-store';
+import { Menu, Moon, Sun, User } from 'lucide-react';
 import {
   Avatar,
   AvatarFallback,
@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@olympus/ui';
-import { Menu, Moon, Sun, User } from 'lucide-react';
+import { useUIStore } from '@/store/ui-store';
 
 export function Header() {
   const { isDarkMode, toggleDarkMode, toggleSidebarVisibility } = useUIStore();

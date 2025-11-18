@@ -1,7 +1,11 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 import {
   Alert,
   AlertDescription,
@@ -14,11 +18,7 @@ import {
   FormMessage,
   Input,
 } from '@olympus/ui';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
+import { useAuth } from '@/hooks/useAuth';
 
 const loginSchema = z.object({
   email: z
@@ -81,7 +81,7 @@ export function LoginForm() {
       if (response.ok) {
         setResendSuccess(true);
       }
-    } catch (error) {
+    } catch (_error) {
       // Fail silently - user can try again
     } finally {
       setIsResending(false);
@@ -101,7 +101,7 @@ export function LoginForm() {
       });
       // Redirect to original destination or dashboard
       router.push(redirectTo);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
 
       // Check if error is email not verified

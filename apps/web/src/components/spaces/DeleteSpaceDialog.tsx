@@ -1,5 +1,7 @@
 'use client';
 
+import { AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -9,9 +11,8 @@ import {
   DialogTitle,
 } from '@olympus/ui';
 import { Button } from '@olympus/ui';
-import { Space, useDeleteSpace } from '@/hooks/useSpaces';
-import { toast } from 'sonner';
-import { AlertTriangle } from 'lucide-react';
+import type { Space } from '@/hooks/useSpaces';
+import { useDeleteSpace } from '@/hooks/useSpaces';
 
 interface DeleteSpaceDialogProps {
   space: Space;

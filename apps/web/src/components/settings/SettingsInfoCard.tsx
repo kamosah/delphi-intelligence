@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils';
-import { Skeleton } from '@olympus/ui';
 import type { ReactNode } from 'react';
+import { Skeleton } from '@olympus/ui';
+import { cn } from '@/lib/utils';
 
 interface SettingsInfoItem {
   /** Item label (e.g., "Created", "Members") */

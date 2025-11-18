@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { expect, within } from '@storybook/test';
-import { DocumentUpload } from './DocumentUpload';
 import { withAuth } from '@/lib/storybook/decorators';
+import { DocumentUpload } from './DocumentUpload';
 
 const meta = {
   title: 'Documents/DocumentUpload',
