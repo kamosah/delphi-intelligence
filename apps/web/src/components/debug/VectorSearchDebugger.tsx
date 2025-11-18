@@ -1,7 +1,6 @@
 'use client';
 
 import { memo, useCallback, useMemo, useState } from 'react';
-import type { SearchResult } from '@/lib/api/generated';
 import {
   AlertCircle,
   Clock,
@@ -40,6 +39,7 @@ import {
   useSearchDocuments,
   type SearchDocumentsInput,
 } from '@/hooks/useVectorSearch';
+import type { SearchResult } from '@/lib/api/generated';
 
 /**
  * VectorSearchDebugger - Development tool for testing semantic search quality

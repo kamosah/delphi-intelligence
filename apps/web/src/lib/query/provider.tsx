@@ -19,9 +19,13 @@ function makeQueryClient() {
         gcTime: 1000 * 60 * 10,
 
         // Retry configuration
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: unknown) => {
           // Don't retry on 4xx errors (client errors)
-          if (error?.status >= 400 && error?.status < 500) {
+          const status =
+            error && typeof error === 'object' && 'status' in error
+              ? (error.status as number)
+              : undefined;
+          if (status && status >= 400 && status < 500) {
             return false;
           }
           // Retry up to 3 times for other errors
