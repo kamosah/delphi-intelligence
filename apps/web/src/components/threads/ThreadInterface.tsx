@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollArea } from '@olympus/ui';
+import { ChevronDown } from 'lucide-react';
+import { Button, ScrollArea } from '@olympus/ui';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
@@ -104,6 +106,19 @@ export function ThreadInterface({
 
   // Track the ID of the last user message to mark as failed on error
   const lastUserMessageId = useRef<string | null>(null);
+
+  // Auto-scroll hook for managing scroll behavior and scroll-to-bottom button
+  const {
+    scrollAreaRef,
+    showScrollButton,
+    handleScrollToBottom,
+    handleButtonMouseEnter,
+    handleButtonMouseLeave,
+  } = useAutoScroll({
+    isStreaming,
+    response,
+    messageCount: conversationHistory.length,
+  });
 
   // Note: No longer need to set activeThreadId - removed from store
   // Each component determines its own threadId from props/params
@@ -279,8 +294,8 @@ export function ThreadInterface({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Messages Container - Constrained width matching input */}
-      <ScrollArea className="flex-1 p-0">
+      {/* Messages Container with Scroll Button - Constrained width matching input */}
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-0 relative">
         {/* Conversation History - Constrained width container */}
         {conversationHistory.length > 0 && (
           <div className="max-w-3xl mx-auto">
@@ -317,6 +332,20 @@ export function ThreadInterface({
                 onRetry={handleRetry}
               />
             )}
+          </div>
+        )}
+        {/* Scroll to Bottom Button - Hex design with auto-hide */}
+        {showScrollButton && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <Button
+              onClick={handleScrollToBottom}
+              onMouseEnter={handleButtonMouseEnter}
+              onMouseLeave={handleButtonMouseLeave}
+              size="sm"
+              className="rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 px-3 py-2 h-9"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </ScrollArea>

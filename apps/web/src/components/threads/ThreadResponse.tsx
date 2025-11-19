@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert } from '@olympus/ui';
 import {
@@ -62,14 +61,7 @@ export function ThreadResponse({
   onRetry,
   className,
 }: ThreadResponseProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom as content streams in
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [response, citations]);
+  // Note: Auto-scroll is now handled by parent ThreadInterface component
 
   // Error state with enhanced messaging
   if (error) {
@@ -142,7 +134,7 @@ export function ThreadResponse({
   }
 
   return (
-    <div ref={containerRef} className={`space-y-4 ${className || ''}`}>
+    <div className={`space-y-4 ${className || ''}`}>
       {/* AI Response Message */}
       <ThreadMessage
         role="assistant"
