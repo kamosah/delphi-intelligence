@@ -116,7 +116,6 @@ export function ThreadInterface({
     handleButtonMouseLeave,
   } = useAutoScroll({
     isStreaming,
-    response,
     messageCount: conversationHistory.length,
   });
 

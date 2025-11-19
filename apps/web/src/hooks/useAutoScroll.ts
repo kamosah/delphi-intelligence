@@ -6,10 +6,6 @@ interface UseAutoScrollOptions {
    */
   isStreaming: boolean;
   /**
-   * The response content that triggers auto-scroll updates
-   */
-  response?: string;
-  /**
    * Number of messages in the conversation (for initial scroll)
    */
   messageCount: number;
@@ -73,7 +69,6 @@ const DEFAULT_SCROLL_THRESHOLD = 100; // pixels from bottom
  *   handleButtonMouseLeave
  * } = useAutoScroll({
  *   isStreaming,
- *   response,
  *   messageCount: messages.length
  * });
  *
@@ -89,7 +84,6 @@ const DEFAULT_SCROLL_THRESHOLD = 100; // pixels from bottom
  */
 export function useAutoScroll({
   isStreaming,
-  response,
   messageCount,
   autoHideDelay = DEFAULT_AUTO_HIDE_DELAY,
   scrollThreshold = DEFAULT_SCROLL_THRESHOLD,
@@ -99,6 +93,7 @@ export function useAutoScroll({
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollHeight = useRef<number>(0);
 
   // Scroll helper functions
   const clearHideTimer = useCallback(() => {
@@ -129,6 +124,27 @@ export function useAutoScroll({
     },
     []
   );
+
+  // Check if user is near bottom (scroll lock detection)
+  const isUserNearBottom = useCallback(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return false;
+
+    const { scrollTop, scrollHeight, clientHeight } = viewport;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    return distanceFromBottom < scrollThreshold;
+  }, [scrollThreshold]);
+
+  // Check if content actually grew (height detection)
+  const hasContentGrown = useCallback(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport) return false;
+
+    const currentHeight = viewport.scrollHeight;
+    const contentGrew = currentHeight > lastScrollHeight.current;
+    lastScrollHeight.current = currentHeight;
+    return contentGrew;
+  }, []);
 
   const checkScrollPosition = useCallback(() => {
     const viewport = scrollViewportRef.current;
@@ -190,17 +206,57 @@ export function useAutoScroll({
     }
   }, [messageCount, scrollToBottom]);
 
-  // Auto-scroll during streaming (when enabled)
-  // Use requestAnimationFrame to smooth out scroll updates during token streaming
+  // Auto-scroll during streaming using MutationObserver (PHASE 1: Eliminate jank)
+  // This watches for DOM changes instead of response content changes
   useEffect(() => {
-    if (isAutoScrollEnabled && isStreaming && response) {
-      // Use requestAnimationFrame for smoother scrolling during rapid updates
-      const rafId = requestAnimationFrame(() => {
-        scrollToBottom({ behavior: 'auto' }); // Use 'auto' instead of 'smooth' to prevent janky animations
-      });
-      return () => cancelAnimationFrame(rafId);
-    }
-  }, [response, isAutoScrollEnabled, isStreaming, scrollToBottom]);
+    const viewport = scrollViewportRef.current;
+    if (!viewport || !isStreaming) return;
+
+    // Throttle mutations to reduce jank (debounce to 16ms = ~60fps)
+    let throttleTimer: NodeJS.Timeout | null = null;
+
+    const observer = new MutationObserver(() => {
+      // Throttle to prevent excessive scroll calls during rapid token updates
+      if (throttleTimer) return;
+
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+
+        // Scroll lock: Only auto-scroll if user is already near bottom AND content grew
+        const shouldScroll =
+          isAutoScrollEnabled && isUserNearBottom() && hasContentGrown();
+
+        if (shouldScroll) {
+          // Use requestAnimationFrame for smooth 60fps updates
+          requestAnimationFrame(() => {
+            scrollToBottom({ behavior: 'auto' }); // Instant scroll to avoid chasing
+
+            // Check if we're now at bottom to hide button
+            setTimeout(() => checkScrollPosition(), 50);
+          });
+        }
+      }, 16); // ~60fps throttle
+    });
+
+    // Observe the viewport for any content changes
+    observer.observe(viewport, {
+      childList: true, // Watch for added/removed nodes
+      subtree: true, // Watch entire subtree
+      characterData: true, // Watch for text changes (streaming tokens)
+    });
+
+    return () => {
+      observer.disconnect();
+      if (throttleTimer) clearTimeout(throttleTimer);
+    };
+  }, [
+    isStreaming,
+    isAutoScrollEnabled,
+    isUserNearBottom,
+    hasContentGrown,
+    scrollToBottom,
+    checkScrollPosition,
+  ]);
 
   // Re-enable auto-scroll when new streaming starts
   useEffect(() => {
