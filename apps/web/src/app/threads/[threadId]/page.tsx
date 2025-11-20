@@ -37,7 +37,7 @@ export default function ThreadPage() {
         </div>
 
         {/* ThreadsPanel - Collapsed by default on individual thread pages */}
-        <ThreadsPanel initialExpanded={false} />
+        <ThreadsPanel />
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function ThreadPage() {
       </div>
 
       {/* ThreadsPanel - Collapsed by default on individual thread pages */}
-      <ThreadsPanel initialExpanded={false} />
+      <ThreadsPanel />
     </div>
   );
 }

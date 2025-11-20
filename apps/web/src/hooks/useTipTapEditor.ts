@@ -5,7 +5,7 @@
  * Provides editor instance with configured extensions and event handlers
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditor, type Editor } from '@tiptap/react';
 import {
   getEditorExtensions,
@@ -54,9 +54,18 @@ export interface UseTipTapEditorOptions extends EditorExtensionsConfig {
  * });
  * ```
  */
+export type UseTipTapEditorReturn = {
+  editor: Editor | null;
+  isReady: boolean;
+  getEditorText: () => string;
+  clearEditorContent: () => void;
+  setEditorContent: (content: string) => void;
+  focusEditor: () => void;
+};
+
 export function useTipTapEditor(
   options: UseTipTapEditorOptions = {}
-): Editor | null {
+): UseTipTapEditorReturn {
   const {
     content = '',
     onUpdate,
@@ -65,6 +74,7 @@ export function useTipTapEditor(
     autofocus = false,
     placeholder,
   } = options;
+  const [isReady, setIsReady] = useState(false);
 
   const editor = useEditor(
     {
@@ -85,7 +95,7 @@ export function useTipTapEditor(
       // including programmatic clearing. For state management, prefer using
       // useEditorIsEmpty/useEditorText hooks which sync with editor state directly.
       onUpdate: ({ editor }) => {
-        const text = editor.getText();
+        const text = editor.getText().trim();
         onUpdate?.(text);
       },
 
@@ -121,40 +131,36 @@ export function useTipTapEditor(
     [onUpdate, onSubmit]
   );
 
-  // Update editable state when disabled changes
+  const getEditorText = (): string => {
+    return editor?.getText().trim() || '';
+  };
+
+  const clearEditorContent = (): void => {
+    editor?.commands.clearContent();
+  };
+
+  const setEditorContent = (content: string): void => {
+    editor?.commands.setContent(content);
+  };
+
+  const focusEditor = (): void => {
+    editor?.commands.focus();
+  };
+
+  // Set isReady and update editable state when editor or disabled changes
   useEffect(() => {
     if (editor) {
+      setIsReady(true);
       editor.setEditable(!disabled);
     }
   }, [editor, disabled]);
 
-  return editor;
-}
-
-/**
- * Helper to get plain text content from editor
- */
-export function getEditorText(editor: Editor | null): string {
-  return editor?.getText() || '';
-}
-
-/**
- * Helper to clear editor content
- */
-export function clearEditorContent(editor: Editor | null): void {
-  editor?.commands.clearContent();
-}
-
-/**
- * Helper to set editor content
- */
-export function setEditorContent(editor: Editor | null, content: string): void {
-  editor?.commands.setContent(content);
-}
-
-/**
- * Helper to focus the editor
- */
-export function focusEditor(editor: Editor | null): void {
-  editor?.commands.focus();
+  return {
+    editor,
+    isReady,
+    getEditorText,
+    clearEditorContent,
+    setEditorContent,
+    focusEditor,
+  };
 }
