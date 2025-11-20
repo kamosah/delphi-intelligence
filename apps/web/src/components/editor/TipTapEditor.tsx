@@ -15,18 +15,6 @@ import { cn } from '@olympus/ui';
 
 export interface TipTapEditorProps {
   /**
-   * Whether the editor is disabled
-   * @default false
-   */
-  disabled?: boolean;
-
-  /**
-   * Whether to auto-focus the editor on mount
-   * @default false
-   */
-  autofocus?: boolean;
-
-  /**
    * Additional CSS classes for the editor container
    */
   className?: string;
@@ -51,13 +39,10 @@ export interface TipTapEditorProps {
  *
  * @example
  * ```tsx
- * <TipTapEditor
- *   disabled={false}
- * />
+ * <TipTapEditor editor={editor} />
  * ```
  */
 export function TipTapEditor({
-  disabled = false,
   className,
   editor,
   'data-testid': dataTestId,
@@ -71,9 +56,6 @@ export function TipTapEditor({
         // Hex aesthetic: White background with subtle gray border and blue focus ring
         'bg-white border-gray-200',
         'focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/10',
-
-        // Disabled state
-        disabled && 'opacity-50 cursor-not-allowed bg-gray-50',
 
         // Custom classes
         className

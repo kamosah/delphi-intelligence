@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { Button, ScrollArea } from '@olympus/ui';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
@@ -117,6 +117,7 @@ export function ThreadInterface({
   } = useAutoScroll({
     isStreaming,
     messageCount: conversationHistory.length,
+    autoHideDelay: 3_000,
   });
 
   // Note: No longer need to set activeThreadId - removed from store
@@ -333,7 +334,7 @@ export function ThreadInterface({
             )}
           </div>
         )}
-        {/* Scroll to Bottom Button - Hex design with auto-hide */}
+        {/* Scroll to Bottom Button - Rounded design with auto-hide */}
         {showScrollButton && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <Button
@@ -341,9 +342,10 @@ export function ThreadInterface({
               onMouseEnter={handleButtonMouseEnter}
               onMouseLeave={handleButtonMouseLeave}
               size="sm"
-              className="rounded-full shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 px-3 py-2 h-9"
+              aria-label="Scroll to bottom"
+              className="rounded-full shadow-lg bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-3 py-2 h-9"
             >
-              <ChevronDown className="h-4 w-4" />
+              <ArrowDown className="h-4 w-4" />
             </Button>
           </div>
         )}

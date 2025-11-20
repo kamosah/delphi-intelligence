@@ -33,7 +33,8 @@ export function isOrganizationError(error: unknown): boolean {
   const errorMessage = getErrorMessage(error).toLowerCase();
 
   return (
-    errorMessage.includes('organization') &&
+    (errorMessage.includes('organization') ||
+      errorMessage.includes('organization_id')) &&
     (errorMessage.includes('required') || errorMessage.includes('missing'))
   );
 }

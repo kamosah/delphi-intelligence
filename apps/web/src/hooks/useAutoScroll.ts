@@ -169,41 +169,40 @@ export function useAutoScroll({
   }, [isStreaming, startHideTimer, clearHideTimer, scrollThreshold]);
 
   // Callback ref to capture the ScrollArea Root and find its Viewport
-  const scrollAreaRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (node) {
-        // Find the actual scrollable viewport inside ScrollArea
-        // ScrollArea forwards ref to Root, but we need Viewport for scroll events
-        const viewport = node.querySelector(
-          '[data-radix-scroll-area-viewport]'
-        ) as HTMLDivElement;
+  const scrollAreaRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      // Find the actual scrollable viewport inside ScrollArea
+      // ScrollArea forwards ref to Root, but we need Viewport for scroll events
+      const viewport = node.querySelector(
+        '[data-radix-scroll-area-viewport]'
+      ) as HTMLDivElement;
 
-        if (viewport) {
-          scrollViewportRef.current = viewport;
-          // Attach scroll listener to the viewport
-          viewport.addEventListener('scroll', checkScrollPosition);
-        }
+      if (viewport) {
+        scrollViewportRef.current = viewport;
       }
-      return () => {
-        // Cleanup scroll listener on unmount
-        if (scrollViewportRef.current) {
-          scrollViewportRef.current.removeEventListener(
-            'scroll',
-            checkScrollPosition
-          );
-        }
-      };
-    },
-    [checkScrollPosition]
-  );
+    }
+  }, []);
 
-  // Auto-scroll to bottom on initial load or when conversation loads
+  // Cleanup scroll event listener when viewport or handler changes
   useEffect(() => {
-    const hasMessages = messageCount > 0;
-    if (hasMessages && scrollViewportRef.current) {
+    const viewport = scrollViewportRef.current;
+    if (viewport) {
+      viewport.addEventListener('scroll', checkScrollPosition);
+      return () => {
+        viewport.removeEventListener('scroll', checkScrollPosition);
+      };
+    }
+  }, [checkScrollPosition]);
+
+  // Auto-scroll to bottom on initial load or when new messages are added
+  const prevMessageCount = useRef(0);
+  useEffect(() => {
+    const hasNewMessages = messageCount > prevMessageCount.current;
+    if (hasNewMessages && scrollViewportRef.current) {
       // Scroll to bottom immediately on load (no animation)
       scrollToBottom({ behavior: 'auto' });
     }
+    prevMessageCount.current = messageCount;
   }, [messageCount, scrollToBottom]);
 
   // Auto-scroll during streaming using MutationObserver (PHASE 1: Eliminate jank)

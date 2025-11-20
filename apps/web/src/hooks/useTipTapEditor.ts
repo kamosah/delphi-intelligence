@@ -147,10 +147,13 @@ export function useTipTapEditor(
     editor?.commands.focus();
   };
 
-  // Update editable state when disabled changes
+  // Set isReady and update editable state when editor or disabled changes
   useEffect(() => {
-    setIsReady(true);
-  }, []);
+    if (editor) {
+      setIsReady(true);
+      editor.setEditable(!disabled);
+    }
+  }, [editor, disabled]);
 
   return {
     editor,

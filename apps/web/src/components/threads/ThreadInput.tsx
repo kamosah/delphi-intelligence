@@ -50,8 +50,8 @@ export function ThreadInput({
 
       if (trimmedMessage && !isStreaming && !disabled) {
         onSubmit(trimmedMessage);
-        // Note: Editor is cleared by hook's Enter keydown handler (useTipTapEditor.ts)
-        // The send button below uses a different clearing mechanism (editor.chain().clearContent())
+        // Note: Editor is cleared by the hook's Enter keydown handler
+        // The send button uses clearEditorContent() helper
         // useEditorIsEmpty will automatically re-render when editor clears via either method
       }
     },

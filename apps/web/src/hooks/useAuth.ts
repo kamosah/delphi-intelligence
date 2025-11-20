@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   authApi,
   type LoginRequest,
@@ -15,24 +15,36 @@ import { clearAuthCookies, setAuthCookies } from '@/lib/auth-cookies';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import type { Organization } from '@/lib/stores/auth-store';
 
+// Lock to prevent concurrent auto-selection attempts
+let isAutoSelecting = false;
+
 /**
  * Helper function to auto-select organization after login or on app mount
  * Strategy:
  * 1. If currentOrganization already exists in store (persisted), keep it
  * 2. Else if lastUsedOrganizationId exists, find and select that organization
  * 3. Else select the first organization in the list
+ *
+ * Note: Uses a lock flag to prevent race conditions from concurrent calls
  */
 async function autoSelectOrganization(
   currentOrganization: Organization | null,
   lastUsedOrganizationId: string | null,
   setCurrentOrganization: (org: Organization | null) => void
 ): Promise<void> {
-  // If organization already selected (from persistence), don't change it
-  if (currentOrganization) {
+  /**
+   * If organization already selected (from persistence), don't change it.
+   * Prevents concurrent auto-selection attempts by using a lock flag.
+   */
+  if (currentOrganization || isAutoSelecting) {
     return;
   }
 
+  // Prevent concurrent auto-selection attempts
+
   try {
+    isAutoSelecting = true;
+
     // Fetch user's organizations
     const response: GetOrganizationsQuery = await graphqlClient.request(
       GetOrganizationsDocument,
@@ -69,6 +81,8 @@ async function autoSelectOrganization(
   } catch (error) {
     console.error('Failed to auto-select organization:', error);
     // Don't throw - allow user to continue and manually select organization
+  } finally {
+    isAutoSelecting = false;
   }
 }
 
