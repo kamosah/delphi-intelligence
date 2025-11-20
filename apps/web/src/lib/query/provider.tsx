@@ -2,6 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { toast } from 'sonner';
+import {
+  getOrganizationErrorMessage,
+  isOrganizationError,
+} from '@/lib/utils/organization-errors';
 import { isClientError } from '@/lib/utils/type-guards';
 
 interface QueryProviderProps {
@@ -44,6 +49,17 @@ function makeQueryClient() {
 
         // Retry delay for mutations
         retryDelay: 1000,
+
+        // Global error handler for mutations
+        onError: (error: unknown) => {
+          // Show toast notification for organization-related errors
+          if (isOrganizationError(error)) {
+            toast.error('Organization Required', {
+              description: getOrganizationErrorMessage(error),
+              duration: 7000, // Show for 7 seconds (longer than default)
+            });
+          }
+        },
       },
     },
   });
