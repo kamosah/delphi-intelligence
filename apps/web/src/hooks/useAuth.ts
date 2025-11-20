@@ -6,8 +6,85 @@ import {
   type LoginRequest,
   type RegisterRequest,
 } from '@/lib/api/auth-client';
+import { graphqlClient } from '@/lib/api/graphql-client';
+import {
+  GetOrganizationsDocument,
+  type GetOrganizationsQuery,
+} from '@/lib/api/hooks.generated';
 import { clearAuthCookies, setAuthCookies } from '@/lib/auth-cookies';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import type { Organization } from '@/lib/stores/auth-store';
+
+// Lock to prevent concurrent auto-selection attempts
+let isAutoSelecting = false;
+
+/**
+ * Helper function to auto-select organization after login or on app mount
+ * Strategy:
+ * 1. If currentOrganization already exists in store (persisted), keep it
+ * 2. Else if lastUsedOrganizationId exists, find and select that organization
+ * 3. Else select the first organization in the list
+ *
+ * Note: Uses a lock flag to prevent race conditions from concurrent calls
+ */
+async function autoSelectOrganization(
+  currentOrganization: Organization | null,
+  lastUsedOrganizationId: string | null,
+  setCurrentOrganization: (org: Organization | null) => void
+): Promise<void> {
+  /**
+   * If organization already selected (from persistence), don't change it.
+   * Prevents concurrent auto-selection attempts by using a lock flag.
+   */
+  if (currentOrganization || isAutoSelecting) {
+    return;
+  }
+
+  // Prevent concurrent auto-selection attempts
+
+  try {
+    isAutoSelecting = true;
+
+    // Fetch user's organizations
+    const response: GetOrganizationsQuery = await graphqlClient.request(
+      GetOrganizationsDocument,
+      {
+        limit: 100, // Fetch all organizations (most users have <10)
+      }
+    );
+
+    const organizations = response.organizations || [];
+
+    if (organizations.length === 0) {
+      // User has no organizations - clear selection
+      setCurrentOrganization(null);
+      return;
+    }
+
+    // Strategy: Try to select last-used organization, fall back to first
+    let selectedOrganization = organizations[0];
+
+    if (lastUsedOrganizationId) {
+      // Find the last-used organization
+      const lastUsedOrg = organizations.find(
+        (org) => org.id === lastUsedOrganizationId
+      );
+
+      if (lastUsedOrg) {
+        selectedOrganization = lastUsedOrg;
+      }
+      // If last-used org not found (user removed from org), fall back to first
+    }
+
+    // Use the full organization object (GraphQL response matches Organization type)
+    setCurrentOrganization(selectedOrganization as Organization);
+  } catch (error) {
+    console.error('Failed to auto-select organization:', error);
+    // Don't throw - allow user to continue and manually select organization
+  } finally {
+    isAutoSelecting = false;
+  }
+}
 
 export function useAuth() {
   const {
@@ -16,9 +93,12 @@ export function useAuth() {
     refreshToken,
     isAuthenticated,
     isLoading,
+    currentOrganization,
+    lastUsedOrganizationId,
     setTokens,
     setUser,
     setLoading,
+    setCurrentOrganization,
     logout: storeLogout,
   } = useAuthStore();
 
@@ -31,6 +111,13 @@ export function useAuth() {
           // Get user profile (auth token auto-injected via GraphQL client middleware)
           const userProfile = await authApi.me(accessToken);
           setUser(userProfile);
+
+          // Auto-select organization after user is loaded
+          await autoSelectOrganization(
+            currentOrganization,
+            lastUsedOrganizationId,
+            setCurrentOrganization
+          );
         } catch (error) {
           console.error('Failed to get user profile:', error);
           // Token might be expired, try to refresh
@@ -46,6 +133,13 @@ export function useAuth() {
               // Get user profile with new token
               const userProfile = await authApi.me(tokenResponse.access_token);
               setUser(userProfile);
+
+              // Auto-select organization after user is loaded
+              await autoSelectOrganization(
+                currentOrganization,
+                lastUsedOrganizationId,
+                setCurrentOrganization
+              );
             } catch (refreshError) {
               console.error('Failed to refresh token:', refreshError);
               storeLogout();
@@ -56,6 +150,15 @@ export function useAuth() {
         } finally {
           setLoading(false);
         }
+      } else if (accessToken && user && !currentOrganization) {
+        // User is already loaded, but organization is not selected
+        // This can happen if user clears localStorage or switches devices
+        await autoSelectOrganization(
+          currentOrganization,
+          lastUsedOrganizationId,
+          setCurrentOrganization
+        );
+        setLoading(false);
       } else if (accessToken) {
         // Token exists and user is loaded
         setLoading(false);
@@ -69,9 +172,12 @@ export function useAuth() {
     accessToken,
     refreshToken,
     user,
+    currentOrganization,
+    lastUsedOrganizationId,
     setTokens,
     setUser,
     setLoading,
+    setCurrentOrganization,
     storeLogout,
   ]);
 
@@ -103,6 +209,13 @@ export function useAuth() {
       // Get user profile (auth token auto-injected via GraphQL client middleware)
       const userProfile = await authApi.me(tokenResponse.access_token);
       setUser(userProfile);
+
+      // Auto-select organization after login (uses last-used org if available)
+      await autoSelectOrganization(
+        currentOrganization,
+        lastUsedOrganizationId,
+        setCurrentOrganization
+      );
 
       return { user: userProfile, session: tokenResponse };
     } catch (error) {

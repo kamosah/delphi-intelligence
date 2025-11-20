@@ -10,56 +10,10 @@
 
 'use client';
 
-import { useEffect } from 'react';
 import { EditorContent, type Editor } from '@tiptap/react';
 import { cn } from '@olympus/ui';
-import { useTipTapEditor } from '@/hooks/useTipTapEditor';
 
 export interface TipTapEditorProps {
-  /**
-   * Placeholder text shown when editor is empty
-   * @default 'Ask a question...'
-   */
-  placeholder?: string;
-
-  /**
-   * Callback when user submits content (presses Enter)
-   */
-  onSubmit?: (content: string) => void;
-
-  /**
-   * Callback when editor content changes
-   */
-  onChange?: (content: string) => void;
-
-  /**
-   * Callback to receive the editor instance for external control.
-   * Called once when the editor is created.
-   *
-   * **Important**: Wrap this callback in `useCallback` in the parent component
-   * to prevent stale closures:
-   *
-   * @example
-   * const handleEditorReady = useCallback((editor: Editor) => {
-   *   // Use editor...
-   * }, []); // Or include necessary dependencies
-   *
-   * <TipTapEditor onEditorReady={handleEditorReady} />
-   */
-  onEditorReady?: (editor: Editor) => void;
-
-  /**
-   * Whether the editor is disabled
-   * @default false
-   */
-  disabled?: boolean;
-
-  /**
-   * Whether to auto-focus the editor on mount
-   * @default false
-   */
-  autofocus?: boolean;
-
   /**
    * Additional CSS classes for the editor container
    */
@@ -69,6 +23,11 @@ export interface TipTapEditorProps {
    * Data test ID for testing
    */
   'data-testid'?: string;
+
+  /**
+   * TipTap editor instance to use
+   */
+  editor: Editor | null;
 }
 
 /**
@@ -80,46 +39,14 @@ export interface TipTapEditorProps {
  *
  * @example
  * ```tsx
- * <TipTapEditor
- *   placeholder="Ask a question..."
- *   onSubmit={(content) => console.log('Submitted:', content)}
- *   onChange={(content) => console.log('Content:', content)}
- *   disabled={false}
- * />
+ * <TipTapEditor editor={editor} />
  * ```
  */
 export function TipTapEditor({
-  placeholder = 'Ask a question...',
-  onSubmit,
-  onChange,
-  onEditorReady,
-  disabled = false,
-  autofocus = false,
   className,
+  editor,
   'data-testid': dataTestId,
 }: TipTapEditorProps) {
-  const editor = useTipTapEditor({
-    placeholder,
-    onSubmit,
-    onUpdate: onChange,
-    disabled,
-    autofocus,
-  });
-
-  // Notify parent when editor is ready (only once when editor is created)
-  // We intentionally omit onEditorReady from deps to call it only once.
-  // Parent components should wrap onEditorReady in useCallback to prevent stale closures.
-  useEffect(() => {
-    if (editor && onEditorReady) {
-      onEditorReady(editor);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor]);
-
-  if (!editor) {
-    return null;
-  }
-
   return (
     <div
       className={cn(
@@ -129,9 +56,6 @@ export function TipTapEditor({
         // Hex aesthetic: White background with subtle gray border and blue focus ring
         'bg-white border-gray-200',
         'focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/10',
-
-        // Disabled state
-        disabled && 'opacity-50 cursor-not-allowed bg-gray-50',
 
         // Custom classes
         className

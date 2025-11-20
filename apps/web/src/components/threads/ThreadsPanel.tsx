@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
@@ -19,7 +19,6 @@ import { ThreadListItem } from './ThreadListItem';
 
 interface ThreadsPanelProps {
   className?: string;
-  initialExpanded?: boolean;
   spaceId?: string;
 }
 
@@ -59,21 +58,15 @@ function ThreadsPanelTabTrigger({
  * - Supports both org-wide and space-scoped threads
  * - Uses Zustand auth store for organization context
  * - Navigates to individual thread pages on click
- * - Configurable initial expanded/collapsed state
  *
  */
-export function ThreadsPanel({
-  className,
-  initialExpanded = true,
-  spaceId,
-}: ThreadsPanelProps) {
+export function ThreadsPanel({ className, spaceId }: ThreadsPanelProps) {
   const { currentOrganization } = useAuthStore();
-  const { isExpanded, toggle, minimize, expand } = useThreadsPanel();
+  const { isExpanded, toggle } = useThreadsPanel();
   const { threads, isLoading } = useThreads({
     organizationId: currentOrganization?.id,
     spaceId,
   });
-  const prevInitialExpanded = useRef(initialExpanded);
 
   /**
    * Hybrid Controlled/Uncontrolled Pattern
@@ -85,32 +78,7 @@ export function ThreadsPanel({
    *    - Persists across renders and route changes within the same layout
    *    - Allows users to manually expand/collapse the panel
    *
-   * 2. **Prop-based Sync (initialExpanded)**:
-   *    - Sets the initial state based on route context
-   *    - Landing page (/threads): expanded by default
-   *    - Individual thread page (/threads/[id]): collapsed by default
-   *    - Only syncs when the prop actually changes (route navigation)
-   *
-   * **Why this pattern is necessary**:
-   * - User control: Users can toggle the panel at any time
-   * - Route awareness: Different routes have different default states
-   * - State persistence: Manual toggles persist until route change
-   *
-   * Alternative approaches considered:
-   * - Fully controlled: Would require lifting all state to parent, losing
-   *   the ability to toggle from within the component
-   * - Fully uncontrolled: Would lose route-based initial state control
    */
-  useEffect(() => {
-    if (prevInitialExpanded.current !== initialExpanded) {
-      if (initialExpanded) {
-        expand();
-      } else {
-        minimize();
-      }
-      prevInitialExpanded.current = initialExpanded;
-    }
-  }, [initialExpanded, expand, minimize]);
 
   return (
     <motion.div
