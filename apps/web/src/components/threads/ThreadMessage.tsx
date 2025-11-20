@@ -1,6 +1,5 @@
 'use client';
 
-import { format } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MarkdownContent } from '../common/MarkdownContent';
@@ -8,84 +7,34 @@ import { MarkdownContent } from '../common/MarkdownContent';
 interface ThreadMessageProps {
   role: 'user' | 'assistant';
   content: string;
-  timestamp?: Date | string;
-  confidenceScore?: number;
   isFailed?: boolean;
   className?: string;
 }
 
-interface MessageHeaderProps {
-  role: 'user' | 'assistant';
-  timestamp?: string;
-  confidenceScore?: number;
-}
-
 interface UserMessageProps {
   content: string;
-  timestamp?: string;
   isFailed?: boolean;
   className?: string;
 }
 
 interface AIMessageProps {
   content: string;
-  timestamp?: string;
-  confidenceScore?: number;
   className?: string;
 }
 
 /**
- * MessageHeader - Header with role, timestamp, and optional confidence score
+ * UserMessage - Right-aligned user message with subtle bubble
  */
-function MessageHeader({
-  role,
-  timestamp,
-  confidenceScore,
-}: MessageHeaderProps) {
-  const isUser = role === 'user';
-
+function UserMessage({ content, isFailed, className }: UserMessageProps) {
   return (
-    <div className="flex items-center gap-2 mb-1">
-      <span
-        className={cn(
-          'text-sm font-semibold',
-          isUser ? 'text-blue-900' : 'text-purple-900'
-        )}
-      >
-        {isUser ? 'You' : 'Athena AI'}
-      </span>
-      {timestamp && <span className="text-xs text-gray-500">{timestamp}</span>}
-      {!isUser && confidenceScore !== undefined && (
-        <span className="text-xs font-medium text-green-600">
-          {Math.round(confidenceScore * 100)}% confidence
-        </span>
-      )}
-    </div>
-  );
-}
-
-/**
- * UserMessage - Right-aligned message bubble for user messages
- */
-function UserMessage({
-  content,
-  timestamp,
-  isFailed,
-  className,
-}: UserMessageProps) {
-  return (
-    <div className={cn('flex justify-end px-4 py-4', className)}>
-      <div
-        className={cn(
-          'max-w-3xl rounded-lg px-4 py-3',
-          isFailed ? 'bg-red-50 border border-red-200' : 'bg-gray-100'
-        )}
-      >
-        <MessageHeader role="user" timestamp={timestamp} />
+    <div className={cn('flex justify-end px-4 py-3', className)}>
+      <div className="max-w-3xl">
         <div
           className={cn(
-            'text-sm whitespace-pre-wrap break-words',
-            isFailed ? 'text-red-900' : 'text-gray-800'
+            'text-sm whitespace-pre-wrap break-words rounded-md px-3 py-2',
+            isFailed
+              ? 'bg-red-50 border border-red-200 text-red-900'
+              : 'bg-gray-100 text-gray-900'
           )}
         >
           {content}
@@ -102,22 +51,12 @@ function UserMessage({
 }
 
 /**
- * AIMessage - Left-aligned transparent message for AI responses
+ * AIMessage - Simple text-only AI response with markdown
  */
-function AIMessage({
-  content,
-  timestamp,
-  confidenceScore,
-  className,
-}: AIMessageProps) {
+function AIMessage({ content, className }: AIMessageProps) {
   return (
-    <div className={cn('flex justify-start px-4 py-4', className)}>
-      <div className="max-w-3xl">
-        <MessageHeader
-          role="assistant"
-          timestamp={timestamp}
-          confidenceScore={confidenceScore}
-        />
+    <div className={cn('px-4 py-3', className)}>
+      <div className="max-w-3xl text-sm text-gray-900 prose prose-sm">
         <MarkdownContent content={content} />
       </div>
     </div>
@@ -127,52 +66,36 @@ function AIMessage({
 /**
  * ThreadMessage component displays a single message in the conversation.
  *
- * Features:
- * - User messages: Right-aligned with light gray bubble (or red if failed)
- * - AI messages: Left-aligned, transparent (no bubble)
- * - Timestamp display
- * - Confidence score for assistant messages
- * - Markdown rendering for AI messages
- * - Clean interface without avatar icons
+ * Simplified for Hex aesthetic:
+ * - User messages: Simple text-only display (gray-700)
+ * - AI messages: Simple text-only with markdown (gray-900)
+ * - No timestamps, no confidence scores, no role labels
+ * - No message bubbles or backgrounds
+ * - Consistent left-aligned layout
  * - Failed message state with visual indicator
+ * - Minimal, distraction-free conversation flow
  *
  * @example
  * <ThreadMessage
  *   role="user"
  *   content="What are the key risks?"
- *   timestamp={new Date()}
  * />
  */
 export function ThreadMessage({
   role,
   content,
-  timestamp,
-  confidenceScore,
   isFailed,
   className,
 }: ThreadMessageProps) {
-  // Format timestamp
-  const formattedTime = timestamp
-    ? format(new Date(timestamp), 'h:mm a')
-    : undefined;
-
   if (role === 'user') {
     return (
       <UserMessage
         content={content}
-        timestamp={formattedTime}
         isFailed={isFailed}
         className={className}
       />
     );
   }
 
-  return (
-    <AIMessage
-      content={content}
-      timestamp={formattedTime}
-      confidenceScore={confidenceScore}
-      className={className}
-    />
-  );
+  return <AIMessage content={content} className={className} />;
 }

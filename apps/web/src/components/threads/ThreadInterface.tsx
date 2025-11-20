@@ -97,6 +97,7 @@ export function ThreadInterface({
     retryCount,
     threadId,
     startStreaming,
+    stopStreaming,
     retry,
   } = useStreamingQuery(initialThread?.id);
 
@@ -118,6 +119,7 @@ export function ThreadInterface({
     isStreaming,
     messageCount: conversationHistory.length,
     autoHideDelay: 3_000,
+    scrollThreshold: 150, // Increased from default 100px to account for py-4 padding (32px)
   });
 
   // Note: No longer need to set activeThreadId - removed from store
@@ -295,7 +297,7 @@ export function ThreadInterface({
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Messages Container with Scroll Button - Constrained width matching input */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-0 relative">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 pb-2 relative">
         {/* Conversation History - Constrained width container */}
         {conversationHistory.length > 0 && (
           <div className="max-w-3xl mx-auto">
@@ -304,8 +306,6 @@ export function ThreadInterface({
                 <ThreadMessage
                   role={message.role}
                   content={message.content}
-                  timestamp={message.timestamp}
-                  confidenceScore={message.confidenceScore}
                   isFailed={message.isFailed}
                 />
                 {/* Show citations for assistant messages */}
@@ -328,7 +328,6 @@ export function ThreadInterface({
                 error={error}
                 errorCode={errorCode}
                 retryCount={retryCount}
-                confidenceScore={confidenceScore}
                 onRetry={handleRetry}
               />
             )}
@@ -361,7 +360,12 @@ export function ThreadInterface({
         )}
 
         {/* Thread Input (Fixed at Bottom) - Same width as messages */}
-        <ThreadInput onSubmit={handleSubmitMessage} isStreaming={isStreaming} />
+        <ThreadInput
+          onSubmit={handleSubmitMessage}
+          onStopStreaming={stopStreaming}
+          isStreaming={isStreaming}
+          hasResponse={!!response}
+        />
       </div>
     </div>
   );

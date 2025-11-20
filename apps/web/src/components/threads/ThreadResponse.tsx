@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Alert } from '@olympus/ui';
 import {
   MAX_RETRY_ATTEMPTS,
@@ -26,7 +26,6 @@ interface ThreadResponseProps {
   error: string | null;
   errorCode?: string;
   retryCount?: number;
-  confidenceScore?: number | null;
   onRetry?: () => void;
   className?: string;
 }
@@ -40,6 +39,7 @@ interface ThreadResponseProps {
  * - Citation integration
  * - Error state with retry button
  * - Auto-scroll to bottom as content streams
+ * - Simplified display (no timestamps or confidence scores)
  *
  * @example
  * <ThreadResponse
@@ -47,17 +47,14 @@ interface ThreadResponseProps {
  *   citations={citations}
  *   isStreaming={isStreaming}
  *   error={error}
- *   confidenceScore={confidenceScore}
  * />
  */
 export function ThreadResponse({
   response,
   citations,
-  isStreaming,
   error,
   errorCode,
   retryCount = 0,
-  confidenceScore,
   onRetry,
   className,
 }: ThreadResponseProps) {
@@ -114,34 +111,15 @@ export function ThreadResponse({
     );
   }
 
-  // Loading state (before any content arrives)
-  if (isStreaming && !response) {
-    return (
-      <div
-        className={`flex items-center justify-center p-8 ${className || ''}`}
-      >
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-600">Searching documents...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Empty state
-  if (!response && !isStreaming) {
+  // Empty state - don't show loading spinner, let ThreadInput handle it
+  if (!response) {
     return null;
   }
 
   return (
     <div className={`space-y-4 ${className || ''}`}>
       {/* AI Response Message */}
-      <ThreadMessage
-        role="assistant"
-        content={response}
-        timestamp={new Date()}
-        confidenceScore={confidenceScore || undefined}
-      />
+      <ThreadMessage role="assistant" content={response} />
 
       {/* Citations */}
       {citations.length > 0 && (

@@ -110,49 +110,45 @@ export const Complete: Story = {
     citations: sampleCitations,
     isStreaming: false,
     error: null,
-    confidenceScore: 0.89,
   },
 };
 
 /**
- * Response with high confidence score.
+ * Response with detailed analysis.
  */
-export const HighConfidence: Story = {
+export const DetailedAnalysis: Story = {
   args: {
     response:
       'The total revenue for Q4 2024 was **$125.5 million**, representing a 25% increase year-over-year.',
     citations: [sampleCitations[0]],
     isStreaming: false,
     error: null,
-    confidenceScore: 0.96,
   },
 };
 
 /**
- * Response with medium confidence score.
+ * Response with explanation.
  */
-export const MediumConfidence: Story = {
+export const WithExplanation: Story = {
   args: {
     response:
       'Based on the available data, the projected growth rate for 2025 appears to be approximately **15-20%**, though this may vary depending on market conditions.',
     citations: sampleCitations,
     isStreaming: false,
     error: null,
-    confidenceScore: 0.72,
   },
 };
 
 /**
- * Response with low confidence score.
+ * Response with caveats.
  */
-export const LowConfidence: Story = {
+export const WithCaveats: Story = {
   args: {
     response:
       'The expansion timeline is not clearly specified in the available documents. Additional information may be needed for a precise answer.',
     citations: [sampleCitations[1]],
     isStreaming: false,
     error: null,
-    confidenceScore: 0.48,
   },
 };
 
@@ -192,7 +188,6 @@ export const NoCitations: Story = {
     citations: [],
     isStreaming: false,
     error: null,
-    confidenceScore: 0.25,
   },
 };
 
@@ -205,7 +200,6 @@ export const ShortResponse: Story = {
     citations: [sampleCitations[0]],
     isStreaming: false,
     error: null,
-    confidenceScore: 0.94,
   },
 };
 
@@ -272,7 +266,6 @@ export const StreamingAnimation: Story = {
           citations={citations}
           isStreaming={isStreaming}
           error={null}
-          confidenceScore={isStreaming ? undefined : 0.89}
         />
       </div>
     );
