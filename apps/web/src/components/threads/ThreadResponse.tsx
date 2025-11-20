@@ -143,14 +143,6 @@ export function ThreadResponse({
         confidenceScore={confidenceScore || undefined}
       />
 
-      {/* Streaming indicator */}
-      {isStreaming && (
-        <div className="px-4 flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-          <span className="text-xs text-gray-600">Generating response...</span>
-        </div>
-      )}
-
       {/* Citations */}
       {citations.length > 0 && (
         <div className="px-4 pb-4">

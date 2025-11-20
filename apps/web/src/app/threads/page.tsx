@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { ThreadInterface } from '@/components/threads/ThreadInterface';
 import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
@@ -17,14 +17,11 @@ import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
  */
 export default function ThreadsPage() {
   const router = useRouter();
-  const pathname = usePathname();
 
   // Handle thread creation - navigate to individual thread page
   const handleThreadCreated = (threadId: string) => {
     router.push(`/threads/${threadId}`);
   };
-  const normalizedPath = pathname.replace(/\/$/, '');
-  const isLandingPage = normalizedPath === '/threads';
 
   return (
     <div className="flex flex-col h-full gap-8">
@@ -35,7 +32,7 @@ export default function ThreadsPage() {
 
       {/* ThreadsPanel - Bottom panel with thread history (flush with bottom) */}
       <AnimatePresence>
-        <ThreadsPanel initialExpanded={isLandingPage} />
+        <ThreadsPanel />
       </AnimatePresence>
     </div>
   );
