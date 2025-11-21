@@ -16,6 +16,7 @@ from app.models.organization_member import (
 from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
+from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.utils.slug import generate_unique_slug
 
 from .types import (
@@ -33,7 +34,9 @@ from .types import (
     UpdateSpaceInput,
     UpdateThreadInput,
     UpdateUserInput,
+    UpdateUserPreferencesInput,
     User,
+    UserPreferences,
 )
 
 logger = logging.getLogger(__name__)
@@ -1050,6 +1053,62 @@ class Mutation:
                 raise  # Re-raise ValueError to propagate to GraphQL
 
         return None
+
+    @strawberry.mutation
+    async def update_user_preferences(
+        self, info: strawberry.types.Info, input: UpdateUserPreferencesInput
+    ) -> UserPreferences:
+        """Update preferences for the authenticated user."""
+        request = info.context["request"]
+        user = getattr(request.state, "user", None)
+
+        if not user:
+            raise ValueError("Authentication required")
+
+        async for session in get_session():
+            try:
+                user_id = UUID(str(user.id))
+
+                # Fetch existing preferences or create new one
+                stmt = select(UserPreferencesModel).where(
+                    UserPreferencesModel.user_id == user_id
+                )
+                result = await session.execute(stmt)
+                preferences_model = result.scalar_one_or_none()
+
+                if not preferences_model:
+                    # Create new preferences if they don't exist
+                    preferences_model = UserPreferencesModel(user_id=user_id)
+                    session.add(preferences_model)
+
+                # Update only provided fields
+                if input.theme is not None:
+                    preferences_model.theme = input.theme
+                if input.notifications_enabled is not None:
+                    preferences_model.notifications_enabled = input.notifications_enabled
+                if input.email_notifications is not None:
+                    preferences_model.email_notifications = input.email_notifications
+                if input.browser_notifications_enabled is not None:
+                    preferences_model.browser_notifications_enabled = (
+                        input.browser_notifications_enabled
+                    )
+                if input.language is not None:
+                    preferences_model.language = input.language
+                if input.timezone is not None:
+                    preferences_model.timezone = input.timezone
+                if input.custom_settings is not None:
+                    preferences_model.custom_settings = input.custom_settings
+
+                await session.commit()
+                await session.refresh(preferences_model)
+
+                logger.info(f"Updated preferences for user {user_id}")
+                return UserPreferences.from_model(preferences_model)
+
+            except Exception as e:
+                await session.rollback()
+                logger.exception("Error updating user preferences")
+                raise ValueError(f"Failed to update preferences: {str(e)}") from e
 
     @strawberry.mutation
     async def update_thread(  # noqa: PLR0915
