@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Loader2, Square } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, Square } from 'lucide-react';
 import { Button } from '@olympus/ui';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
 import { useTipTapEditor } from '../../hooks/useTipTapEditor';
+import { StreamingContainer } from './StreamingContainer';
 
 interface ThreadInputProps {
   className?: string;
@@ -116,72 +117,61 @@ export function ThreadInput({
     <div className={`${className || ''} py-4`}>
       <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-0">
         {/* Status indicator during streaming - Above input */}
-        <AnimatePresence>
-          {isStreaming && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-2 text-sm text-gray-600 pb-2"
-            >
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>
-                {hasResponse ? 'Working...' : 'Searching documents...'}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Input container with animated border during streaming */}
-        <motion.div
-          className="relative rounded-lg"
-          animate={
-            isStreaming
-              ? {
-                  boxShadow: [
-                    '0 0 0 2px rgba(96, 165, 250, 0.5)',
-                    '0 0 0 2px rgba(147, 51, 234, 0.5)',
-                    '0 0 0 2px rgba(96, 165, 250, 0.5)',
-                  ],
-                }
-              : {}
-          }
-          transition={{
-            duration: 2,
-            repeat: isStreaming ? Infinity : 0,
-            ease: 'easeInOut',
-          }}
+        <StreamingContainer
+          isStreaming={isStreaming}
+          statusText={hasResponse ? 'Working...' : 'Searching documents...'}
         >
-          <TipTapEditor
-            className="pr-12"
-            data-testid="thread-input-editor"
-            editor={editor}
-          />
+          <motion.div
+            className="relative rounded-md overflow-hidden"
+            animate={
+              isStreaming
+                ? {
+                    boxShadow: [
+                      '0 0 0 1px rgba(96, 165, 250, 0.5)',
+                      '0 0 0 1px rgba(147, 51, 234, 0.5)',
+                      '0 0 0 1px rgba(96, 165, 250, 0.5)',
+                    ],
+                  }
+                : {
+                    boxShadow: '0 0 0 0px transparent',
+                  }
+            }
+            transition={{
+              duration: 2,
+              repeat: isStreaming ? Infinity : 0,
+              ease: 'easeInOut',
+            }}
+          >
+            <TipTapEditor
+              className="pr-12 rounded-md"
+              data-testid="thread-input-editor"
+              editor={editor}
+            />
 
-          {/* Send/Stop Button - Positioned inside input */}
-          {isReady && (
-            <Button
-              onClick={isStreaming ? handleStopClick : handleSendClick}
-              disabled={isStreaming ? false : !canSubmit}
-              size="icon"
-              className={`absolute bottom-2 right-2 h-8 w-8 shrink-0 ${
-                isStreaming
-                  ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                  : canSubmit
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-              aria-label={isStreaming ? 'Stop generating' : 'Send message'}
-            >
-              {isStreaming ? (
-                <Square className="h-4 w-4" />
-              ) : (
-                <ArrowRight className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-        </motion.div>
+            {/* Send/Stop Button - Positioned inside input */}
+            {isReady && (
+              <Button
+                onClick={isStreaming ? handleStopClick : handleSendClick}
+                disabled={isStreaming ? false : !canSubmit}
+                size="icon"
+                className={`absolute bottom-2 right-2 h-8 w-8 shrink-0 ${
+                  isStreaming
+                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                    : canSubmit
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+                aria-label={isStreaming ? 'Stop generating' : 'Send message'}
+              >
+                {isStreaming ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </motion.div>
+        </StreamingContainer>
       </div>
     </div>
   );
