@@ -56,7 +56,7 @@ function UserMessage({ content, isFailed, className }: UserMessageProps) {
 function AIMessage({ content, className }: AIMessageProps) {
   return (
     <div className={cn('px-4 py-3', className)}>
-      <div className="max-w-3xl text-sm text-gray-900 prose prose-sm">
+      <div className="max-w-3xl text-gray-900 prose prose-sm">
         <MarkdownContent content={content} />
       </div>
     </div>
@@ -67,12 +67,10 @@ function AIMessage({ content, className }: AIMessageProps) {
  * ThreadMessage component displays a single message in the conversation.
  *
  * Simplified for Hex aesthetic:
- * - User messages: Simple text-only display (gray-700)
- * - AI messages: Simple text-only with markdown (gray-900)
+ * - User messages: Right-aligned with subtle gray bubble (bg-gray-100, rounded-md, text-gray-900)
+ * - AI messages: Left-aligned text-only with markdown (gray-900)
  * - No timestamps, no confidence scores, no role labels
- * - No message bubbles or backgrounds
- * - Consistent left-aligned layout
- * - Failed message state with visual indicator
+ * - Failed message state with visual indicator (red bubble for user messages)
  * - Minimal, distraction-free conversation flow
  *
  * @example

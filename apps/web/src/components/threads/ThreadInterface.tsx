@@ -119,7 +119,7 @@ export function ThreadInterface({
     isStreaming,
     messageCount: conversationHistory.length,
     autoHideDelay: 3_000,
-    scrollThreshold: 150, // Increased from default 100px to account for py-4 padding (32px)
+    scrollThreshold: 150, // Increased from default 100px to account for py-4 padding (32px) + buffer
   });
 
   // Note: No longer need to set activeThreadId - removed from store
