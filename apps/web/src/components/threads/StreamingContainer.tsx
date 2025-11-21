@@ -15,10 +15,12 @@ interface StreamingContainerProps {
  * StreamingContainer - Composable wrapper for input components with streaming state.
  *
  * Features:
- * - Animated status indicator with gradient background
- * - Animated border with blue-purple gradient during streaming
- * - Seamless visual connection between status and input
- * - Framer Motion animations for smooth transitions
+ * - Animated status indicator with loading spinner
+ * - Static primary blue background during streaming
+ * - Smooth fade transitions between streaming and default states
+ * - Framer Motion animations for status indicator entrance/exit
+ *
+ * Note: Border animations should be applied to child components, not this container.
  *
  * @example
  * <StreamingContainer isStreaming={isStreaming} statusText="Searching documents...">
