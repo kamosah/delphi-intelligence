@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Loader2, Send } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, Loader2, Square } from 'lucide-react';
 import { Button } from '@olympus/ui';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
@@ -11,7 +12,9 @@ interface ThreadInputProps {
   className?: string;
   disabled?: boolean;
   isStreaming?: boolean;
+  hasResponse?: boolean;
   onSubmit: (message: string) => void;
+  onStopStreaming?: () => void;
   placeholder?: string;
 }
 
@@ -21,8 +24,10 @@ interface ThreadInputProps {
  * Features:
  * - TipTap rich text editor with mentions support (Phase 2)
  * - Enter to send, Shift+Enter for new line
- * - Disabled state during streaming
- * - Send button with loading state
+ * - Stop button during streaming with pulse animation
+ * - Animated gradient border during streaming (Framer Motion)
+ * - Status indicator showing "Searching documents..." or "Working..." during streaming
+ * - Input disabled and grayed out during streaming
  * - Responsive width with padding on mobile (px-4) and tablet (sm:px-6)
  * - Constrained max-width (max-w-3xl) matching message layout on desktop
  * - Uses useSyncExternalStore to read editor.isEmpty directly (no separate state)
@@ -30,12 +35,15 @@ interface ThreadInputProps {
  * @example
  * <ThreadInput
  *   onSubmit={(message) => handleSubmit(message)}
+ *   onStopStreaming={stopStreaming}
  *   isStreaming={isStreaming}
  * />
  */
 export function ThreadInput({
   onSubmit,
+  onStopStreaming,
   isStreaming = false,
+  hasResponse = false,
   disabled = false,
   placeholder = 'Ask a question about your documents...',
   className,
@@ -62,7 +70,7 @@ export function ThreadInput({
     useTipTapEditor({
       placeholder,
       onSubmit: handleEditorSubmit,
-      disabled,
+      disabled: disabled || isStreaming, // Disable input during streaming
       autofocus: true,
     });
 
@@ -93,37 +101,87 @@ export function ThreadInput({
     clearEditorContent,
   ]);
 
-  // Only disable button during streaming, keep input enabled
-  const canSubmit = !isEmpty && !isStreaming && !disabled;
+  // Only disable send button when input is empty or disabled.
+  // Submission is also prevented during streaming by the handler functions for safety.
+  const canSubmit = !isEmpty && !disabled;
+
+  // Handle stop button click
+  const handleStopClick = useCallback(() => {
+    if (onStopStreaming) {
+      onStopStreaming();
+    }
+  }, [onStopStreaming]);
 
   return (
-    <div className={`${className || ''}`}>
+    <div className={`${className || ''} py-4`}>
       <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-0">
-        {/* Input container with button inside */}
-        <div className="relative">
+        {/* Status indicator during streaming - Above input */}
+        <AnimatePresence>
+          {isStreaming && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-2 text-sm text-gray-600 pb-2"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>
+                {hasResponse ? 'Working...' : 'Searching documents...'}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Input container with animated border during streaming */}
+        <motion.div
+          className="relative rounded-lg"
+          animate={
+            isStreaming
+              ? {
+                  boxShadow: [
+                    '0 0 0 2px rgba(96, 165, 250, 0.5)',
+                    '0 0 0 2px rgba(147, 51, 234, 0.5)',
+                    '0 0 0 2px rgba(96, 165, 250, 0.5)',
+                  ],
+                }
+              : {}
+          }
+          transition={{
+            duration: 2,
+            repeat: isStreaming ? Infinity : 0,
+            ease: 'easeInOut',
+          }}
+        >
           <TipTapEditor
             className="pr-12"
             data-testid="thread-input-editor"
             editor={editor}
           />
 
-          {/* Send Button - Positioned inside input */}
+          {/* Send/Stop Button - Positioned inside input */}
           {isReady && (
             <Button
-              onClick={handleSendClick}
-              disabled={!canSubmit}
+              onClick={isStreaming ? handleStopClick : handleSendClick}
+              disabled={isStreaming ? false : !canSubmit}
               size="icon"
-              className="absolute bottom-2 right-2 h-8 w-8 shrink-0"
-              aria-label="Send message"
+              className={`absolute bottom-2 right-2 h-8 w-8 shrink-0 ${
+                isStreaming
+                  ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                  : canSubmit
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+              aria-label={isStreaming ? 'Stop generating' : 'Send message'}
             >
               {isStreaming ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Square className="h-4 w-4" />
               ) : (
-                <Send className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" />
               )}
             </Button>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

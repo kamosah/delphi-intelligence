@@ -12,7 +12,7 @@ interface ThreadsPanelContextType {
 const ThreadsPanelContext = createContext<ThreadsPanelContextType | null>(null);
 
 export function ThreadsPanelProvider({ children }: { children: ReactNode }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const minimize = () => setIsExpanded(false);
   const expand = () => setIsExpanded(true);

@@ -18,13 +18,9 @@ const meta = {
       control: 'text',
       description: 'The message content',
     },
-    timestamp: {
-      control: 'date',
-      description: 'When the message was sent',
-    },
-    confidenceScore: {
-      control: { type: 'range', min: 0, max: 1, step: 0.01 },
-      description: 'AI confidence score (0-1) for assistant messages',
+    isFailed: {
+      control: 'boolean',
+      description: 'Whether the message failed to send',
     },
   },
 } satisfies Meta<typeof ThreadMessage>;
@@ -39,7 +35,6 @@ export const UserMessage: Story = {
   args: {
     role: 'user',
     content: 'What are the key financial risks mentioned in the Q4 report?',
-    timestamp: new Date('2024-01-15T10:30:00'),
   },
 };
 
@@ -56,47 +51,39 @@ export const AssistantMessage: Story = {
 3. **Regulatory changes** - New compliance requirements in several jurisdictions
 
 These risks are being actively monitored and mitigation strategies are in place.`,
-    timestamp: new Date('2024-01-15T10:30:15'),
-    confidenceScore: 0.89,
   },
 };
 
 /**
- * Assistant message with high confidence.
+ * Assistant message with detailed analysis.
  */
-export const HighConfidence: Story = {
+export const DetailedAnalysis: Story = {
   args: {
     role: 'assistant',
     content:
       'The total revenue for Q4 2024 was $125.5 million, representing a 23% increase year-over-year.',
-    timestamp: new Date('2024-01-15T14:20:00'),
-    confidenceScore: 0.97,
   },
 };
 
 /**
- * Assistant message with medium confidence.
+ * Assistant message with explanation.
  */
-export const MediumConfidence: Story = {
+export const WithExplanation: Story = {
   args: {
     role: 'assistant',
     content:
       'The projected growth rate for 2025 appears to be approximately 15-20% based on the available data, though this may vary depending on market conditions.',
-    timestamp: new Date('2024-01-15T14:25:00'),
-    confidenceScore: 0.72,
   },
 };
 
 /**
- * Assistant message with low confidence.
+ * Assistant message with caveats.
  */
-export const LowConfidence: Story = {
+export const WithCaveats: Story = {
   args: {
     role: 'assistant',
     content:
       'Based on limited information in the documents, the expansion timeline is unclear. Additional documentation may be needed for a more precise answer.',
-    timestamp: new Date('2024-01-15T14:30:00'),
-    confidenceScore: 0.48,
   },
 };
 
@@ -121,8 +108,6 @@ print(f"Growth rate: {cagr:.1%}")  # Output: 25.5%
 \`\`\`
 
 This calculation shows the 25.5% year-over-year growth mentioned in the financial report.`,
-    timestamp: new Date('2024-01-15T15:00:00'),
-    confidenceScore: 0.94,
   },
 };
 
@@ -142,8 +127,6 @@ export const WithTable: Story = {
 | Q4 2024 | $125M   | 23%    | 36%    |
 
 The trend shows consistent growth throughout the year with improving margins.`,
-    timestamp: new Date('2024-01-15T16:00:00'),
-    confidenceScore: 0.91,
   },
 };
 
@@ -157,7 +140,6 @@ export const MultiLineUser: Story = {
 1. The revenue breakdown by segment
 2. Which segments grew the fastest
 3. Any concerning trends in the data`,
-    timestamp: new Date('2024-01-15T10:00:00'),
   },
 };
 
@@ -168,26 +150,15 @@ export const Conversation: Story = {
   args: {
     role: 'user',
     content: 'What were the total sales in Q4?',
-    timestamp: new Date('2024-01-15T10:00:00'),
   },
   render: () => (
     <div className="flex flex-col">
-      <ThreadMessage
-        role="user"
-        content="What were the total sales in Q4?"
-        timestamp={new Date('2024-01-15T10:00:00')}
-      />
+      <ThreadMessage role="user" content="What were the total sales in Q4?" />
       <ThreadMessage
         role="assistant"
         content="Total sales in Q4 2024 were **$125.5 million**, representing a 23% increase compared to Q4 2023."
-        timestamp={new Date('2024-01-15T10:00:15')}
-        confidenceScore={0.96}
       />
-      <ThreadMessage
-        role="user"
-        content="What drove that growth?"
-        timestamp={new Date('2024-01-15T10:01:00')}
-      />
+      <ThreadMessage role="user" content="What drove that growth?" />
       <ThreadMessage
         role="assistant"
         content={`The growth was driven by three main factors:
@@ -197,19 +168,18 @@ export const Conversation: Story = {
 3. **International markets** (25% of growth)
 
 The enterprise segment showed particularly strong performance with 45% year-over-year growth.`}
-        timestamp={new Date('2024-01-15T10:01:20')}
-        confidenceScore={0.88}
       />
     </div>
   ),
 };
 
 /**
- * Message without timestamp.
+ * Failed user message.
  */
-export const NoTimestamp: Story = {
+export const FailedMessage: Story = {
   args: {
-    role: 'assistant',
-    content: 'This message does not have a timestamp.',
+    role: 'user',
+    content: 'This message failed to send.',
+    isFailed: true,
   },
 };
