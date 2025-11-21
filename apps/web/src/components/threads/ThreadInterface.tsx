@@ -6,6 +6,7 @@ import { Button, ScrollArea } from '@olympus/ui';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
+import { useThreadNotifications } from '@/hooks/useThreadNotifications';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
 import { useAuthStore } from '@/lib/stores';
@@ -120,6 +121,17 @@ export function ThreadInterface({
     messageCount: conversationHistory.length,
     autoHideDelay: 3_000,
     scrollThreshold: 150, // Increased from default 100px to account for py-4 padding (32px) + buffer
+  });
+
+  // Browser notifications for streaming completion (only when tab is hidden)
+  useThreadNotifications({
+    isStreaming,
+    threadTitle: initialThread?.title,
+    onNotificationClick: () => {
+      // Bring window to focus and scroll to bottom
+      window.focus();
+      handleScrollToBottom();
+    },
   });
 
   // Note: No longer need to set activeThreadId - removed from store
