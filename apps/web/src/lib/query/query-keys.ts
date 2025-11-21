@@ -74,4 +74,12 @@ export const queryKeys = {
     documents: (input: Record<string, unknown>) =>
       [...queryKeys.search.all, 'documents', input] as const,
   },
+
+  // User preferences queries
+  userPreferences: {
+    all: ['userPreferences'] as const,
+    details: () => [...queryKeys.userPreferences.all, 'detail'] as const,
+    detail: (userId: string) =>
+      [...queryKeys.userPreferences.details(), userId] as const,
+  },
 } as const;

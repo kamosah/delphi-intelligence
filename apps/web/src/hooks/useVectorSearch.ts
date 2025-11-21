@@ -2,7 +2,7 @@
 
 import type { SearchDocumentsInput } from '@/lib/api/hooks.generated';
 import { useSearchDocumentsQuery } from '@/lib/api/hooks.generated';
-import { queryKeys } from '@/lib/query/client';
+import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '../lib/stores';
 
 // Re-export types for convenience

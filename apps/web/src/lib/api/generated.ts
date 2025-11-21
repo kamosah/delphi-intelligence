@@ -667,6 +667,26 @@ export type DeleteSpaceMutation = {
   deleteSpace: boolean;
 };
 
+export type UpdateUserPreferencesMutationVariables = Exact<{
+  input: UpdateUserPreferencesInput;
+}>;
+
+export type UpdateUserPreferencesMutation = {
+  __typename?: 'Mutation';
+  updateUserPreferences: {
+    __typename?: 'UserPreferences';
+    id: string;
+    userId: string;
+    theme: string;
+    notificationsEnabled: boolean;
+    emailNotifications: boolean;
+    browserNotificationsEnabled?: boolean | null;
+    language: string;
+    timezone?: string | null;
+    customSettings?: any | null;
+  };
+};
+
 export type GetDashboardStatsQueryVariables = Exact<{
   organizationId?: InputMaybe<Scalars['ID']['input']>;
 }>;
@@ -950,6 +970,24 @@ export type GetSpaceQuery = {
     documentCount: number;
     createdAt: string;
     updatedAt: string;
+  } | null;
+};
+
+export type UserPreferencesQueryVariables = Exact<{ [key: string]: never }>;
+
+export type UserPreferencesQuery = {
+  __typename?: 'Query';
+  userPreferences?: {
+    __typename?: 'UserPreferences';
+    id: string;
+    userId: string;
+    theme: string;
+    notificationsEnabled: boolean;
+    emailNotifications: boolean;
+    browserNotificationsEnabled?: boolean | null;
+    language: string;
+    timezone?: string | null;
+    customSettings?: any | null;
   } | null;
 };
 

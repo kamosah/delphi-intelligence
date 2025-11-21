@@ -1,0 +1,17 @@
+# ============================================
+# User Preferences Query Operations
+# ============================================
+
+query UserPreferences {
+  userPreferences {
+    id
+    userId
+    theme
+    notificationsEnabled
+    emailNotifications
+    browserNotificationsEnabled
+    language
+    timezone
+    customSettings
+  }
+}
