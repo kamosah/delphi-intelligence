@@ -137,6 +137,7 @@ export type Mutation = {
   updateSpace?: Maybe<Space>;
   updateThread?: Maybe<Thread>;
   updateUser?: Maybe<User>;
+  updateUserPreferences: UserPreferences;
 };
 
 export type MutationAddOrganizationMemberArgs = {
@@ -206,6 +207,10 @@ export type MutationUpdateUserArgs = {
   input: UpdateUserInput;
 };
 
+export type MutationUpdateUserPreferencesArgs = {
+  input: UpdateUserPreferencesInput;
+};
+
 export type Organization = {
   __typename?: 'Organization';
   createdAt: Scalars['DateTime']['output'];
@@ -252,6 +257,7 @@ export type Query = {
   threads: Array<Thread>;
   user?: Maybe<User>;
   userByEmail?: Maybe<User>;
+  userPreferences?: Maybe<UserPreferences>;
   users: Array<User>;
 };
 
@@ -403,6 +409,16 @@ export type UpdateUserInput = {
   fullName?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type UpdateUserPreferencesInput = {
+  browserNotificationsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  customSettings?: InputMaybe<Scalars['JSON']['input']>;
+  emailNotifications?: InputMaybe<Scalars['Boolean']['input']>;
+  language?: InputMaybe<Scalars['String']['input']>;
+  notificationsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  theme?: InputMaybe<Scalars['String']['input']>;
+  timezone?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type User = {
   __typename?: 'User';
   avatarUrl?: Maybe<Scalars['String']['output']>;
@@ -412,6 +428,19 @@ export type User = {
   fullName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type UserPreferences = {
+  __typename?: 'UserPreferences';
+  browserNotificationsEnabled?: Maybe<Scalars['Boolean']['output']>;
+  customSettings?: Maybe<Scalars['JSON']['output']>;
+  emailNotifications: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  language: Scalars['String']['output'];
+  notificationsEnabled: Scalars['Boolean']['output'];
+  theme: Scalars['String']['output'];
+  timezone?: Maybe<Scalars['String']['output']>;
+  userId: Scalars['ID']['output'];
 };
 
 export type CreateOrganizationMutationVariables = Exact<{
