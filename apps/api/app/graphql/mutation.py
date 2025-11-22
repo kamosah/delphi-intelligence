@@ -1063,16 +1063,15 @@ class Mutation:
         user = getattr(request.state, "user", None)
 
         if not user:
-            raise ValueError("Authentication required")
+            msg = "Authentication required"
+            raise ValueError(msg)
 
         async for session in get_session():
             try:
                 user_id = UUID(str(user.id))
 
                 # Fetch existing preferences or create new one
-                stmt = select(UserPreferencesModel).where(
-                    UserPreferencesModel.user_id == user_id
-                )
+                stmt = select(UserPreferencesModel).where(UserPreferencesModel.user_id == user_id)
                 result = await session.execute(stmt)
                 preferences_model = result.scalar_one_or_none()
 

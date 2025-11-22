@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { showStreamingCompleteNotification } from '@/lib/utils/browser-notifications';
-import { useUserPreferences } from './useUserPreferences';
 import { useBrowserNotifications } from './useBrowserNotifications';
+import { useUserPreferences } from './useUserPreferences';
 
 interface UseThreadNotificationsOptions {
   /** Whether streaming is currently active */

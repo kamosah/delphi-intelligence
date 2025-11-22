@@ -876,10 +876,7 @@ class Query:
 
         async for session in get_session():
             user_id = UUID(str(user.id))
-            stmt = (
-                select(UserPreferencesModel)
-                .where(UserPreferencesModel.user_id == user_id)
-            )
+            stmt = select(UserPreferencesModel).where(UserPreferencesModel.user_id == user_id)
             result = await session.execute(stmt)
             preferences_model = result.scalar_one_or_none()
 

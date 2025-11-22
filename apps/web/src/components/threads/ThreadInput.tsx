@@ -114,7 +114,7 @@ export function ThreadInput({
   }, [onStopStreaming]);
 
   return (
-    <div className={`${className || ''} py-4`}>
+    <div className={`${className || ''} pb-4`}>
       <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-0">
         {/* Status indicator during streaming - Above input */}
         <StreamingContainer

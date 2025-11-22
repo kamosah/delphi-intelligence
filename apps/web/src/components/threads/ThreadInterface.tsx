@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { Button, ScrollArea } from '@olympus/ui';
+import { NotificationPermissionDialog } from '@/components/notifications/NotificationPermissionDialog';
 import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
+import { useNotificationPrompt } from '@/hooks/useNotificationPrompt';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import { useThreadNotifications } from '@/hooks/useThreadNotifications';
 import type { Thread } from '@/hooks/useThreads';
@@ -133,6 +135,12 @@ export function ThreadInterface({
       handleScrollToBottom();
     },
   });
+
+  // Auto-prompt for browser notifications after first streaming completion
+  const { showPermissionDialog, setShowPermissionDialog } =
+    useNotificationPrompt({
+      isStreaming,
+    });
 
   // Note: No longer need to set activeThreadId - removed from store
   // Each component determines its own threadId from props/params
@@ -379,6 +387,12 @@ export function ThreadInterface({
           hasResponse={!!response}
         />
       </div>
+
+      {/* Auto-prompt Permission Dialog */}
+      <NotificationPermissionDialog
+        open={showPermissionDialog}
+        onOpenChange={setShowPermissionDialog}
+      />
     </div>
   );
 }
