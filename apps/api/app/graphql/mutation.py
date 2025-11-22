@@ -1109,6 +1109,10 @@ class Mutation:
                 logger.exception("Error updating user preferences")
                 raise ValueError(f"Failed to update preferences: {str(e)}") from e
 
+        # This should never be reached, but mypy requires it
+        msg = "Failed to get database session"
+        raise ValueError(msg)
+
     @strawberry.mutation
     async def update_thread(  # noqa: PLR0915
         self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateThreadInput

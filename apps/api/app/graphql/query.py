@@ -885,3 +885,4 @@ class Query:
 
             logger.info(f"No preferences found for user {user_id}")
             return None
+        return None
