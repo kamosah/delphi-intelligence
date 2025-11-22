@@ -15,6 +15,7 @@ from app.models.organization_member import OrganizationMember as OrganizationMem
 from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
+from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.services.vector_search_service import get_vector_search_service
 
 from .types import (
@@ -27,6 +28,7 @@ from .types import (
     Space,
     Thread,
     User,
+    UserPreferences,
 )
 
 logger = logging.getLogger(__name__)
@@ -861,3 +863,26 @@ class Query:
             total_threads=0,
             threads_this_month=0,
         )
+
+    @strawberry.field
+    async def user_preferences(self, info: strawberry.types.Info) -> UserPreferences | None:
+        """Get preferences for the authenticated user."""
+        request = info.context["request"]
+        user = request.state.user
+
+        if not user:
+            logger.warning("Unauthenticated request to userPreferences query")
+            return None
+
+        async for session in get_session():
+            user_id = UUID(str(user.id))
+            stmt = select(UserPreferencesModel).where(UserPreferencesModel.user_id == user_id)
+            result = await session.execute(stmt)
+            preferences_model = result.scalar_one_or_none()
+
+            if preferences_model:
+                return UserPreferences.from_model(preferences_model)
+
+            logger.info(f"No preferences found for user {user_id}")
+            return None
+        return None

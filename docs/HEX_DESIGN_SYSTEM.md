@@ -400,12 +400,17 @@ font-family:
 **Primary Button**
 
 ```css
-background: [Primary Blue Gradient];
+background: #4b7fff; /* Primary blue */
 color: white;
 border-radius: 6px;
 padding: 8px 16px;
 font-weight: 500;
 box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+/* Hover state */
+&:hover {
+  background: #3366ff; /* Darker blue */
+}
 ```
 
 **Secondary Button**
@@ -571,11 +576,11 @@ User typing: "Show me revenue from @cus[▼]"
 
 ```css
 /* Primary Button */
-background: linear-gradient(to right, #4b7fff, #3366ff);
+background: #4b7fff;
 transition: background-color 200ms ease-in-out;
 
 /* On Hover */
-background: linear-gradient(to right, #3366ff, #2952cc);
+background: #3366ff;
 ```
 
 **Link Hover**:
@@ -701,9 +706,7 @@ box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); /* red focus ring */
   <p className="text-sm text-gray-500 mb-4">
     Upload PDFs or Word documents to get started
   </p>
-  <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
-    Upload Document
-  </Button>
+  <Button className="bg-blue-500 hover:bg-blue-600">Upload Document</Button>
 </div>
 ```
 

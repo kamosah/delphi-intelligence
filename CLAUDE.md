@@ -228,7 +228,7 @@ See [Vector Search Guide](./docs/guides/vector-search-guide.md) for complete arc
 
 - ✅ **Always import design system components from `@olympus/ui`** (Button, Card, Input, etc.)
 - ✅ **Check [hex-component-mapping.md](./docs/guides/hex-component-mapping.md) before building new components** to ensure Hex aesthetic alignment
-- ✅ Use Hex design patterns (gradients for primary actions, source badges for SQL/document results, rounded corners, etc.)
+- ✅ Use Hex design patterns (solid primary colors for buttons, gradients only for source badges for SQL/document results, rounded corners, etc.)
 - ✅ Prefer composition over monolithic components
 - ✅ Use TypeScript with proper interfaces
 - ✅ Create Storybook stories for reusable components
@@ -258,9 +258,9 @@ export function DatabaseConnectionCard({ connection }) {
         <h3 className="font-semibold">{connection.name}</h3>
         <Badge className="bg-green-100 text-green-700">Connected</Badge>
       </div>
-      <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+      <Button className="bg-blue-500 hover:bg-blue-600">
         {' '}
-        {/* Hex: gradient */}
+        {/* Hex: solid primary */}
         Test Connection
       </Button>
     </Card>

@@ -16,6 +16,7 @@ from app.models.organization_member import (
 from app.models.space import Space as SpaceModel
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
+from app.models.user_preferences import UserPreferences as UserPreferencesModel
 
 
 @strawberry.type
@@ -472,3 +473,46 @@ class DashboardStats:
     total_spaces: int
     total_threads: int
     threads_this_month: int
+
+
+@strawberry.type
+class UserPreferences:
+    """GraphQL UserPreferences type."""
+
+    id: strawberry.ID
+    user_id: strawberry.ID
+    theme: str
+    notifications_enabled: bool
+    email_notifications: bool
+    browser_notifications_enabled: bool | None
+    language: str
+    timezone: str | None
+    custom_settings: strawberry.scalars.JSON | None  # type: ignore[valid-type]
+
+    @classmethod
+    def from_model(cls, preferences: UserPreferencesModel) -> "UserPreferences":
+        """Convert SQLAlchemy UserPreferences model to GraphQL UserPreferences type."""
+        return cls(
+            id=strawberry.ID(str(preferences.id)),
+            user_id=strawberry.ID(str(preferences.user_id)),
+            theme=preferences.theme,
+            notifications_enabled=preferences.notifications_enabled,
+            email_notifications=preferences.email_notifications,
+            browser_notifications_enabled=preferences.browser_notifications_enabled,
+            language=preferences.language,
+            timezone=preferences.timezone,
+            custom_settings=preferences.custom_settings,
+        )
+
+
+@strawberry.input
+class UpdateUserPreferencesInput:
+    """Input type for updating user preferences."""
+
+    theme: str | None = None
+    notifications_enabled: bool | None = None
+    email_notifications: bool | None = None
+    browser_notifications_enabled: bool | None = None
+    language: str | None = None
+    timezone: str | None = None
+    custom_settings: strawberry.scalars.JSON | None = None  # type: ignore[valid-type]

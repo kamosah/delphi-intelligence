@@ -11,7 +11,7 @@ import {
 import type { GetThreadQuery } from '@/lib/api/generated';
 import { MessageRole, ThreadStatusEnum } from '@/lib/api/generated';
 import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
-import { queryKeys } from '@/lib/query/client';
+import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
 import type { MessageMetadata } from '@/types/ui/messages';
