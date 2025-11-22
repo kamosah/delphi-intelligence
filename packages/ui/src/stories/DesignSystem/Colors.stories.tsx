@@ -35,28 +35,6 @@ const ColorSwatch = ({
   </div>
 );
 
-// Gradient swatch for badge backgrounds
-const GradientSwatch = ({
-  name,
-  gradient,
-  usage,
-}: {
-  name: string;
-  gradient: string;
-  usage: string;
-}) => (
-  <div className="mb-4">
-    <div
-      className="h-16 rounded-md flex items-center justify-center shadow-sm"
-      style={{ background: gradient }}
-    >
-      <span className="text-white font-semibold text-sm">{name}</span>
-    </div>
-    <p className="text-xs text-gray-600 mt-2">{usage}</p>
-    <p className="text-xs font-mono text-gray-500 mt-1">{gradient}</p>
-  </div>
-);
-
 export const PrimaryBlues: StoryObj = {
   render: () => (
     <div>
@@ -286,39 +264,6 @@ export const SemanticColors: StoryObj = {
             usage="Info messages, document gradients"
           />
         </div>
-      </div>
-    </div>
-  ),
-};
-
-export const SourceBadgeGradients: StoryObj = {
-  render: () => (
-    <div>
-      <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-        Source Badge Gradients
-      </h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Visual indicators for hybrid query results
-      </p>
-
-      <div className="space-y-4">
-        <GradientSwatch
-          name="SQL Result"
-          gradient="linear-gradient(to right, #4B7FFF, #3366FF)"
-          usage="Database query results, SQL cells"
-        />
-
-        <GradientSwatch
-          name="Document Citation"
-          gradient="linear-gradient(to right, #10B981, #0D9488)"
-          usage="Document-based answers, PDF citations"
-        />
-
-        <GradientSwatch
-          name="Computation"
-          gradient="linear-gradient(to right, #8B5CF6, #7C3AED)"
-          usage="AI-computed results, analysis outputs"
-        />
       </div>
     </div>
   ),

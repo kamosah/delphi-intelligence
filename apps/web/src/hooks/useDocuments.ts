@@ -11,7 +11,7 @@ import {
   useGetDocumentsQuery,
   type GetDocumentsQuery,
 } from '@/lib/api/hooks.generated';
-import { queryKeys } from '@/lib/query/client';
+import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 /**

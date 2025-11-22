@@ -90,10 +90,10 @@ export const SETTINGS_NAV_SECTIONS: NavSection[] = [
     title: 'ACCOUNT',
     items: [
       {
-        id: 'profile',
+        id: 'preferences',
         icon: User,
         label: 'Preferences',
-        href: '/settings/profile',
+        href: '/settings/preferences',
         description: 'Personal preferences',
       },
       {

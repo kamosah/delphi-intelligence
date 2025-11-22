@@ -37,6 +37,10 @@ class UserPreferences(Base):
 
     email_notifications: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    browser_notifications_enabled: Mapped[bool | None] = mapped_column(
+        Boolean, default=None, nullable=True
+    )
+
     language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
 
     timezone: Mapped[str | None] = mapped_column(String(50), nullable=True)

@@ -82,12 +82,12 @@ Production UI
 
 ### Button Mapping
 
-| Hex Pattern                | Shadcn-ui Component                    | Customization                |
-| -------------------------- | -------------------------------------- | ---------------------------- |
-| Primary button (gradient)  | `<Button variant="default">`           | Add blue gradient background |
-| Secondary button (outline) | `<Button variant="outline">`           | Match Hex border color       |
-| Icon button                | `<Button variant="ghost" size="icon">` | Add Hex hover state          |
-| Destructive button         | `<Button variant="destructive">`       | Match Hex error red          |
+| Hex Pattern                | Shadcn-ui Component                    | Customization                   |
+| -------------------------- | -------------------------------------- | ------------------------------- |
+| Primary button (solid)     | `<Button variant="default">`           | Solid blue background (#4B7FFF) |
+| Secondary button (outline) | `<Button variant="outline">`           | Match Hex border color          |
+| Icon button                | `<Button variant="ghost" size="icon">` | Add Hex hover state             |
+| Destructive button         | `<Button variant="destructive">`       | Match Hex error red             |
 
 **Implementation**:
 
@@ -103,7 +103,7 @@ interface HexButtonProps extends ButtonProps {
 
 export function HexButton({ hexVariant = 'primary', className, ...props }: HexButtonProps) {
   const hexStyles = {
-    primary: 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm',
+    primary: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
     secondary: 'border-gray-300 hover:bg-gray-50 text-gray-700',
     icon: 'hover:bg-gray-100 rounded-md',
     destructive: 'bg-red-500 hover:bg-red-600 text-white',

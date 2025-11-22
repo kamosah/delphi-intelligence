@@ -40,21 +40,21 @@ Cards should lift on hover with a subtle shadow transition:
 
 ### Button Hover
 
-Primary buttons use gradient transitions:
+Primary buttons use solid color transitions:
 
 ```css
 /* Base state */
-background: linear-gradient(to right, #4B7FFF, #3366FF);
+background: #4B7FFF;
 transition: background-color 200ms ease-in-out;
 
 /* Hover state */
-background: linear-gradient(to right, #3366FF, #2952CC);
+background: #3366FF;
 ```
 
 **Example:**
 
 <div className="p-4 bg-gray-50 rounded-lg">
-  <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-md transition-all">
+  <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-all">
     Hover Me
   </button>
 </div>
@@ -331,7 +331,7 @@ Centered empty state with icon and CTA:
   <p className="text-sm text-gray-500 mb-4">
     Upload PDFs or Word documents to get started
   </p>
-  <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+  <Button className="bg-blue-500 hover:bg-blue-600">
     Upload Document
   </Button>
 </div>
@@ -346,7 +346,7 @@ Centered empty state with icon and CTA:
     </svg>
     <h3 className="text-lg font-semibold text-gray-900 mb-1">No documents yet</h3>
     <p className="text-sm text-gray-500 mb-4">Upload PDFs or Word documents to get started</p>
-    <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md">
+    <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors">
       Upload Document
     </button>
   </div>

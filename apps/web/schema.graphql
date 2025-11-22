@@ -82,6 +82,22 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](https:/
 """
 scalar JSON
 
+type Message {
+  content: String!
+  createdAt: DateTime!
+  id: ID!
+  messageMetadata: JSON!
+  messageRole: MessageRole!
+  threadId: ID!
+  updatedAt: DateTime!
+}
+
+enum MessageRole {
+  ASSISTANT
+  SYSTEM
+  USER
+}
+
 type Mutation {
   addOrganizationMember(input: AddOrganizationMemberInput!): OrganizationMember!
   createOrganization(input: CreateOrganizationInput!): Organization!
@@ -98,6 +114,7 @@ type Mutation {
   updateSpace(id: ID!, input: UpdateSpaceInput!): Space
   updateThread(id: ID!, input: UpdateThreadInput!): Thread
   updateUser(id: ID!, input: UpdateUserInput!): User
+  updateUserPreferences(input: UpdateUserPreferencesInput!): UserPreferences!
 }
 
 type Organization {
@@ -143,6 +160,7 @@ type Query {
   threads(limit: Int! = 50, offset: Int! = 0, organizationId: ID = null, spaceId: ID = null): [Thread!]!
   user(id: ID!): User
   userByEmail(email: String!): User
+  userPreferences: UserPreferences
   users(limit: Int! = 10, offset: Int! = 0): [User!]!
 }
 
@@ -186,6 +204,7 @@ type Thread {
   createdBy: ID!
   errorMessage: String
   id: ID!
+  messages: [Message!]!
   modelUsed: String
   organizationId: ID!
   processingTimeMs: Int
@@ -228,6 +247,16 @@ input UpdateUserInput {
   fullName: String = null
 }
 
+input UpdateUserPreferencesInput {
+  browserNotificationsEnabled: Boolean = null
+  customSettings: JSON = null
+  emailNotifications: Boolean = null
+  language: String = null
+  notificationsEnabled: Boolean = null
+  theme: String = null
+  timezone: String = null
+}
+
 type User {
   avatarUrl: String
   bio: String
@@ -236,4 +265,16 @@ type User {
   fullName: String
   id: ID!
   updatedAt: DateTime!
+}
+
+type UserPreferences {
+  browserNotificationsEnabled: Boolean
+  customSettings: JSON
+  emailNotifications: Boolean!
+  id: ID!
+  language: String!
+  notificationsEnabled: Boolean!
+  theme: String!
+  timezone: String
+  userId: ID!
 }

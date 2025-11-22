@@ -1,0 +1,17 @@
+# ============================================
+# User Preferences Mutation Operations
+# ============================================
+
+mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
+  updateUserPreferences(input: $input) {
+    id
+    userId
+    theme
+    notificationsEnabled
+    emailNotifications
+    browserNotificationsEnabled
+    language
+    timezone
+    customSettings
+  }
+}
