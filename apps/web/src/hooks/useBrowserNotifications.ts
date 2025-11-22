@@ -40,21 +40,23 @@ export function useBrowserNotifications() {
   const { updateBrowserNotifications } =
     useUpdateBrowserNotificationPreference();
 
-  // Track permission changes (e.g., if user changes it in browser settings)
+  // Check for permission changes when tab becomes visible
+  // Permission changes are rare and typically require page reload or user action
   useEffect(() => {
     if (!isNotificationSupported()) return;
 
-    const checkPermission = () => {
-      const currentPermission = getNotificationPermission();
-      if (currentPermission !== permission) {
-        setPermission(currentPermission);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const currentPermission = getNotificationPermission();
+        if (currentPermission !== permission) {
+          setPermission(currentPermission);
+        }
       }
     };
 
-    // Check periodically for permission changes
-    const interval = setInterval(checkPermission, 1000);
-
-    return () => clearInterval(interval);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [permission]);
 
   /**

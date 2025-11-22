@@ -40,13 +40,11 @@ export function useNotificationPrompt({
 
   // Detect when streaming just completed (transition from true to false)
   const prevStreamingRef = useRef(isStreaming);
-  const hasCompletedStreaming = prevStreamingRef.current && !isStreaming;
 
   useEffect(() => {
-    prevStreamingRef.current = isStreaming;
-  }, [isStreaming]);
+    // Calculate completion inside useEffect to avoid stale values
+    const hasCompletedStreaming = prevStreamingRef.current && !isStreaming;
 
-  useEffect(() => {
     // Only auto-prompt once per session after streaming completes
     // Conditions:
     // 1. Browser supports notifications
@@ -63,7 +61,10 @@ export function useNotificationPrompt({
       setShowPermissionDialog(true);
       hasPromptedRef.current = true;
     }
-  }, [isSupported, userPreferences, hasCompletedStreaming]);
+
+    // Update ref after checking completion to ensure correct state for next render
+    prevStreamingRef.current = isStreaming;
+  }, [isStreaming, isSupported, userPreferences]);
 
   return {
     /** Whether to show the permission dialog */
