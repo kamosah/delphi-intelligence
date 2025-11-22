@@ -32,6 +32,7 @@ export const Default: Story = {
     thread: {
       id: '1',
       organizationId: 'test-org-id',
+      isStarred: false,
       queryText: 'What are the top performing products this quarter?',
       createdAt: new Date('2024-01-15').toISOString(),
       result: 'Based on the sales data...',
@@ -60,6 +61,7 @@ export const LongQuery: Story = {
     thread: {
       id: '2',
       organizationId: 'test-org-id',
+      isStarred: false,
       queryText:
         'Can you analyze the customer retention rates across all regions and provide insights into which marketing campaigns were most effective in driving repeat purchases during Q4 2023?',
       createdAt: new Date('2024-01-10').toISOString(),
@@ -89,6 +91,7 @@ export const RecentThread: Story = {
     thread: {
       id: '3',
       organizationId: 'test-org-id',
+      isStarred: false,
       queryText: 'Show me the revenue breakdown by category',
       createdAt: new Date().toISOString(),
       result: 'Here is the revenue breakdown...',
@@ -117,6 +120,7 @@ export const MultipleItems: Story = {
     thread: {
       id: '1',
       organizationId: 'test-org-id',
+      isStarred: false,
       queryText: 'What are the top performing products?',
       createdAt: new Date('2024-01-15').toISOString(),
       result: 'Based on sales data...',
@@ -144,6 +148,7 @@ export const MultipleItems: Story = {
         thread={{
           id: '1',
           organizationId: 'test-org-id',
+          isStarred: false,
           queryText: 'What are the top performing products?',
           createdAt: new Date('2024-01-15').toISOString(),
           result: 'Based on sales data...',
@@ -169,6 +174,7 @@ export const MultipleItems: Story = {
         thread={{
           id: '2',
           organizationId: 'test-org-id',
+          isStarred: false,
           queryText: 'Analyze customer retention rates',
           createdAt: new Date('2024-01-12').toISOString(),
           result: 'Retention analysis shows...',
@@ -194,6 +200,7 @@ export const MultipleItems: Story = {
         thread={{
           id: '3',
           organizationId: 'test-org-id',
+          isStarred: false,
           queryText: 'Revenue breakdown by category',
           createdAt: new Date('2024-01-10').toISOString(),
           result: 'Revenue breakdown...',

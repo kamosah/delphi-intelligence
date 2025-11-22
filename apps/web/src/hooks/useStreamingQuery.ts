@@ -246,7 +246,9 @@ export function useStreamingQuery(threadId?: string) {
                         modelUsed: null,
                         costUsd: null,
                         title: null,
+                        isStarred: false,
                         context: null,
+                        tokensUsed: null,
                         updatedAt: new Date().toISOString(),
                       },
                     }

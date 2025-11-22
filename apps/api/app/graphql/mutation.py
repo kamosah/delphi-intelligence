@@ -1209,6 +1209,8 @@ class Mutation:
                     thread_model.title = input.title
                 if input.result is not None:
                     thread_model.result = input.result
+                if input.is_starred is not None:
+                    thread_model.is_starred = input.is_starred
 
                 await session.commit()
                 await session.refresh(thread_model)

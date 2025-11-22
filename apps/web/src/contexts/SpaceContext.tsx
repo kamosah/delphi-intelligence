@@ -17,7 +17,7 @@ interface SpaceProviderProps {
  * SpaceProvider - Provides space context to all child components
  *
  * Wraps the space-level pages to provide spaceId without prop drilling.
- * Used by ThreadInterface, ThreadsPanel, DatabaseSelector, and other
+ * Used by ThreadInterface, DatabaseSelector, and other
  * components that need to know which space they're operating in.
  *
  * @example

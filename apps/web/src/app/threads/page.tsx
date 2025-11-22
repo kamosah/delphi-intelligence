@@ -1,9 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
 import { ThreadInterface } from '@/components/threads/ThreadInterface';
-import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 
 /**
  * Top-level Threads page - org-wide conversational AI interface.
@@ -11,7 +9,7 @@ import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
  * Features:
  * - ThreadInterface shows immediately (no space selection)
  * - Org-wide thread creation and queries
- * - ThreadsPanel at bottom for thread history
+ * - ThreadsSidebar shows recent threads and bookmarks
  * - Uses currentOrganization from Zustand auth store
  * - Navigates to individual thread page after first message
  */
@@ -24,16 +22,11 @@ export default function ThreadsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-8">
+    <div className="flex flex-col h-full">
       {/* ThreadInterface - Main chat interface */}
       <div className="flex-1 overflow-hidden">
         <ThreadInterface onThreadCreated={handleThreadCreated} />
       </div>
-
-      {/* ThreadsPanel - Bottom panel with thread history (flush with bottom) */}
-      <AnimatePresence>
-        <ThreadsPanel />
-      </AnimatePresence>
     </div>
   );
 }

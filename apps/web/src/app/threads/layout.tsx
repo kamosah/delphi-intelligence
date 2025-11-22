@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
-import { ThreadsPanelProvider } from '@/contexts/ThreadsPanelContext';
 
 interface ThreadsLayoutProps {
   children: ReactNode;
@@ -14,8 +13,8 @@ interface ThreadsLayoutProps {
  * ThreadsLayout - Layout for org-wide threads interface
  *
  * Features:
- * - AppSidebar and AppHeader for navigation
- * - Wraps with ThreadsPanelProvider for bottom panel state management
+ * - AppSidebar with thread navigation (Recent + Bookmarks)
+ * - AppHeader for top navigation
  * - No SpaceContext needed (org-wide threads)
  * - Uses organization from Zustand auth store
  */
@@ -26,13 +25,13 @@ export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* AppSidebar - Toggleable navigation (pushes content) */}
+        {/* AppSidebar - Shows threads navigation on /threads routes */}
         <AppSidebar />
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto min-h-0">
           <EmailVerificationBanner />
-          <ThreadsPanelProvider>{children}</ThreadsPanelProvider>
+          {children}
         </main>
       </div>
     </div>
