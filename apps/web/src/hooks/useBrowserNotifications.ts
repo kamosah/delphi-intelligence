@@ -35,7 +35,7 @@ import { useUpdateBrowserNotificationPreference } from './useUserPreferences';
  */
 export function useBrowserNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>(() =>
-    getNotificationPermission()
+    typeof window !== 'undefined' ? getNotificationPermission() : 'default'
   );
   const { updateBrowserNotifications } =
     useUpdateBrowserNotificationPreference();

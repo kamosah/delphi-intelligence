@@ -9,7 +9,7 @@
  * Check if the browser supports notifications
  */
 export function isNotificationSupported(): boolean {
-  return 'Notification' in window;
+  return typeof window !== 'undefined' && 'Notification' in window;
 }
 
 /**
@@ -83,7 +83,7 @@ export function showNotification(
  * Uses the Page Visibility API
  */
 export function isTabVisible(): boolean {
-  return !document.hidden;
+  return !(document?.hidden ?? false);
 }
 
 /**
@@ -114,7 +114,7 @@ export function showStreamingCompleteNotification(
 
   if (notification && onNotificationClick) {
     notification.onclick = () => {
-      window.focus(); // Bring window to front
+      window?.focus(); // Bring window to front
       onNotificationClick();
       notification.close();
     };
