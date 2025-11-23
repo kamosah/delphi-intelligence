@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { Menu, Search, Bell } from 'lucide-react';
 import { Button } from '@olympus/ui';
-import { UserMenu } from '@/components/layout/UserMenu';
 import { useUIStore } from '@/store/ui-store';
 
 export function AppHeader() {
@@ -53,9 +52,6 @@ export function AppHeader() {
           >
             <Bell className="h-4 w-4" />
           </Button>
-
-          {/* User menu */}
-          <UserMenu />
         </div>
       </div>
     </nav>

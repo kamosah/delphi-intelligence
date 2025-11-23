@@ -3,7 +3,6 @@
 import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { ThreadInterface } from '@/components/threads/ThreadInterface';
-import { ThreadsPanel } from '@/components/threads/ThreadsPanel';
 import { useThread } from '@/hooks/useThreads';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
 
@@ -13,7 +12,7 @@ import { useStreamingStore } from '@/lib/stores/streaming-store';
  * Features:
  * - Loads existing thread data
  * - ThreadInterface with conversation history
- * - ThreadsPanel collapsed by default (can be expanded)
+ * - ThreadsSidebar shows recent threads and bookmarks
  * - Org-wide thread (no space context needed)
  * - Checks streaming store first for active streams
  * - Seamless navigation during streaming (no loading spinner)
@@ -30,14 +29,11 @@ export default function ThreadPage() {
   // This prevents the "thread not found" error when navigating during streaming
   if (streamingSession?.isStreaming) {
     return (
-      <div className="flex flex-col h-[calc(100vh-4rem)] gap-6">
+      <div className="flex flex-col h-full">
         {/* ThreadInterface - Shows streaming conversation in real-time */}
         <div className="flex-1 overflow-hidden">
           <ThreadInterface initialThread={thread || undefined} />
         </div>
-
-        {/* ThreadsPanel - Collapsed by default on individual thread pages */}
-        <ThreadsPanel />
       </div>
     );
   }
@@ -80,14 +76,11 @@ export default function ThreadPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] gap-6">
+    <div className="flex flex-col h-full">
       {/* ThreadInterface - Shows conversation history */}
       <div className="flex-1 overflow-hidden">
         <ThreadInterface initialThread={thread || undefined} />
       </div>
-
-      {/* ThreadsPanel - Collapsed by default on individual thread pages */}
-      <ThreadsPanel />
     </div>
   );
 }

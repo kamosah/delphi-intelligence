@@ -1,6 +1,8 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import type { Thread } from '@/lib/api/generated';
 import {
   useCreateThreadMutation,
   useDeleteThreadMutation,
@@ -106,6 +108,7 @@ export function useThread(id: string) {
  * React Query hook for deleting a thread.
  *
  * Auth token is automatically injected via GraphQL client middleware.
+ * Uses optimistic updates to immediately update the UI before server response.
  *
  * @example
  * const { deleteThread, isDeleting } = useDeleteThread();
@@ -118,11 +121,46 @@ export function useDeleteThread() {
   const queryClient = useQueryClient();
 
   const mutation = useDeleteThreadMutation({
-    onSuccess: (data, variables) => {
-      // Invalidate all thread list queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.threads.lists() });
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: queryKeys.threads.lists() });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.threads.detail(variables.id),
+      });
 
-      // Remove specific thread from cache
+      // Snapshot previous value for rollback
+      const previousThreadLists = queryClient.getQueriesData({
+        queryKey: queryKeys.threads.lists(),
+      });
+
+      // Optimistically remove thread from all list queries
+      queryClient.setQueriesData<{ threads: Thread[] }>(
+        { queryKey: queryKeys.threads.lists() },
+        (old) => {
+          if (!old?.threads) return old;
+          return {
+            ...old,
+            threads: old.threads.filter((thread) => thread.id !== variables.id),
+          };
+        }
+      );
+
+      // Return context for rollback
+      return { previousThreadLists };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousThreadLists) {
+        context.previousThreadLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      // Notify user of error
+      toast.error('Failed to delete thread. Please try again.');
+    },
+    onSettled: (data, _error, variables) => {
+      // Always refetch to ensure cache is in sync
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.lists() });
       queryClient.removeQueries({
         queryKey: queryKeys.threads.detail(variables.id),
       });
@@ -186,6 +224,7 @@ export function useCreateThread() {
  * React Query hook for updating an existing thread.
  *
  * Auth token is automatically injected via GraphQL client middleware.
+ * Uses optimistic updates to immediately update the UI before server response.
  *
  * @example
  * const { updateThread, isUpdating } = useUpdateThread();
@@ -204,18 +243,78 @@ export function useUpdateThread() {
   const queryClient = useQueryClient();
 
   const mutation = useUpdateThreadMutation({
-    onSuccess: (data, variables) => {
-      if (data?.updateThread) {
-        const thread = data.updateThread;
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: queryKeys.threads.lists() });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.threads.detail(variables.id),
+      });
 
-        // Invalidate list queries to refetch with updated item
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.threads.lists(),
+      // Snapshot previous values for rollback
+      const previousThreadLists = queryClient.getQueriesData({
+        queryKey: queryKeys.threads.lists(),
+      });
+      const previousThread = queryClient.getQueryData(
+        queryKeys.threads.detail(variables.id)
+      );
+
+      // Optimistically update thread in all list queries
+      queryClient.setQueriesData<{ threads: Thread[] }>(
+        { queryKey: queryKeys.threads.lists() },
+        (old) => {
+          if (!old?.threads) return old;
+          return {
+            ...old,
+            threads: old.threads.map((thread) =>
+              thread.id === variables.id
+                ? ({ ...thread, ...variables.input } as Thread)
+                : thread
+            ),
+          };
+        }
+      );
+
+      // Optimistically update thread detail query
+      queryClient.setQueryData<{ thread: Thread }>(
+        queryKeys.threads.detail(variables.id),
+        (old) => {
+          if (!old?.thread) return old;
+          return {
+            ...old,
+            thread: { ...old.thread, ...variables.input } as Thread,
+          };
+        }
+      );
+
+      // Return context for rollback
+      return { previousThreadLists, previousThread };
+    },
+    onError: (_err, variables, context) => {
+      // Rollback on error
+      if (context?.previousThreadLists) {
+        context.previousThreadLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
         });
+      }
+      if (context?.previousThread) {
+        queryClient.setQueryData(
+          queryKeys.threads.detail(variables.id),
+          context.previousThread
+        );
+      }
+      // Notify user of error
+      toast.error('Failed to update thread. Please try again.');
+    },
+    onSettled: (data, _error, variables) => {
+      // Always refetch to ensure cache is in sync with server
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.threads.lists(),
+      });
 
-        // Update the thread in cache
+      if (data?.updateThread) {
+        // Update cache with server data
         queryClient.setQueryData(queryKeys.threads.detail(variables.id), {
-          thread,
+          thread: data.updateThread,
         });
       }
     },

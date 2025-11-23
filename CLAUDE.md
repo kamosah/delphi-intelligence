@@ -515,6 +515,28 @@ See [Frontend Guide - GraphQL Queries & React Query Hooks](./docs/guides/fronten
 - Keep commit messages professional and project-focused
 - Follow conventional commit format (e.g., `feat:`, `fix:`, `docs:`)
 
+### Branch Naming
+
+Use **conventional branch naming** with type prefixes, descriptive names, and Linear issue numbers **only in commits**:
+
+**Format**: `<type>/<descriptive-name>`
+
+**Types**:
+
+- `feat/` - New features
+- `fix/` - Bug fixes
+- `refactor/` - Code refactoring
+- `docs/` - Documentation updates
+- `chore/` - Tooling, dependencies, configs
+
+**Examples**:
+
+- `feat/threads-sidebar-navigation` (for LOG-219)
+- `fix/streaming-scroll-behavior` (for LOG-217)
+- `refactor/component-organization`
+
+**Important**: Include Linear issue number (e.g., `LOG-219`) in commit messages, **NOT** in branch names.
+
 ### GitHub Operations
 
 **Primary Method**: Use `gh` CLI for all GitHub operations (installed and authenticated):
@@ -580,10 +602,10 @@ npm run graphql:generate    # Generate TypeScript types
 
 ```bash
 cd apps/web
-npm run type-check && npm run lint
+npm run type-check && npm run lint:fix
 ```
 
-> **Note:** Formatting is handled automatically by lint-staged on commit.
+> **Note:** `lint:fix` automatically fixes import order and other auto-fixable issues. Formatting is handled automatically by lint-staged on commit.
 
 **Backend:**
 

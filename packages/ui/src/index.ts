@@ -65,6 +65,7 @@ export {
   FormMessage,
 } from './components/form';
 export { Input } from './components/input';
+export { Kbd, KbdGroup } from './components/kbd';
 export { Label } from './components/label';
 export { List, ListItem } from './components/list';
 export { Progress } from './components/progress';

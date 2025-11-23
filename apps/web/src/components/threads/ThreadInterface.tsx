@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { Button, ScrollArea } from '@olympus/ui';
 import { NotificationPermissionDialog } from '@/components/notifications/NotificationPermissionDialog';
-import { useThreadsPanel } from '@/contexts/ThreadsPanelContext';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useNotificationPrompt } from '@/hooks/useNotificationPrompt';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
@@ -59,7 +58,6 @@ export function ThreadInterface({
   spaceId,
 }: ThreadInterfaceProps) {
   const { currentOrganization } = useAuthStore();
-  const { minimize } = useThreadsPanel();
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       id: string;
@@ -144,15 +142,6 @@ export function ThreadInterface({
 
   // Note: No longer need to set activeThreadId - removed from store
   // Each component determines its own threadId from props/params
-
-  // Auto-minimize ThreadsPanel when streaming starts on first message
-  useEffect(() => {
-    // Only minimize if this is the first message (new conversation)
-    const isFirstMessage = conversationHistory.length === 1;
-    if (isStreaming && isFirstMessage) {
-      minimize();
-    }
-  }, [isStreaming, conversationHistory.length, minimize]);
 
   // Navigate IMMEDIATELY when threadId becomes available from "start" event
   // This allows navigation while streaming is still in progress

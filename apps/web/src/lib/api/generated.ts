@@ -366,6 +366,7 @@ export type Thread = {
   createdBy: Scalars['ID']['output'];
   errorMessage?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  isStarred: Scalars['Boolean']['output'];
   messages: Array<Message>;
   modelUsed?: Maybe<Scalars['String']['output']>;
   organizationId: Scalars['ID']['output'];
@@ -399,6 +400,7 @@ export type UpdateSpaceInput = {
 };
 
 export type UpdateThreadInput = {
+  isStarred?: InputMaybe<Scalars['Boolean']['input']>;
   result?: InputMaybe<Scalars['String']['input']>;
   title?: InputMaybe<Scalars['String']['input']>;
 };
@@ -554,6 +556,7 @@ export type CreateThreadMutation = {
     queryText: string;
     result?: string | null;
     title?: string | null;
+    isStarred: boolean;
     context?: string | null;
     confidenceScore?: number | null;
     agentSteps?: any | null;
@@ -586,6 +589,7 @@ export type UpdateThreadMutation = {
     queryText: string;
     result?: string | null;
     title?: string | null;
+    isStarred: boolean;
     context?: string | null;
     confidenceScore?: number | null;
     agentSteps?: any | null;
@@ -859,6 +863,7 @@ export type GetThreadsQuery = {
     queryText: string;
     result?: string | null;
     title?: string | null;
+    isStarred: boolean;
     context?: string | null;
     confidenceScore?: number | null;
     sources?: any | null;
@@ -900,6 +905,7 @@ export type GetThreadQuery = {
     queryText: string;
     result?: string | null;
     title?: string | null;
+    isStarred: boolean;
     context?: string | null;
     confidenceScore?: number | null;
     sources?: any | null;

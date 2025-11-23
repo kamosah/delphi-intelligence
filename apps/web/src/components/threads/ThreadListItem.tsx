@@ -9,7 +9,7 @@ interface ThreadListItemProps {
 }
 
 /**
- * ThreadListItem - Individual thread list item for ThreadsPanel
+ * ThreadListItem - Individual thread list item for thread lists
  *
  * Features:
  * - Displays thread query text and creation date
