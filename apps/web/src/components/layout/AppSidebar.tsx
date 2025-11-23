@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TooltipProvider } from '@olympus/ui';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
@@ -11,9 +12,11 @@ import { DashboardNavigation } from './DashboardNavigation';
 import { SettingsNavigation } from './SettingsNavigation';
 import { SidebarHeader } from './SidebarHeader';
 import { ThreadsNavigation } from './ThreadsNavigation';
+import { UserMenu } from './UserMenu';
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarIconMode, sidebarVisible, toggleSidebarIconMode } =
     useUIStore();
   const { currentOrganization } = useAuthStore();
@@ -27,6 +30,19 @@ export function AppSidebar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Global keyboard shortcuts
+  useKeyboardShortcut({
+    key: 'j',
+    metaKey: true,
+    callback: () => router.push('/threads'),
+  });
+
+  useKeyboardShortcut({
+    key: '.',
+    metaKey: true,
+    callback: () => toggleSidebarIconMode(),
+  });
 
   // Determine which navigation to render
   let NavigationComponent;
@@ -83,12 +99,10 @@ export function AppSidebar() {
               <NavigationComponent iconMode={sidebarIconMode} orgId={orgId} />
             </nav>
 
-            {/* Clickable space to toggle icon-only mode */}
-            <div
-              className="flex-1 cursor-pointer"
-              onClick={toggleSidebarIconMode}
-              title={sidebarIconMode ? 'Expand sidebar' : 'Collapse to icons'}
-            />
+            {/* User Menu */}
+            <div className="border-t border-gray-200 p-4">
+              <UserMenu iconMode={sidebarIconMode} />
+            </div>
           </motion.aside>
         </TooltipProvider>
       )}

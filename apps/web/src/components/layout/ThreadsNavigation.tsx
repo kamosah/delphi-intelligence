@@ -1,12 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Library } from 'lucide-react';
-import { Button } from '@olympus/ui';
+import { ChevronRight, Library } from 'lucide-react';
+import { Button, Skeleton } from '@olympus/ui';
 import { ThreadNavItem } from '@/components/threads/ThreadNavItem';
 import { useThreads } from '@/hooks/useThreads';
-import { cn } from '@/lib/utils';
 
 interface ThreadsNavigationProps {
   iconMode: boolean;
@@ -21,83 +19,80 @@ export function ThreadsNavigation({ iconMode, orgId }: ThreadsNavigationProps) {
     limit: 50,
   });
 
-  const bookmarkedThreads = threads.filter((t) => t.isStarred);
+  const bookmarkedThreads = threads.filter((t) => t.isStarred).slice(0, 5);
   const recentThreads = threads.filter((t) => !t.isStarred).slice(0, 10);
 
   const handleViewAllThreads = () => {
     router.push('/library');
   };
 
+  const handleViewLibrary = () => {
+    router.push('/library');
+  };
+
+  // Hide entire navigation in icon mode
+  if (iconMode) {
+    return null;
+  }
+
   if (isLoading) {
     return (
-      <div className="text-center text-sm text-gray-500">
-        Loading threads...
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       {/* Recent Threads Section */}
-      <div className="space-y-2">
-        {!iconMode && (
-          <h3 className="px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Recent Threads
-          </h3>
-        )}
-        <div className="space-y-1">
-          {recentThreads.length > 0
-            ? recentThreads.map((thread) => (
-                <ThreadNavItem
-                  key={thread.id}
-                  thread={thread}
-                  iconMode={iconMode}
-                />
-              ))
-            : !iconMode && (
-                <p className="px-2 text-sm text-gray-500">No threads yet</p>
-              )}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Clickable Recent Header - Sticky */}
+        <button
+          onClick={handleViewLibrary}
+          className="group sticky top-0 flex items-center justify-between w-full px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 hover:text-gray-700 transition-colors bg-card z-10"
+        >
+          <span>Recent Threads</span>
+          <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+
+        {/* Scrollable Thread List */}
+        <div className="flex-1 overflow-y-auto space-y-1 py-2">
+          {recentThreads.length > 0 ? (
+            recentThreads.map((thread) => (
+              <ThreadNavItem key={thread.id} thread={thread} iconMode={false} />
+            ))
+          ) : (
+            <p className="px-2 text-sm text-gray-500">No threads yet</p>
+          )}
         </div>
 
         {/* View All Button */}
         {recentThreads.length > 0 && (
-          <Button
-            variant="ghost"
-            onClick={handleViewAllThreads}
-            className={cn('w-full mt-2', !iconMode && 'px-0')}
-            size={iconMode ? 'icon' : 'sm'}
-          >
-            <Library className="h-4 w-4 shrink-0" />
-            <motion.span
-              initial={{ opacity: 0, width: 0 }}
-              animate={{
-                width: iconMode ? 0 : 'auto',
-                opacity: iconMode ? 0 : 1,
-              }}
-              transition={{ duration: 0.2, ease: 'easeInOut' }}
-              className="ml-2 overflow-hidden whitespace-nowrap text-sm"
+          <div className="pt-2">
+            <Button
+              variant="ghost"
+              onClick={handleViewAllThreads}
+              className="w-full justify-start"
             >
-              View All
-            </motion.span>
-          </Button>
+              <Library className="h-4 w-4 shrink-0" />
+              <span className="ml-2 text-sm">View All</span>
+            </Button>
+          </div>
         )}
       </div>
 
       {/* Bookmarks Section */}
       {bookmarkedThreads.length > 0 && (
-        <div className="space-y-2">
-          {!iconMode && (
-            <h3 className="px-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Bookmarks
-            </h3>
-          )}
-          <div className="space-y-1">
+        <div className="mt-6">
+          <h3 className="sticky top-0 px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 bg-card z-10">
+            Bookmarks
+          </h3>
+          <div className="space-y-1 py-2">
             {bookmarkedThreads.map((thread) => (
-              <ThreadNavItem
-                key={thread.id}
-                thread={thread}
-                iconMode={iconMode}
-              />
+              <ThreadNavItem key={thread.id} thread={thread} iconMode={false} />
             ))}
           </div>
         </div>

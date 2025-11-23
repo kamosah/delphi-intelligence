@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Plus } from 'lucide-react';
-import { Button } from '@olympus/ui';
+import { ChevronLeft, SquarePen } from 'lucide-react';
+import { Button, Kbd } from '@olympus/ui';
 import { OrganizationSwitcher } from '@/components/layout/OrganizationSwitcher';
 import { cn } from '@/lib/utils';
 
@@ -29,27 +29,33 @@ export function SidebarHeader({
   if (isThreadsRoute) {
     return (
       <Button
+        variant="ghost"
         onClick={handleNewThread}
         className={cn(
-          'w-full',
-          iconMode
-            ? 'bg-blue-600 hover:bg-blue-700'
-            : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600'
+          'w-full group',
+          iconMode ? 'justify-center' : 'justify-between'
         )}
         size={iconMode ? 'icon' : 'default'}
       >
-        <Plus className="h-4 w-4 shrink-0" />
-        <motion.span
-          initial={{ opacity: 0, width: 0 }}
-          animate={{
-            width: iconMode ? 0 : 'auto',
-            opacity: iconMode ? 0 : 1,
-          }}
-          transition={{ duration: 0.2, ease: 'easeInOut' }}
-          className="ml-2 overflow-hidden whitespace-nowrap"
-        >
-          New Thread
-        </motion.span>
+        <div className="flex items-center">
+          <SquarePen className="h-4 w-4 shrink-0" />
+          <motion.span
+            initial={{ opacity: 0, width: 0 }}
+            animate={{
+              width: iconMode ? 0 : 'auto',
+              opacity: iconMode ? 0 : 1,
+            }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="ml-2 overflow-hidden whitespace-nowrap"
+          >
+            New Thread
+          </motion.span>
+        </div>
+        {!iconMode && (
+          <Kbd className="hidden group-hover:inline-flex text-[10px] ml-2">
+            ⌘J
+          </Kbd>
+        )}
       </Button>
     );
   }

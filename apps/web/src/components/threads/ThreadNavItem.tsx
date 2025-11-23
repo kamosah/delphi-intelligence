@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
 import { Button } from '@olympus/ui';
 import type { Thread } from '@/lib/api/generated';
 import { cn } from '@/lib/utils';
@@ -18,7 +17,7 @@ interface ThreadNavItemProps {
 
 /**
  * Navigation item for threads in the threads sidebar
- * Shows thread title, star icon, and row actions with fade effect
+ * Shows thread title and row actions with fade effect
  */
 export function ThreadNavItem({ thread, iconMode }: ThreadNavItemProps) {
   const pathname = usePathname();
@@ -41,12 +40,6 @@ export function ThreadNavItem({ thread, iconMode }: ThreadNavItemProps) {
         asChild
       >
         <Link href={`/threads/${thread.id}`}>
-          {thread.isStarred && (
-            <Star className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
-          )}
-          {!thread.isStarred && iconMode && (
-            <div className="h-4 w-4 shrink-0" />
-          )}
           <motion.span
             initial={{ opacity: 0, width: 0 }}
             animate={{
