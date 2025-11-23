@@ -11,6 +11,7 @@ query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
     queryText
     result
     title
+    isStarred
     context
     confidenceScore
     sources
@@ -45,6 +46,7 @@ query GetThread($id: ID!) {
     queryText
     result
     title
+    isStarred
     context
     confidenceScore
     sources

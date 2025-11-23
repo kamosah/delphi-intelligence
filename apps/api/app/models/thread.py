@@ -4,7 +4,17 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum as SQLEnum, Float, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum as SQLEnum,
+    Float,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -65,6 +75,11 @@ class Thread(Base):
 
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # User preferences
+    is_starred: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false", index=True
+    )
+
     # RAG pipeline fields
     context: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -108,7 +123,10 @@ class Thread(Base):
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
     thread_documents: Mapped[list["ThreadDocument"]] = relationship(
-        "ThreadDocument", back_populates="thread", cascade="all, delete-orphan"
+        "ThreadDocument",
+        back_populates="thread",
+        cascade="all, delete-orphan",
+        lazy="selectin",  # Async-safe eager loading
     )
 
     messages: Mapped[list["Message"]] = relationship(
@@ -116,6 +134,7 @@ class Thread(Base):
         back_populates="thread",
         cascade="all, delete-orphan",
         order_by="Message.created_at",
+        lazy="selectin",  # Async-safe eager loading
     )
 
     def __repr__(self) -> str:

@@ -1,31 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
 import { TooltipProvider } from '@olympus/ui';
-import { OrganizationSwitcher } from '@/components/layout/OrganizationSwitcher';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
-import { NavItem } from './NavItem';
-import { NavSection } from './NavSection';
-import {
-  DASHBOARD_NAV_ITEMS,
-  SETTINGS_NAV_ITEM,
-  SETTINGS_NAV_SECTIONS,
-} from './sidebar-navigation';
-import { isNavItemActive, resolveHref } from './sidebar-utils';
+import { DashboardNavigation } from './DashboardNavigation';
+import { SettingsNavigation } from './SettingsNavigation';
+import { SidebarHeader } from './SidebarHeader';
+import { ThreadsNavigation } from './ThreadsNavigation';
+import { UserMenu } from './UserMenu';
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarIconMode, sidebarVisible, toggleSidebarIconMode } =
     useUIStore();
   const { currentOrganization } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
+  const isThreadsRoute =
+    pathname.startsWith('/threads') || pathname.startsWith('/library');
   const isSettingsRoute = pathname.startsWith('/settings');
   const orgId = currentOrganization?.id;
 
@@ -33,6 +31,29 @@ export function AppSidebar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Global keyboard shortcuts
+  useKeyboardShortcut({
+    key: 'j',
+    metaKey: true,
+    callback: () => router.push('/threads'),
+  });
+
+  useKeyboardShortcut({
+    key: '.',
+    metaKey: true,
+    callback: () => toggleSidebarIconMode(),
+  });
+
+  // Determine which navigation to render
+  let NavigationComponent;
+  if (isThreadsRoute) {
+    NavigationComponent = ThreadsNavigation;
+  } else if (isSettingsRoute) {
+    NavigationComponent = SettingsNavigation;
+  } else {
+    NavigationComponent = DashboardNavigation;
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -65,101 +86,24 @@ export function AppSidebar() {
               ease: 'easeInOut',
             }}
           >
-            {/* Header: Back button (Settings) or Org Switcher (Dashboard) */}
+            {/* Header - changes based on route */}
             <div className="border-b border-gray-200 p-4">
-              {isSettingsRoute ? (
-                // Settings: Back button
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{
-                    width: sidebarIconMode ? 0 : 'auto',
-                    opacity: sidebarIconMode ? 0 : 1,
-                  }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  {!sidebarIconMode && (
-                    <Link
-                      href="/dashboard"
-                      className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Settings
-                    </Link>
-                  )}
-                </motion.div>
-              ) : (
-                // Dashboard: Organization Switcher
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{
-                    width: sidebarIconMode ? 0 : 'auto',
-                    opacity: sidebarIconMode ? 0 : 1,
-                  }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  {!sidebarIconMode && <OrganizationSwitcher />}
-                </motion.div>
-              )}
+              <SidebarHeader
+                isThreadsRoute={isThreadsRoute}
+                isSettingsRoute={isSettingsRoute}
+                iconMode={sidebarIconMode}
+              />
             </div>
 
-            {/* Navigation */}
-            <nav className="overflow-y-auto p-4">
-              {isSettingsRoute ? (
-                // Settings Navigation (grouped sections)
-                <div className="space-y-6">
-                  {SETTINGS_NAV_SECTIONS.map((section) => (
-                    <NavSection
-                      key={section.id}
-                      section={section}
-                      iconMode={sidebarIconMode}
-                      orgId={orgId}
-                    />
-                  ))}
-                </div>
-              ) : (
-                // Dashboard Navigation (flat list + Settings link)
-                <div className="space-y-2">
-                  {DASHBOARD_NAV_ITEMS.map((item) => {
-                    const href = resolveHref(item.href, orgId);
-                    const isActive = isNavItemActive(item, pathname, orgId);
-
-                    return (
-                      <NavItem
-                        key={item.id}
-                        item={item}
-                        isActive={isActive}
-                        iconMode={sidebarIconMode}
-                        href={href}
-                      />
-                    );
-                  })}
-
-                  {/* Divider */}
-                  <div className="my-2 h-px bg-gray-200" />
-
-                  {/* Settings Link */}
-                  <NavItem
-                    item={SETTINGS_NAV_ITEM}
-                    isActive={false}
-                    iconMode={sidebarIconMode}
-                    href={
-                      orgId
-                        ? resolveHref(SETTINGS_NAV_ITEM.href, orgId)
-                        : '/settings/profile'
-                    }
-                  />
-                </div>
-              )}
+            {/* Navigation - changes based on route */}
+            <nav className="flex-1 overflow-y-auto p-4">
+              <NavigationComponent iconMode={sidebarIconMode} orgId={orgId} />
             </nav>
 
-            {/* Clickable space to toggle icon-only mode */}
-            <div
-              className="flex-1 cursor-pointer"
-              onClick={toggleSidebarIconMode}
-              title={sidebarIconMode ? 'Expand sidebar' : 'Collapse to icons'}
-            />
+            {/* User Menu */}
+            <div className="border-t border-gray-200 p-4">
+              <UserMenu iconMode={sidebarIconMode} />
+            </div>
           </motion.aside>
         </TooltipProvider>
       )}

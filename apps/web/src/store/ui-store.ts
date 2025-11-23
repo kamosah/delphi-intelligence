@@ -5,11 +5,14 @@ interface UIState {
   isDarkMode: boolean;
   sidebarIconMode: boolean;
   sidebarVisible: boolean;
+  threadsSidebarExpanded: boolean;
   toggleDarkMode: () => void;
   toggleSidebarIconMode: () => void;
   setSidebarIconMode: (iconMode: boolean) => void;
   toggleSidebarVisibility: () => void;
   setSidebarVisible: (visible: boolean) => void;
+  toggleThreadsSidebar: () => void;
+  setThreadsSidebarExpanded: (expanded: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -18,6 +21,7 @@ export const useUIStore = create<UIState>()(
       isDarkMode: false,
       sidebarIconMode: false,
       sidebarVisible: true,
+      threadsSidebarExpanded: true,
       toggleDarkMode: () =>
         set((state) => {
           const newMode = !state.isDarkMode;
@@ -38,6 +42,12 @@ export const useUIStore = create<UIState>()(
       toggleSidebarVisibility: () =>
         set((state) => ({ sidebarVisible: !state.sidebarVisible })),
       setSidebarVisible: (visible: boolean) => set({ sidebarVisible: visible }),
+      toggleThreadsSidebar: () =>
+        set((state) => ({
+          threadsSidebarExpanded: !state.threadsSidebarExpanded,
+        })),
+      setThreadsSidebarExpanded: (expanded: boolean) =>
+        set({ threadsSidebarExpanded: expanded }),
     }),
     {
       name: 'ui-storage',

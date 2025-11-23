@@ -11,6 +11,7 @@ mutation CreateThread($input: CreateThreadInput!) {
     queryText
     result
     title
+    isStarred
     context
     confidenceScore
     agentSteps
@@ -36,6 +37,7 @@ mutation UpdateThread($id: ID!, $input: UpdateThreadInput!) {
     queryText
     result
     title
+    isStarred
     context
     confidenceScore
     agentSteps

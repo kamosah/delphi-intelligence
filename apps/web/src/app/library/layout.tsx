@@ -5,27 +5,26 @@ import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBann
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 
-interface ThreadsLayoutProps {
+interface LibraryLayoutProps {
   children: ReactNode;
 }
 
 /**
- * ThreadsLayout - Layout for org-wide threads interface
+ * LibraryLayout - Layout for thread library/search page
  *
  * Features:
  * - AppSidebar with thread navigation (Recent + Bookmarks)
  * - AppHeader for top navigation
- * - No SpaceContext needed (org-wide threads)
- * - Uses organization from Zustand auth store
+ * - Same structure as ThreadsLayout for consistency
  */
-export default function ThreadsLayout({ children }: ThreadsLayoutProps) {
+export default function LibraryLayout({ children }: LibraryLayoutProps) {
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Top Navigation */}
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* AppSidebar - Shows threads navigation on /threads routes */}
+        {/* AppSidebar - Shows threads navigation on /library route */}
         <AppSidebar />
 
         {/* Main Content */}

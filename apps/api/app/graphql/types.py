@@ -356,6 +356,7 @@ class UpdateThreadInput:
 
     title: str | None = None
     result: str | None = None
+    is_starred: bool | None = None
 
 
 @strawberry.type
@@ -369,6 +370,7 @@ class Thread:
     query_text: str
     result: str | None
     title: str | None
+    is_starred: bool
     context: str | None
     confidence_score: float | None
     agent_steps: strawberry.scalars.JSON | None  # type: ignore[valid-type]
@@ -403,6 +405,7 @@ class Thread:
             query_text=thread.query_text,
             result=thread.result,
             title=thread.title,
+            is_starred=thread.is_starred,
             context=thread.context,
             confidence_score=thread.confidence_score,
             agent_steps=thread.agent_steps,
