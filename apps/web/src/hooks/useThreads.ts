@@ -1,6 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { Thread } from '@/lib/api/generated';
 import {
   useCreateThreadMutation,
@@ -154,6 +155,8 @@ export function useDeleteThread() {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      // Notify user of error
+      toast.error('Failed to delete thread. Please try again.');
     },
     onSettled: (data, _error, variables) => {
       // Always refetch to ensure cache is in sync
@@ -299,6 +302,8 @@ export function useUpdateThread() {
           context.previousThread
         );
       }
+      // Notify user of error
+      toast.error('Failed to update thread. Please try again.');
     },
     onSettled: (data, _error, variables) => {
       // Always refetch to ensure cache is in sync with server

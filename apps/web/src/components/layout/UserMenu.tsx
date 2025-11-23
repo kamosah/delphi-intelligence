@@ -86,7 +86,7 @@ export function UserMenu({ iconMode = false }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/settings/preferences')}>
+        <DropdownMenuItem onClick={() => router.push('/settings/profile')}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>

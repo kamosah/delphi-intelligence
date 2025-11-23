@@ -22,7 +22,8 @@ export function AppSidebar() {
   const { currentOrganization } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
-  const isThreadsRoute = pathname.startsWith('/threads');
+  const isThreadsRoute =
+    pathname.startsWith('/threads') || pathname.startsWith('/library');
   const isSettingsRoute = pathname.startsWith('/settings');
   const orgId = currentOrganization?.id;
 

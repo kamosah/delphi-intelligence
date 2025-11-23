@@ -26,10 +26,6 @@ export function ThreadsNavigation({ iconMode, orgId }: ThreadsNavigationProps) {
     router.push('/library');
   };
 
-  const handleViewLibrary = () => {
-    router.push('/library');
-  };
-
   // Hide entire navigation in icon mode
   if (iconMode) {
     return null;
@@ -51,7 +47,7 @@ export function ThreadsNavigation({ iconMode, orgId }: ThreadsNavigationProps) {
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Clickable Recent Header - Sticky */}
         <button
-          onClick={handleViewLibrary}
+          onClick={handleViewAllThreads}
           className="group sticky top-0 flex items-center justify-between w-full px-2 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 hover:text-gray-700 transition-colors bg-card z-10"
         >
           <span>Recent Threads</span>

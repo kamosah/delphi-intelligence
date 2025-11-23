@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { MoreHorizontal, Star, Edit2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
@@ -34,6 +35,8 @@ interface ThreadRowActionsProps {
 }
 
 export function ThreadRowActions({ thread }: ThreadRowActionsProps) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newTitle, setNewTitle] = useState(thread.title || '');
@@ -88,6 +91,11 @@ export function ThreadRowActions({ thread }: ThreadRowActionsProps) {
   const handleDeleteConfirm = async () => {
     await deleteThread({ id: thread.id });
     setShowDeleteDialog(false);
+
+    // Navigate away if we're on the deleted thread's page
+    if (pathname === `/threads/${thread.id}`) {
+      router.push('/threads');
+    }
   };
 
   const threadTitle = thread.title || thread.queryText.slice(0, 50);
