@@ -224,7 +224,7 @@ export function ThreadInterface({
 
   // Handle new message submission
   const handleSubmitMessage = useCallback(
-    async (message: string) => {
+    async (message: string, mentionedSpaceIds?: string[]) => {
       // Notify parent that a message was submitted
       onMessageSubmit?.();
 
@@ -251,6 +251,7 @@ export function ThreadInterface({
           threadId: initialThread?.id, // Use initialThread for multi-turn conversations
           organizationId: currentOrganization?.id,
           spaceId,
+          mentionedSpaceIds, // Pass mentioned space IDs for RAG filtering
           saveToDb: true, // Save to database for history
         });
         // Note: Assistant response will be added by useEffect when streaming completes

@@ -32,6 +32,7 @@ async def generate_sse_events(
     db: AsyncSession,
     organization_id: UUID | None = None,
     space_id: UUID | None = None,
+    mentioned_space_ids: list[UUID] | None = None,
     user_id: UUID | None = None,
     save_to_db: bool = False,
     thread_id: UUID | None = None,
@@ -47,6 +48,7 @@ async def generate_sse_events(
         db: Database session for vector search and storage
         organization_id: Optional organization ID (required if save_to_db=True and space_id not provided for new threads)
         space_id: Optional space ID to filter search results
+        mentioned_space_ids: Optional list of space IDs from #space mentions (for weighted RAG search)
         user_id: Optional user ID for query attribution
         save_to_db: Whether to save query and results to database
         thread_id: Optional existing thread ID for multi-turn conversation continuation
@@ -62,6 +64,7 @@ async def generate_sse_events(
                 db=db,
                 organization_id=organization_id,
                 space_id=space_id,
+                mentioned_space_ids=mentioned_space_ids,
                 user_id=user_id,
                 save_to_db=save_to_db,
                 thread_id=thread_id,
@@ -114,6 +117,12 @@ async def stream_thread_response(
     ] = None,
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
+    ] = None,
+    mentioned_space_ids: Annotated[
+        str | None,
+        QueryParam(
+            description="Comma-separated list of space IDs from #space mentions (for weighted RAG search)"
+        ),
     ] = None,
     user_id: Annotated[
         UUID | None, QueryParam(description="User ID for thread attribution")
@@ -223,12 +232,24 @@ async def stream_thread_response(
             detail="Either space_id or organization_id is required for new threads when save_to_db=true",
         )
 
+    # Parse mentioned_space_ids from comma-separated string to list of UUIDs
+    mentioned_space_ids_list: list[UUID] | None = None
+    if mentioned_space_ids:
+        try:
+            mentioned_space_ids_list = [UUID(sid.strip()) for sid in mentioned_space_ids.split(",")]
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid mentioned_space_ids format: {e}",
+            ) from e
+
     return StreamingResponse(
         generate_sse_events(
             query=query,
             db=db,
             organization_id=organization_id,
             space_id=space_id,
+            mentioned_space_ids=mentioned_space_ids_list,
             user_id=user_id,
             save_to_db=save_to_db,
             thread_id=thread_id,

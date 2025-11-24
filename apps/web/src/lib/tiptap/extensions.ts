@@ -11,19 +11,27 @@
 import type { AnyExtension } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import HardBreak from '@tiptap/extension-hard-break';
+import Mention from '@tiptap/extension-mention';
 import Paragraph from '@tiptap/extension-paragraph';
 import Placeholder from '@tiptap/extension-placeholder';
 import Text from '@tiptap/extension-text';
-// import Mention from '@tiptap/extension-mention'; // Phase 2: Activate for mentions
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { SpaceMention } from '@/components/editor/mentions/SpaceMention';
+import { spaceMentionSuggestion } from './mentions/space-mention-config';
 
 export interface EditorExtensionsConfig {
   placeholder?: string;
-  // Phase 2: Add mention configurations
-  // mentions?: {
-  //   users: boolean;
-  //   databases: boolean;
-  //   spaces: boolean;
-  // };
+  /**
+   * Optional function to fetch space items for #space mentions
+   * If provided, enables space mention autocomplete
+   */
+  fetchSpaces?: (query: string) => Promise<
+    Array<{
+      id: string;
+      name: string;
+      iconColor?: string | null;
+    }>
+  >;
 }
 
 /**
@@ -35,9 +43,9 @@ export interface EditorExtensionsConfig {
 export function getEditorExtensions(
   config: EditorExtensionsConfig = {}
 ): AnyExtension[] {
-  const { placeholder = 'Ask a question...' } = config;
+  const { placeholder = 'Ask a question...', fetchSpaces } = config;
 
-  return [
+  const extensions: AnyExtension[] = [
     // Core document structure
     Document,
     Paragraph,
@@ -50,17 +58,35 @@ export function getEditorExtensions(
     Placeholder.configure({
       placeholder,
     }),
-
-    // Phase 2: Add mention extensions here
-    // Mention.configure({
-    //   HTMLAttributes: {
-    //     class: 'mention',
-    //   },
-    //   suggestion: {
-    //     // Suggestion configuration will be implemented in Phase 2
-    //   },
-    // }),
   ];
+
+  // Add #space mention extension if fetchSpaces function is provided
+  if (fetchSpaces) {
+    extensions.push(
+      Mention.extend({
+        name: 'spaceMention',
+        // Custom node view for rendering purple badge
+        addNodeView() {
+          return ReactNodeViewRenderer(SpaceMention);
+        },
+      }).configure({
+        HTMLAttributes: {
+          class: 'mention-space',
+          'data-type': 'space',
+        },
+        // Configure autocomplete behavior
+        suggestion: {
+          ...spaceMentionSuggestion,
+          // Inject dynamic space fetching
+          items: async ({ query }) => {
+            return fetchSpaces(query);
+          },
+        },
+      })
+    );
+  }
+
+  return extensions;
 }
 
 /**

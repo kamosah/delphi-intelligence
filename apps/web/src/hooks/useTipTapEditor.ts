@@ -25,8 +25,9 @@ export interface UseTipTapEditorOptions extends EditorExtensionsConfig {
 
   /**
    * Callback when user presses Enter (to submit)
+   * Receives the text content and mentioned space IDs
    */
-  onSubmit?: (content: string) => void;
+  onSubmit?: (content: string, mentionedSpaceIds?: string[]) => void;
 
   /**
    * Whether the editor is disabled
@@ -61,6 +62,11 @@ export type UseTipTapEditorReturn = {
   clearEditorContent: () => void;
   setEditorContent: (content: string) => void;
   focusEditor: () => void;
+  /**
+   * Extract mentioned space IDs from editor content
+   * Parses editor JSON to find all spaceMention nodes
+   */
+  getMentionedSpaceIds: () => string[];
 };
 
 export function useTipTapEditor(
@@ -73,12 +79,13 @@ export function useTipTapEditor(
     disabled = false,
     autofocus = false,
     placeholder,
+    fetchSpaces,
   } = options;
   const [isReady, setIsReady] = useState(false);
 
   const editor = useEditor(
     {
-      extensions: getEditorExtensions({ placeholder }),
+      extensions: getEditorExtensions({ placeholder, fetchSpaces }),
       content,
       autofocus,
       editable: !disabled,
@@ -111,7 +118,18 @@ export function useTipTapEditor(
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             if (text) {
-              onSubmit?.(text);
+              // Extract mentioned space IDs before clearing
+              const mentionedIds: string[] = [];
+              state.doc.descendants((node) => {
+                if (node.type.name === 'spaceMention' && node.attrs.id) {
+                  mentionedIds.push(node.attrs.id);
+                }
+              });
+
+              onSubmit?.(
+                text,
+                mentionedIds.length > 0 ? mentionedIds : undefined
+              );
               // Clear content using the live view
               // This triggers onUpdate('') but that's fine - consumers should use
               // useEditorIsEmpty hook for state instead of relying on callbacks
@@ -147,6 +165,42 @@ export function useTipTapEditor(
     editor?.commands.focus();
   };
 
+  /**
+   * Extract all mentioned space IDs from editor content
+   *
+   * Traverses the editor's JSON structure to find spaceMention nodes
+   * and collects their IDs.
+   *
+   * @returns Array of space IDs that were mentioned
+   */
+  const getMentionedSpaceIds = (): string[] => {
+    if (!editor) return [];
+
+    const mentionedIds: string[] = [];
+    const json = editor.getJSON();
+
+    // Traverse the editor content to find spaceMention nodes
+    const traverse = (node: {
+      type?: string;
+      attrs?: { id?: string };
+      content?: unknown[];
+    }) => {
+      if (node.type === 'spaceMention' && node.attrs?.id) {
+        mentionedIds.push(node.attrs.id);
+      }
+
+      // Recursively traverse child nodes
+      if (node.content && Array.isArray(node.content)) {
+        node.content.forEach((child) => traverse(child as typeof node));
+      }
+    };
+
+    traverse(json);
+
+    // Return unique IDs (in case of duplicates)
+    return Array.from(new Set(mentionedIds));
+  };
+
   // Set isReady and update editable state when editor or disabled changes
   useEffect(() => {
     if (editor) {
@@ -162,5 +216,6 @@ export function useTipTapEditor(
     clearEditorContent,
     setEditorContent,
     focusEditor,
+    getMentionedSpaceIds,
   };
 }

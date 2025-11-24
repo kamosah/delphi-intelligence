@@ -71,6 +71,7 @@ export function useStreamingQuery(threadId?: string) {
     threadId?: string;
     organizationId?: string;
     spaceId?: string;
+    mentionedSpaceIds?: string[];
     saveToDb?: boolean;
   } | null>(null);
 
@@ -136,6 +137,7 @@ export function useStreamingQuery(threadId?: string) {
         threadId?: string;
         organizationId?: string;
         spaceId?: string;
+        mentionedSpaceIds?: string[];
         saveToDb?: boolean;
       },
       retryCount: number = 0
@@ -182,6 +184,7 @@ export function useStreamingQuery(threadId?: string) {
           threadId: params.threadId,
           organizationId: params.organizationId,
           spaceId: params.spaceId,
+          mentionedSpaceIds: params.mentionedSpaceIds,
           userId: user?.id,
           saveToDb: params.saveToDb,
         });
@@ -479,6 +482,7 @@ export function useStreamingQuery(threadId?: string) {
       threadId?: string;
       organizationId?: string;
       spaceId?: string;
+      mentionedSpaceIds?: string[];
       saveToDb?: boolean;
     }): Promise<void> => {
       // Store params for manual retry

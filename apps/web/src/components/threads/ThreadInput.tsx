@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Square } from 'lucide-react';
 import { Button } from '@olympus/ui';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
+import { useSpaces, type Space } from '@/hooks/useSpaces';
 import { useTipTapEditor } from '../../hooks/useTipTapEditor';
 import { StreamingContainer } from './StreamingContainer';
 
@@ -14,7 +15,7 @@ interface ThreadInputProps {
   disabled?: boolean;
   isStreaming?: boolean;
   hasResponse?: boolean;
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, mentionedSpaceIds?: string[]) => void;
   onStopStreaming?: () => void;
   placeholder?: string;
 }
@@ -49,16 +50,64 @@ export function ThreadInput({
   placeholder = 'Ask a question about your documents...',
   className,
 }: ThreadInputProps) {
+  // Fetch spaces for #space mention autocomplete
+  const { spaces } = useSpaces();
+
+  /**
+   * Use ref to store spaces data to avoid stale closure in fetchSpaces
+   *
+   * This ensures the TipTap editor's mention extension always has access
+   * to the latest spaces data, even if the editor was initialized before
+   * React Query finished loading the spaces.
+   *
+   * Without this, the editor would be created with an empty spaces array
+   * and would never update (since fetchSpaces isn't in editor's deps).
+   */
+  const spacesRef = useRef<Space[]>(spaces);
+
+  // Keep ref synchronized with latest spaces data
+  useEffect(() => {
+    spacesRef.current = spaces;
+  }, [spaces]);
+
+  /**
+   * Fetch and filter spaces for mention autocomplete
+   *
+   * Filters spaces by query using case-insensitive substring matching
+   * Returns up to 10 results for performance
+   *
+   * Uses spacesRef to always read the latest data without causing
+   * editor recreation (empty dependency array is intentional).
+   */
+  const fetchSpaces = useCallback(
+    async (query: string) => {
+      const lowerQuery = query.toLowerCase();
+
+      return spacesRef.current
+        .filter((space) => space.name.toLowerCase().includes(lowerQuery))
+        .slice(0, 10)
+        .map((space) => ({
+          id: space.id,
+          name: space.name,
+          iconColor: space.iconColor,
+        }));
+    },
+    [] // Empty deps - spacesRef always has latest data
+  );
+
   /**
    * Memoize callbacks to prevent editor recreation on every render
    * This fixes the infinite loop issue
+   *
+   * Note: This is called by the Enter key handler in useTipTapEditor
+   * The mentioned space IDs are extracted inside the hook before clearing
    */
   const handleEditorSubmit = useCallback(
-    (content: string) => {
+    (content: string, mentionedSpaceIds?: string[]) => {
       const trimmedMessage = content.trim();
 
       if (trimmedMessage && !isStreaming && !disabled) {
-        onSubmit(trimmedMessage);
+        onSubmit(trimmedMessage, mentionedSpaceIds);
         // Note: Editor is cleared by the hook's Enter keydown handler
         // The send button uses clearEditorContent() helper
         // useEditorIsEmpty will automatically re-render when editor clears via either method
@@ -67,13 +116,19 @@ export function ThreadInput({
     [onSubmit, isStreaming, disabled]
   );
 
-  const { editor, isReady, clearEditorContent, getEditorText } =
-    useTipTapEditor({
-      placeholder,
-      onSubmit: handleEditorSubmit,
-      disabled: disabled || isStreaming, // Disable input during streaming
-      autofocus: true,
-    });
+  const {
+    editor,
+    isReady,
+    clearEditorContent,
+    getEditorText,
+    getMentionedSpaceIds,
+  } = useTipTapEditor({
+    placeholder,
+    onSubmit: handleEditorSubmit,
+    disabled: disabled || isStreaming, // Disable input during streaming
+    autofocus: true,
+    fetchSpaces, // Enable #space mentions
+  });
 
   /**
    * Subscribe to editor state using useSyncExternalStore
@@ -88,7 +143,9 @@ export function ThreadInput({
     const content = getEditorText();
 
     if (content && !isStreaming && !disabled) {
-      onSubmit(content);
+      // Extract mentioned space IDs before clearing editor
+      const mentionedIds = getMentionedSpaceIds();
+      onSubmit(content, mentionedIds);
       // Clear editor immediately after submission using chain API
       clearEditorContent();
       // useEditorIsEmpty will automatically re-render when editor clears
@@ -96,6 +153,7 @@ export function ThreadInput({
   }, [
     editor,
     getEditorText,
+    getMentionedSpaceIds,
     isStreaming,
     disabled,
     onSubmit,
