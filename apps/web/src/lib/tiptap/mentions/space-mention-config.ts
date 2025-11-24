@@ -105,22 +105,3 @@ export const spaceMentionSuggestion: Omit<
     };
   },
 };
-
-/**
- * Create a configured suggestion with dynamic items function
- *
- * This allows us to inject the spaces data from useSpaces hook
- * without creating circular dependencies.
- *
- * @param fetchSpaces - Function that returns filtered space items
- */
-export function createSpaceMentionSuggestion(
-  fetchSpaces: (query: string) => Promise<SpaceMentionItem[]>
-): Omit<SuggestionOptions<SpaceMentionItem>, 'editor'> {
-  return {
-    ...spaceMentionSuggestion,
-    items: async ({ query }) => {
-      return fetchSpaces(query);
-    },
-  };
-}

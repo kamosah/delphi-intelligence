@@ -191,7 +191,7 @@ export function useTipTapEditor(
 
       // Recursively traverse child nodes
       if (node.content && Array.isArray(node.content)) {
-        node.content.forEach((child) => traverse(child as typeof node));
+        node.content.forEach(traverse);
       }
     };
 

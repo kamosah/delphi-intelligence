@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Square } from 'lucide-react';
 import { Button } from '@olympus/ui';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
-import { useSpaces, type Space } from '@/hooks/useSpaces';
+import { useSpaces } from '@/hooks/useSpaces';
 import { useTipTapEditor } from '../../hooks/useTipTapEditor';
 import { StreamingContainer } from './StreamingContainer';
 
@@ -54,36 +54,16 @@ export function ThreadInput({
   const { spaces } = useSpaces();
 
   /**
-   * Use ref to store spaces data to avoid stale closure in fetchSpaces
-   *
-   * This ensures the TipTap editor's mention extension always has access
-   * to the latest spaces data, even if the editor was initialized before
-   * React Query finished loading the spaces.
-   *
-   * Without this, the editor would be created with an empty spaces array
-   * and would never update (since fetchSpaces isn't in editor's deps).
-   */
-  const spacesRef = useRef<Space[]>(spaces);
-
-  // Keep ref synchronized with latest spaces data
-  useEffect(() => {
-    spacesRef.current = spaces;
-  }, [spaces]);
-
-  /**
    * Fetch and filter spaces for mention autocomplete
    *
    * Filters spaces by query using case-insensitive substring matching
    * Returns up to 10 results for performance
-   *
-   * Uses spacesRef to always read the latest data without causing
-   * editor recreation (empty dependency array is intentional).
    */
   const fetchSpaces = useCallback(
     async (query: string) => {
       const lowerQuery = query.toLowerCase();
 
-      return spacesRef.current
+      return spaces
         .filter((space) => space.name.toLowerCase().includes(lowerQuery))
         .slice(0, 10)
         .map((space) => ({
@@ -92,7 +72,7 @@ export function ThreadInput({
           iconColor: space.iconColor,
         }));
     },
-    [] // Empty deps - spacesRef always has latest data
+    [spaces]
   );
 
   /**
