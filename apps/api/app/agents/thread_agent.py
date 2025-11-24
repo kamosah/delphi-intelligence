@@ -299,9 +299,7 @@ async def retrieve_context(state: AgentState) -> AgentState:
                     boosted_results.append(result)
 
             # Re-rank by boosted scores (highest first)
-            search_results = sorted(
-                boosted_results, key=lambda r: r.similarity_score, reverse=True
-            )
+            search_results = sorted(boosted_results, key=lambda r: r.similarity_score, reverse=True)
 
             # Take top 5 after re-ranking
             search_results = search_results[:5]

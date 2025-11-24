@@ -180,22 +180,24 @@ export function useTipTapEditor(
     const json = editor.getJSON();
 
     // Traverse the editor content to find spaceMention nodes
-    const traverse = (node: {
+    type TraverseNode = {
       type?: string;
       attrs?: { id?: string };
       content?: unknown[];
-    }) => {
+    };
+
+    const traverse = (node: TraverseNode) => {
       if (node.type === 'spaceMention' && node.attrs?.id) {
         mentionedIds.push(node.attrs.id);
       }
 
       // Recursively traverse child nodes
       if (node.content && Array.isArray(node.content)) {
-        node.content.forEach(traverse);
+        (node.content as TraverseNode[]).forEach(traverse);
       }
     };
 
-    traverse(json);
+    traverse(json as TraverseNode);
 
     // Return unique IDs (in case of duplicates)
     return Array.from(new Set(mentionedIds));
