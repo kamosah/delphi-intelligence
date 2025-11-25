@@ -5,8 +5,9 @@
  * Provides editor instance with configured extensions and event handlers
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, type Editor } from '@tiptap/react';
+import { useSpaces } from '@/hooks/useSpaces';
 import {
   getEditorExtensions,
   type EditorExtensionsConfig,
@@ -79,13 +80,42 @@ export function useTipTapEditor(
     disabled = false,
     autofocus = false,
     placeholder,
-    fetchSpaces,
   } = options;
   const [isReady, setIsReady] = useState(false);
 
+  // Fetch spaces from React Query (async)
+  const { spaces } = useSpaces();
+
+  // Store latest spaces in a mutable ref to avoid stale closures
+  // This prevents the editor from needing to be recreated when spaces load
+  const spacesRef = useRef<
+    Array<{ id: string; name: string; iconColor?: string | null }>
+  >([]);
+
+  // Update the ref whenever spaces change (React Query loads data)
+  useEffect(() => {
+    spacesRef.current = spaces.map((space) => ({
+      id: space.id,
+      name: space.name,
+      iconColor: space.iconColor ?? null,
+    }));
+  }, [spaces]);
+
+  // Create a stable callback that always reads the latest spaces from the ref
+  // No dependencies! This is intentional - we read from the mutable ref
+  const fetchSpaceSuggestions = useCallback(async (query: string) => {
+    const lowerQuery = query.toLowerCase();
+    return spacesRef.current
+      .filter((space) => space.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 10);
+  }, []); // Empty deps - stable callback that reads latest ref value
+
   const editor = useEditor(
     {
-      extensions: getEditorExtensions({ placeholder, fetchSpaces }),
+      extensions: getEditorExtensions({
+        placeholder,
+        fetchSpaces: fetchSpaceSuggestions,
+      }),
       content,
       autofocus,
       editable: !disabled,

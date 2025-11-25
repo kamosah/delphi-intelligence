@@ -14,10 +14,12 @@
 
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { SuggestionMenu } from '@/components/tiptap-ui-utils/suggestion-menu';
 import type { SuggestionItem } from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-types';
 import { filterSuggestionItems } from '@/components/tiptap-ui-utils/suggestion-menu/suggestion-menu-utils';
+import { useSpaces } from '@/hooks/useSpaces';
 import { SpaceMentionItem } from './SpaceMentionItem';
 
 export interface SpaceMentionAutocompleteProps {
@@ -25,18 +27,6 @@ export interface SpaceMentionAutocompleteProps {
    * TipTap editor instance
    */
   editor: Editor | null;
-
-  /**
-   * Function to fetch and filter spaces by query
-   * Should return spaces that match the search query
-   */
-  fetchSpaces: (query: string) => Promise<
-    Array<{
-      id: string;
-      name: string;
-      iconColor?: string | null;
-    }>
-  >;
 
   /**
    * Whether the autocomplete is enabled
@@ -51,19 +41,45 @@ export interface SpaceMentionAutocompleteProps {
  * Use this component alongside a TipTap editor to enable #space mentions
  * with proper keyboard navigation that doesn't conflict with editor shortcuts.
  *
+ * Uses the same ref pattern as useTipTapEditor to avoid stale closures
+ * when spaces are loaded asynchronously from React Query.
+ *
  * @example
  * ```tsx
  * <SpaceMentionAutocomplete
  *   editor={editor}
- *   fetchSpaces={async (query) => spaces.filter(...)}
  * />
  * ```
  */
 export function SpaceMentionAutocomplete({
   editor,
-  fetchSpaces,
   enabled = true,
 }: SpaceMentionAutocompleteProps) {
+  // Fetch spaces from React Query (async)
+  const { spaces } = useSpaces();
+
+  // Store latest spaces in a mutable ref to avoid stale closures
+  const spacesRef = useRef<
+    Array<{ id: string; name: string; iconColor?: string | null }>
+  >([]);
+
+  // Update the ref whenever spaces change (React Query loads data)
+  useEffect(() => {
+    spacesRef.current = spaces.map((space) => ({
+      id: space.id,
+      name: space.name,
+      iconColor: space.iconColor ?? null,
+    }));
+  }, [spaces]);
+
+  // Create a stable callback that always reads the latest spaces from the ref
+  const fetchSpaceSuggestions = useCallback(async (query: string) => {
+    const lowerQuery = query.toLowerCase();
+    return spacesRef.current
+      .filter((space) => space.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 10);
+  }, []);
+
   // Don't render if editor isn't ready or autocomplete is disabled
   if (!editor || !enabled) {
     return null;
@@ -76,7 +92,7 @@ export function SpaceMentionAutocomplete({
       pluginKey="spaceMention"
       allowSpaces={true}
       items={async ({ query }): Promise<SuggestionItem[]> => {
-        const filteredSpaces = await fetchSpaces(query);
+        const filteredSpaces = await fetchSpaceSuggestions(query);
 
         // Convert spaces to SuggestionItems
         const suggestionItems: SuggestionItem[] = filteredSpaces.map(

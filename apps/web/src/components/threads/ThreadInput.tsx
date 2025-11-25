@@ -7,7 +7,6 @@ import { Button } from '@olympus/ui';
 import { SpaceMentionAutocomplete } from '@/components/editor/mentions/SpaceMentionAutocomplete';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
-import { useSpaces } from '@/hooks/useSpaces';
 import { useTipTapEditor } from '../../hooks/useTipTapEditor';
 import { StreamingContainer } from './StreamingContainer';
 
@@ -51,31 +50,6 @@ export function ThreadInput({
   placeholder = 'Ask a question about your documents...',
   className,
 }: ThreadInputProps) {
-  // Fetch spaces for #space mention autocomplete
-  const { spaces } = useSpaces();
-
-  /**
-   * Fetch and filter spaces for mention autocomplete
-   *
-   * Filters spaces by query using case-insensitive substring matching
-   * Returns up to 10 results for performance
-   */
-  const fetchSpaces = useCallback(
-    async (query: string) => {
-      const lowerQuery = query.toLowerCase();
-
-      return spaces
-        .filter((space) => space.name.toLowerCase().includes(lowerQuery))
-        .slice(0, 10)
-        .map((space) => ({
-          id: space.id,
-          name: space.name,
-          iconColor: space.iconColor,
-        }));
-    },
-    [spaces]
-  );
-
   /**
    * Memoize callbacks to prevent editor recreation on every render
    * This fixes the infinite loop issue
@@ -108,7 +82,6 @@ export function ThreadInput({
     onSubmit: handleEditorSubmit,
     disabled: disabled || isStreaming, // Disable input during streaming
     autofocus: true,
-    fetchSpaces, // Enable #space mentions
   });
 
   /**
@@ -214,11 +187,7 @@ export function ThreadInput({
       </div>
 
       {/* Space Mention Autocomplete - Uses TipTap SuggestionMenu for proper keyboard handling */}
-      <SpaceMentionAutocomplete
-        editor={editor}
-        fetchSpaces={fetchSpaces}
-        enabled={isReady}
-      />
+      <SpaceMentionAutocomplete editor={editor} enabled={isReady} />
     </div>
   );
 }
