@@ -17,7 +17,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Text from '@tiptap/extension-text';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { SpaceMention } from '@/components/editor/mentions/SpaceMention';
-import { spaceMentionSuggestion } from './mentions/space-mention-config';
 
 export interface EditorExtensionsConfig {
   placeholder?: string;
@@ -60,7 +59,9 @@ export function getEditorExtensions(
     }),
   ];
 
-  // Add #space mention extension if fetchSpaces function is provided
+  // Add #space mention node extension
+  // Note: Autocomplete/suggestion behavior is handled separately by SuggestionMenu component
+  // in ThreadInput to avoid keyboard event conflicts
   if (fetchSpaces) {
     extensions.push(
       Mention.extend({
@@ -74,14 +75,7 @@ export function getEditorExtensions(
           class: 'mention-space',
           'data-type': 'space',
         },
-        // Configure autocomplete behavior
-        suggestion: {
-          ...spaceMentionSuggestion,
-          // Inject dynamic space fetching
-          items: async ({ query }) => {
-            return fetchSpaces(query);
-          },
-        },
+        // No suggestion config - handled by SuggestionMenu component
       })
     );
   }

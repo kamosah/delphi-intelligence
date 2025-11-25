@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Square } from 'lucide-react';
 import { Button } from '@olympus/ui';
+import { SpaceMentionAutocomplete } from '@/components/editor/mentions/SpaceMentionAutocomplete';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
 import { useSpaces } from '@/hooks/useSpaces';
@@ -211,6 +212,13 @@ export function ThreadInput({
           </motion.div>
         </StreamingContainer>
       </div>
+
+      {/* Space Mention Autocomplete - Uses TipTap SuggestionMenu for proper keyboard handling */}
+      <SpaceMentionAutocomplete
+        editor={editor}
+        fetchSpaces={fetchSpaces}
+        enabled={isReady}
+      />
     </div>
   );
 }

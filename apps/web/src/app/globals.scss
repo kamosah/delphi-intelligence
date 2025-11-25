@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* TipTap UI Components Styles */
+@import '../styles/variables';
+@import '../styles/keyframe-animations';
+
 @layer base {
   html {
     @apply scroll-smooth;
