@@ -100,7 +100,8 @@ export const spaceMentionSuggestion: Omit<
           return true;
         }
 
-        // Forward arrow keys and enter to the component
+        // Forward arrow keys and enter to the component for keyboard navigation
+        // Note: Accessing TipTap SuggestionList internal ref API (types not exported)
         // @ts-expect-error - TipTap SuggestionList ref types not exported
         return component?.ref?.onKeyDown(props.event) ?? false;
       },

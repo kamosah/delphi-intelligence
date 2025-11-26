@@ -246,17 +246,24 @@ async def stream_thread_response(
     # Parse mentioned_space_ids from comma-separated string to list of UUIDs
     mentioned_space_ids_list: list[UUID] | None = None
     if mentioned_space_ids and mentioned_space_ids.strip():
-        try:
-            mentioned_space_ids_list = [
-                UUID(sid.strip())
-                for sid in mentioned_space_ids.split(",")
-                if sid.strip()  # Filter out empty strings
-            ]
-        except ValueError as e:
+        invalid_space_ids = []
+        valid_space_ids = []
+        for sid in mentioned_space_ids.split(","):
+            sid_stripped = sid.strip()
+            if not sid_stripped:
+                continue
+            try:
+                valid_space_ids.append(UUID(sid_stripped))
+            except ValueError:
+                invalid_space_ids.append(sid_stripped)
+
+        if invalid_space_ids:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid mentioned_space_ids format: {e}",
-            ) from e
+                detail=f"Invalid mentioned_space_ids format. The following IDs are not valid UUIDs: {', '.join(invalid_space_ids)}",
+            )
+
+        mentioned_space_ids_list = valid_space_ids if valid_space_ids else None
 
     # Authorization: Verify user has access to all mentioned spaces AND thread space
     spaces_to_check = set(mentioned_space_ids_list) if mentioned_space_ids_list else set()
