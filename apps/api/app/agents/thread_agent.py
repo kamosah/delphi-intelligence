@@ -259,55 +259,33 @@ async def retrieve_context(state: AgentState) -> AgentState:
             # Build combined space list (deduplicate)
             combined_space_ids = list(set(mentioned_space_ids + ([space_id] if space_id else [])))
 
+            # Build boost mapping: mentioned spaces get boost, others get 1.0
+            mention_boost_factor = 1.2
+            space_boosts = {sid: mention_boost_factor for sid in mentioned_space_ids}
+            # Thread space (if different from mentioned) gets no boost
+            if space_id and space_id not in mentioned_space_ids:
+                space_boosts[space_id] = 1.0
+
             logger.info(
                 f"Using weighted priority search: mentioned_spaces={len(mentioned_space_ids)}, "
                 f"thread_space={'yes' if space_id else 'no'}, "
-                f"total_spaces={len(combined_space_ids)}"
+                f"total_spaces={len(combined_space_ids)}, "
+                f"boost_factor={mention_boost_factor}x"
             )
 
-            # Search across all combined spaces
+            # Search across all combined spaces with in-database boosting
             search_results = await vector_search.search_similar_chunks(
                 query=query,
                 db=db,
                 space_ids=combined_space_ids,  # Use multi-space search
-                limit=10,  # Retrieve more initially for re-ranking
-                similarity_threshold=0.3,  # Lower threshold before boosting
+                limit=5,  # Retrieve top 5 after boosting (done in database)
+                similarity_threshold=0.3,
+                space_boosts=space_boosts,  # Apply boost in SQL query
             )
-
-            # Apply weighted boosting to mentioned space results
-            # Boost factor: 1.2x for mentioned spaces (20% relevance boost)
-            mention_boost_factor = 1.2
-            mentioned_space_set = set(mentioned_space_ids)
-
-            # Create new SearchResult instances with boosted scores
-            # (SearchResult is a NamedTuple, so immutable)
-            boosted_results = []
-            for result in search_results:
-                if result.document.space_id in mentioned_space_set:
-                    # Boost similarity score for mentioned space results
-                    # Cap at 1.0 to maintain valid similarity range
-                    boosted_score = min(result.similarity_score * mention_boost_factor, 1.0)
-                    boosted_results.append(
-                        SearchResult(
-                            chunk=result.chunk,
-                            document=result.document,
-                            similarity_score=boosted_score,
-                            distance=1.0
-                            - boosted_score,  # Recalculate distance to maintain cosine similarity relationship
-                        )
-                    )
-                else:
-                    boosted_results.append(result)
-
-            # Re-rank by boosted scores (highest first)
-            search_results = sorted(boosted_results, key=lambda r: r.similarity_score, reverse=True)
-
-            # Take top 5 after re-ranking
-            search_results = search_results[:5]
 
             logger.info(
                 f"Retrieved {len(search_results)} weighted chunks "
-                f"(mentioned spaces boosted by {mention_boost_factor}x)"
+                f"(mentioned spaces boosted by {mention_boost_factor}x in database query)"
             )
 
         else:
