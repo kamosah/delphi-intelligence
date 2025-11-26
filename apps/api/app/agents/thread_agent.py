@@ -292,7 +292,8 @@ async def retrieve_context(state: AgentState) -> AgentState:
                             chunk=result.chunk,
                             document=result.document,
                             similarity_score=boosted_score,
-                            distance=result.distance,
+                            distance=1.0
+                            - boosted_score,  # Recalculate distance to maintain cosine similarity relationship
                         )
                     )
                 else:

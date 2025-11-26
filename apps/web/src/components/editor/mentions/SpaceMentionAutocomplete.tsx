@@ -153,9 +153,6 @@ export function SpaceMentionAutocomplete({
                 }}
                 isSelected={selectedIndex === index}
                 onSelect={() => onSelect(item)}
-                onMouseEnter={() => {
-                  // Mouse hover updates selection - handled by SuggestionMenu
-                }}
               />
             ))}
           </div>

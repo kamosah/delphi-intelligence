@@ -46,8 +46,11 @@ export const spaceMentionSuggestion: Omit<
 
   // Render the autocomplete dropdown
   render: () => {
-    let component: ReactRenderer<unknown, SuggestionProps<SpaceMentionItem>>;
-    let popup: TippyInstance[];
+    let component: ReactRenderer<
+      unknown,
+      SuggestionProps<SpaceMentionItem>
+    > | null = null;
+    let popup: TippyInstance[] | null = null;
 
     return {
       onStart: (props) => {
@@ -76,6 +79,8 @@ export const spaceMentionSuggestion: Omit<
       },
 
       onUpdate(props) {
+        if (!component || !popup) return;
+
         component.updateProps(props);
 
         if (!props.clientRect) {
@@ -88,19 +93,25 @@ export const spaceMentionSuggestion: Omit<
       },
 
       onKeyDown(props) {
+        if (!popup) return false;
+
         if (props.event.key === 'Escape') {
           popup[0]?.hide();
           return true;
         }
 
         // Forward arrow keys and enter to the component
-        // @ts-expect-error - component.ref is not typed but exists
-        return component.ref?.onKeyDown(props.event) ?? false;
+        // @ts-expect-error - TipTap SuggestionList ref types not exported
+        return component?.ref?.onKeyDown(props.event) ?? false;
       },
 
       onExit() {
-        popup[0]?.destroy();
-        component.destroy();
+        if (popup) {
+          popup[0]?.destroy();
+        }
+        if (component) {
+          component.destroy();
+        }
       },
     };
   },

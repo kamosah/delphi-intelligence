@@ -148,13 +148,8 @@ export function useTipTapEditor(
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             if (text) {
-              // Extract mentioned space IDs before clearing
-              const mentionedIds: string[] = [];
-              state.doc.descendants((node) => {
-                if (node.type.name === 'spaceMention' && node.attrs.id) {
-                  mentionedIds.push(node.attrs.id);
-                }
-              });
+              // Extract mentioned space IDs using shared helper function
+              const mentionedIds = getMentionedSpaceIds();
 
               onSubmit?.(
                 text,

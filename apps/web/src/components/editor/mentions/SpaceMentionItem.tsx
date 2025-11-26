@@ -20,7 +20,7 @@ export interface SpaceMentionItemProps {
   item: SpaceMentionItemData;
   isSelected: boolean;
   onSelect: () => void;
-  onMouseEnter: () => void;
+  onMouseEnter?: () => void;
 }
 
 /**
