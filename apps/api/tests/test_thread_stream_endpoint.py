@@ -30,6 +30,7 @@ class TestThreadStreamEndpoint:
     @pytest.fixture(autouse=True)
     def setup_auth_and_db(self, mock_user, mock_space, mock_db_session):  # noqa: PT004
         """Override authentication and database dependencies for all tests."""
+
         # Create a mock current user function that returns our test user
         async def mock_get_current_user():
             return {
@@ -42,7 +43,9 @@ class TestThreadStreamEndpoint:
         async def mock_db_execute(*args, **kwargs):
             # Return a mock result with the test space ID
             mock_result = AsyncMock()
-            mock_result.__iter__ = lambda _: iter([(mock_space.id,)])  # User has access to test space
+            mock_result.__iter__ = lambda _: iter(
+                [(mock_space.id,)]
+            )  # User has access to test space
             return mock_result
 
         mock_db_session.execute = mock_db_execute
