@@ -1,10 +1,10 @@
+/* TipTap UI Components Styles */
+@use '../styles/variables';
+@use '../styles/keyframe-animations';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* TipTap UI Components Styles */
-@import '../styles/variables';
-@import '../styles/keyframe-animations';
 
 @layer base {
   html {
