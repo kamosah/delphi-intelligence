@@ -18,8 +18,8 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // Stale time: How long data is considered fresh (5 minutes)
-        staleTime: 1000 * 60 * 5,
+        // Stale time: How long data is considered fresh (60 seconds - recommended for SSR)
+        staleTime: 1000 * 60,
 
         // Cache time: How long data stays in cache after component unmounts (10 minutes)
         gcTime: 1000 * 60 * 10,
