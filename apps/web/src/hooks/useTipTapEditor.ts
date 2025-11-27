@@ -5,8 +5,9 @@
  * Provides editor instance with configured extensions and event handlers
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, type Editor } from '@tiptap/react';
+import { useSpaces } from '@/hooks/useSpaces';
 import {
   getEditorExtensions,
   type EditorExtensionsConfig,
@@ -25,8 +26,9 @@ export interface UseTipTapEditorOptions extends EditorExtensionsConfig {
 
   /**
    * Callback when user presses Enter (to submit)
+   * Receives the text content and mentioned space IDs
    */
-  onSubmit?: (content: string) => void;
+  onSubmit?: (content: string, mentionedSpaceIds?: string[]) => void;
 
   /**
    * Whether the editor is disabled
@@ -61,6 +63,11 @@ export type UseTipTapEditorReturn = {
   clearEditorContent: () => void;
   setEditorContent: (content: string) => void;
   focusEditor: () => void;
+  /**
+   * Extract mentioned space IDs from editor content
+   * Parses editor JSON to find all spaceMention nodes
+   */
+  getMentionedSpaceIds: () => string[];
 };
 
 export function useTipTapEditor(
@@ -76,9 +83,39 @@ export function useTipTapEditor(
   } = options;
   const [isReady, setIsReady] = useState(false);
 
+  // Fetch spaces from React Query (async)
+  const { spaces } = useSpaces();
+
+  // Store latest spaces in a mutable ref to avoid stale closures
+  // This prevents the editor from needing to be recreated when spaces load
+  const spacesRef = useRef<
+    Array<{ id: string; name: string; iconColor?: string | null }>
+  >([]);
+
+  // Update the ref whenever spaces change (React Query loads data)
+  useEffect(() => {
+    spacesRef.current = spaces.map((space) => ({
+      id: space.id,
+      name: space.name,
+      iconColor: space.iconColor ?? null,
+    }));
+  }, [spaces]);
+
+  // Create a stable callback that always reads the latest spaces from the ref
+  // No dependencies! This is intentional - we read from the mutable ref
+  const fetchSpaceSuggestions = useCallback(async (query: string) => {
+    const lowerQuery = query.toLowerCase();
+    return spacesRef.current
+      .filter((space) => space.name.toLowerCase().includes(lowerQuery))
+      .slice(0, 10);
+  }, []); // Empty deps - stable callback that reads latest ref value
+
   const editor = useEditor(
     {
-      extensions: getEditorExtensions({ placeholder }),
+      extensions: getEditorExtensions({
+        placeholder,
+        fetchSpaces: fetchSpaceSuggestions,
+      }),
       content,
       autofocus,
       editable: !disabled,
@@ -111,7 +148,13 @@ export function useTipTapEditor(
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             if (text) {
-              onSubmit?.(text);
+              // Extract mentioned space IDs using shared helper function
+              const mentionedIds = getMentionedSpaceIds();
+
+              onSubmit?.(
+                text,
+                mentionedIds.length > 0 ? mentionedIds : undefined
+              );
               // Clear content using the live view
               // This triggers onUpdate('') but that's fine - consumers should use
               // useEditorIsEmpty hook for state instead of relying on callbacks
@@ -147,6 +190,44 @@ export function useTipTapEditor(
     editor?.commands.focus();
   };
 
+  /**
+   * Extract all mentioned space IDs from editor content
+   *
+   * Traverses the editor's JSON structure to find spaceMention nodes
+   * and collects their IDs.
+   *
+   * @returns Array of space IDs that were mentioned
+   */
+  const getMentionedSpaceIds = (): string[] => {
+    if (!editor) return [];
+
+    const mentionedIds: string[] = [];
+    const json = editor.getJSON();
+
+    // Traverse the editor content to find spaceMention nodes
+    type TraverseNode = {
+      type?: string;
+      attrs?: { id?: string };
+      content?: unknown[];
+    };
+
+    const traverse = (node: TraverseNode) => {
+      if (node.type === 'spaceMention' && node.attrs?.id) {
+        mentionedIds.push(node.attrs.id);
+      }
+
+      // Recursively traverse child nodes
+      if (node.content && Array.isArray(node.content)) {
+        (node.content as TraverseNode[]).forEach(traverse);
+      }
+    };
+
+    traverse(json as TraverseNode);
+
+    // Return unique IDs (in case of duplicates)
+    return Array.from(new Set(mentionedIds));
+  };
+
   // Set isReady and update editable state when editor or disabled changes
   useEffect(() => {
     if (editor) {
@@ -162,5 +243,6 @@ export function useTipTapEditor(
     clearEditorContent,
     setEditorContent,
     focusEditor,
+    getMentionedSpaceIds,
   };
 }

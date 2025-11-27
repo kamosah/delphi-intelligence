@@ -202,6 +202,7 @@ class AgentState(TypedDict, total=False):
         citations: List of source citations with metadata
         db: Database session for vector search (optional)
         space_id: Space ID to filter search results (optional)
+        mentioned_space_ids: Space IDs from #space mentions (for weighted RAG search, optional)
         search_results: Full search results with metadata (optional)
         conversation_history: Previous messages in the conversation for multi-turn support (optional)
     """
@@ -212,6 +213,7 @@ class AgentState(TypedDict, total=False):
     citations: list[dict[str, Any]]
     db: AsyncSession | None
     space_id: UUID | None
+    mentioned_space_ids: list[UUID] | None
     search_results: list[SearchResult] | None
     conversation_history: list[dict[str, str]]
 
@@ -221,10 +223,16 @@ async def retrieve_context(state: AgentState) -> AgentState:
     Retrieve relevant document chunks for the query using vector similarity search.
 
     Uses the vector search service to find the top-k most relevant chunks
-    based on semantic similarity to the query.
+    based on semantic similarity to the query. Implements weighted priority for
+    mentioned spaces via #space mentions.
+
+    Weighting Strategy:
+    - If mentioned_space_ids exist: Search ALL spaces (mentioned + thread space)
+    - Boost similarity scores for chunks from mentioned spaces (1.2x multiplier)
+    - Re-rank combined results by boosted scores
 
     Args:
-        state: Current agent state with query and optional db/space_id
+        state: Current agent state with query and optional db/space_id/mentioned_space_ids
 
     Returns:
         Updated state with context and search_results metadata
@@ -232,6 +240,7 @@ async def retrieve_context(state: AgentState) -> AgentState:
     query = state["query"]
     db = state.get("db")
     space_id = state.get("space_id")
+    mentioned_space_ids = state.get("mentioned_space_ids")
 
     # If no database session, return empty context
     if db is None:
@@ -244,19 +253,55 @@ async def retrieve_context(state: AgentState) -> AgentState:
         # Get vector search service
         vector_search = get_vector_search_service()
 
-        # Perform semantic search
-        search_results = await vector_search.search_similar_chunks(
-            query=query,
-            db=db,
-            space_id=space_id,
-            limit=5,  # Top 5 most relevant chunks
-            similarity_threshold=0.4,  # Filter out low-relevance results (raised from 0.3)
-        )
+        # Determine search strategy based on mentioned spaces
+        if mentioned_space_ids and len(mentioned_space_ids) > 0:
+            # WEIGHTED PRIORITY SEARCH: Combine mentioned spaces + thread space
+            # Build combined space list (deduplicate)
+            combined_space_ids = list(set(mentioned_space_ids + ([space_id] if space_id else [])))
 
-        logger.info(
-            f"Retrieved {len(search_results)} chunks for query: '{query[:50]}...' "
-            f"(space_id={space_id})"
-        )
+            # Build boost mapping: mentioned spaces get boost, others get 1.0
+            mention_boost_factor = 1.2
+            space_boosts = {sid: mention_boost_factor for sid in mentioned_space_ids}
+            # Thread space (if different from mentioned) gets no boost
+            if space_id and space_id not in mentioned_space_ids:
+                space_boosts[space_id] = 1.0
+
+            logger.info(
+                f"Using weighted priority search: mentioned_spaces={len(mentioned_space_ids)}, "
+                f"thread_space={'yes' if space_id else 'no'}, "
+                f"total_spaces={len(combined_space_ids)}, "
+                f"boost_factor={mention_boost_factor}x"
+            )
+
+            # Search across all combined spaces with in-database boosting
+            search_results = await vector_search.search_similar_chunks(
+                query=query,
+                db=db,
+                space_ids=combined_space_ids,  # Use multi-space search
+                limit=5,  # Retrieve top 5 after boosting (done in database)
+                similarity_threshold=0.3,
+                space_boosts=space_boosts,  # Apply boost in SQL query
+            )
+
+            logger.info(
+                f"Retrieved {len(search_results)} weighted chunks "
+                f"(mentioned spaces boosted by {mention_boost_factor}x in database query)"
+            )
+
+        else:
+            # STANDARD SEARCH: Use original single-space logic
+            search_results = await vector_search.search_similar_chunks(
+                query=query,
+                db=db,
+                space_id=space_id,
+                limit=5,  # Top 5 most relevant chunks
+                similarity_threshold=0.4,  # Filter out low-relevance results
+            )
+
+            logger.info(
+                f"Retrieved {len(search_results)} chunks for query: '{query[:50]}...' "
+                f"(space_id={space_id})"
+            )
 
         # Extract text for context
         context_chunks = [result.chunk.chunk_text for result in search_results]

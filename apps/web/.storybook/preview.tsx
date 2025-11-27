@@ -1,8 +1,8 @@
 import type { Preview } from '@storybook/nextjs';
 import { initialize, mswLoader } from 'msw-storybook-addon';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import '../src/app/globals.css';
 import 'highlight.js/styles/atom-one-dark.css';
+import '../src/app/globals.scss';
 
 // Initialize MSW
 initialize();

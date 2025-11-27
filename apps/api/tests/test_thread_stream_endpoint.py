@@ -13,18 +13,58 @@ import asyncio
 import json
 from typing import Any
 from collections.abc import AsyncGenerator
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
 
+from app.auth.dependencies import get_current_user
+from app.db.session import get_session
+from app.main import app
+
 
 class TestThreadStreamEndpoint:
     """Integration tests for SSE streaming endpoint."""
 
+    @pytest.fixture(autouse=True)
+    def setup_auth_and_db(self, mock_user, mock_space, mock_db_session):  # noqa: PT004
+        """Override authentication and database dependencies for all tests."""
+
+        # Create a mock current user function that returns our test user
+        async def mock_get_current_user():
+            return {
+                "id": str(mock_user.id),
+                "email": mock_user.email,
+                "role": "member",
+            }
+
+        # Mock database execute to return space IDs (simulating user has access to all test spaces)
+        async def mock_db_execute(*args, **kwargs):
+            # Return a mock result with the test space ID
+            mock_result = AsyncMock()
+            mock_result.__iter__ = lambda _: iter(
+                [(mock_space.id,)]
+            )  # User has access to test space
+            return mock_result
+
+        mock_db_session.execute = mock_db_execute
+
+        # Create a mock session generator
+        async def mock_get_session():
+            yield mock_db_session
+
+        # Override the dependencies
+        app.dependency_overrides[get_current_user] = mock_get_current_user
+        app.dependency_overrides[get_session] = mock_get_session
+
+        yield
+
+        # Clean up overrides after test
+        app.dependency_overrides.clear()
+
     @pytest.mark.asyncio
-    async def test_successful_thread_streaming(self, async_client: AsyncClient) -> None:
+    async def test_successful_thread_streaming(self, async_client: AsyncClient, mock_space) -> None:
         """Test successful SSE streaming with all event types."""
         # Mock AI agent service
         mock_events = [
@@ -64,8 +104,7 @@ class TestThreadStreamEndpoint:
             # Make streaming request
             params = {
                 "query": "What is the answer?",
-                "space_id": str(uuid4()),
-                "user_id": str(uuid4()),
+                "space_id": str(mock_space.id),
                 "save_to_db": "false",
             }
 
@@ -89,7 +128,7 @@ class TestThreadStreamEndpoint:
         assert events[4]["type"] == "done"
 
     @pytest.mark.asyncio
-    async def test_query_timeout_handling(self, async_client: AsyncClient) -> None:
+    async def test_query_timeout_handling(self, async_client: AsyncClient, mock_space) -> None:
         """Test that queries timeout after THREAD_TIMEOUT_SECONDS."""
         # Mock timeout to 2 seconds for faster test
         mock_timeout = 2
@@ -109,7 +148,7 @@ class TestThreadStreamEndpoint:
 
             params = {
                 "query": "Slow query",
-                "space_id": str(uuid4()),
+                "space_id": str(mock_space.id),
             }
 
             async with async_client.stream("GET", "/api/thread/stream", params=params) as response:
@@ -263,17 +302,27 @@ class TestThreadStreamEndpoint:
 
     @pytest.mark.asyncio
     async def test_save_to_db_without_user_id(self, async_client: AsyncClient):
-        """Test that save_to_db=true requires user_id."""
+        """Test that authenticated users can save to database."""
+        # With authentication now required, this test verifies save_to_db works
+        # The user_id is automatically extracted from the authenticated user
         params = {
             "query": "Test query",
             "save_to_db": "true",
-            # Missing user_id
+            "organization_id": str(uuid4()),
         }
 
-        response = await async_client.get("/api/thread/stream", params=params)
+        async def mock_stream(*args, **kwargs):
+            yield {"type": "done", "confidence_score": 0.8}
 
-        assert response.status_code == 400
-        assert "user_id" in response.json()["detail"].lower()
+        with patch(
+            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+        ) as mock_process:
+            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+
+            response = await async_client.get("/api/thread/stream", params=params)
+
+            # Should succeed since auth provides user_id
+            assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_sse_event_formatting(self, async_client: AsyncClient):
@@ -336,15 +385,15 @@ class TestThreadStreamEndpoint:
         # Mock assertion inside mock_stream verifies space_id was passed
 
     @pytest.mark.asyncio
-    async def test_streaming_with_database_save(self, async_client: AsyncClient):
+    async def test_streaming_with_database_save(self, async_client: AsyncClient, mock_user):
         """Test that save_to_db flag is respected."""
-        user_id = uuid4()
         organization_id = uuid4()
 
         async def mock_stream(*args, **kwargs):
             # Verify save_to_db was passed
             assert kwargs.get("save_to_db") is True
-            assert kwargs.get("user_id") == user_id
+            # Verify user_id comes from authenticated user (not query param)
+            assert kwargs.get("user_id") == mock_user.id
             assert kwargs.get("organization_id") == organization_id
             yield {
                 "type": "done",
@@ -359,7 +408,6 @@ class TestThreadStreamEndpoint:
 
             params = {
                 "query": "Test",
-                "user_id": str(user_id),
                 "organization_id": str(organization_id),
                 "save_to_db": "true",
             }

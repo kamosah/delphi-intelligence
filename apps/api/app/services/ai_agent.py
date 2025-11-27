@@ -245,6 +245,7 @@ class AIAgentService:
         db: AsyncSession | None = None,
         organization_id: UUID | None = None,
         space_id: UUID | None = None,
+        mentioned_space_ids: list[UUID] | None = None,
         user_id: UUID | None = None,
         context: list[str] | None = None,
         save_to_db: bool = False,
@@ -262,6 +263,7 @@ class AIAgentService:
             db: Database session for vector search and storage
             organization_id: Organization ID (required if save_to_db=True and space_id not provided)
             space_id: Optional space ID to filter search results
+            mentioned_space_ids: Optional list of space IDs from #space mentions (for weighted RAG search)
             user_id: User ID for thread attribution (required if save_to_db=True or if thread_id is provided for authorization)
             context: Optional pre-retrieved document chunks (bypasses vector search)
             save_to_db: Whether to save thread and results to database
@@ -425,6 +427,7 @@ class AIAgentService:
             "citations": [],
             "db": db,
             "space_id": space_id,
+            "mentioned_space_ids": mentioned_space_ids,
             "search_results": None,
             "conversation_history": conversation_history,
         }

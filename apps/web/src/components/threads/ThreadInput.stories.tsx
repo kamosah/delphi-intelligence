@@ -7,7 +7,7 @@ const meta = {
   title: 'Threads/ThreadInput',
   component: ThreadInput,
   parameters: {
-    layout: 'fullscreen',
+    layout: 'padded',
     docs: {
       description: {
         component:

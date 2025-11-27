@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Library } from 'lucide-react';
-import { Button, Skeleton } from '@olympus/ui';
+import { ChevronRight, Library, SquarePen } from 'lucide-react';
+import { Button, Kbd, Skeleton } from '@olympus/ui';
 import { ThreadNavItem } from '@/components/threads/ThreadNavItem';
 import { useThreads } from '@/hooks/useThreads';
 
@@ -21,6 +21,10 @@ export function ThreadsNavigation({ iconMode, orgId }: ThreadsNavigationProps) {
 
   const bookmarkedThreads = threads.filter((t) => t.isStarred).slice(0, 5);
   const recentThreads = threads.filter((t) => !t.isStarred).slice(0, 10);
+
+  const handleNewThread = () => {
+    router.push('/threads');
+  };
 
   const handleViewAllThreads = () => {
     router.push('/library');
@@ -43,6 +47,23 @@ export function ThreadsNavigation({ iconMode, orgId }: ThreadsNavigationProps) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* New Thread Button */}
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          onClick={handleNewThread}
+          className="w-full justify-between group"
+        >
+          <div className="flex items-center">
+            <SquarePen className="h-4 w-4 shrink-0" />
+            <span className="ml-2">New Thread</span>
+          </div>
+          <Kbd className="hidden group-hover:inline-flex text-[10px] ml-2">
+            ⌘J
+          </Kbd>
+        </Button>
+      </div>
+
       {/* Recent Threads Section */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Clickable Recent Header - Sticky */}
