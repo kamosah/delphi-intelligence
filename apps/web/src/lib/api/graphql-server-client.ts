@@ -9,7 +9,8 @@ const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
  * Create a server-side GraphQL client with auth token from cookies.
  * Use this ONLY in Server Components.
  *
- * The backend sets the JWT in an HTTP-only cookie named 'access_token'.
+ * Client-side auth sets the JWT in a cookie named 'olympus-auth-token' via document.cookie.
+ * Note: This is NOT an HTTP-only cookie and is accessible to JavaScript (XSS risk).
  * This function reads that cookie and injects it into the Authorization header
  * for authenticated GraphQL requests.
  *
@@ -22,7 +23,7 @@ const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
  */
 export async function getServerGraphQLClient() {
   const cookieStore = await cookies();
-  const token = cookieStore.get('access_token')?.value;
+  const token = cookieStore.get('olympus-auth-token')?.value;
 
   const headers: Record<string, string> = {};
   if (token) {

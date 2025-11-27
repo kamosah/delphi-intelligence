@@ -296,7 +296,9 @@ export async function getServerGraphQLClient() {
 }
 ```
 
-**Cookie Name**: `access_token` (set by FastAPI backend)
+**Cookie Name**: `olympus-auth-token` (set by client-side auth via `setAuthCookies`)
+
+**Security Note**: These cookies are set via `document.cookie` and are NOT HTTP-only. They are accessible to JavaScript, making them vulnerable to XSS attacks. For production, consider migrating to server-side cookie setting with HttpOnly flag enabled (see ADR-010).
 
 ---
 
