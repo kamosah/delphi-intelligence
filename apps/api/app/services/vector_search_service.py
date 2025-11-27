@@ -141,12 +141,13 @@ class VectorSearchService:
             similarity_threshold: Minimum similarity score (0.0-1.0, default: 0.0)
             space_boosts: Optional dict mapping space UUIDs to boost factors (e.g., {space_id: 1.2})
                          Boosts are applied by dividing the distance (lower distance = better match)
+                         All boost factors must be positive numbers (> 0)
 
         Returns:
             List of SearchResult tuples ordered by relevance (most similar first)
 
         Raises:
-            ValueError: If query is empty or limit is invalid
+            ValueError: If query is empty, limit is invalid, or boost factors are not positive
             Exception: For embedding or database errors
 
         Note:
@@ -158,6 +159,17 @@ class VectorSearchService:
         """
         # Validate parameters
         self._validate_search_params(query, limit, similarity_threshold)
+
+        # Validate space_boosts to prevent division by zero
+        if space_boosts:
+            invalid_boosts = {
+                space_id: boost for space_id, boost in space_boosts.items() if boost <= 0
+            }
+            if invalid_boosts:
+                raise ValueError(
+                    f"All space boost factors must be positive numbers (> 0). "
+                    f"Invalid boosts: {invalid_boosts}"
+                )
 
         logger.info(
             f"[VECTOR_SEARCH] Starting search for: '{query[:50]}...' "

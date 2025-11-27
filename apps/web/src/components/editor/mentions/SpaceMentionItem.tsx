@@ -20,7 +20,6 @@ export interface SpaceMentionItemProps {
   item: SpaceMentionItemData;
   isSelected: boolean;
   onSelect: () => void;
-  onMouseEnter?: () => void;
 }
 
 /**
@@ -31,20 +30,17 @@ export interface SpaceMentionItemProps {
  *   item={{ id: '1', name: 'Design', iconColor: '#8B5CF6' }}
  *   isSelected={false}
  *   onSelect={handleSelect}
- *   onMouseEnter={handleMouseEnter}
  * />
  */
 export function SpaceMentionItem({
   item,
   isSelected,
   onSelect,
-  onMouseEnter,
 }: SpaceMentionItemProps) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      onMouseEnter={onMouseEnter}
       className={cn(
         'flex cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors',
         'hover:bg-gray-50',
