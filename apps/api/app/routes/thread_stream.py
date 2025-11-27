@@ -8,15 +8,18 @@ with vector search, citation tracking, and confidence scoring for progressive di
 import asyncio
 import json
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Query as QueryParam
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user
 from app.db.session import get_session
+from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.services.ai_agent import ai_agent_service
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,7 @@ async def generate_sse_events(
     db: AsyncSession,
     organization_id: UUID | None = None,
     space_id: UUID | None = None,
+    mentioned_space_ids: list[UUID] | None = None,
     user_id: UUID | None = None,
     save_to_db: bool = False,
     thread_id: UUID | None = None,
@@ -47,6 +51,7 @@ async def generate_sse_events(
         db: Database session for vector search and storage
         organization_id: Optional organization ID (required if save_to_db=True and space_id not provided for new threads)
         space_id: Optional space ID to filter search results
+        mentioned_space_ids: Optional list of space IDs from #space mentions (for weighted RAG search)
         user_id: Optional user ID for query attribution
         save_to_db: Whether to save query and results to database
         thread_id: Optional existing thread ID for multi-turn conversation continuation
@@ -62,6 +67,7 @@ async def generate_sse_events(
                 db=db,
                 organization_id=organization_id,
                 space_id=space_id,
+                mentioned_space_ids=mentioned_space_ids,
                 user_id=user_id,
                 save_to_db=save_to_db,
                 thread_id=thread_id,
@@ -106,6 +112,7 @@ async def generate_sse_events(
 async def stream_thread_response(
     query: Annotated[str, QueryParam(description="Natural language question to process in thread")],
     db: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
     organization_id: Annotated[
         UUID | None,
         QueryParam(
@@ -115,8 +122,11 @@ async def stream_thread_response(
     space_id: Annotated[
         UUID | None, QueryParam(description="Space ID to filter search results")
     ] = None,
-    user_id: Annotated[
-        UUID | None, QueryParam(description="User ID for thread attribution")
+    mentioned_space_ids: Annotated[
+        str | None,
+        QueryParam(
+            description="Comma-separated list of space IDs from #space mentions (for weighted RAG search)"
+        ),
     ] = None,
     save_to_db: Annotated[
         bool, QueryParam(description="Save thread and results to database")
@@ -128,6 +138,8 @@ async def stream_thread_response(
 ) -> StreamingResponse:
     """
     Stream AI agent response for conversation threads using Server-Sent Events with RAG pipeline.
+
+    **Authentication Required**: This endpoint requires a valid Bearer token in the Authorization header.
 
     This endpoint provides real-time token streaming with vector search,
     citation tracking, and confidence scoring for progressive response display.
@@ -141,12 +153,20 @@ async def stream_thread_response(
     Args:
         query: Natural language question to process
         db: Database session (injected)
-        space_id: Optional space ID to filter documents for search
-        user_id: Optional user ID for attribution (required if save_to_db=True)
+        current_user: Authenticated user (injected via JWT token)
+        organization_id: Optional organization ID (required for new threads if save_to_db=true and space_id not provided)
+        space_id: Optional space ID to filter documents for search (requires user access)
+        mentioned_space_ids: Comma-separated space IDs from #space mentions (requires user access to all)
         save_to_db: Whether to save the thread and results to database
+        thread_id: Optional existing thread ID for multi-turn conversation
 
     Returns:
         StreamingResponse with text/event-stream content type
+
+    Raises:
+        HTTPException 401: Invalid or missing authentication token
+        HTTPException 403: User lacks access to specified spaces
+        HTTPException 400: Invalid parameters
 
     Example Usage (JavaScript):
         ```javascript
@@ -213,8 +233,8 @@ async def stream_thread_response(
     if not query or not query.strip():
         raise HTTPException(status_code=400, detail="Query parameter is required")
 
-    if save_to_db and not user_id:
-        raise HTTPException(status_code=400, detail="user_id is required when save_to_db=true")
+    # Extract user ID from authenticated user
+    user_id_uuid = UUID(current_user["id"])
 
     # For new threads (no thread_id), require organization_id or space_id
     if save_to_db and not thread_id and not space_id and not organization_id:
@@ -223,13 +243,58 @@ async def stream_thread_response(
             detail="Either space_id or organization_id is required for new threads when save_to_db=true",
         )
 
+    # Parse mentioned_space_ids from comma-separated string to list of UUIDs
+    mentioned_space_ids_list: list[UUID] | None = None
+    if mentioned_space_ids and mentioned_space_ids.strip():
+        invalid_space_ids = []
+        valid_space_ids = []
+        for sid in mentioned_space_ids.split(","):
+            sid_stripped = sid.strip()
+            if not sid_stripped:
+                continue
+            try:
+                valid_space_ids.append(UUID(sid_stripped))
+            except ValueError:
+                invalid_space_ids.append(sid_stripped)
+
+        if invalid_space_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid mentioned_space_ids format. The following IDs are not valid UUIDs: {', '.join(invalid_space_ids)}",
+            )
+
+        mentioned_space_ids_list = valid_space_ids if valid_space_ids else None
+
+    # Authorization: Verify user has access to all mentioned spaces AND thread space
+    spaces_to_check = set(mentioned_space_ids_list) if mentioned_space_ids_list else set()
+    if space_id:
+        spaces_to_check.add(space_id)
+
+    if spaces_to_check:
+        # Query user's accessible spaces via space_member table
+        accessible_space_ids_result = await db.execute(
+            select(SpaceModel.id)
+            .join(SpaceMemberModel)
+            .where(SpaceMemberModel.user_id == user_id_uuid)
+        )
+        accessible_space_ids = {row[0] for row in accessible_space_ids_result}
+
+        # Check for unauthorized access
+        unauthorized_spaces = spaces_to_check - accessible_space_ids
+        if unauthorized_spaces:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access denied to spaces: {', '.join(str(s) for s in unauthorized_spaces)}",
+            )
+
     return StreamingResponse(
         generate_sse_events(
             query=query,
             db=db,
             organization_id=organization_id,
             space_id=space_id,
-            user_id=user_id,
+            mentioned_space_ids=mentioned_space_ids_list,
+            user_id=user_id_uuid,
             save_to_db=save_to_db,
             thread_id=thread_id,
         ),

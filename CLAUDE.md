@@ -549,6 +549,7 @@ gh pr list                                 # List PRs
 gh pr create --title "Title" --body "Body" # Create PR
 gh pr diff 14                              # View PR diff
 gh pr checks 14                            # View PR checks
+gh api repos/kamosah/olympus/pulls/14/comments  # Get all PR comments
 
 # Issue operations
 gh issue create --title "Title" --body "Body"  # Create issue

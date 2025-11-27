@@ -2,7 +2,7 @@ import { DM_Sans, IBM_Plex_Mono } from 'next/font/google';
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/lib/query/provider';
-import './globals.css';
+import './globals.scss';
 import 'highlight.js/styles/atom-one-dark.css';
 
 // Primary interface font (Hex-inspired: DM Sans as alternative to PP Formula)

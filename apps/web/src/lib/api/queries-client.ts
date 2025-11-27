@@ -96,6 +96,7 @@ export function buildStreamUrl(params: {
   threadId?: string;
   organizationId?: string;
   spaceId?: string;
+  mentionedSpaceIds?: string[];
   userId?: string;
   saveToDb?: boolean;
 }): string {
@@ -109,6 +110,14 @@ export function buildStreamUrl(params: {
       save_to_db: String(params.saveToDb),
     }),
   });
+
+  // Add mentioned space IDs as comma-separated list
+  if (params.mentionedSpaceIds && params.mentionedSpaceIds.length > 0) {
+    searchParams.append(
+      'mentioned_space_ids',
+      params.mentionedSpaceIds.join(',')
+    );
+  }
 
   return `${API_BASE_URL}/api/thread/stream?${searchParams.toString()}`;
 }

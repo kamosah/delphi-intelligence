@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@olympus/ui';
 
@@ -18,7 +18,7 @@ interface StreamingContainerProps {
  * - Animated status indicator with loading spinner
  * - Static primary blue background during streaming
  * - Smooth fade transitions between streaming and default states
- * - Framer Motion animations for status indicator entrance/exit
+ * - Animated height change when status indicator appears/disappears
  *
  * Note: Border animations should be applied to child components, not this container.
  *
@@ -43,23 +43,24 @@ export function StreamingContainer({
         duration: 0.3,
         ease: 'easeInOut',
       }}
-      className={cn('relative rounded-md', isStreaming ? 'p-1.5' : '')}
+      className="relative rounded-md p-1.5"
     >
-      {/* Status indicator during streaming */}
-      <AnimatePresence>
-        {isStreaming && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center gap-2 text-sm text-gray-600 pb-1"
-          >
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>{statusText}</span>
-          </motion.div>
+      {/* Status indicator - Always reserve space to prevent layout shift */}
+      <motion.div
+        animate={{
+          opacity: isStreaming ? 1 : 0,
+          height: isStreaming ? 'auto' : 0,
+        }}
+        initial={false}
+        transition={{ duration: 0.2 }}
+        className={cn(
+          'flex items-center gap-2 text-sm text-gray-600',
+          isStreaming ? 'pb-1' : 'overflow-hidden'
         )}
-      </AnimatePresence>
+      >
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>{statusText}</span>
+      </motion.div>
 
       {/* Input container with animated border */}
       <div>{children}</div>

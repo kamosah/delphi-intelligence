@@ -5,7 +5,7 @@ from typing import Any, NamedTuple
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, case, select
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -126,6 +126,7 @@ class VectorSearchService:
         document_ids: list[UUID] | None = None,
         limit: int = 10,
         similarity_threshold: float = 0.0,
+        space_boosts: dict[UUID, float] | None = None,
     ) -> list[SearchResult]:
         """
         Find similar document chunks using cosine similarity.
@@ -138,12 +139,15 @@ class VectorSearchService:
             document_ids: Optional filter by specific documents
             limit: Maximum number of results to return (default: 10)
             similarity_threshold: Minimum similarity score (0.0-1.0, default: 0.0)
+            space_boosts: Optional dict mapping space UUIDs to boost factors (e.g., {space_id: 1.2})
+                         Boosts are applied by dividing the distance (lower distance = better match)
+                         All boost factors must be positive numbers (> 0)
 
         Returns:
             List of SearchResult tuples ordered by relevance (most similar first)
 
         Raises:
-            ValueError: If query is empty or limit is invalid
+            ValueError: If query is empty, limit is invalid, or boost factors are not positive
             Exception: For embedding or database errors
 
         Note:
@@ -151,9 +155,21 @@ class VectorSearchService:
             - Distance: Lower is better (inverse of similarity)
             - Cosine similarity = 1 - cosine_distance
             - If both space_id and space_ids are provided, space_id takes precedence
+            - Boost factors divide the distance (e.g., 1.2x boost → distance / 1.2)
         """
         # Validate parameters
         self._validate_search_params(query, limit, similarity_threshold)
+
+        # Validate space_boosts to prevent division by zero
+        if space_boosts:
+            invalid_boosts = {
+                space_id: boost for space_id, boost in space_boosts.items() if boost <= 0
+            }
+            if invalid_boosts:
+                raise ValueError(
+                    f"All space boost factors must be positive numbers (> 0). "
+                    f"Invalid boosts: {invalid_boosts}"
+                )
 
         logger.info(
             f"[VECTOR_SEARCH] Starting search for: '{query[:50]}...' "
@@ -171,11 +187,24 @@ class VectorSearchService:
             raise
 
         # Build the query with vector similarity search
+        base_distance = DocumentChunk.embedding.cosine_distance(query_embedding)
+
+        # Apply boost factors if provided (divide distance by boost factor)
+        if space_boosts:
+            # Build CASE statement: WHEN space_id = X THEN distance / boost ELSE distance
+            when_clauses = [
+                (Document.space_id == space_uuid, base_distance / boost)
+                for space_uuid, boost in space_boosts.items()
+            ]
+            boosted_distance = case(*when_clauses, else_=base_distance).label("distance")
+        else:
+            boosted_distance = base_distance.label("distance")
+
         stmt = (
             select(
                 DocumentChunk,
                 Document,
-                DocumentChunk.embedding.cosine_distance(query_embedding).label("distance"),
+                boosted_distance,
             )
             .join(Document, DocumentChunk.document_id == Document.id)
             .where(DocumentChunk.embedding.isnot(None))
@@ -186,7 +215,7 @@ class VectorSearchService:
         if filters:
             stmt = stmt.where(and_(*filters))
 
-        # Order by distance and limit results
+        # Order by boosted distance and limit results
         stmt = stmt.order_by("distance").limit(limit)
 
         # Execute query

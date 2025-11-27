@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Square } from 'lucide-react';
 import { Button } from '@olympus/ui';
+import { SpaceMentionAutocomplete } from '@/components/editor/mentions/SpaceMentionAutocomplete';
 import { TipTapEditor } from '@/components/editor/TipTapEditor';
 import { useEditorIsEmpty } from '@/hooks/useEditorState';
 import { useTipTapEditor } from '../../hooks/useTipTapEditor';
@@ -14,7 +15,7 @@ interface ThreadInputProps {
   disabled?: boolean;
   isStreaming?: boolean;
   hasResponse?: boolean;
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, mentionedSpaceIds?: string[]) => void;
   onStopStreaming?: () => void;
   placeholder?: string;
 }
@@ -52,13 +53,16 @@ export function ThreadInput({
   /**
    * Memoize callbacks to prevent editor recreation on every render
    * This fixes the infinite loop issue
+   *
+   * Note: This is called by the Enter key handler in useTipTapEditor
+   * The mentioned space IDs are extracted inside the hook before clearing
    */
   const handleEditorSubmit = useCallback(
-    (content: string) => {
+    (content: string, mentionedSpaceIds?: string[]) => {
       const trimmedMessage = content.trim();
 
       if (trimmedMessage && !isStreaming && !disabled) {
-        onSubmit(trimmedMessage);
+        onSubmit(trimmedMessage, mentionedSpaceIds);
         // Note: Editor is cleared by the hook's Enter keydown handler
         // The send button uses clearEditorContent() helper
         // useEditorIsEmpty will automatically re-render when editor clears via either method
@@ -67,13 +71,18 @@ export function ThreadInput({
     [onSubmit, isStreaming, disabled]
   );
 
-  const { editor, isReady, clearEditorContent, getEditorText } =
-    useTipTapEditor({
-      placeholder,
-      onSubmit: handleEditorSubmit,
-      disabled: disabled || isStreaming, // Disable input during streaming
-      autofocus: true,
-    });
+  const {
+    editor,
+    isReady,
+    clearEditorContent,
+    getEditorText,
+    getMentionedSpaceIds,
+  } = useTipTapEditor({
+    placeholder,
+    onSubmit: handleEditorSubmit,
+    disabled: disabled || isStreaming, // Disable input during streaming
+    autofocus: true,
+  });
 
   /**
    * Subscribe to editor state using useSyncExternalStore
@@ -88,7 +97,9 @@ export function ThreadInput({
     const content = getEditorText();
 
     if (content && !isStreaming && !disabled) {
-      onSubmit(content);
+      // Extract mentioned space IDs before clearing editor
+      const mentionedIds = getMentionedSpaceIds();
+      onSubmit(content, mentionedIds);
       // Clear editor immediately after submission using chain API
       clearEditorContent();
       // useEditorIsEmpty will automatically re-render when editor clears
@@ -96,6 +107,7 @@ export function ThreadInput({
   }, [
     editor,
     getEditorText,
+    getMentionedSpaceIds,
     isStreaming,
     disabled,
     onSubmit,
@@ -173,6 +185,9 @@ export function ThreadInput({
           </motion.div>
         </StreamingContainer>
       </div>
+
+      {/* Space Mention Autocomplete - Uses TipTap SuggestionMenu for proper keyboard handling */}
+      <SpaceMentionAutocomplete editor={editor} enabled={isReady} />
     </div>
   );
 }
