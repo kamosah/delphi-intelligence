@@ -284,7 +284,7 @@ async def stream_thread_response(
         if unauthorized_spaces:
             raise HTTPException(
                 status_code=403,
-                detail=f"Access denied to spaces: {unauthorized_spaces}",
+                detail=f"Access denied to spaces: {', '.join(str(s) for s in unauthorized_spaces)}",
             )
 
     return StreamingResponse(
