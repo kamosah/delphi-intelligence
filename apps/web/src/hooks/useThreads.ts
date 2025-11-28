@@ -42,21 +42,23 @@ export function useThreads(options?: {
   offset?: number;
 }) {
   const { accessToken } = useAuthStore();
+  const limit = options?.limit ?? 100;
+  const offset = options?.offset ?? 0;
 
   const query = useGetThreadsQuery(
     {
       spaceId: options?.spaceId,
       organizationId: options?.organizationId,
-      limit: options?.limit,
-      offset: options?.offset,
+      limit,
+      offset,
     },
     {
       enabled: !!accessToken,
       queryKey: queryKeys.threads.list({
         spaceId: options?.spaceId,
         organizationId: options?.organizationId,
-        limit: options?.limit,
-        offset: options?.offset,
+        limit,
+        offset,
       }),
     }
   );

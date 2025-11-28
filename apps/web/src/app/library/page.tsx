@@ -1,4 +1,12 @@
-'use client';
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from '@tanstack/react-query';
+import { LibraryClient } from '@/components/library/LibraryClient';
+import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
+import { fetchThreads } from '@/lib/api/server-fetchers';
+import { queryKeys } from '@/lib/query/query-keys';
 
 /**
  * Library page - Search and browse all threads
@@ -9,19 +17,41 @@
  * - Grid/list view toggle
  * - Inspired by Perplexity's thread search UI
  *
+ * SSR Optimization:
+ * - Prefetches threads for sidebar navigation
+ * - Future: Prefetch for main library grid/list view
+ *
  * TODO: Implement search functionality (see LOG-222)
  */
-export default function LibraryPage() {
+export default async function LibraryPage() {
+  const queryClient = new QueryClient();
+  const graphqlClient = await getServerGraphQLClient();
+
+  // Prefetch threads for sidebar navigation
+  // Limit: 50 matches ThreadsNavigation query
+  // Wrapped in try-catch: if prefetch fails, page still renders and client will fetch
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.threads.list({
+        organizationId: null,
+        limit: 50,
+        offset: 0,
+      }),
+      queryFn: () =>
+        fetchThreads(graphqlClient, {
+          organizationId: null,
+          limit: 50,
+          offset: 0,
+        }),
+    });
+  } catch (error) {
+    // Log error but allow page to render - client-side queries will fetch data as needed
+    console.error('Library SSR prefetch failed:', error);
+  }
+
   return (
-    <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-          Thread Library
-        </h1>
-        <p className="text-gray-600">
-          Search and browse functionality coming soon
-        </p>
-      </div>
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <LibraryClient />
+    </HydrationBoundary>
   );
 }

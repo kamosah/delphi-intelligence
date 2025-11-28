@@ -1,167 +1,67 @@
-'use client';
-
-import { Database, FileText, MessageSquare, Zap } from 'lucide-react';
 import {
-  DashboardStatCard,
-  DashboardStatCardSkeleton,
-} from '@/components/dashboard/DashboardStatCard';
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from '@tanstack/react-query';
+import { DashboardClient } from '@/components/dashboard/DashboardClient';
+import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
 import {
-  RecentDocumentItem,
-  RecentDocumentItemSkeleton,
-} from '@/components/dashboard/RecentDocumentItem';
-import {
-  RecentThreadItem,
-  RecentThreadItemSkeleton,
-} from '@/components/dashboard/RecentThreadItem';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useDocuments } from '@/hooks/useDocuments';
-import { useThreads } from '@/hooks/useThreads';
-import { useAuthStore } from '@/lib/stores/auth-store';
+  fetchDashboardStats,
+  fetchDocuments,
+  fetchThreads,
+} from '@/lib/api/server-fetchers';
+import { queryKeys } from '@/lib/query/query-keys';
 
-export default function DashboardPage() {
-  const { currentOrganization } = useAuthStore();
+export default async function DashboardPage() {
+  const queryClient = new QueryClient();
+  const graphqlClient = await getServerGraphQLClient();
 
-  // Fetch dashboard stats (efficient COUNT queries)
-  const { stats, isLoading: isLoadingStats } = useDashboardStats({
-    organizationId: currentOrganization?.id,
-  });
+  // Parallel prefetch all 3 queries for instant dashboard load
+  // Wrapped in try-catch: if prefetch fails, page still renders and client will fetch
+  try {
+    await Promise.all([
+      // Prefetch dashboard stats (counts for documents, spaces, threads)
+      // TODO (LOG-227): Query key mismatch - server uses organizationId: null but client uses
+      // currentOrganization?.id from Zustand. This causes hydration failure and duplicate requests.
+      // Fix: Read current_organization_id from user_preferences table in Server Component.
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.dashboard.stats(null),
+        queryFn: () =>
+          fetchDashboardStats(graphqlClient, { organizationId: null }),
+      }),
 
-  // Fetch recent documents (only top 3)
-  const { documents, isLoading: isLoadingDocuments } = useDocuments({
-    limit: 3,
-  });
+      // Prefetch recent documents (top 3)
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.documents.list(null, { limit: 3, offset: 0 }),
+        queryFn: () => fetchDocuments(graphqlClient, { limit: 3, offset: 0 }),
+      }),
 
-  // Fetch recent threads (only top 3)
-  const { threads, isLoading: isLoadingThreads } = useThreads({
-    organizationId: currentOrganization?.id,
-    limit: 3,
-  });
-
-  // Documents and threads are already sorted by created_at desc from the API
-  const recentDocuments = documents || [];
-  const recentThreads = threads || [];
+      // Prefetch recent threads (top 3)
+      // TODO (LOG-227): Query key mismatch - server uses organizationId: null but client uses
+      // currentOrganization?.id from Zustand. This causes hydration failure and duplicate requests.
+      // Fix: Read current_organization_id from user_preferences table in Server Component.
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.threads.list({
+          organizationId: null,
+          limit: 3,
+          offset: 0,
+        }),
+        queryFn: () =>
+          fetchThreads(graphqlClient, {
+            organizationId: null,
+            limit: 3,
+            offset: 0,
+          }),
+      }),
+    ]);
+  } catch (error) {
+    // Log error but allow page to render - client-side queries will fetch data as needed
+    console.error('Dashboard SSR prefetch failed:', error);
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">
-            Welcome back! Here&apos;s what&apos;s happening with your data.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoadingStats || !stats ? (
-          <>
-            <DashboardStatCardSkeleton />
-            <DashboardStatCardSkeleton />
-            <DashboardStatCardSkeleton />
-            <DashboardStatCardSkeleton />
-          </>
-        ) : (
-          <>
-            <DashboardStatCard
-              icon={FileText}
-              label="Total Documents"
-              value={stats.totalDocuments}
-              iconBgColor="bg-blue-100"
-              iconColor="text-blue-600"
-            />
-            <DashboardStatCard
-              icon={MessageSquare}
-              label="Threads This Month"
-              value={stats.threadsThisMonth}
-              iconBgColor="bg-green-100"
-              iconColor="text-green-600"
-            />
-            <DashboardStatCard
-              icon={Database}
-              label="Active Spaces"
-              value={stats.totalSpaces}
-              iconBgColor="bg-yellow-100"
-              iconColor="text-yellow-600"
-            />
-            <DashboardStatCard
-              icon={Zap}
-              label="Total Threads"
-              value={stats.totalThreads}
-              iconBgColor="bg-purple-100"
-              iconColor="text-purple-600"
-            />
-          </>
-        )}
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Documents */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Recent Documents
-            </h2>
-          </div>
-          <div className="p-6">
-            {isLoadingDocuments ? (
-              <div className="space-y-4">
-                <RecentDocumentItemSkeleton />
-                <RecentDocumentItemSkeleton />
-                <RecentDocumentItemSkeleton />
-              </div>
-            ) : recentDocuments.length > 0 ? (
-              <div className="space-y-4">
-                {recentDocuments.map((doc) => (
-                  <RecentDocumentItem
-                    key={doc.id}
-                    name={doc.name}
-                    createdAt={doc.createdAt}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-8">
-                No documents yet. Upload your first document to get started.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Threads */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Recent Threads
-            </h2>
-          </div>
-          <div className="p-6">
-            {isLoadingThreads ? (
-              <div className="space-y-4">
-                <RecentThreadItemSkeleton />
-                <RecentThreadItemSkeleton />
-                <RecentThreadItemSkeleton />
-              </div>
-            ) : recentThreads.length > 0 ? (
-              <div className="space-y-4">
-                {recentThreads.map((thread) => (
-                  <RecentThreadItem
-                    key={thread.id}
-                    queryText={thread.queryText}
-                    createdAt={thread.createdAt}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-8">
-                No threads yet. Start a conversation to analyze your data.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DashboardClient />
+    </HydrationBoundary>
   );
 }
