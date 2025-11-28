@@ -30,17 +30,19 @@ export type {
  */
 export function useSpaces(options?: { limit?: number; offset?: number }) {
   const { accessToken } = useAuthStore();
+  const limit = options?.limit ?? 100;
+  const offset = options?.offset ?? 0;
 
   const query = useGetSpacesQuery(
     {
-      limit: options?.limit,
-      offset: options?.offset,
+      limit,
+      offset,
     },
     {
       enabled: !!accessToken,
       queryKey: queryKeys.spaces.list({
-        limit: options?.limit,
-        offset: options?.offset,
+        limit,
+        offset,
       }),
     }
   );
