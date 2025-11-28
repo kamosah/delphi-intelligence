@@ -1,7 +1,12 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { ThreadInterface } from '@/components/threads/ThreadInterface';
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from '@tanstack/react-query';
+import { ThreadsClient } from '@/components/threads/ThreadsClient';
+import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
+import { fetchThreads } from '@/lib/api/server-fetchers';
+import { queryKeys } from '@/lib/query/query-keys';
 
 /**
  * Top-level Threads page - org-wide conversational AI interface.
@@ -9,24 +14,37 @@ import { ThreadInterface } from '@/components/threads/ThreadInterface';
  * Features:
  * - ThreadInterface shows immediately (no space selection)
  * - Org-wide thread creation and queries
- * - ThreadsSidebar shows recent threads and bookmarks
+ * - ThreadsSidebar shows recent threads and bookmarks (SSR prefetched!)
  * - Uses currentOrganization from Zustand auth store
  * - Navigates to individual thread page after first message
+ *
+ * SSR Optimization:
+ * - Prefetches threads for both sidebar and main content
+ * - No loading skeleton on initial page load
  */
-export default function ThreadsPage() {
-  const router = useRouter();
+export default async function ThreadsPage() {
+  const queryClient = new QueryClient();
+  const graphqlClient = await getServerGraphQLClient();
 
-  // Handle thread creation - navigate to individual thread page
-  const handleThreadCreated = (threadId: string) => {
-    router.push(`/threads/${threadId}`);
-  };
+  // Prefetch threads for sidebar (recent threads + bookmarks)
+  // Limit: 50 matches ThreadsNavigation query
+  await queryClient.prefetchQuery({
+    queryKey: queryKeys.threads.list({
+      organizationId: null,
+      limit: 50,
+      offset: 0,
+    }),
+    queryFn: () =>
+      fetchThreads(graphqlClient, {
+        organizationId: null,
+        limit: 50,
+        offset: 0,
+      }),
+  });
 
   return (
-    <div className="flex flex-col h-full">
-      {/* ThreadInterface - Main chat interface */}
-      <div className="flex-1 overflow-hidden">
-        <ThreadInterface onThreadCreated={handleThreadCreated} />
-      </div>
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ThreadsClient />
+    </HydrationBoundary>
   );
 }
