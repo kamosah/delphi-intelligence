@@ -16,21 +16,24 @@ export interface FetchDashboardStatsOptions {
 /**
  * Fetch dashboard statistics (document count, space count, thread count).
  *
+ * Returns the full query result to match client-side hook expectations.
+ * This ensures proper SSR hydration (server and client have same data structure).
+ *
  * @example
  * ```typescript
  * const client = await getServerGraphQLClient();
- * const stats = await fetchDashboardStats(client, { organizationId: 'org-123' });
+ * const data = await fetchDashboardStats(client, { organizationId: 'org-123' });
  * ```
  */
 export async function fetchDashboardStats(
   client: GraphQLClient,
   options?: FetchDashboardStatsOptions
-): Promise<DashboardStats> {
+): Promise<{ dashboardStats: DashboardStats }> {
   const result = await client.request<{
     dashboardStats: DashboardStats;
   }>(GetDashboardStatsDocument, {
     organizationId: options?.organizationId ?? null,
   });
 
-  return result.dashboardStats;
+  return result;
 }

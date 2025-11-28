@@ -27,14 +27,23 @@ export default async function DashboardPage() {
 
     // Prefetch recent documents (top 3)
     queryClient.prefetchQuery({
-      queryKey: queryKeys.documents.list(null, { limit: 3 }),
-      queryFn: () => fetchDocuments(graphqlClient, { limit: 3 }),
+      queryKey: queryKeys.documents.list(null, { limit: 3, offset: 0 }),
+      queryFn: () => fetchDocuments(graphqlClient, { limit: 3, offset: 0 }),
     }),
 
     // Prefetch recent threads (top 3)
     queryClient.prefetchQuery({
-      queryKey: queryKeys.threads.list({ limit: 3 }),
-      queryFn: () => fetchThreads(graphqlClient, { limit: 3 }),
+      queryKey: queryKeys.threads.list({
+        organizationId: null,
+        limit: 3,
+        offset: 0,
+      }),
+      queryFn: () =>
+        fetchThreads(graphqlClient, {
+          organizationId: null,
+          limit: 3,
+          offset: 0,
+        }),
     }),
   ]);
 

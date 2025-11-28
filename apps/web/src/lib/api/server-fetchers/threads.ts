@@ -16,16 +16,19 @@ export interface FetchThreadsOptions {
 /**
  * Fetch threads list with optional filtering.
  *
+ * Returns the full query result to match client-side hook expectations.
+ * This ensures proper SSR hydration (server and client have same data structure).
+ *
  * @example
  * ```typescript
  * const client = await getServerGraphQLClient();
- * const threads = await fetchThreads(client, { organizationId: 'org-123', limit: 3 });
+ * const data = await fetchThreads(client, { organizationId: 'org-123', limit: 3 });
  * ```
  */
 export async function fetchThreads(
   client: GraphQLClient,
   options?: FetchThreadsOptions
-): Promise<GetThreadsQuery['threads']> {
+): Promise<GetThreadsQuery> {
   const result = await client.request<GetThreadsQuery>(GetThreadsDocument, {
     spaceId: options?.spaceId ?? null,
     organizationId: options?.organizationId ?? null,
@@ -33,5 +36,5 @@ export async function fetchThreads(
     offset: options?.offset ?? 0,
   });
 
-  return result.threads;
+  return result;
 }

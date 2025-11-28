@@ -14,8 +14,8 @@ export default async function DocumentsPage() {
 
   // Prefetch all documents (across all spaces) for instant page load
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.documents.list(null, {}),
-    queryFn: () => fetchDocuments(graphqlClient),
+    queryKey: queryKeys.documents.list(null, { limit: 100, offset: 0 }),
+    queryFn: () => fetchDocuments(graphqlClient, { limit: 100, offset: 0 }),
   });
 
   return (

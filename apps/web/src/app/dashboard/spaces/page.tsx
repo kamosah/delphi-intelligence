@@ -14,7 +14,7 @@ export default async function SpacesPage() {
 
   // Prefetch spaces list for instant page load
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.spaces.list({}),
+    queryKey: queryKeys.spaces.list({ limit: undefined, offset: undefined }),
     queryFn: () => fetchSpaces(graphqlClient),
   });
 
