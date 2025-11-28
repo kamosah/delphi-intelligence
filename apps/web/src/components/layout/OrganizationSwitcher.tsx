@@ -14,27 +14,12 @@ import {
 } from '@olympus/ui';
 import { CreateOrganizationDialog } from '@/components/organizations/CreateOrganizationDialog';
 import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
+import { useUpdateCurrentOrganization } from '@/hooks/useUserPreferences';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 
 interface OrganizationSwitcherProps {
   className?: string;
-}
-
-/**
- * Helper function to map Organization to auth store format
- */
-function mapOrganizationToStoreFormat(org: Organization) {
-  return {
-    id: org.id,
-    name: org.name,
-    slug: org.slug,
-    description: org.description,
-    ownerId: org.ownerId,
-    memberCount: org.memberCount,
-    spaceCount: org.spaceCount,
-    threadCount: org.threadCount,
-  };
 }
 
 /**
@@ -44,23 +29,28 @@ function mapOrganizationToStoreFormat(org: Organization) {
  * current organization indicator, and seamless switching UX.
  */
 export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
-  const { currentOrganization, setCurrentOrganization } = useAuthStore();
+  const { currentOrganization } = useAuthStore();
   const { organizations = [], isLoading } = useOrganizations();
+  const { updateCurrentOrganization, isUpdating } =
+    useUpdateCurrentOrganization();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const handleSelectOrganization = (orgId: string) => {
-    // For small arrays (typical: 1-5 orgs), .find() is more efficient than Map lookup
-    const org = organizations.find((o) => o.id === orgId);
-    if (org) {
-      setCurrentOrganization(mapOrganizationToStoreFormat(org));
+  const handleSelectOrganization = async (orgId: string) => {
+    try {
+      await updateCurrentOrganization(orgId);
+    } catch (error) {
+      console.error('Failed to switch organization:', error);
     }
   };
 
-  const handleOrganizationCreated = (organization: Organization) => {
+  const handleOrganizationCreated = async (organization: Organization) => {
     // Auto-select the newly created organization
-    // Using the organization object directly avoids race condition with query refetch
-    setCurrentOrganization(mapOrganizationToStoreFormat(organization));
+    try {
+      await updateCurrentOrganization(organization.id);
+    } catch (error) {
+      console.error('Failed to set new organization as current:', error);
+    }
   };
 
   if (isLoading) {

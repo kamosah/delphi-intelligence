@@ -697,6 +697,7 @@ export type UpdateUserPreferencesMutation = {
     language: string;
     timezone?: string | null;
     customSettings?: any | null;
+    currentOrganizationId?: string | null;
   };
 };
 
@@ -1003,6 +1004,7 @@ export type UserPreferencesQuery = {
     language: string;
     timezone?: string | null;
     customSettings?: any | null;
+    currentOrganizationId?: string | null;
   } | null;
 };
 
@@ -1666,6 +1668,7 @@ export const UpdateUserPreferencesDocument = `
     language
     timezone
     customSettings
+    currentOrganizationId
   }
 }
     `;
@@ -2356,6 +2359,7 @@ export const UserPreferencesDocument = `
     language
     timezone
     customSettings
+    currentOrganizationId
   }
 }
     `;
