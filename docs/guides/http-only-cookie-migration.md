@@ -4,6 +4,14 @@
 
 This guide provides step-by-step instructions for migrating from client-side cookie management (`document.cookie`) to HTTP-only cookies using the **Hybrid Architecture** (Supabase SSR + FastAPI Custom JWTs).
 
+> **⚠️ IMPORTANT: This is a FUTURE migration guide**
+>
+> **Current Implementation (PR #37)**: Uses client-side cookies via `document.cookie` with `olympus-auth-token` cookie name. This is the **current production implementation**.
+>
+> **Future Migration (This Guide)**: Describes the HTTP-only cookie migration using Supabase SSR. This is **NOT YET IMPLEMENTED** and represents planned future work.
+>
+> See the [Current Implementation](#current-implementation-pr-37) section below for what's actually deployed.
+
 **Related Documentation**:
 
 - [ADR-010: HTTP-Only Cookie Authentication Strategy](../adr/010-http-only-cookie-authentication.md)
@@ -18,17 +26,81 @@ This guide provides step-by-step instructions for migrating from client-side coo
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Phase 1: Foundation](#phase-1-foundation-week-1)
-3. [Phase 2: SSR Integration](#phase-2-ssr-integration-week-1-2)
-4. [Phase 3: Cleanup & Optimization](#phase-3-cleanup--optimization-week-2)
-5. [Testing Strategy](#testing-strategy)
-6. [Rollback Plan](#rollback-plan)
-7. [Monitoring & Observability](#monitoring--observability)
+1. [Current Implementation (PR #37)](#current-implementation-pr-37)
+2. [Future Migration Overview](#future-migration-overview)
+3. [Prerequisites](#prerequisites)
+4. [Phase 1: Foundation](#phase-1-foundation-week-1)
+5. [Phase 2: SSR Integration](#phase-2-ssr-integration-week-1-2)
+6. [Phase 3: Cleanup & Optimization](#phase-3-cleanup--optimization-week-2)
+7. [Testing Strategy](#testing-strategy)
+8. [Rollback Plan](#rollback-plan)
+9. [Monitoring & Observability](#monitoring--observability)
+
+---
+
+## Current Implementation (PR #37)
+
+**This section documents what's ACTUALLY deployed in production.**
+
+### Authentication Flow (Current)
+
+1. **Login**: User authenticates via `/auth/login` REST endpoint
+2. **Token Storage**: JWT stored client-side via `document.cookie` with cookie name `olympus-auth-token`
+3. **SSR Authentication**: Server Components read `olympus-auth-token` cookie to authenticate GraphQL requests
+4. **Token Management**: Client-side JavaScript has access to tokens (vulnerable to XSS)
+
+### Current Implementation Files
+
+**Frontend**:
+
+- `apps/web/src/lib/api/graphql-server-client.ts` - SSR GraphQL client (reads `olympus-auth-token` cookie)
+- `apps/web/src/lib/stores/auth-store.ts` - Zustand store (manages auth tokens in state)
+
+**Backend**:
+
+- `apps/api/app/routes/auth.py` - REST auth endpoints (`/login`, `/register`, `/refresh`, `/logout`)
+- `apps/api/app/auth/jwt_manager.py` - JWT token creation/verification
+
+### Current Security Limitations
+
+⚠️ **Known Vulnerabilities** (to be addressed by this migration):
+
+1. **XSS Exposure**: Tokens accessible via `document.cookie` (JavaScript can read them)
+2. **No HttpOnly Flag**: Tokens not protected from client-side script access
+3. **Manual Cookie Management**: Developers must manually set/clear cookies
+
+### Why We Need to Migrate
+
+The current implementation works but has security limitations. This guide documents the **future migration** to HTTP-only cookies for improved security.
+
+---
+
+## Future Migration Overview
+
+**The sections below (Phase 1-3) describe the FUTURE implementation - NOT the current state.**
+
+### Migration Goals
+
+1. **Eliminate XSS Risk**: Move tokens to HTTP-only cookies (inaccessible to JavaScript)
+2. **Automatic Cookie Management**: Let Supabase SSR handle cookie lifecycle
+3. **Maintain Hybrid Architecture**: Keep FastAPI custom JWTs for business logic
+4. **Zero Downtime**: Migrate incrementally without breaking existing auth
+
+### Key Changes (Future)
+
+| Aspect        | Current (PR #37)                   | Future (This Guide)            |
+| ------------- | ---------------------------------- | ------------------------------ |
+| Cookie Name   | `olympus-auth-token`               | `sb-<project-id>-auth-token`   |
+| Cookie Access | JavaScript (via `document.cookie`) | HTTP-only (server-only)        |
+| Token Source  | FastAPI `/auth/login`              | Supabase Auth + Token Exchange |
+| SSR Client    | Reads cookie manually              | Supabase SSR client            |
+| Security      | Vulnerable to XSS                  | Protected from XSS             |
 
 ---
 
 ## Prerequisites
+
+**📋 Prerequisites for FUTURE migration implementation**
 
 ### Required Knowledge
 
@@ -60,7 +132,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 ---
 
-## Phase 1: Foundation (Week 1)
+## Phase 1: Foundation (Week 1) - FUTURE WORK
+
+**⚠️ This phase is NOT yet implemented. It describes future migration work.**
 
 **Goal**: Establish token exchange infrastructure without breaking existing auth
 
@@ -533,7 +607,9 @@ curl -X POST http://localhost:8000/auth/exchange \
 
 ---
 
-## Phase 2: SSR Integration (Week 1-2)
+## Phase 2: SSR Integration (Week 1-2) - FUTURE WORK
+
+**⚠️ This phase is NOT yet implemented. It describes future migration work.**
 
 **Goal**: Update SSR data fetching to use token exchange pattern
 
@@ -740,7 +816,9 @@ curl -w "\nTime: %{time_total}s\n" \
 
 ---
 
-## Phase 3: Cleanup & Optimization (Week 2)
+## Phase 3: Cleanup & Optimization (Week 2) - FUTURE WORK
+
+**⚠️ This phase is NOT yet implemented. It describes future migration work.**
 
 **Goal**: Remove deprecated code and optimize performance
 
@@ -820,10 +898,10 @@ export const graphqlClient = new GraphQLClient(
 
 ### Step 3.4: Update Documentation
 
-**Files to Update**:
+**Files to Update (FUTURE WORK)**:
 
 1. **`docs/guides/server-side-fetchers.md`**:
-   - Fix cookie name: `olympus-auth-token` → `sb-<project-id>-auth-token`
+   - [Future Work] Fix cookie name: `olympus-auth-token` → `sb-<project-id>-auth-token`
    - Add note about HTTP-only cookies (not `document.cookie`)
    - Document token exchange pattern
 

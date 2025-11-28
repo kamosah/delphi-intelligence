@@ -277,15 +277,15 @@ const data = await fetch[Entity](graphqlClient, { limit: 50 });
 
 ## Authentication
 
-### Server-Side GraphQL Client
+### ⚠️ Current Implementation (Vulnerable)
 
-The `getServerGraphQLClient()` function reads the JWT token from HTTP-only cookies:
+The `getServerGraphQLClient()` function reads the JWT token from cookies set via client-side JavaScript:
 
 ```typescript
 // lib/api/graphql-server-client.ts
 export async function getServerGraphQLClient() {
   const cookieStore = await cookies();
-  const token = cookieStore.get('access_token')?.value;
+  const token = cookieStore.get('olympus-auth-token')?.value;
 
   const headers: Record<string, string> = {};
   if (token) {
@@ -298,7 +298,9 @@ export async function getServerGraphQLClient() {
 
 **Cookie Name**: `olympus-auth-token` (set by client-side auth via `setAuthCookies`)
 
-**Security Note**: These cookies are set via `document.cookie` and are NOT HTTP-only. They are accessible to JavaScript, making them vulnerable to XSS attacks. For production, consider migrating to server-side cookie setting with HttpOnly flag enabled (see ADR-010).
+**⚠️ Security Warning**: These cookies are set via `document.cookie` and are **NOT HTTP-only**. They are accessible to JavaScript, making them vulnerable to XSS attacks.
+
+> **Recommended for Production**: Migrate to server-side cookie setting with the `HttpOnly` flag enabled. See [ADR-010: HTTP-Only Cookie Authentication Strategy](../adr/010-http-only-cookie-authentication.md) and the [HTTP-Only Cookie Migration Guide](./http-only-cookie-migration.md) for implementation details.
 
 ---
 

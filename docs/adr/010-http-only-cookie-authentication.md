@@ -1,10 +1,20 @@
 # ADR-010: HTTP-Only Cookie Authentication Strategy
 
-**Status**: Proposed
+**Status**: Draft (Planning - NOT YET IMPLEMENTED)
 **Date**: 2025-11-27
 **Authors**: Engineering Team
 **Story Points**: 8 (Hybrid approach - 1-2 weeks)
-**Related Issues**: LOG-204, PR #37
+**Related Issues**: LOG-204, LOG-226, PR #37
+
+---
+
+> **⚠️ IMPORTANT: This ADR describes a FUTURE migration, NOT the current implementation**
+>
+> **Current State (PR #37)**: Uses `olympus-auth-token` cookies via `document.cookie` (vulnerable to XSS). See `apps/web/src/lib/api/graphql-server-client.ts` for actual implementation.
+>
+> **Future State (This ADR)**: HTTP-only cookies with Supabase SSR. This is planned but NOT yet implemented.
+>
+> **Migration Tracking**: See [LOG-226](https://linear.app/logarithmic/issue/LOG-226) and the [HTTP-Only Cookie Migration Guide](../guides/http-only-cookie-migration.md) for implementation status.
 
 ---
 
@@ -12,7 +22,7 @@
 
 This ADR defines the strategy for migrating from client-side cookie management (`document.cookie`) to HTTP-only cookies for improved security against XSS attacks. The current architecture uses a **dual token system** combining Supabase Auth with custom Olympus JWTs, making this migration more complex than a typical implementation.
 
-**Decision**: Adopt a **Hybrid Architecture** (Supabase SSR + FastAPI Custom JWTs) that:
+**Proposed Decision**: Adopt a **Hybrid Architecture** (Supabase SSR + FastAPI Custom JWTs) that:
 
 1. **Frontend**: Use Supabase's `@supabase/ssr` package for HTTP-only cookie management
 2. **Token Exchange**: Next.js middleware exchanges Supabase tokens for Olympus JWTs

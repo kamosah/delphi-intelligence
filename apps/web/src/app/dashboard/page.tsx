@@ -21,6 +21,9 @@ export default async function DashboardPage() {
   try {
     await Promise.all([
       // Prefetch dashboard stats (counts for documents, spaces, threads)
+      // TODO (LOG-227): Query key mismatch - server uses organizationId: null but client uses
+      // currentOrganization?.id from Zustand. This causes hydration failure and duplicate requests.
+      // Fix: Read current_organization_id from user_preferences table in Server Component.
       queryClient.prefetchQuery({
         queryKey: queryKeys.dashboard.stats(null),
         queryFn: () =>
@@ -34,6 +37,9 @@ export default async function DashboardPage() {
       }),
 
       // Prefetch recent threads (top 3)
+      // TODO (LOG-227): Query key mismatch - server uses organizationId: null but client uses
+      // currentOrganization?.id from Zustand. This causes hydration failure and duplicate requests.
+      // Fix: Read current_organization_id from user_preferences table in Server Component.
       queryClient.prefetchQuery({
         queryKey: queryKeys.threads.list({
           organizationId: null,
