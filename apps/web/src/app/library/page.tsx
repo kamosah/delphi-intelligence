@@ -29,19 +29,25 @@ export default async function LibraryPage() {
 
   // Prefetch threads for sidebar navigation
   // Limit: 50 matches ThreadsNavigation query
-  await queryClient.prefetchQuery({
-    queryKey: queryKeys.threads.list({
-      organizationId: null,
-      limit: 50,
-      offset: 0,
-    }),
-    queryFn: () =>
-      fetchThreads(graphqlClient, {
+  // Wrapped in try-catch: if prefetch fails, page still renders and client will fetch
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.threads.list({
         organizationId: null,
         limit: 50,
         offset: 0,
       }),
-  });
+      queryFn: () =>
+        fetchThreads(graphqlClient, {
+          organizationId: null,
+          limit: 50,
+          offset: 0,
+        }),
+    });
+  } catch (error) {
+    // Log error but allow page to render - client-side queries will fetch data as needed
+    console.error('Library SSR prefetch failed:', error);
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
