@@ -413,6 +413,7 @@ export type UpdateUserInput = {
 
 export type UpdateUserPreferencesInput = {
   browserNotificationsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  currentOrganizationId?: InputMaybe<Scalars['ID']['input']>;
   customSettings?: InputMaybe<Scalars['JSON']['input']>;
   emailNotifications?: InputMaybe<Scalars['Boolean']['input']>;
   language?: InputMaybe<Scalars['String']['input']>;
@@ -435,6 +436,7 @@ export type User = {
 export type UserPreferences = {
   __typename?: 'UserPreferences';
   browserNotificationsEnabled?: Maybe<Scalars['Boolean']['output']>;
+  currentOrganizationId?: Maybe<Scalars['ID']['output']>;
   customSettings?: Maybe<Scalars['JSON']['output']>;
   emailNotifications: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
@@ -541,6 +543,62 @@ export type UpdateMemberRoleMutation = {
   } | null;
 };
 
+export type CreateSpaceMutationVariables = Exact<{
+  input: CreateSpaceInput;
+}>;
+
+export type CreateSpaceMutation = {
+  __typename?: 'Mutation';
+  createSpace: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type UpdateSpaceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateSpaceInput;
+}>;
+
+export type UpdateSpaceMutation = {
+  __typename?: 'Mutation';
+  updateSpace?: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type DeleteSpaceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type DeleteSpaceMutation = {
+  __typename?: 'Mutation';
+  deleteSpace: boolean;
+};
+
 export type CreateThreadMutationVariables = Exact<{
   input: CreateThreadInput;
 }>;
@@ -615,62 +673,6 @@ export type DeleteThreadMutation = {
   deleteThread: boolean;
 };
 
-export type CreateSpaceMutationVariables = Exact<{
-  input: CreateSpaceInput;
-}>;
-
-export type CreateSpaceMutation = {
-  __typename?: 'Mutation';
-  createSpace: {
-    __typename?: 'Space';
-    id: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    iconColor?: string | null;
-    isPublic: boolean;
-    maxMembers?: number | null;
-    ownerId: string;
-    memberCount: number;
-    documentCount: number;
-    createdAt: string;
-    updatedAt: string;
-  };
-};
-
-export type UpdateSpaceMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
-  input: UpdateSpaceInput;
-}>;
-
-export type UpdateSpaceMutation = {
-  __typename?: 'Mutation';
-  updateSpace?: {
-    __typename?: 'Space';
-    id: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    iconColor?: string | null;
-    isPublic: boolean;
-    maxMembers?: number | null;
-    ownerId: string;
-    memberCount: number;
-    documentCount: number;
-    createdAt: string;
-    updatedAt: string;
-  } | null;
-};
-
-export type DeleteSpaceMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
-}>;
-
-export type DeleteSpaceMutation = {
-  __typename?: 'Mutation';
-  deleteSpace: boolean;
-};
-
 export type UpdateUserPreferencesMutationVariables = Exact<{
   input: UpdateUserPreferencesInput;
 }>;
@@ -688,6 +690,7 @@ export type UpdateUserPreferencesMutation = {
     language: string;
     timezone?: string | null;
     customSettings?: any | null;
+    currentOrganizationId?: string | null;
   };
 };
 
@@ -845,6 +848,53 @@ export type GetOrganizationMembersQuery = {
   }>;
 };
 
+export type GetSpacesQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetSpacesQuery = {
+  __typename?: 'Query';
+  spaces: Array<{
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetSpaceQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+export type GetSpaceQuery = {
+  __typename?: 'Query';
+  space?: {
+    __typename?: 'Space';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    iconColor?: string | null;
+    isPublic: boolean;
+    maxMembers?: number | null;
+    ownerId: string;
+    memberCount: number;
+    documentCount: number;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
 export type GetThreadsQueryVariables = Exact<{
   spaceId?: InputMaybe<Scalars['ID']['input']>;
   organizationId?: InputMaybe<Scalars['ID']['input']>;
@@ -932,53 +982,6 @@ export type GetThreadQuery = {
   } | null;
 };
 
-export type GetSpacesQueryVariables = Exact<{
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-}>;
-
-export type GetSpacesQuery = {
-  __typename?: 'Query';
-  spaces: Array<{
-    __typename?: 'Space';
-    id: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    iconColor?: string | null;
-    isPublic: boolean;
-    maxMembers?: number | null;
-    ownerId: string;
-    memberCount: number;
-    documentCount: number;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-};
-
-export type GetSpaceQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
-}>;
-
-export type GetSpaceQuery = {
-  __typename?: 'Query';
-  space?: {
-    __typename?: 'Space';
-    id: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    iconColor?: string | null;
-    isPublic: boolean;
-    maxMembers?: number | null;
-    ownerId: string;
-    memberCount: number;
-    documentCount: number;
-    createdAt: string;
-    updatedAt: string;
-  } | null;
-};
-
 export type UserPreferencesQueryVariables = Exact<{ [key: string]: never }>;
 
 export type UserPreferencesQuery = {
@@ -994,6 +997,7 @@ export type UserPreferencesQuery = {
     language: string;
     timezone?: string | null;
     customSettings?: any | null;
+    currentOrganizationId?: string | null;
   } | null;
 };
 

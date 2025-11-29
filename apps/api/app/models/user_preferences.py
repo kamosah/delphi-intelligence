@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
+    from .organization import Organization
     from .user import User
 
 
@@ -48,8 +49,21 @@ class UserPreferences(Base):
     # JSON field for flexible additional preferences
     custom_settings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    # Relationship to user
+    # Current organization selection
+    current_organization_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Relationships
     user: Mapped["User"] = relationship("User", back_populates="preferences")
+    current_organization: Mapped["Organization | None"] = relationship(
+        "Organization",
+        foreign_keys=[current_organization_id],
+        lazy="selectin",
+    )
 
     def __repr__(self) -> str:
         """String representation of user preferences."""

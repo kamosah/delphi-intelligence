@@ -19,3 +19,4 @@ export * from './dashboard';
 export * from './documents';
 export * from './threads';
 export * from './spaces';
+export * from './user-preferences';

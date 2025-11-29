@@ -32,7 +32,6 @@ interface AuthState {
 
   // Organization state
   currentOrganization: Organization | null;
-  lastUsedOrganizationId: string | null; // Track last used org ID for auto-selection
 
   // Actions
   setTokens: (accessToken: string, refreshToken: string) => void;
@@ -54,7 +53,6 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false,
         isLoading: false,
         currentOrganization: null,
-        lastUsedOrganizationId: null,
 
         // Actions
         setTokens: (accessToken, refreshToken) =>
@@ -71,8 +69,6 @@ export const useAuthStore = create<AuthState>()(
         setCurrentOrganization: (organization) =>
           set({
             currentOrganization: organization,
-            // Update lastUsedOrganizationId whenever organization is selected
-            lastUsedOrganizationId: organization?.id || null,
           }),
 
         logout: () =>
@@ -82,7 +78,6 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
             isAuthenticated: false,
             currentOrganization: null,
-            // Keep lastUsedOrganizationId on logout for next login
           }),
 
         clearAuth: () =>
@@ -92,7 +87,6 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
             isAuthenticated: false,
             currentOrganization: null,
-            lastUsedOrganizationId: null,
           }),
       }),
       {
@@ -103,7 +97,6 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: state.refreshToken,
           isAuthenticated: state.isAuthenticated,
           currentOrganization: state.currentOrganization,
-          lastUsedOrganizationId: state.lastUsedOrganizationId,
         }),
       }
     ),
