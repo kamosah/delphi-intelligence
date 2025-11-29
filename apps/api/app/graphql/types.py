@@ -491,6 +491,7 @@ class UserPreferences:
     language: str
     timezone: str | None
     custom_settings: strawberry.scalars.JSON | None  # type: ignore[valid-type]
+    current_organization_id: strawberry.ID | None
 
     @classmethod
     def from_model(cls, preferences: UserPreferencesModel) -> "UserPreferences":
@@ -505,6 +506,8 @@ class UserPreferences:
             language=preferences.language,
             timezone=preferences.timezone,
             custom_settings=preferences.custom_settings,
+            current_organization_id=strawberry.ID(str(preferences.current_organization_id))
+                if preferences.current_organization_id else None,
         )
 
 
@@ -519,3 +522,4 @@ class UpdateUserPreferencesInput:
     language: str | None = None
     timezone: str | None = None
     custom_settings: strawberry.scalars.JSON | None = None  # type: ignore[valid-type]
+    current_organization_id: strawberry.ID | None = None

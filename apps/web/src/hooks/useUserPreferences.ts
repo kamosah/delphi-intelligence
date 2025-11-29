@@ -2,13 +2,15 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { Organization, GetOrganizationsQuery } from '@/lib/api/generated';
+import { graphqlClient } from '@/lib/api/graphql-client';
 import {
   useUserPreferencesQuery,
   useUpdateUserPreferencesMutation,
+  GetOrganizationsDocument,
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import type { Organization } from '@/lib/api/generated';
 
 // Re-export generated types for convenience
 export type {
@@ -202,5 +204,74 @@ export function useUpdateCurrentOrganization() {
       }),
     isUpdating: mutation.isPending,
     error: mutation.error,
+  };
+}
+
+/**
+ * React Query hook for auto-selecting an organization on app load or login.
+ *
+ * Uses user preferences from backend as source of truth and syncs with Zustand.
+ * Implements smart fallback: preferred org → first org → null.
+ *
+ * @example
+ * ```typescript
+ * const autoSelectOrganization = useAutoSelectOrganization();
+ *
+ * useEffect(() => {
+ *   if (accessToken && !currentOrganization) {
+ *     autoSelectOrganization();
+ *   }
+ * }, [accessToken, currentOrganization, autoSelectOrganization]);
+ * ```
+ */
+export function useAutoSelectOrganization() {
+  const queryClient = useQueryClient();
+  const { setCurrentOrganization } = useAuthStore();
+  const { userPreferences } = useUserPreferences();
+  const { updateCurrentOrganization } = useUpdateCurrentOrganization();
+
+  return async () => {
+    try {
+      // Fetch organizations using React Query cache
+      const orgsData = await queryClient.fetchQuery<Organization[]>({
+        queryKey: queryKeys.organizations.lists(),
+        queryFn: async () => {
+          const response = await graphqlClient.request<GetOrganizationsQuery>(
+            GetOrganizationsDocument,
+            { limit: 100 }
+          );
+          return (response.organizations || []) as Organization[];
+        },
+      });
+
+      if (orgsData.length === 0) {
+        setCurrentOrganization(null);
+        return;
+      }
+
+      const preferredOrgId = userPreferences?.currentOrganizationId;
+      const firstOrganization = orgsData[0];
+
+      // Find preferred org or fall back to first
+      const selectedOrg = preferredOrgId
+        ? orgsData.find((org) => org.id === preferredOrgId) || firstOrganization
+        : firstOrganization;
+
+      // Update backend if no preference set or preferred org no longer exists
+      const needsBackendSync =
+        !preferredOrgId ||
+        (preferredOrgId && !orgsData.find((org) => org.id === preferredOrgId));
+
+      if (needsBackendSync) {
+        // This also updates Zustand optimistically
+        await updateCurrentOrganization(selectedOrg.id);
+      } else {
+        // Backend already correct, just update Zustand
+        setCurrentOrganization(selectedOrg);
+      }
+    } catch (error) {
+      console.error('Failed to auto-select organization:', error);
+      // Don't throw - allow user to continue and manually select organization
+    }
   };
 }

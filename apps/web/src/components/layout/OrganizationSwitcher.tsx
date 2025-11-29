@@ -31,8 +31,7 @@ interface OrganizationSwitcherProps {
 export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { currentOrganization } = useAuthStore();
   const { organizations = [], isLoading } = useOrganizations();
-  const { updateCurrentOrganization, isUpdating } =
-    useUpdateCurrentOrganization();
+  const { updateCurrentOrganization } = useUpdateCurrentOrganization();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
