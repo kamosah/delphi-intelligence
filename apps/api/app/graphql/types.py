@@ -507,7 +507,8 @@ class UserPreferences:
             timezone=preferences.timezone,
             custom_settings=preferences.custom_settings,
             current_organization_id=strawberry.ID(str(preferences.current_organization_id))
-                if preferences.current_organization_id else None,
+            if preferences.current_organization_id
+            else None,
         )
 
 
