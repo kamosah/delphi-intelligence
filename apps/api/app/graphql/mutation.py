@@ -1100,11 +1100,7 @@ class Mutation:
 
                 # Validate and update current_organization_id
                 if input.current_organization_id is not None:
-                    org_id = (
-                        UUID(str(input.current_organization_id))
-                        if input.current_organization_id
-                        else None
-                    )
+                    org_id = UUID(str(input.current_organization_id))
 
                     # Validation: User must be a member of the selected organization
                     if org_id:

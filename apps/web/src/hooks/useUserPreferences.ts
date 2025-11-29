@@ -148,6 +148,9 @@ export function useUpdateCurrentOrganization() {
 
   const mutation = useUpdateUserPreferencesMutation({
     onMutate: async (variables) => {
+      // Capture previous state for rollback on error
+      const previousOrganization = useAuthStore.getState().currentOrganization;
+
       // Optimistically update Zustand for instant UI feedback
       const orgId = variables.input.currentOrganizationId;
 
@@ -172,6 +175,9 @@ export function useUpdateCurrentOrganization() {
       } else {
         setCurrentOrganization(null);
       }
+
+      // Return context for rollback
+      return { previousOrganization };
     },
     onSuccess: () => {
       // Invalidate queries that depend on organization
@@ -188,8 +194,11 @@ export function useUpdateCurrentOrganization() {
         queryKey: queryKeys.spaces.lists(),
       });
     },
-    onError: () => {
-      // Rollback Zustand on error
+    onError: (error, variables, context) => {
+      // Rollback to previous state
+      if (context?.previousOrganization !== undefined) {
+        setCurrentOrganization(context.previousOrganization);
+      }
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences.details(),
       });
@@ -259,8 +268,7 @@ export function useAutoSelectOrganization() {
 
       // Update backend if no preference set or preferred org no longer exists
       const needsBackendSync =
-        !preferredOrgId ||
-        (preferredOrgId && !orgsData.find((org) => org.id === preferredOrgId));
+        !preferredOrgId || !orgsData.find((org) => org.id === preferredOrgId);
 
       if (needsBackendSync) {
         // This also updates Zustand optimistically

@@ -1005,23 +1005,29 @@ async def threads(
         current_org_id = getattr(request.state, "current_organization_id", None)
         org_uuid = UUID(str(current_org_id)) if current_org_id else None
 
-    if org_uuid:
-        # Verify user is a member of the organization
-        org_member_stmt = select(OrganizationMemberModel.id).where(
-            (OrganizationMemberModel.organization_id == org_uuid)
-            & (OrganizationMemberModel.user_id == user.id)
-        )
-        org_member_result = await session.execute(org_member_stmt)
-        if not org_member_result.scalar_one_or_none():
-            return []  # User not authorized
+    # Obtain a database session (context manager)
+    async for session in get_session():
+        if org_uuid:
+            # Verify user is a member of the organization
+            org_member_stmt = select(OrganizationMemberModel.id).where(
+                (OrganizationMemberModel.organization_id == org_uuid)
+                & (OrganizationMemberModel.user_id == user.id)
+            )
+            org_member_result = await session.execute(org_member_stmt)
+            if not org_member_result.scalar_one_or_none():
+                return []  # User not authorized
 
-        # Return user's threads in this organization
-        stmt = (
-            select(ThreadModel)
-            .where(ThreadModel.organization_id == org_uuid)
-            .where(ThreadModel.created_by == user.id)
-            .order_by(ThreadModel.created_at.desc())
-        )
+            # Return user's threads in this organization
+            stmt = (
+                select(ThreadModel)
+                .where(ThreadModel.organization_id == org_uuid)
+                .where(ThreadModel.created_by == user.id)
+                .order_by(ThreadModel.created_at.desc())
+            )
+            result = await session.execute(stmt)
+            return [Thread.from_model(t) for t in result.scalars().all()]
+
+        return []  # No organization context
 ```
 
 #### Frontend: Server-Side Fetcher (SSR)
