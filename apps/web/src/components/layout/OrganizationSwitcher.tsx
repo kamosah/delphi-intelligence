@@ -36,10 +36,21 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const handleSelectOrganization = async (orgId: string) => {
+    console.log('[OrganizationSwitcher] Switching to org:', orgId);
+    console.log(
+      '[OrganizationSwitcher] updateCurrentOrganization:',
+      updateCurrentOrganization
+    );
+
     try {
-      await updateCurrentOrganization(orgId);
+      const result = await updateCurrentOrganization(orgId);
+      console.log('[OrganizationSwitcher] Switch successful:', result);
     } catch (error) {
-      console.error('Failed to switch organization:', error);
+      console.error(
+        '[OrganizationSwitcher] Failed to switch organization:',
+        error
+      );
+      // Error already shown via toast in useUpdateCurrentOrganization
     }
   };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Organization, GetOrganizationsQuery } from '@/lib/api/generated';
@@ -144,22 +145,33 @@ export function useUpdateBrowserNotificationPreference() {
  */
 export function useUpdateCurrentOrganization() {
   const queryClient = useQueryClient();
-  const { setCurrentOrganization } = useAuthStore();
+  const { setCurrentOrganization, setOrgSynced } = useAuthStore();
 
   const mutation = useUpdateUserPreferencesMutation({
     onMutate: async (variables) => {
+      console.log(
+        '[useUpdateCurrentOrganization] onMutate called with:',
+        variables
+      );
+
       // Capture previous state for rollback on error
       const previousOrganization = useAuthStore.getState().currentOrganization;
+      console.log(
+        '[useUpdateCurrentOrganization] Previous org:',
+        previousOrganization
+      );
 
       // Optimistically update Zustand for instant UI feedback
       const orgId = variables.input.currentOrganizationId;
 
       if (orgId) {
-        // Get org from React Query cache
+        // Get org from React Query cache using the correct query key
         const orgsQuery = queryClient.getQueryData<{
           organizations: Organization[];
-        }>(queryKeys.organizations.lists());
+        }>(queryKeys.organizations.list({ limit: 100, offset: 0 }));
         const org = orgsQuery?.organizations?.find((o) => o.id === orgId);
+        console.log('[useUpdateCurrentOrganization] Found org in cache:', org);
+
         if (org) {
           setCurrentOrganization({
             id: org.id,
@@ -171,15 +183,31 @@ export function useUpdateCurrentOrganization() {
             spaceCount: org.spaceCount,
             threadCount: org.threadCount,
           });
+          console.log(
+            '[useUpdateCurrentOrganization] Optimistically set org:',
+            org.name
+          );
+        } else {
+          console.warn(
+            '[useUpdateCurrentOrganization] Org not found in cache, will update after backend response'
+          );
         }
       } else {
         setCurrentOrganization(null);
+        console.log('[useUpdateCurrentOrganization] Cleared current org');
       }
 
       // Return context for rollback
       return { previousOrganization };
     },
     onSuccess: () => {
+      console.log(
+        '[useUpdateCurrentOrganization] onSuccess - mutation succeeded'
+      );
+
+      // Mark org as synced with backend
+      setOrgSynced(true);
+
       // Invalidate queries that depend on organization
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences.details(),
@@ -193,11 +221,23 @@ export function useUpdateCurrentOrganization() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.spaces.lists(),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.documents.lists(),
+      });
     },
     onError: (error, variables, context) => {
+      console.error(
+        '[useUpdateCurrentOrganization] onError - mutation failed:',
+        error
+      );
+
       // Rollback to previous state
       if (context?.previousOrganization !== undefined) {
         setCurrentOrganization(context.previousOrganization);
+        console.log(
+          '[useUpdateCurrentOrganization] Rolled back to:',
+          context.previousOrganization
+        );
       }
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences.details(),
@@ -235,11 +275,11 @@ export function useUpdateCurrentOrganization() {
  */
 export function useAutoSelectOrganization() {
   const queryClient = useQueryClient();
-  const { setCurrentOrganization } = useAuthStore();
+  const { setCurrentOrganization, setOrgSynced } = useAuthStore();
   const { userPreferences } = useUserPreferences();
   const { updateCurrentOrganization } = useUpdateCurrentOrganization();
 
-  return async () => {
+  return useCallback(async () => {
     try {
       // Fetch organizations using React Query cache
       const orgsData = await queryClient.fetchQuery<Organization[]>({
@@ -273,13 +313,22 @@ export function useAutoSelectOrganization() {
       if (needsBackendSync) {
         // This also updates Zustand optimistically
         await updateCurrentOrganization(selectedOrg.id);
+        // updateCurrentOrganization sets isOrgSynced in its onSuccess
       } else {
         // Backend already correct, just update Zustand
         setCurrentOrganization(selectedOrg);
+        // Mark as synced since we verified backend matches
+        setOrgSynced(true);
       }
     } catch (error) {
       console.error('Failed to auto-select organization:', error);
       // Don't throw - allow user to continue and manually select organization
     }
-  };
+  }, [
+    queryClient,
+    setCurrentOrganization,
+    setOrgSynced,
+    userPreferences,
+    updateCurrentOrganization,
+  ]);
 }

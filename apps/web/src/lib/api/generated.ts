@@ -268,6 +268,7 @@ export type QueryDashboardStatsArgs = {
 export type QueryDocumentsArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   spaceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -297,6 +298,7 @@ export type QuerySpaceArgs = {
 export type QuerySpacesArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type QueryThreadArgs = {
@@ -711,6 +713,7 @@ export type GetDashboardStatsQuery = {
 
 export type GetDocumentsQueryVariables = Exact<{
   spaceId?: InputMaybe<Scalars['ID']['input']>;
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;
@@ -849,6 +852,7 @@ export type GetOrganizationMembersQuery = {
 };
 
 export type GetSpacesQueryVariables = Exact<{
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;

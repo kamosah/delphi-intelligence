@@ -181,17 +181,25 @@ class Query:
 
     @strawberry.field
     async def spaces(
-        self, info: strawberry.types.Info, limit: int = 10, offset: int = 0
+        self,
+        info: strawberry.types.Info,
+        organization_id: strawberry.ID | None = None,
+        limit: int = 10,
+        offset: int = 0,
     ) -> list[Space]:
         """
         Get a list of spaces the authenticated user owns or is a member of.
 
         Args:
+            organization_id: Optional organization ID to filter spaces by organization.
             limit: Maximum number of spaces to return
             offset: Number of spaces to skip for pagination
 
         Returns:
             List of spaces
+
+        Note:
+            If organization_id is provided, it must match the user's current organization.
         """
         async for session in get_session():
             # Get the authenticated user from the request context
@@ -203,16 +211,45 @@ class Query:
 
             user_id = user.id
 
-            # Get spaces where user is owner or member
-            # Relationships are eager loaded via lazy='selectin' in model
-            stmt = (
-                select(SpaceModel)
-                .outerjoin(SpaceMemberModel)
-                .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
-                .distinct()
-                .limit(limit)
-                .offset(offset)
-            )
+            # Verify organization_id matches user's current organization preference
+            if organization_id:
+                org_uuid = UUID(str(organization_id))
+
+                user_preferences_stmt = select(UserPreferencesModel).where(
+                    UserPreferencesModel.user_id == user_id
+                )
+                user_preferences_result = await session.execute(user_preferences_stmt)
+                user_preferences = user_preferences_result.scalar_one_or_none()
+
+                if not user_preferences or user_preferences.current_organization_id != org_uuid:
+                    logger.warning(
+                        f"User {user_id} attempted to query spaces for org {org_uuid} "
+                        f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                    )
+                    return []
+
+                # Filter spaces by organization
+                stmt = (
+                    select(SpaceModel)
+                    .outerjoin(SpaceMemberModel)
+                    .where(
+                        (SpaceModel.organization_id == org_uuid)
+                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    )
+                    .distinct()
+                    .limit(limit)
+                    .offset(offset)
+                )
+            else:
+                # Get spaces where user is owner or member (across all orgs)
+                stmt = (
+                    select(SpaceModel)
+                    .outerjoin(SpaceMemberModel)
+                    .where((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    .distinct()
+                    .limit(limit)
+                    .offset(offset)
+                )
 
             result = await session.execute(stmt)
             space_models = result.scalars().all()
@@ -226,6 +263,7 @@ class Query:
         self,
         info: strawberry.types.Info,
         space_id: strawberry.ID | None = None,
+        organization_id: strawberry.ID | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> list[Document]:
@@ -233,12 +271,17 @@ class Query:
         Get a list of documents the authenticated user has access to.
 
         Args:
-            space_id: Optional space ID to filter documents. If not provided, returns documents from all accessible spaces.
+            space_id: Optional space ID to filter documents by specific space.
+            organization_id: Optional organization ID to filter documents by organization (returns docs from all accessible spaces in org).
             limit: Maximum number of documents to return (default: 100)
             offset: Number of documents to skip for pagination
 
         Returns:
             List of documents
+
+        Note:
+            If both space_id and organization_id are provided, space_id takes precedence.
+            If organization_id is provided, it must match the user's current organization.
         """
         async for session in get_session():
             # Get the authenticated user from the request context
@@ -250,7 +293,7 @@ class Query:
 
             user_id = user.id
 
-            # Build query based on whether space_id is provided
+            # Build query based on filters (space_id takes precedence)
             if space_id:
                 # Filter by specific space
                 space_uuid = UUID(str(space_id))
@@ -268,7 +311,8 @@ class Query:
                 space_result = await session.execute(space_access_stmt)
                 if not space_result.scalar_one_or_none():
                     # User doesn't have access to this space
-                    return []
+                    msg = f"You do not have access to space {space_id}"
+                    raise PermissionError(msg)
 
                 stmt = (
                     select(DocumentModel)
@@ -277,8 +321,61 @@ class Query:
                     .limit(limit)
                     .offset(offset)
                 )
+            elif organization_id:
+                # Filter by organization - get documents from all accessible spaces in this org
+                org_uuid = UUID(str(organization_id))
+
+                # Verify organization_id matches user's current organization preference
+                user_preferences_stmt = select(UserPreferencesModel).where(
+                    UserPreferencesModel.user_id == user_id
+                )
+                user_preferences_result = await session.execute(user_preferences_stmt)
+                user_preferences = user_preferences_result.scalar_one_or_none()
+
+                if not user_preferences or user_preferences.current_organization_id != org_uuid:
+                    # Organization doesn't match current org preference
+                    logger.warning(
+                        f"User {user_id} attempted to query documents for org {org_uuid} "
+                        f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                    )
+                    msg = "You must switch to this organization to view its documents"
+                    raise ValueError(msg)
+
+                # Verify user is a member of this organization
+                org_access_stmt = select(OrganizationMemberModel.id).where(
+                    (OrganizationMemberModel.organization_id == org_uuid)
+                    & (OrganizationMemberModel.user_id == user_id)
+                )
+                org_result = await session.execute(org_access_stmt)
+                if not org_result.scalar_one_or_none():
+                    # User is not a member of this organization
+                    return []
+
+                # Get all spaces in this org that user has access to
+                accessible_spaces_stmt = (
+                    select(SpaceModel.id)
+                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
+                    .where(
+                        (SpaceModel.organization_id == org_uuid)
+                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                    )
+                    .distinct()
+                )
+                space_result = await session.execute(accessible_spaces_stmt)
+                space_ids = [row[0] for row in space_result.all()]
+
+                if not space_ids:
+                    return []
+
+                stmt = (
+                    select(DocumentModel)
+                    .where(DocumentModel.space_id.in_(space_ids))
+                    .order_by(DocumentModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
             else:
-                # Get documents from all spaces user has access to
+                # Get documents from all spaces user has access to (across all orgs)
                 accessible_spaces_stmt = (
                     select(SpaceModel.id)
                     .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
