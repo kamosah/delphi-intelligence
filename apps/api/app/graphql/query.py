@@ -364,16 +364,21 @@ class Query:
         offset: int = 0,
     ) -> list[Thread]:
         """
-        Get a list of threads for a specific space or organization.
+        Get a list of threads created by the authenticated user.
 
         Args:
-            space_id: Optional space ID to filter threads (if not provided, returns org-wide threads)
+            space_id: Optional space ID to filter threads by space
             organization_id: Optional organization ID to filter threads
+                           (defaults to user's current organization from preferences)
             limit: Maximum number of threads to return (default: 50)
             offset: Number of threads to skip for pagination
 
         Returns:
-            List of threads ordered by creation date (most recent first)
+            List of user's threads ordered by creation date (most recent first)
+
+        Authorization:
+            - Returns only threads created by the authenticated user
+            - Verifies user has access to requested space/organization
 
         Example query:
             query {
@@ -430,31 +435,50 @@ class Query:
                     .limit(limit)
                     .offset(offset)
                 )
-            elif organization_id:
-                # Filter by organization (org-wide threads)
-                org_uuid = UUID(str(organization_id))
-
-                # TODO: Add organization membership verification once we have organization_members access control
-                # For now, just filter by organization_id
-                stmt = (
-                    select(ThreadModel)
-                    .options(joinedload(ThreadModel.messages))  # Eager load messages
-                    .where(ThreadModel.organization_id == org_uuid)
-                    .where(ThreadModel.space_id.is_(None))  # Only org-wide threads
-                    .order_by(ThreadModel.created_at.desc())
-                    .limit(limit)
-                    .offset(offset)
-                )
             else:
-                # No filters - return threads user created
-                stmt = (
-                    select(ThreadModel)
-                    .options(joinedload(ThreadModel.messages))  # Eager load messages
-                    .where(ThreadModel.created_by == user_id)
-                    .order_by(ThreadModel.created_at.desc())
-                    .limit(limit)
-                    .offset(offset)
-                )
+                # No space_id - filter by organization and user
+                # Use explicit organization_id or fall back to user's current org from middleware
+                org_uuid: UUID | None
+                if organization_id:
+                    org_uuid = UUID(str(organization_id))
+                else:
+                    # Fall back to user's current organization from middleware (user preferences)
+                    current_org_id = getattr(request.state, "current_organization_id", None)
+                    org_uuid = UUID(str(current_org_id)) if current_org_id else None
+
+                if org_uuid:
+                    # Verify user is a member of the organization
+                    org_member_stmt = select(OrganizationMemberModel.id).where(
+                        (OrganizationMemberModel.organization_id == org_uuid)
+                        & (OrganizationMemberModel.user_id == user_id)
+                    )
+                    org_member_result = await session.execute(org_member_stmt)
+                    if not org_member_result.scalar_one_or_none():
+                        logger.warning(
+                            f"User {user_id} attempted to access threads for unauthorized organization {org_uuid}"
+                        )
+                        return []
+
+                    # Return user's threads in this organization
+                    stmt = (
+                        select(ThreadModel)
+                        .options(joinedload(ThreadModel.messages))  # Eager load messages
+                        .where(ThreadModel.organization_id == org_uuid)
+                        .where(ThreadModel.created_by == user_id)
+                        .order_by(ThreadModel.created_at.desc())
+                        .limit(limit)
+                        .offset(offset)
+                    )
+                else:
+                    # No organization - return all threads user created
+                    stmt = (
+                        select(ThreadModel)
+                        .options(joinedload(ThreadModel.messages))  # Eager load messages
+                        .where(ThreadModel.created_by == user_id)
+                        .order_by(ThreadModel.created_at.desc())
+                        .limit(limit)
+                        .offset(offset)
+                    )
 
             result = await session.execute(stmt)
             thread_models = result.unique().scalars().all()
@@ -795,7 +819,14 @@ class Query:
                 )
 
             user_id = user.id
-            org_id = UUID(str(organization_id)) if organization_id else None
+            # Use organization_id parameter if provided, else fall back to user's current org from middleware
+            org_id: UUID | None
+            if organization_id:
+                org_id = UUID(str(organization_id))
+            else:
+                # Fall back to user's current organization from middleware (user preferences)
+                current_org_id = getattr(request.state, "current_organization_id", None)
+                org_id = UUID(str(current_org_id)) if current_org_id else None
 
             # Get accessible space IDs (where user is owner or member)
             space_ids_stmt = (

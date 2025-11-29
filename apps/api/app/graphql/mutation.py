@@ -1100,21 +1100,25 @@ class Mutation:
 
                 # Validate and update current_organization_id
                 if input.current_organization_id is not None:
-                    org_id = UUID(str(input.current_organization_id)) if input.current_organization_id else None
+                    org_id = (
+                        UUID(str(input.current_organization_id))
+                        if input.current_organization_id
+                        else None
+                    )
 
                     # Validation: User must be a member of the selected organization
                     if org_id:
                         member = await session.execute(
                             select(OrganizationMemberModel).where(
-                                (OrganizationMemberModel.organization_id == org_id) &
-                                (OrganizationMemberModel.user_id == user_id)
+                                (OrganizationMemberModel.organization_id == org_id)
+                                & (OrganizationMemberModel.user_id == user_id)
                             )
                         )
                         if not member.scalar_one_or_none():
                             msg = f"User is not a member of organization {org_id}"
                             raise ValueError(msg)
 
-                    preferences_model.current_organization_id = org_id
+                    preferences_model.current_organization_id = org_id  # type: ignore[assignment]
 
                 await session.commit()
                 await session.refresh(preferences_model)
