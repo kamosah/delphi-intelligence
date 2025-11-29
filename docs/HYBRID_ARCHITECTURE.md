@@ -899,6 +899,271 @@ export function SourceBadge({ type, metadata }: SourceBadgeProps) {
 
 ---
 
+## Organization Context Management
+
+### Server-Side Organization Tracking
+
+**Architecture Decision (LOG-227)**: The platform uses **server-side organization tracking** via `user_preferences.current_organization_id` as the single source of truth for user's current organization context.
+
+**Key Principles**:
+
+1. **Backend is authoritative** - Organization context flows from database → middleware → resolvers
+2. **No client-side tracking** - Removed `lastUsedOrganizationId` from Zustand auth store
+3. **SSR compatibility** - Server and client use same organization ID for React Query hydration
+4. **Security** - Organization membership verified in middleware and resolvers
+
+### Architecture Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  Organization Context Flow                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. User authenticates (JWT token)                             │
+│                │                                                │
+│                ▼                                                │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  AuthenticationMiddleware (middleware/auth.py)           │  │
+│  │  - Verifies JWT token                                    │  │
+│  │  - Fetches user_preferences.current_organization_id      │  │
+│  │  - Injects into request.state.current_organization_id    │  │
+│  └────────────────────┬─────────────────────────────────────┘  │
+│                       │                                         │
+│                       ▼                                         │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  GraphQL Resolvers (query.py, mutation.py)              │  │
+│  │  - Use request.state.current_organization_id as default  │  │
+│  │  - Verify organization membership                        │  │
+│  │  - Filter queries by organization                        │  │
+│  └────────────────────┬─────────────────────────────────────┘  │
+│                       │                                         │
+│                       ▼                                         │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Frontend (Next.js SSR + Client)                         │  │
+│  │  - SSR: getCurrentOrganizationId() for prefetch          │  │
+│  │  - Client: useUserPreferences() for current org          │  │
+│  │  - React Query: Consistent query keys (server + client) │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation Details
+
+#### Backend: Middleware Injection
+
+```python
+# apps/api/app/middleware/auth.py
+
+class AuthenticationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # ... JWT verification ...
+
+        user_id = UUID(payload.get("sub"))
+        async with get_session_factory()() as db:
+            # Fetch user
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+
+            # Inject user into request state
+            request.state.user = user
+
+            # Fetch user preferences and inject current_organization_id
+            user_preferences_result = await db.execute(
+                select(UserPreferences).where(UserPreferences.user_id == user_id)
+            )
+            user_preferences = user_preferences_result.scalar_one_or_none()
+            request.state.current_organization_id = (
+                user_preferences.current_organization_id if user_preferences else None
+            )
+
+        return await call_next(request)
+```
+
+#### Backend: GraphQL Resolver Usage
+
+```python
+# apps/api/app/graphql/query.py
+
+async def threads(
+    self,
+    info: strawberry.types.Info,
+    organization_id: strawberry.ID | None = None,
+    ...
+) -> list[Thread]:
+    """Get user's threads in current organization."""
+
+    request = info.context["request"]
+    user = getattr(request.state, "user", None)
+
+    # Use explicit organization_id or fall back to user's current org from middleware
+    org_uuid: UUID | None
+    if organization_id:
+        org_uuid = UUID(str(organization_id))
+    else:
+        # Fall back to user's current organization from middleware (user preferences)
+        current_org_id = getattr(request.state, "current_organization_id", None)
+        org_uuid = UUID(str(current_org_id)) if current_org_id else None
+
+    if org_uuid:
+        # Verify user is a member of the organization
+        org_member_stmt = select(OrganizationMemberModel.id).where(
+            (OrganizationMemberModel.organization_id == org_uuid)
+            & (OrganizationMemberModel.user_id == user.id)
+        )
+        org_member_result = await session.execute(org_member_stmt)
+        if not org_member_result.scalar_one_or_none():
+            return []  # User not authorized
+
+        # Return user's threads in this organization
+        stmt = (
+            select(ThreadModel)
+            .where(ThreadModel.organization_id == org_uuid)
+            .where(ThreadModel.created_by == user.id)
+            .order_by(ThreadModel.created_at.desc())
+        )
+```
+
+#### Frontend: Server-Side Fetcher (SSR)
+
+```typescript
+// apps/web/src/lib/api/server-fetchers/user-preferences.ts
+
+export async function getCurrentOrganizationId(): Promise<string | null> {
+  try {
+    const graphqlClient = await getServerGraphQLClient();
+    const { userPreferences } =
+      await graphqlClient.request<UserPreferencesQuery>(
+        UserPreferencesDocument
+      );
+    return userPreferences?.currentOrganizationId || null;
+  } catch (error) {
+    console.error('Failed to fetch current organization ID:', error);
+    return null;
+  }
+}
+```
+
+#### Frontend: SSR Prefetch with Organization Context
+
+```typescript
+// apps/web/src/app/dashboard/page.tsx
+
+export default async function DashboardPage() {
+  const queryClient = new QueryClient();
+  const graphqlClient = await getServerGraphQLClient();
+
+  // Fetch current organization from user_preferences
+  // Ensures server and client use the same organizationId for query keys
+  const currentOrgId = await getCurrentOrganizationId();
+
+  await Promise.all([
+    // Prefetch dashboard stats with correct organizationId
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.dashboard.stats(currentOrgId),
+      queryFn: () =>
+        fetchDashboardStats(graphqlClient, { organizationId: currentOrgId }),
+    }),
+    // ... other prefetches
+  ]);
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DashboardContent />
+    </HydrationBoundary>
+  );
+}
+```
+
+#### Frontend: Client-Side Organization Selection
+
+```typescript
+// apps/web/src/hooks/useUserPreferences.ts
+
+export function useAutoSelectOrganization() {
+  const queryClient = useQueryClient();
+  const { setCurrentOrganization } = useAuthStore();
+  const { userPreferences } = useUserPreferences();
+  const { updateCurrentOrganization } = useUpdateCurrentOrganization();
+
+  return async () => {
+    const orgsData = await queryClient.fetchQuery<Organization[]>({
+      queryKey: queryKeys.organizations.lists(),
+      queryFn: async () => {
+        const response = await graphqlClient.request<GetOrganizationsQuery>(
+          GetOrganizationsDocument,
+          { limit: 100 }
+        );
+        return (response.organizations || []) as Organization[];
+      },
+    });
+
+    if (orgsData.length === 0) {
+      setCurrentOrganization(null);
+      return;
+    }
+
+    const preferredOrgId = userPreferences?.currentOrganizationId;
+    const firstOrganization = orgsData[0];
+
+    // Find preferred org or fall back to first
+    const selectedOrg = preferredOrgId
+      ? orgsData.find((org) => org.id === preferredOrgId) || firstOrganization
+      : firstOrganization;
+
+    // Update backend if no preference set or preferred org no longer exists
+    const needsBackendSync =
+      !preferredOrgId ||
+      (preferredOrgId && !orgsData.find((org) => org.id === preferredOrgId));
+
+    if (needsBackendSync) {
+      await updateCurrentOrganization(selectedOrg.id);
+    } else {
+      setCurrentOrganization(selectedOrg);
+    }
+  };
+}
+```
+
+### State Management Strategy
+
+**Server State (React Query)**:
+
+- `userPreferences.currentOrganizationId` - Authoritative organization context
+- Organization list
+- User profile
+
+**Client State (Zustand)**:
+
+- `currentOrganization` - **UI-only** cache of selected organization object
+- **Removed**: `lastUsedOrganizationId` (deprecated in favor of backend tracking)
+
+**Key Rule**: Never use client-side state for authoritative data. Always fetch from server.
+
+### Benefits of Server-Side Tracking
+
+1. **Cross-device consistency** - Organization selection persists across devices
+2. **Security** - Organization access verified on server, not client
+3. **SSR compatibility** - Server and client share same organization context
+4. **Simplified state** - Single source of truth eliminates client-side sync issues
+5. **Audit trail** - All organization changes tracked in database
+
+### Migration Notes
+
+**Deprecated**:
+
+- ❌ `useAuthStore().lastUsedOrganizationId` (removed)
+- ❌ Client-side organization persistence
+
+**New Approach**:
+
+- ✅ `user_preferences.current_organization_id` (database column)
+- ✅ `request.state.current_organization_id` (middleware injection)
+- ✅ `getCurrentOrganizationId()` (server-side fetcher)
+- ✅ Organization membership verification in all resolvers
+
+---
+
 ## Performance & Scalability
 
 ### Caching Strategy
