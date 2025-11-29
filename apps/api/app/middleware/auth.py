@@ -14,6 +14,7 @@ from app.auth.jwt_handler import jwt_manager
 from app.auth.redis_client import redis_manager
 from app.db.session import get_session_factory
 from app.models.user import User
+from app.models.user_preferences import UserPreferences
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
@@ -90,6 +91,15 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
                 # Add user model to request state
                 request.state.user = user
+
+                # Fetch user preferences and inject current_organization_id
+                user_preferences_result = await db.execute(
+                    select(UserPreferences).where(UserPreferences.user_id == user_id)
+                )
+                user_preferences = user_preferences_result.scalar_one_or_none()
+                request.state.current_organization_id = (
+                    user_preferences.current_organization_id if user_preferences else None
+                )
 
         except Exception:
             # Don't fail the request - let route handler decide
