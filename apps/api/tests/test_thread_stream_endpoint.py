@@ -52,6 +52,7 @@ class TestThreadStreamEndpoint:
                 # Make current_organization_id match any comparison
                 class AnyOrgId:
                     """Helper class that matches any organization_id for test mocking."""
+
                     def __eq__(self, other):
                         return True  # Always matches any org_id
 
