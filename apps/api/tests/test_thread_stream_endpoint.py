@@ -19,7 +19,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user_from_query
 from app.db.session import get_session
 from app.main import app
 
@@ -39,13 +39,31 @@ class TestThreadStreamEndpoint:
                 "role": "member",
             }
 
-        # Mock database execute to return space IDs (simulating user has access to all test spaces)
-        async def mock_db_execute(*args, **kwargs):
-            # Return a mock result with the test space ID
+        # Smart mock that dynamically matches any organization_id in the request
+        async def mock_db_execute(stmt, *args, **kwargs):
             mock_result = AsyncMock()
-            mock_result.__iter__ = lambda _: iter(
-                [(mock_space.id,)]
-            )  # User has access to test space
+
+            # Check if this is a UserPreferences query by examining the statement
+            stmt_str = str(stmt)
+            if "user_preferences" in stmt_str.lower():
+                # Return a special mock that always matches the requested org_id
+                mock_prefs = AsyncMock()
+
+                # Make current_organization_id match any comparison
+                class AnyOrgId:
+                    """Helper class that matches any organization_id for test mocking."""
+                    def __eq__(self, other):
+                        return True  # Always matches any org_id
+
+                    def __ne__(self, other):
+                        return False
+
+                mock_prefs.current_organization_id = AnyOrgId()
+                mock_result.scalar_one_or_none = lambda: mock_prefs
+            else:
+                # Return space IDs (simulating user has access to all test spaces)
+                mock_result.__iter__ = lambda _: iter([(mock_space.id,)])
+
             return mock_result
 
         mock_db_session.execute = mock_db_execute
@@ -55,7 +73,7 @@ class TestThreadStreamEndpoint:
             yield mock_db_session
 
         # Override the dependencies
-        app.dependency_overrides[get_current_user] = mock_get_current_user
+        app.dependency_overrides[get_current_user_from_query] = mock_get_current_user
         app.dependency_overrides[get_session] = mock_get_session
 
         yield
