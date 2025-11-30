@@ -36,15 +36,8 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const handleSelectOrganization = async (orgId: string) => {
-    console.log('[OrganizationSwitcher] Switching to org:', orgId);
-    console.log(
-      '[OrganizationSwitcher] updateCurrentOrganization:',
-      updateCurrentOrganization
-    );
-
     try {
-      const result = await updateCurrentOrganization(orgId);
-      console.log('[OrganizationSwitcher] Switch successful:', result);
+      await updateCurrentOrganization(orgId);
     } catch (error) {
       console.error(
         '[OrganizationSwitcher] Failed to switch organization:',

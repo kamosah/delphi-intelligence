@@ -149,17 +149,8 @@ export function useUpdateCurrentOrganization() {
 
   const mutation = useUpdateUserPreferencesMutation({
     onMutate: async (variables) => {
-      console.log(
-        '[useUpdateCurrentOrganization] onMutate called with:',
-        variables
-      );
-
       // Capture previous state for rollback on error
       const previousOrganization = useAuthStore.getState().currentOrganization;
-      console.log(
-        '[useUpdateCurrentOrganization] Previous org:',
-        previousOrganization
-      );
 
       // Optimistically update Zustand for instant UI feedback
       const orgId = variables.input.currentOrganizationId;
@@ -170,7 +161,6 @@ export function useUpdateCurrentOrganization() {
           organizations: Organization[];
         }>(queryKeys.organizations.list({ limit: 100, offset: 0 }));
         const org = orgsQuery?.organizations?.find((o) => o.id === orgId);
-        console.log('[useUpdateCurrentOrganization] Found org in cache:', org);
 
         if (org) {
           setCurrentOrganization({
@@ -183,10 +173,6 @@ export function useUpdateCurrentOrganization() {
             spaceCount: org.spaceCount,
             threadCount: org.threadCount,
           });
-          console.log(
-            '[useUpdateCurrentOrganization] Optimistically set org:',
-            org.name
-          );
         } else {
           console.warn(
             '[useUpdateCurrentOrganization] Org not found in cache, will update after backend response'
@@ -194,17 +180,12 @@ export function useUpdateCurrentOrganization() {
         }
       } else {
         setCurrentOrganization(null);
-        console.log('[useUpdateCurrentOrganization] Cleared current org');
       }
 
       // Return context for rollback
       return { previousOrganization };
     },
     onSuccess: () => {
-      console.log(
-        '[useUpdateCurrentOrganization] onSuccess - mutation succeeded'
-      );
-
       // Mark org as synced with backend
       setOrgSynced(true);
 
@@ -234,10 +215,6 @@ export function useUpdateCurrentOrganization() {
       // Rollback to previous state
       if (context?.previousOrganization !== undefined) {
         setCurrentOrganization(context.previousOrganization);
-        console.log(
-          '[useUpdateCurrentOrganization] Rolled back to:',
-          context.previousOrganization
-        );
       }
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences.details(),
