@@ -16,6 +16,7 @@ from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
+from app.services.organization_service import OrganizationService
 from app.services.vector_search_service import get_vector_search_service
 
 from .types import (
@@ -211,22 +212,22 @@ class Query:
 
             user_id = user.id
 
-            # Verify organization_id matches user's current organization preference
+            # Verify organization_id matches user's current organization
             if organization_id:
                 org_uuid = UUID(str(organization_id))
 
-                user_preferences_stmt = select(UserPreferencesModel).where(
-                    UserPreferencesModel.user_id == user_id
+                # Get user's current organization from OrganizationService
+                current_org_id = await OrganizationService.get_current_organization_id(
+                    user_id=user_id, db=session
                 )
-                user_preferences_result = await session.execute(user_preferences_stmt)
-                user_preferences = user_preferences_result.scalar_one_or_none()
 
-                if not user_preferences or user_preferences.current_organization_id != org_uuid:
+                if not current_org_id or current_org_id != org_uuid:
                     logger.warning(
                         f"User {user_id} attempted to query spaces for org {org_uuid} "
-                        f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                        f"but current org is {current_org_id}"
                     )
-                    return []
+                    msg = "You must switch to this organization to view its spaces"
+                    raise ValueError(msg)
 
                 # Filter spaces by organization
                 stmt = (
@@ -325,18 +326,16 @@ class Query:
                 # Filter by organization - get documents from all accessible spaces in this org
                 org_uuid = UUID(str(organization_id))
 
-                # Verify organization_id matches user's current organization preference
-                user_preferences_stmt = select(UserPreferencesModel).where(
-                    UserPreferencesModel.user_id == user_id
+                # Verify organization_id matches user's current organization
+                current_org_id = await OrganizationService.get_current_organization_id(
+                    user_id=user_id, db=session
                 )
-                user_preferences_result = await session.execute(user_preferences_stmt)
-                user_preferences = user_preferences_result.scalar_one_or_none()
 
-                if not user_preferences or user_preferences.current_organization_id != org_uuid:
-                    # Organization doesn't match current org preference
+                if not current_org_id or current_org_id != org_uuid:
+                    # Organization doesn't match current org
                     logger.warning(
                         f"User {user_id} attempted to query documents for org {org_uuid} "
-                        f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                        f"but current org is {current_org_id}"
                     )
                     msg = "You must switch to this organization to view its documents"
                     raise ValueError(msg)
@@ -534,14 +533,15 @@ class Query:
                 )
             else:
                 # No space_id - filter by organization and user
-                # Use explicit organization_id or fall back to user's current org from middleware
+                # Use explicit organization_id or fall back to user's current org
                 org_uuid: UUID | None
                 if organization_id:
                     org_uuid = UUID(str(organization_id))
                 else:
-                    # Fall back to user's current organization from middleware (user preferences)
-                    current_org_id = getattr(request.state, "current_organization_id", None)
-                    org_uuid = UUID(str(current_org_id)) if current_org_id else None
+                    # Fall back to user's current organization from OrganizationService
+                    org_uuid = await OrganizationService.get_current_organization_id(
+                        user_id=user_id, db=session
+                    )
 
                 if org_uuid:
                     # Verify user is a member of the organization
@@ -916,14 +916,15 @@ class Query:
                 )
 
             user_id = user.id
-            # Use organization_id parameter if provided, else fall back to user's current org from middleware
+            # Use organization_id parameter if provided, else fall back to user's current org
             org_id: UUID | None
             if organization_id:
                 org_id = UUID(str(organization_id))
             else:
-                # Fall back to user's current organization from middleware (user preferences)
-                current_org_id = getattr(request.state, "current_organization_id", None)
-                org_id = UUID(str(current_org_id)) if current_org_id else None
+                # Fall back to user's current organization from OrganizationService
+                org_id = await OrganizationService.get_current_organization_id(
+                    user_id=user_id, db=session
+                )
 
             # Get accessible space IDs (where user is owner or member)
             space_ids_stmt = (

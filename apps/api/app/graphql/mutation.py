@@ -17,6 +17,7 @@ from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as Spa
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
+from app.services.organization_service import OrganizationService
 from app.utils.slug import generate_unique_slug
 
 from .types import (
@@ -29,6 +30,7 @@ from .types import (
     OrganizationMember,
     OrganizationRole as OrganizationRoleType,
     Space,
+    SwitchOrganizationInput,
     Thread,
     UpdateOrganizationInput,
     UpdateSpaceInput,
@@ -513,6 +515,60 @@ class Mutation:
                 raise
 
         return False
+
+    @strawberry.mutation
+    async def switch_organization(
+        self, info: strawberry.types.Info, input: SwitchOrganizationInput
+    ) -> Organization:
+        """
+        Switch user's current organization.
+
+        Updates organization_members.is_default and last_active_at.
+
+        Args:
+            input: Organization ID to switch to
+
+        Returns:
+            The selected organization
+
+        Raises:
+            ValueError: If user is not a member of the organization
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                user_id = user.id
+                org_id = UUID(str(input.organization_id))
+
+                # Switch organization using service
+                await OrganizationService.switch_organization(
+                    user_id=user_id, new_org_id=org_id, db=session
+                )
+
+                # Fetch and return the organization
+                org_stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
+                result = await session.execute(org_stmt)
+                org_model = result.scalar_one_or_none()
+
+                if not org_model:
+                    msg = "Organization not found"
+                    raise ValueError(msg)
+
+                return Organization.from_model(org_model)
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
 
     @strawberry.mutation
     async def update_member_role(
@@ -1097,24 +1153,6 @@ class Mutation:
                     preferences_model.timezone = input.timezone
                 if input.custom_settings is not None:
                     preferences_model.custom_settings = input.custom_settings
-
-                # Validate and update current_organization_id
-                if input.current_organization_id is not None:
-                    org_id = UUID(str(input.current_organization_id))
-
-                    # Validation: User must be a member of the selected organization
-                    if org_id:
-                        member = await session.execute(
-                            select(OrganizationMemberModel).where(
-                                (OrganizationMemberModel.organization_id == org_id)
-                                & (OrganizationMemberModel.user_id == user_id)
-                            )
-                        )
-                        if not member.scalar_one_or_none():
-                            msg = f"User is not a member of organization {org_id}"
-                            raise ValueError(msg)
-
-                    preferences_model.current_organization_id = org_id  # type: ignore[assignment]
 
                 await session.commit()
                 await session.refresh(preferences_model)

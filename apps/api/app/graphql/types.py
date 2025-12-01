@@ -116,6 +116,8 @@ class OrganizationMember:
     role: OrganizationRole
     created_at: datetime
     user: "User | None"
+    is_default: bool
+    last_active_at: datetime | None
 
     @classmethod
     def from_model(cls, member: OrganizationMemberModel) -> "OrganizationMember":
@@ -127,6 +129,8 @@ class OrganizationMember:
             role=OrganizationRole[member.organization_role.name],
             created_at=member.created_at,
             user=User.from_model(member.user) if member.user else None,
+            is_default=member.is_default,
+            last_active_at=member.last_active_at,
         )
 
 
@@ -154,6 +158,13 @@ class AddOrganizationMemberInput:
     organization_id: strawberry.ID
     user_id: strawberry.ID
     role: OrganizationRole = OrganizationRole.MEMBER
+
+
+@strawberry.input
+class SwitchOrganizationInput:
+    """Input type for switching current organization."""
+
+    organization_id: strawberry.ID
 
 
 @strawberry.type
@@ -491,7 +502,6 @@ class UserPreferences:
     language: str
     timezone: str | None
     custom_settings: strawberry.scalars.JSON | None  # type: ignore[valid-type]
-    current_organization_id: strawberry.ID | None
 
     @classmethod
     def from_model(cls, preferences: UserPreferencesModel) -> "UserPreferences":
@@ -506,9 +516,6 @@ class UserPreferences:
             language=preferences.language,
             timezone=preferences.timezone,
             custom_settings=preferences.custom_settings,
-            current_organization_id=strawberry.ID(str(preferences.current_organization_id))
-            if preferences.current_organization_id
-            else None,
         )
 
 
@@ -523,4 +530,3 @@ class UpdateUserPreferencesInput:
     language: str | None = None
     timezone: str | None = None
     custom_settings: strawberry.scalars.JSON | None = None  # type: ignore[valid-type]
-    current_organization_id: strawberry.ID | None = None
