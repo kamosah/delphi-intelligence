@@ -13,8 +13,11 @@ import {
   Skeleton,
 } from '@olympus/ui';
 import { CreateOrganizationDialog } from '@/components/organizations/CreateOrganizationDialog';
-import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
-import { useUpdateCurrentOrganization } from '@/hooks/useUserPreferences';
+import {
+  useOrganizations,
+  useSwitchOrganization,
+  type Organization,
+} from '@/hooks/useOrganizations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 
@@ -31,26 +34,26 @@ interface OrganizationSwitcherProps {
 export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { currentOrganization } = useAuthStore();
   const { organizations = [], isLoading } = useOrganizations();
-  const { updateCurrentOrganization } = useUpdateCurrentOrganization();
+  const { switchOrganization } = useSwitchOrganization();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const handleSelectOrganization = async (orgId: string) => {
     try {
-      await updateCurrentOrganization(orgId);
+      await switchOrganization({ input: { organizationId: orgId } });
     } catch (error) {
       console.error(
         '[OrganizationSwitcher] Failed to switch organization:',
         error
       );
-      // Error already shown via toast in useUpdateCurrentOrganization
+      // Error already shown via toast in useSwitchOrganization
     }
   };
 
   const handleOrganizationCreated = async (organization: Organization) => {
     // Auto-select the newly created organization
     try {
-      await updateCurrentOrganization(organization.id);
+      await switchOrganization({ input: { organizationId: organization.id } });
     } catch (error) {
       console.error('Failed to set new organization as current:', error);
     }

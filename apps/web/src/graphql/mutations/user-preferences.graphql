@@ -13,6 +13,5 @@ mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
     language
     timezone
     customSettings
-    currentOrganizationId
   }
 }

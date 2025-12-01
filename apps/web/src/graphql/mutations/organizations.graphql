@@ -55,3 +55,18 @@ mutation UpdateMemberRole($organizationId: ID!, $userId: ID!, $role: Organizatio
     createdAt
   }
 }
+
+mutation SwitchOrganization($input: SwitchOrganizationInput!) {
+  switchOrganization(input: $input) {
+    id
+    name
+    slug
+    description
+    ownerId
+    memberCount
+    spaceCount
+    threadCount
+    createdAt
+    updatedAt
+  }
+}

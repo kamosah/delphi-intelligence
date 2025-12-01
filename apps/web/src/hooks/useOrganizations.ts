@@ -1,14 +1,19 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
 import {
   useCreateOrganizationMutation,
   useDeleteOrganizationMutation,
   useGetOrganizationQuery,
   useGetOrganizationsQuery,
+  useSwitchOrganizationMutation,
   useUpdateOrganizationMutation,
   type CreateOrganizationMutationVariables,
   type DeleteOrganizationMutationVariables,
+  type GetOrganizationsQuery,
+  type SwitchOrganizationMutationVariables,
   type UpdateOrganizationMutationVariables,
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
@@ -147,6 +152,66 @@ export function useDeleteOrganization() {
     deleteOrganization: (variables: DeleteOrganizationMutationVariables) =>
       mutation.mutateAsync(variables),
     isDeleting: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
+/**
+ * Switch user's current organization
+ *
+ * Updates organization_members.is_default and last_active_at on backend.
+ * Optimistically updates Zustand store and refetches org-scoped queries.
+ */
+export function useSwitchOrganization() {
+  const queryClient = useQueryClient();
+  const { setCurrentOrganization, currentOrganization } = useAuthStore();
+
+  const mutation = useSwitchOrganizationMutation({
+    onMutate: async (variables) => {
+      // Optimistically update Zustand store for instant UI feedback
+      const previousOrg = currentOrganization;
+
+      // Find the organization from the organizations query cache
+      const organizationsData = queryClient.getQueryData<GetOrganizationsQuery>(
+        queryKeys.organizations.lists()
+      );
+
+      const newOrg = organizationsData?.organizations?.find(
+        (org) => org.id === variables.input.organizationId
+      );
+
+      if (newOrg) {
+        setCurrentOrganization(newOrg);
+      }
+
+      return { previousOrg };
+    },
+    onSuccess: () => {
+      // Invalidate all org-scoped queries to refetch with new org context
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.spaces.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+
+      toast.success('Organization switched successfully');
+    },
+    onError: (error, variables, context) => {
+      // Rollback Zustand update on error
+      if (context?.previousOrg) {
+        setCurrentOrganization(context.previousOrg);
+      }
+
+      toast.error('Failed to switch organization', {
+        description:
+          error instanceof Error ? error.message : 'Please try again',
+      });
+    },
+  });
+
+  return {
+    switchOrganization: (variables: SwitchOrganizationMutationVariables) =>
+      mutation.mutateAsync(variables),
+    isSwitching: mutation.isPending,
     error: mutation.error,
   };
 }

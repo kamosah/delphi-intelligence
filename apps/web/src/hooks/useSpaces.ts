@@ -38,7 +38,7 @@ export function useSpaces(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken, currentOrganization, isOrgSynced } = useAuthStore();
+  const { accessToken, currentOrganization } = useAuthStore();
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
@@ -50,8 +50,7 @@ export function useSpaces(options?: {
       offset,
     },
     {
-      // If filtering by organizationId, wait for org sync to prevent stale queries
-      enabled: !!accessToken && (orgId ? isOrgSynced : true),
+      enabled: !!accessToken,
       queryKey: queryKeys.spaces.list({
         limit,
         offset,
