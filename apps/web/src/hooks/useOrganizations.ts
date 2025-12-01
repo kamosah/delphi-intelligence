@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
 import {
   useCreateOrganizationMutation,
   useDeleteOrganizationMutation,
@@ -60,27 +59,12 @@ export function useOrganizations(options?: {
 
   const organizations = query.data?.organizations || [];
 
-  // Compute current organization using backend logic: is_default → last_active_at → first
+  // Current organization is the first one - backend guarantees correct order:
+  // 1. is_default DESC NULLS LAST
+  // 2. last_active_at DESC NULLS LAST
+  // 3. created_at ASC
   const currentOrganization = useMemo(() => {
-    if (organizations.length === 0) return null;
-
-    // Priority 1: Organization with is_default=true
-    const defaultOrg = organizations.find((org) => org.isDefault === true);
-    if (defaultOrg) return defaultOrg;
-
-    // Priority 2: Most recently active (last_active_at DESC)
-    const recentOrgs = organizations
-      .filter((org) => org.lastActiveAt != null)
-      .sort(
-        (a, b) =>
-          new Date(b.lastActiveAt!).getTime() -
-          new Date(a.lastActiveAt!).getTime()
-      );
-
-    if (recentOrgs.length > 0) return recentOrgs[0];
-
-    // Priority 3: First organization
-    return organizations[0];
+    return organizations.length > 0 ? organizations[0] : null;
   }, [organizations]);
 
   return {
@@ -218,7 +202,13 @@ export function useSwitchOrganization() {
 
       return { previousOrg };
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // CRITICAL: Refetch organizations list to get updated is_default and last_active_at
+      // This ensures useOrganizations recomputes currentOrganization with fresh data
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.organizations.all,
+      });
+
       // Invalidate all org-scoped queries to refetch with new org context
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });

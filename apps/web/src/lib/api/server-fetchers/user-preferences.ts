@@ -12,12 +12,14 @@ import {
 } from '@/lib/api/hooks.generated';
 
 /**
- * Get current organization ID using backend selection logic (server-side only).
+ * Get current organization ID (server-side only).
  *
- * Uses same logic as backend and useOrganizations:
- * 1. Organization with is_default=true
- * 2. Most recently active (last_active_at DESC)
- * 3. First organization
+ * Backend returns organizations in correct order:
+ * 1. is_default DESC NULLS LAST
+ * 2. last_active_at DESC NULLS LAST
+ * 3. created_at ASC
+ *
+ * So current org is always the first one in the list.
  *
  * Used in Server Components to determine the correct organizationId
  * for SSR query prefetching, ensuring query keys match between server
@@ -50,26 +52,7 @@ export async function getCurrentOrganizationId(): Promise<string | null> {
       return null;
     }
 
-    // Priority 1: Organization with is_default=true
-    const defaultOrg = organizations.find((org) => org.isDefault === true);
-    if (defaultOrg) {
-      return defaultOrg.id;
-    }
-
-    // Priority 2: Most recently active (last_active_at DESC)
-    const recentOrgs = organizations
-      .filter((org) => org.lastActiveAt != null)
-      .sort(
-        (a, b) =>
-          new Date(b.lastActiveAt!).getTime() -
-          new Date(a.lastActiveAt!).getTime()
-      );
-
-    if (recentOrgs.length > 0) {
-      return recentOrgs[0].id;
-    }
-
-    // Priority 3: First organization
+    // Backend guarantees correct order, so first org is the current one
     return organizations[0].id;
   } catch (error) {
     console.error('Failed to fetch current organization ID:', error);

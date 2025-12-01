@@ -706,6 +706,8 @@ class Query:
             user_id = user.id
 
             # Get organizations where user is a member, along with membership data
+            # Order by: is_default DESC → last_active_at DESC → created_at ASC
+            # This ensures consistent ordering for current org computation
             stmt = (
                 select(OrganizationModel, OrganizationMemberModel)
                 .join(
@@ -713,6 +715,11 @@ class Query:
                     OrganizationMemberModel.organization_id == OrganizationModel.id,
                 )
                 .where(OrganizationMemberModel.user_id == user_id)
+                .order_by(
+                    OrganizationMemberModel.is_default.desc().nulls_last(),
+                    OrganizationMemberModel.last_active_at.desc().nulls_last(),
+                    OrganizationModel.created_at.asc(),
+                )
                 .limit(limit)
                 .offset(offset)
             )
