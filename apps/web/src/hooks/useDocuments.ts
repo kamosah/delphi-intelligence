@@ -152,12 +152,15 @@ export function useUploadDocument() {
 }
 
 /**
- * React Query hook for listing documents in a space via GraphQL.
+ * React Query hook for listing documents in a space or organization via GraphQL.
  *
  * Returns documents with camelCase fields (GraphQL convention).
  *
  * @example
  * const { documents, isLoading } = useDocuments({ spaceId });
+ *
+ * @example
+ * const { documents, isLoading } = useDocuments({ organizationId }); // All docs in org
  *
  * @example
  * const { documents, isLoading } = useDocuments({ limit: 3 }); // All accessible documents, top 3
@@ -167,23 +170,31 @@ export function useUploadDocument() {
  */
 export function useDocuments(options?: {
   spaceId?: string;
+  organizationId?: string;
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken } = useAuthStore();
+  const { accessToken, currentOrganization, isOrgSynced } = useAuthStore();
   const spaceId = options?.spaceId;
+  const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
 
   const query = useGetDocumentsQuery(
     {
       spaceId: spaceId || null,
+      organizationId: orgId || null,
       limit,
       offset,
     },
     {
-      enabled: !!accessToken,
-      queryKey: queryKeys.documents.list(spaceId || null, { limit, offset }),
+      // If filtering by organizationId, wait for org sync to prevent stale queries
+      enabled: !!accessToken && (orgId ? isOrgSynced : true),
+      queryKey: queryKeys.documents.list(spaceId || null, {
+        limit,
+        offset,
+        organizationId: orgId,
+      }),
     }
   );
 

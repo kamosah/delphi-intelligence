@@ -32,12 +32,14 @@ interface AuthState {
 
   // Organization state
   currentOrganization: Organization | null;
+  isOrgSynced: boolean; // Tracks if currentOrganization is synced with backend preference
 
   // Actions
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
   setCurrentOrganization: (organization: Organization | null) => void;
+  setOrgSynced: (synced: boolean) => void;
   logout: () => void;
   clearAuth: () => void;
 }
@@ -53,6 +55,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false,
         isLoading: false,
         currentOrganization: null,
+        isOrgSynced: false, // Start as false, set to true after backend sync
 
         // Actions
         setTokens: (accessToken, refreshToken) =>
@@ -71,6 +74,8 @@ export const useAuthStore = create<AuthState>()(
             currentOrganization: organization,
           }),
 
+        setOrgSynced: (synced) => set({ isOrgSynced: synced }),
+
         logout: () =>
           set({
             user: null,
@@ -78,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
             isAuthenticated: false,
             currentOrganization: null,
+            isOrgSynced: false,
           }),
 
         clearAuth: () =>
@@ -87,6 +93,7 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
             isAuthenticated: false,
             currentOrganization: null,
+            isOrgSynced: false,
           }),
       }),
       {

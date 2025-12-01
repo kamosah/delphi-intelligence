@@ -2,8 +2,8 @@
 # Space Query Operations
 # ============================================
 
-query GetSpaces($limit: Int, $offset: Int) {
-  spaces(limit: $limit, offset: $offset) {
+query GetSpaces($organizationId: ID, $limit: Int, $offset: Int) {
+  spaces(organizationId: $organizationId, limit: $limit, offset: $offset) {
     id
     name
     slug

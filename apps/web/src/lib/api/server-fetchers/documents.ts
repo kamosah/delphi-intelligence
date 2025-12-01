@@ -11,6 +11,7 @@ import {
 
 export interface FetchDocumentsOptions {
   spaceId?: string | null;
+  organizationId?: string | null;
   limit?: number;
   offset?: number;
 }
@@ -33,6 +34,7 @@ export async function fetchDocuments(
 ): Promise<GetDocumentsQuery> {
   const result = await client.request<GetDocumentsQuery>(GetDocumentsDocument, {
     spaceId: options?.spaceId ?? null,
+    organizationId: options?.organizationId ?? null,
     limit: options?.limit ?? 100,
     offset: options?.offset ?? 0,
   });

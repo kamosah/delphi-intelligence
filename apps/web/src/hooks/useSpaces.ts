@@ -26,23 +26,36 @@ export type {
  * Auth token is automatically injected via GraphQL client middleware.
  *
  * @example
+ * // Get spaces for current organization (default)
  * const { spaces, isLoading, error } = useSpaces();
+ *
+ * @example
+ * // Get spaces for a specific organization
+ * const { spaces, isLoading, error } = useSpaces({ organizationId });
  */
-export function useSpaces(options?: { limit?: number; offset?: number }) {
-  const { accessToken } = useAuthStore();
+export function useSpaces(options?: {
+  organizationId?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const { accessToken, currentOrganization, isOrgSynced } = useAuthStore();
+  const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
 
   const query = useGetSpacesQuery(
     {
+      organizationId: orgId || null,
       limit,
       offset,
     },
     {
-      enabled: !!accessToken,
+      // If filtering by organizationId, wait for org sync to prevent stale queries
+      enabled: !!accessToken && (orgId ? isOrgSynced : true),
       queryKey: queryKeys.spaces.list({
         limit,
         offset,
+        organizationId: orgId,
       }),
     }
   );

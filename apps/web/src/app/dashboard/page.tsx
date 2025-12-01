@@ -32,10 +32,19 @@ export default async function DashboardPage() {
           fetchDashboardStats(graphqlClient, { organizationId: currentOrgId }),
       }),
 
-      // Prefetch recent documents (top 3)
+      // Prefetch recent documents (top 3) with correct organizationId
       queryClient.prefetchQuery({
-        queryKey: queryKeys.documents.list(null, { limit: 3, offset: 0 }),
-        queryFn: () => fetchDocuments(graphqlClient, { limit: 3, offset: 0 }),
+        queryKey: queryKeys.documents.list(null, {
+          limit: 3,
+          offset: 0,
+          organizationId: currentOrgId,
+        }),
+        queryFn: () =>
+          fetchDocuments(graphqlClient, {
+            organizationId: currentOrgId,
+            limit: 3,
+            offset: 0,
+          }),
       }),
 
       // Prefetch recent threads with correct organizationId

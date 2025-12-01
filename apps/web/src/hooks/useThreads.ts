@@ -32,7 +32,10 @@ export type {
  * // Get threads for a specific space
  * const { threads, isLoading, error } = useThreads({ spaceId });
  *
- * // Get org-wide threads
+ * // Get org-wide threads (uses current org by default)
+ * const { threads, isLoading, error } = useThreads();
+ *
+ * // Get threads for a specific organization
  * const { threads, isLoading, error } = useThreads({ organizationId });
  */
 export function useThreads(options?: {
@@ -41,22 +44,25 @@ export function useThreads(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken } = useAuthStore();
+  const { accessToken, currentOrganization, isOrgSynced } = useAuthStore();
+  const spaceId = options?.spaceId;
+  const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
 
   const query = useGetThreadsQuery(
     {
-      spaceId: options?.spaceId,
-      organizationId: options?.organizationId,
+      spaceId: spaceId,
+      organizationId: orgId,
       limit,
       offset,
     },
     {
-      enabled: !!accessToken,
+      // If filtering by organizationId, wait for org sync to prevent stale queries
+      enabled: !!accessToken && (orgId ? isOrgSynced : true),
       queryKey: queryKeys.threads.list({
-        spaceId: options?.spaceId,
-        organizationId: options?.organizationId,
+        spaceId: spaceId,
+        organizationId: orgId,
         limit,
         offset,
       }),

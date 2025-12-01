@@ -21,6 +21,7 @@ export function useAuth() {
     setTokens,
     setUser,
     setLoading,
+    setOrgSynced,
     logout: storeLogout,
   } = useAuthStore();
 
@@ -33,11 +34,15 @@ export function useAuth() {
       if (accessToken && !user) {
         try {
           setLoading(true);
+          // Clear sync flag until we verify with backend
+          setOrgSynced(false);
+
           // Get user profile (auth token auto-injected via GraphQL client middleware)
           const userProfile = await authApi.me(accessToken);
           setUser(userProfile);
 
           // Auto-select organization after user is loaded
+          // This will set isOrgSynced to true on completion
           await autoSelectOrganization();
         } catch (error) {
           console.error('Failed to get user profile:', error);
@@ -81,17 +86,9 @@ export function useAuth() {
     };
 
     initializeAuth();
-  }, [
-    accessToken,
-    refreshToken,
-    user,
-    currentOrganization,
-    setTokens,
-    setUser,
-    setLoading,
-    storeLogout,
-    autoSelectOrganization,
-  ]);
+    // Only depend on state values, not action functions (they're stable)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, refreshToken, user, currentOrganization]);
 
   const signUp = async (credentials: RegisterRequest) => {
     try {
@@ -114,6 +111,9 @@ export function useAuth() {
   const signIn = async (credentials: LoginRequest) => {
     try {
       setLoading(true);
+      // Clear sync flag until we verify with backend
+      setOrgSynced(false);
+
       const tokenResponse = await authApi.login(credentials);
       setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
       setAuthCookies(tokenResponse.access_token, tokenResponse.refresh_token);
@@ -123,6 +123,7 @@ export function useAuth() {
       setUser(userProfile);
 
       // Auto-select organization after login (uses backend preference)
+      // This will set isOrgSynced to true on completion
       await autoSelectOrganization();
 
       return { user: userProfile, session: tokenResponse };

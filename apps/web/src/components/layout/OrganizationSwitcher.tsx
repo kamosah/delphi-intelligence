@@ -39,7 +39,11 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
     try {
       await updateCurrentOrganization(orgId);
     } catch (error) {
-      console.error('Failed to switch organization:', error);
+      console.error(
+        '[OrganizationSwitcher] Failed to switch organization:',
+        error
+      );
+      // Error already shown via toast in useUpdateCurrentOrganization
     }
   };
 
