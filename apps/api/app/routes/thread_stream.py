@@ -17,9 +17,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user_from_query
 from app.db.session import get_session
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
+from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.services.ai_agent import ai_agent_service
 
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ async def generate_sse_events(
 async def stream_thread_response(
     query: Annotated[str, QueryParam(description="Natural language question to process in thread")],
     db: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
+    current_user: Annotated[dict[str, Any], Depends(get_current_user_from_query)],
     organization_id: Annotated[
         UUID | None,
         QueryParam(
@@ -242,6 +243,24 @@ async def stream_thread_response(
             status_code=400,
             detail="Either space_id or organization_id is required for new threads when save_to_db=true",
         )
+
+    # Verify organization_id matches user's current organization preference
+    if organization_id:
+        user_preferences_stmt = select(UserPreferencesModel).where(
+            UserPreferencesModel.user_id == user_id_uuid
+        )
+        user_preferences_result = await db.execute(user_preferences_stmt)
+        user_preferences = user_preferences_result.scalar_one_or_none()
+
+        if not user_preferences or user_preferences.current_organization_id != organization_id:
+            logger.warning(
+                f"User {user_id_uuid} attempted to create thread for org {organization_id} "
+                f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Organization ID does not match your current organization",
+            )
 
     # Parse mentioned_space_ids from comma-separated string to list of UUIDs
     mentioned_space_ids_list: list[UUID] | None = None

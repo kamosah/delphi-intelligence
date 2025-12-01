@@ -297,12 +297,12 @@ export function ThreadInterface({
   }, [retry]);
 
   // Determine if we should show the active streaming response
-  // Show it while streaming OR after completion but before adding to history
+  // Show it while streaming OR after completion but before adding to history OR when there's an error
   const lastMessageIsFromUser =
     conversationHistory.length > 0 &&
     conversationHistory[conversationHistory.length - 1].role === 'user';
   const shouldShowActiveResponse =
-    isStreaming || (response && lastMessageIsFromUser && !error);
+    isStreaming || (response && lastMessageIsFromUser) || error;
 
   return (
     <div className="flex flex-col h-full bg-white">

@@ -275,6 +275,7 @@ export type QueryDashboardStatsArgs = {
 export type QueryDocumentsArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   spaceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -304,6 +305,7 @@ export type QuerySpaceArgs = {
 export type QuerySpacesArgs = {
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type QueryThreadArgs = {
@@ -718,6 +720,7 @@ export type GetDashboardStatsQuery = {
 
 export type GetDocumentsQueryVariables = Exact<{
   spaceId?: InputMaybe<Scalars['ID']['input']>;
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;
@@ -856,6 +859,7 @@ export type GetOrganizationMembersQuery = {
 };
 
 export type GetSpacesQueryVariables = Exact<{
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 }>;
@@ -1766,8 +1770,13 @@ useGetDashboardStatsQuery.fetcher = (
   >(GetDashboardStatsDocument, variables, options);
 
 export const GetDocumentsDocument = `
-    query GetDocuments($spaceId: ID, $limit: Int, $offset: Int) {
-  documents(spaceId: $spaceId, limit: $limit, offset: $offset) {
+    query GetDocuments($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
+  documents(
+    spaceId: $spaceId
+    organizationId: $organizationId
+    limit: $limit
+    offset: $offset
+  ) {
     id
     name
     fileType
@@ -2108,8 +2117,8 @@ useGetOrganizationMembersQuery.fetcher = (
   >(GetOrganizationMembersDocument, variables, options);
 
 export const GetSpacesDocument = `
-    query GetSpaces($limit: Int, $offset: Int) {
-  spaces(limit: $limit, offset: $offset) {
+    query GetSpaces($organizationId: ID, $limit: Int, $offset: Int) {
+  spaces(organizationId: $organizationId, limit: $limit, offset: $offset) {
     id
     name
     slug

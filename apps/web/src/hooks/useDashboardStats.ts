@@ -19,7 +19,7 @@ export type { DashboardStats } from '@/lib/api/generated';
 export function useDashboardStats(options?: {
   organizationId?: string | null;
 }) {
-  const { accessToken, currentOrganization } = useAuthStore();
+  const { accessToken, currentOrganization, isOrgSynced } = useAuthStore();
 
   // Use provided organizationId or fall back to currentOrganization
   const orgId = options?.organizationId ?? currentOrganization?.id;
@@ -29,7 +29,8 @@ export function useDashboardStats(options?: {
       organizationId: orgId || undefined,
     },
     {
-      enabled: !!accessToken,
+      // Wait for both auth token AND org sync to prevent stale org ID queries
+      enabled: !!accessToken && isOrgSynced,
       queryKey: queryKeys.dashboard.stats(orgId),
       // Keep stats fresh but not too aggressive
       staleTime: 30000, // 30 seconds
