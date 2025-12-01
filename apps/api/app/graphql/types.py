@@ -88,10 +88,23 @@ class Organization:
     thread_count: int
     created_at: datetime
     updated_at: datetime
+    # Current user's membership fields
+    is_default: bool | None
+    last_active_at: datetime | None
 
     @classmethod
-    def from_model(cls, organization: OrganizationModel) -> "Organization":
-        """Convert SQLAlchemy Organization model to GraphQL Organization type."""
+    def from_model(
+        cls,
+        organization: OrganizationModel,
+        membership: OrganizationMemberModel | None = None,
+    ) -> "Organization":
+        """
+        Convert SQLAlchemy Organization model to GraphQL Organization type.
+
+        Args:
+            organization: Organization model instance
+            membership: Optional OrganizationMember for current user (for is_default, last_active_at)
+        """
         return cls(
             id=strawberry.ID(str(organization.id)),
             name=organization.name,
@@ -103,6 +116,8 @@ class Organization:
             thread_count=organization.thread_count,
             created_at=organization.created_at,
             updated_at=organization.updated_at,
+            is_default=membership.is_default if membership else None,
+            last_active_at=membership.last_active_at if membership else None,
         )
 
 

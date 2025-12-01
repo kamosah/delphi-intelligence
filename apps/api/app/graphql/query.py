@@ -705,9 +705,9 @@ class Query:
 
             user_id = user.id
 
-            # Get organizations where user is a member
+            # Get organizations where user is a member, along with membership data
             stmt = (
-                select(OrganizationModel)
+                select(OrganizationModel, OrganizationMemberModel)
                 .join(
                     OrganizationMemberModel,
                     OrganizationMemberModel.organization_id == OrganizationModel.id,
@@ -718,9 +718,12 @@ class Query:
             )
 
             result = await session.execute(stmt)
-            organization_models = result.scalars().all()
+            org_membership_pairs = result.all()
 
-            return [Organization.from_model(org) for org in organization_models]
+            return [
+                Organization.from_model(org, membership)
+                for org, membership in org_membership_pairs
+            ]
 
         return []
 
@@ -766,15 +769,15 @@ class Query:
                 user_id = user.id
                 organization_id = UUID(str(id))
 
-                # Check if user is a member of the organization
+                # Check if user is a member and get membership data
                 member_stmt = select(OrganizationMemberModel).where(
                     (OrganizationMemberModel.organization_id == organization_id)
                     & (OrganizationMemberModel.user_id == user_id)
                 )
                 member_result = await session.execute(member_stmt)
-                is_member = member_result.scalar_one_or_none() is not None
+                membership = member_result.scalar_one_or_none()
 
-                if not is_member:
+                if not membership:
                     msg = "Access denied: not a member of this organization"
                     raise ValueError(msg)
 
@@ -784,7 +787,7 @@ class Query:
                 organization_model = result.scalar_one_or_none()
 
                 if organization_model:
-                    return Organization.from_model(organization_model)
+                    return Organization.from_model(organization_model, membership)
                 return None
 
             except ValueError:

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAutoSelectOrganization } from '@/hooks/useUserPreferences';
+import { useOrganizations } from '@/hooks/useOrganizations';
 import {
   authApi,
   type LoginRequest,
@@ -21,62 +21,62 @@ export function useAuth() {
     setTokens,
     setUser,
     setLoading,
+    setCurrentOrganization,
     logout: storeLogout,
   } = useAuthStore();
 
-  // Use React Query-based organization auto-selection
-  const autoSelectOrganization = useAutoSelectOrganization();
+  // Fetch organizations and compute current org (only when authenticated)
+  const { currentOrganization: computedCurrentOrg } = useOrganizations();
+
+  // Sync computed current org to Zustand
+  useEffect(() => {
+    if (
+      computedCurrentOrg &&
+      computedCurrentOrg.id !== currentOrganization?.id
+    ) {
+      setCurrentOrganization(computedCurrentOrg);
+    }
+  }, [computedCurrentOrg, currentOrganization, setCurrentOrganization]);
 
   // Initialize auth state on mount
   useEffect(() => {
     const initializeAuth = async () => {
-      if (accessToken && !user) {
-        try {
-          setLoading(true);
+      // Nothing to do if no token or user already loaded
+      if (!accessToken || user) {
+        setLoading(false);
+        return;
+      }
 
-          // Get user profile (auth token auto-injected via GraphQL client middleware)
-          const userProfile = await authApi.me(accessToken);
-          setUser(userProfile);
+      // Token exists but no user - fetch user profile
+      try {
+        setLoading(true);
+        const userProfile = await authApi.me(accessToken);
+        setUser(userProfile);
+        // Organization will auto-sync via useOrganizations + effect above
+      } catch (error) {
+        console.error('Failed to get user profile:', error);
 
-          // Auto-select organization after user is loaded
-          await autoSelectOrganization();
-        } catch (error) {
-          console.error('Failed to get user profile:', error);
-          // Token might be expired, try to refresh
-          if (refreshToken) {
-            try {
-              const tokenResponse = await authApi.refresh({
-                refresh_token: refreshToken,
-              });
-              setTokens(
-                tokenResponse.access_token,
-                tokenResponse.refresh_token
-              );
-              // Get user profile with new token
-              const userProfile = await authApi.me(tokenResponse.access_token);
-              setUser(userProfile);
+        // Token might be expired - try to refresh if we have refresh token
+        if (refreshToken) {
+          try {
+            const tokenResponse = await authApi.refresh({
+              refresh_token: refreshToken,
+            });
+            setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
 
-              // Auto-select organization after user is loaded
-              await autoSelectOrganization();
-            } catch (refreshError) {
-              console.error('Failed to refresh token:', refreshError);
-              storeLogout();
-            }
-          } else {
+            // Retry fetching user profile with new token
+            const userProfile = await authApi.me(tokenResponse.access_token);
+            setUser(userProfile);
+            // Organization will auto-sync via useOrganizations + effect above
+          } catch (refreshError) {
+            console.error('Failed to refresh token:', refreshError);
             storeLogout();
           }
-        } finally {
-          setLoading(false);
+        } else {
+          // No refresh token - logout
+          storeLogout();
         }
-      } else if (accessToken && user && !currentOrganization) {
-        // User is already loaded, but organization is not selected
-        // This can happen if user clears localStorage or switches devices
-        await autoSelectOrganization();
-        setLoading(false);
-      } else if (accessToken) {
-        // Token exists and user is loaded
-        setLoading(false);
-      } else {
+      } finally {
         setLoading(false);
       }
     };
@@ -84,7 +84,7 @@ export function useAuth() {
     initializeAuth();
     // Only depend on state values, not action functions (they're stable)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, refreshToken, user, currentOrganization]);
+  }, [accessToken, refreshToken, user]);
 
   const signUp = async (credentials: RegisterRequest) => {
     try {
@@ -116,8 +116,7 @@ export function useAuth() {
       const userProfile = await authApi.me(tokenResponse.access_token);
       setUser(userProfile);
 
-      // Auto-select organization after login (uses backend preference)
-      await autoSelectOrganization();
+      // Organization will auto-sync via useOrganizations + effect above
 
       return { user: userProfile, session: tokenResponse };
     } catch (error) {

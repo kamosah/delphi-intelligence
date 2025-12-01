@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -28,7 +29,12 @@ export type {
 } from '@/lib/api/generated';
 
 /**
- * Fetch list of organizations where the authenticated user is a member
+ * Fetch list of organizations where the authenticated user is a member.
+ *
+ * Includes computed `currentOrganization` using same logic as backend:
+ * 1. Organization with is_default=true
+ * 2. Most recently active (last_active_at DESC)
+ * 3. First organization
  */
 export function useOrganizations(options?: {
   limit?: number;
@@ -52,8 +58,34 @@ export function useOrganizations(options?: {
     }
   );
 
+  const organizations = query.data?.organizations || [];
+
+  // Compute current organization using backend logic: is_default → last_active_at → first
+  const currentOrganization = useMemo(() => {
+    if (organizations.length === 0) return null;
+
+    // Priority 1: Organization with is_default=true
+    const defaultOrg = organizations.find((org) => org.isDefault === true);
+    if (defaultOrg) return defaultOrg;
+
+    // Priority 2: Most recently active (last_active_at DESC)
+    const recentOrgs = organizations
+      .filter((org) => org.lastActiveAt != null)
+      .sort(
+        (a, b) =>
+          new Date(b.lastActiveAt!).getTime() -
+          new Date(a.lastActiveAt!).getTime()
+      );
+
+    if (recentOrgs.length > 0) return recentOrgs[0];
+
+    // Priority 3: First organization
+    return organizations[0];
+  }, [organizations]);
+
   return {
-    organizations: query.data?.organizations || [],
+    organizations,
+    currentOrganization,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,

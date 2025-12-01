@@ -228,6 +228,8 @@ export type Organization = {
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  isDefault?: Maybe<Scalars['Boolean']['output']>;
+  lastActiveAt?: Maybe<Scalars['DateTime']['output']>;
   memberCount: Scalars['Int']['output'];
   name: Scalars['String']['output'];
   ownerId?: Maybe<Scalars['ID']['output']>;
@@ -483,6 +485,8 @@ export type CreateOrganizationMutation = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   };
 };
 
@@ -505,6 +509,8 @@ export type UpdateOrganizationMutation = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   } | null;
 };
 
@@ -579,6 +585,8 @@ export type SwitchOrganizationMutation = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   };
 };
 
@@ -838,6 +846,8 @@ export type GetOrganizationsQuery = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   }>;
 };
 
@@ -859,6 +869,8 @@ export type GetOrganizationQuery = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   } | null;
 };
 
@@ -1108,6 +1120,8 @@ export const CreateOrganizationDocument = `
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
     `;
@@ -1161,6 +1175,8 @@ export const UpdateOrganizationDocument = `
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
     `;
@@ -1391,6 +1407,8 @@ export const SwitchOrganizationDocument = `
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
     `;
@@ -2031,6 +2049,8 @@ export const GetOrganizationsDocument = `
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
     `;
@@ -2094,6 +2114,8 @@ export const GetOrganizationDocument = `
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
     `;

@@ -10,6 +10,8 @@ mutation CreateOrganization($input: CreateOrganizationInput!) {
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
 
@@ -25,6 +27,8 @@ mutation UpdateOrganization($id: ID!, $input: UpdateOrganizationInput!) {
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
 
@@ -68,5 +72,7 @@ mutation SwitchOrganization($input: SwitchOrganizationInput!) {
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
