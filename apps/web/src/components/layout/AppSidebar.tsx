@@ -33,17 +33,18 @@ export function AppSidebar() {
   }, []);
 
   // Global keyboard shortcuts
-  useKeyboardShortcut({
-    key: 'j',
-    metaKey: true,
-    callback: () => router.push('/threads'),
-  });
-
-  useKeyboardShortcut({
-    key: '.',
-    metaKey: true,
-    callback: () => toggleSidebarIconMode(),
-  });
+  useKeyboardShortcut([
+    {
+      key: 'j',
+      metaKey: true,
+      callback: () => router.push('/threads'),
+    },
+    {
+      key: '.',
+      metaKey: true,
+      callback: () => toggleSidebarIconMode(),
+    },
+  ]);
 
   // Determine which navigation to render
   let NavigationComponent;
