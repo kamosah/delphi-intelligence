@@ -223,11 +223,10 @@ class Query:
 
                 if not current_org_id or current_org_id != org_uuid:
                     logger.warning(
-                        f"User {user_id} attempted to query spaces for org {org_uuid} "
-                        f"but current org is {current_org_id}"
+                        f"User {user_id} queried spaces for org {org_uuid} "
+                        f"but current org is {current_org_id}. Returning empty list."
                     )
-                    msg = "You must switch to this organization to view its spaces"
-                    raise ValueError(msg)
+                    return []
 
                 # Filter spaces by organization
                 stmt = (
@@ -260,7 +259,7 @@ class Query:
         return []
 
     @strawberry.field
-    async def documents(
+    async def documents(  # noqa: PLR0911
         self,
         info: strawberry.types.Info,
         space_id: strawberry.ID | None = None,
@@ -334,11 +333,10 @@ class Query:
                 if not current_org_id or current_org_id != org_uuid:
                     # Organization doesn't match current org
                     logger.warning(
-                        f"User {user_id} attempted to query documents for org {org_uuid} "
-                        f"but current org is {current_org_id}"
+                        f"User {user_id} queried documents for org {org_uuid} "
+                        f"but current org is {current_org_id}. Returning empty list."
                     )
-                    msg = "You must switch to this organization to view its documents"
-                    raise ValueError(msg)
+                    return []
 
                 # Verify user is a member of this organization
                 org_access_stmt = select(OrganizationMemberModel.id).where(
@@ -728,8 +726,7 @@ class Query:
             org_membership_pairs = result.all()
 
             return [
-                Organization.from_model(org, membership)
-                for org, membership in org_membership_pairs
+                Organization.from_model(org, membership) for org, membership in org_membership_pairs
             ]
 
         return []

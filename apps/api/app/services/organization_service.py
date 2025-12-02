@@ -40,10 +40,10 @@ class OrganizationService:
             )
         )
         result = await db.execute(default_stmt)
-        org_id = result.scalar_one_or_none()
+        default_org_id: UUID | None = result.scalar_one_or_none()
 
-        if org_id:
-            return org_id
+        if default_org_id:
+            return default_org_id
 
         # Fallback to most recent last_active_at
         recent_stmt = (
@@ -58,10 +58,10 @@ class OrganizationService:
             .limit(1)
         )
         result = await db.execute(recent_stmt)
-        org_id = result.scalar_one_or_none()
+        recent_org_id: UUID | None = result.scalar_one_or_none()
 
-        if org_id:
-            return org_id
+        if recent_org_id:
+            return recent_org_id
 
         # Final fallback to first membership
         first_stmt = (

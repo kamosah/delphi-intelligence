@@ -24,6 +24,8 @@ export function useDashboardStats(options?: {
   // Use provided organizationId or fall back to currentOrganization
   const orgId = options?.organizationId ?? currentOrganization?.id;
 
+  console.log('[useDashboardStats] accessToken:', accessToken);
+
   const query = useGetDashboardStatsQuery(
     {
       organizationId: orgId || undefined,

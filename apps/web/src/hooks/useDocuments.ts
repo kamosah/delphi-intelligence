@@ -196,6 +196,7 @@ export function useDocuments(options?: {
       }),
     }
   );
+  console.log('[useDocuments] accessToken:', accessToken);
 
   return {
     documents: query.data?.documents || [],

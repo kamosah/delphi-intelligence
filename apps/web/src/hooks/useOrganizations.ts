@@ -57,7 +57,10 @@ export function useOrganizations(options?: {
     }
   );
 
-  const organizations = query.data?.organizations || [];
+  const organizations = useMemo(
+    () => query.data?.organizations || [],
+    [query.data?.organizations]
+  );
 
   // Current organization is the first one - backend guarantees correct order:
   // 1. is_default DESC NULLS LAST

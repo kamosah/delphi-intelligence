@@ -8,7 +8,6 @@ import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
 import {
   GetOrganizationsDocument,
   type GetOrganizationsQuery,
-  type Organization,
 } from '@/lib/api/hooks.generated';
 
 /**
