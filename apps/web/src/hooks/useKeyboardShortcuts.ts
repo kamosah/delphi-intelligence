@@ -18,7 +18,7 @@ interface KeyboardShortcutOptions {
  *
  * @example
  * // Single shortcut - Navigate to threads with ⌘J
- * useKeyboardShortcut({
+ * useKeyboardShortcuts({
  *   key: 'j',
  *   metaKey: true,
  *   callback: () => router.push('/threads')
@@ -26,13 +26,13 @@ interface KeyboardShortcutOptions {
  *
  * @example
  * // Multiple shortcuts - Register several at once
- * useKeyboardShortcut([
+ * useKeyboardShortcuts([
  *   { key: 'j', metaKey: true, callback: () => router.push('/threads') },
  *   { key: '.', metaKey: true, callback: () => toggleSidebar() },
  *   { key: ',', metaKey: true, shiftKey: true, callback: () => router.push('/settings') }
  * ]);
  */
-export function useKeyboardShortcut(
+export function useKeyboardShortcuts(
   options: KeyboardShortcutOptions | KeyboardShortcutOptions[]
 ) {
   // Normalize to array for consistent handling (memoized to avoid recreating on every render)

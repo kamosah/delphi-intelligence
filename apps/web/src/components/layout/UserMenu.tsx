@@ -13,7 +13,7 @@ import {
   Kbd,
 } from '@olympus/ui';
 import { useAuth } from '@/hooks/useAuth';
-import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 interface UserMenuProps {
@@ -30,7 +30,7 @@ export function UserMenu({ iconMode = false }: UserMenuProps) {
   const { user } = useAuthStore();
 
   // Global keyboard shortcut: ⇧⌘, (Shift+Command+Comma) to navigate to settings
-  useKeyboardShortcut({
+  useKeyboardShortcuts({
     key: ',',
     metaKey: true,
     shiftKey: true,
