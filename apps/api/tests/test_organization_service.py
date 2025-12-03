@@ -37,9 +37,7 @@ class TestGetCurrentOrganizationId:
         await db_session.commit()
 
         # Execute
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert: Should return default org (org_b)
         assert result == org_b.id
@@ -54,29 +52,21 @@ class TestGetCurrentOrganizationId:
         org_recent = await create_organization(db_session, "Recent")
         org_newest_member = await create_organization(db_session, "Newest Member")
 
-        await create_membership(
-            db_session, user, org_old, last_active_at=now - timedelta(days=10)
-        )
+        await create_membership(db_session, user, org_old, last_active_at=now - timedelta(days=10))
         await create_membership(
             db_session, user, org_recent, last_active_at=now - timedelta(hours=1)
         )
-        await create_membership(
-            db_session, user, org_newest_member, last_active_at=None
-        )
+        await create_membership(db_session, user, org_newest_member, last_active_at=None)
 
         await db_session.commit()
 
         # Execute
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert: Should return most recently active org (org_recent)
         assert result == org_recent.id
 
-    async def test_falls_back_to_oldest_created_at_when_no_activity(
-        self, db_session: AsyncSession
-    ):
+    async def test_falls_back_to_oldest_created_at_when_no_activity(self, db_session: AsyncSession):
         """Test fallback to first membership by created_at when no default or last_active."""
         # Setup: No default, no last_active_at, org_oldest is first by created_at
         user = await create_user(db_session)
@@ -84,19 +74,13 @@ class TestGetCurrentOrganizationId:
         org_oldest = await create_organization(db_session, "Oldest")
         org_newer = await create_organization(db_session, "Newer")
 
-        await create_membership(
-            db_session, user, org_oldest, created_at_days_ago=30
-        )
-        await create_membership(
-            db_session, user, org_newer, created_at_days_ago=10
-        )
+        await create_membership(db_session, user, org_oldest, created_at_days_ago=30)
+        await create_membership(db_session, user, org_newer, created_at_days_ago=10)
 
         await db_session.commit()
 
         # Execute
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert: Should return first membership (org_oldest)
         assert result == org_oldest.id
@@ -108,9 +92,7 @@ class TestGetCurrentOrganizationId:
         await db_session.commit()
 
         # Execute
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert
         assert result is None
@@ -142,9 +124,7 @@ class TestGetCurrentOrganizationId:
         await db_session.commit()
 
         # Execute
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert: Should return default (org_default), not most active (org_active)
         assert result == org_default.id
@@ -171,9 +151,7 @@ class TestGetCurrentOrganizationId:
         await db_session.commit()
 
         # Execute
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert: Should fall back to oldest created_at (org_1)
         assert result == org_1.id
@@ -188,9 +166,7 @@ class TestGetCurrentOrganizationId:
 class TestSwitchOrganization:
     """Test cases for OrganizationService.switch_organization."""
 
-    async def test_successfully_switches_and_updates_last_active_at(
-        self, db_session: AsyncSession
-    ):
+    async def test_successfully_switches_and_updates_last_active_at(self, db_session: AsyncSession):
         """Test successful organization switch updates is_default and last_active_at."""
         # Setup: User has 2 memberships, org1 is default
         user = await create_user(db_session)
@@ -198,9 +174,7 @@ class TestSwitchOrganization:
         org2 = await create_organization(db_session, "Org 2")
 
         m1 = await create_membership(db_session, user, org1, is_default=True)
-        m2 = await create_membership(
-            db_session, user, org2, is_default=False, last_active_at=None
-        )
+        m2 = await create_membership(db_session, user, org2, is_default=False, last_active_at=None)
 
         await db_session.commit()
 
@@ -228,9 +202,7 @@ class TestSwitchOrganization:
 
         # Execute & Assert
         with pytest.raises(ValueError, match="is not a member of organization"):
-            await OrganizationService.switch_organization(
-                user.id, fake_org_id, db_session
-            )
+            await OrganizationService.switch_organization(user.id, fake_org_id, db_session)
 
     async def test_handles_multiple_defaults_gracefully(self, db_session: AsyncSession):
         """Test that switching handles edge case of multiple defaults (data corruption)."""
@@ -259,9 +231,7 @@ class TestSwitchOrganization:
         assert m2.is_default is False
         assert m3.is_default is True
 
-    async def test_switching_to_current_org_is_idempotent(
-        self, db_session: AsyncSession
-    ):
+    async def test_switching_to_current_org_is_idempotent(self, db_session: AsyncSession):
         """Test that switching to already-default organization still updates last_active_at."""
         # Setup: org is already default
         user = await create_user(db_session)
@@ -292,9 +262,7 @@ class TestSwitchOrganization:
         assert m.last_active_at is not None
         assert str(m.last_active_at) > str(before_switch_time)
 
-    async def test_switch_unsets_all_user_defaults_only(
-        self, db_session: AsyncSession
-    ):
+    async def test_switch_unsets_all_user_defaults_only(self, db_session: AsyncSession):
         """Test that switching only affects target user's memberships, not other users."""
         # Setup: Two users, both members of same orgs
         user1 = await create_user(db_session, "user1@test.com")
@@ -346,9 +314,7 @@ class TestSwitchOrganization:
         # Create new session to verify commit
         # (In real app, this would be a new request with fresh session)
         # For this test, we can query the current session since commit was called
-        result = await OrganizationService.get_current_organization_id(
-            user.id, db_session
-        )
+        result = await OrganizationService.get_current_organization_id(user.id, db_session)
 
         # Assert: Change persisted (org2 is now default)
         assert result == org2.id

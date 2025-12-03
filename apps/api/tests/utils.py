@@ -389,9 +389,7 @@ async def create_thread_with_messages(
     Returns:
         Tuple of (Thread, list[Message])
     """
-    thread = await create_thread(
-        session, query_text, organization, creator, space=space
-    )
+    thread = await create_thread(session, query_text, organization, creator, space=space)
 
     messages = []
     for i in range(num_exchanges):

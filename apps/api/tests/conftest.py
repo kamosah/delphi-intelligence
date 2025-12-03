@@ -270,9 +270,7 @@ async def db_session():
         await conn.run_sync(Base.metadata.create_all)
 
     # Create session factory
-    async_session_local = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session_local = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     # Provide session
     async with async_session_local() as session:

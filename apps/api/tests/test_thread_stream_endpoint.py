@@ -318,11 +318,14 @@ class TestThreadStreamEndpoint:
         async def mock_get_current_org_id(user_id, db):
             return org_id
 
-        with patch(
-            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
-        ) as mock_process, patch(
-            "app.routes.thread_stream.OrganizationService.get_current_organization_id",
-            side_effect=mock_get_current_org_id
+        with (
+            patch(
+                "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+            ) as mock_process,
+            patch(
+                "app.routes.thread_stream.OrganizationService.get_current_organization_id",
+                side_effect=mock_get_current_org_id,
+            ),
         ):
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
@@ -411,11 +414,14 @@ class TestThreadStreamEndpoint:
         async def mock_get_current_org_id(user_id, db):
             return organization_id
 
-        with patch(
-            "app.routes.thread_stream.ai_agent_service.process_thread_stream"
-        ) as mock_process, patch(
-            "app.routes.thread_stream.OrganizationService.get_current_organization_id",
-            side_effect=mock_get_current_org_id
+        with (
+            patch(
+                "app.routes.thread_stream.ai_agent_service.process_thread_stream"
+            ) as mock_process,
+            patch(
+                "app.routes.thread_stream.OrganizationService.get_current_organization_id",
+                side_effect=mock_get_current_org_id,
+            ),
         ):
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
