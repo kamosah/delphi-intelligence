@@ -20,8 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user_from_query
 from app.db.session import get_session
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
-from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.services.ai_agent import ai_agent_service
+from app.services.organization_service import OrganizationService
 
 logger = logging.getLogger(__name__)
 
@@ -244,18 +244,17 @@ async def stream_thread_response(
             detail="Either space_id or organization_id is required for new threads when save_to_db=true",
         )
 
-    # Verify organization_id matches user's current organization preference
+    # Verify organization_id matches user's current organization
     if organization_id:
-        user_preferences_stmt = select(UserPreferencesModel).where(
-            UserPreferencesModel.user_id == user_id_uuid
+        current_org_id = await OrganizationService.get_current_organization_id(
+            user_id=user_id_uuid,
+            db=db,
         )
-        user_preferences_result = await db.execute(user_preferences_stmt)
-        user_preferences = user_preferences_result.scalar_one_or_none()
 
-        if not user_preferences or user_preferences.current_organization_id != organization_id:
+        if not current_org_id or current_org_id != organization_id:
             logger.warning(
                 f"User {user_id_uuid} attempted to create thread for org {organization_id} "
-                f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                f"but current org is {current_org_id}"
             )
             raise HTTPException(
                 status_code=403,

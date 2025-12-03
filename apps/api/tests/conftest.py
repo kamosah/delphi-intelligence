@@ -227,7 +227,7 @@ async def graphql_client(async_client: AsyncClient):
 # --------------------------------------------------------------------------- #
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 async def db_session():
     """
     Provide an in-memory SQLite database session for testing.
@@ -270,12 +270,12 @@ async def db_session():
         await conn.run_sync(Base.metadata.create_all)
 
     # Create session factory
-    AsyncSessionLocal = async_sessionmaker(
+    async_session_local = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
 
     # Provide session
-    async with AsyncSessionLocal() as session:
+    async with async_session_local() as session:
         yield session
         await session.rollback()  # Rollback any uncommitted changes
 

@@ -43,27 +43,8 @@ class TestThreadStreamEndpoint:
         async def mock_db_execute(stmt, *args, **kwargs):
             mock_result = AsyncMock()
 
-            # Check if this is a UserPreferences query by examining the statement
-            stmt_str = str(stmt)
-            if "user_preferences" in stmt_str.lower():
-                # Return a special mock that always matches the requested org_id
-                mock_prefs = AsyncMock()
-
-                # Make current_organization_id match any comparison
-                class AnyOrgId:
-                    """Helper class that matches any organization_id for test mocking."""
-
-                    def __eq__(self, other):
-                        return True  # Always matches any org_id
-
-                    def __ne__(self, other):
-                        return False
-
-                mock_prefs.current_organization_id = AnyOrgId()
-                mock_result.scalar_one_or_none = lambda: mock_prefs
-            else:
-                # Return space IDs (simulating user has access to all test spaces)
-                mock_result.__iter__ = lambda _: iter([(mock_space.id,)])
+            # Return space IDs (simulating user has access to all test spaces)
+            mock_result.__iter__ = lambda _: iter([(mock_space.id,)])
 
             return mock_result
 
@@ -324,18 +305,25 @@ class TestThreadStreamEndpoint:
         """Test that authenticated users can save to database."""
         # With authentication now required, this test verifies save_to_db works
         # The user_id is automatically extracted from the authenticated user
+        org_id = uuid4()
         params = {
             "query": "Test query",
             "save_to_db": "true",
-            "organization_id": str(uuid4()),
+            "organization_id": str(org_id),
         }
 
         async def mock_stream(*args, **kwargs):
             yield {"type": "done", "confidence_score": 0.8}
 
+        async def mock_get_current_org_id(user_id, db):
+            return org_id
+
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
-        ) as mock_process:
+        ) as mock_process, patch(
+            "app.routes.thread_stream.OrganizationService.get_current_organization_id",
+            side_effect=mock_get_current_org_id
+        ):
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             response = await async_client.get("/api/thread/stream", params=params)
@@ -420,9 +408,15 @@ class TestThreadStreamEndpoint:
                 "query_id": str(uuid4()),
             }
 
+        async def mock_get_current_org_id(user_id, db):
+            return organization_id
+
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
-        ) as mock_process:
+        ) as mock_process, patch(
+            "app.routes.thread_stream.OrganizationService.get_current_organization_id",
+            side_effect=mock_get_current_org_id
+        ):
             mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
 
             params = {
