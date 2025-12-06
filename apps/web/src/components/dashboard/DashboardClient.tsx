@@ -1,9 +1,9 @@
 'use client';
 
-import { Database, FileText, MessageSquare, Zap } from 'lucide-react';
-import { Skeleton } from '@olympus/ui';
+import { Database, FileText, Loader2, MessageSquare, Zap } from 'lucide-react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDocuments } from '@/hooks/useDocuments';
+import { useIsOrgSwitching } from '@/hooks/useIsOrgSwitching';
 import { useThreads } from '@/hooks/useThreads';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { DashboardStatCard } from './DashboardStatCard';
@@ -12,16 +12,17 @@ import { RecentThreadItem } from './RecentThreadItem';
 
 export function DashboardClient() {
   const { currentOrganization } = useAuthStore();
+  const isSwitching = useIsOrgSwitching();
 
-  const { stats, isLoading: statsLoading } = useDashboardStats({
+  const { stats } = useDashboardStats({
     organizationId: currentOrganization?.id,
   });
 
-  const { documents, isLoading: docsLoading } = useDocuments({
+  const { documents } = useDocuments({
     limit: 3,
   });
 
-  const { threads, isLoading: threadsLoading } = useThreads({
+  const { threads } = useThreads({
     organizationId: currentOrganization?.id,
     limit: 3,
   });
@@ -29,6 +30,20 @@ export function DashboardClient() {
   // Documents and threads are already sorted by created_at desc from the API
   const recentDocuments = documents || [];
   const recentThreads = threads || [];
+
+  if (isSwitching) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <div className="text-center">
+          <p className="text-sm font-medium text-gray-900">
+            Switching organization...
+          </p>
+          <p className="text-xs text-gray-500">Loading your workspace</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -44,51 +59,34 @@ export function DashboardClient() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsLoading ? (
-          <>
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg shadow-sm border p-6 space-y-3"
-              >
-                <Skeleton className="h-10 w-10 rounded-lg" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            ))}
-          </>
-        ) : (
-          <>
-            <DashboardStatCard
-              icon={FileText}
-              label="Total Documents"
-              value={stats?.totalDocuments ?? 0}
-              iconBgColor="bg-blue-100"
-              iconColor="text-blue-600"
-            />
-            <DashboardStatCard
-              icon={MessageSquare}
-              label="Threads This Month"
-              value={stats?.threadsThisMonth ?? 0}
-              iconBgColor="bg-green-100"
-              iconColor="text-green-600"
-            />
-            <DashboardStatCard
-              icon={Database}
-              label="Active Spaces"
-              value={stats?.totalSpaces ?? 0}
-              iconBgColor="bg-yellow-100"
-              iconColor="text-yellow-600"
-            />
-            <DashboardStatCard
-              icon={Zap}
-              label="Total Threads"
-              value={stats?.totalThreads ?? 0}
-              iconBgColor="bg-purple-100"
-              iconColor="text-purple-600"
-            />
-          </>
-        )}
+        <DashboardStatCard
+          icon={FileText}
+          label="Total Documents"
+          value={stats?.totalDocuments ?? 0}
+          iconBgColor="bg-blue-100"
+          iconColor="text-blue-600"
+        />
+        <DashboardStatCard
+          icon={MessageSquare}
+          label="Threads This Month"
+          value={stats?.threadsThisMonth ?? 0}
+          iconBgColor="bg-green-100"
+          iconColor="text-green-600"
+        />
+        <DashboardStatCard
+          icon={Database}
+          label="Active Spaces"
+          value={stats?.totalSpaces ?? 0}
+          iconBgColor="bg-yellow-100"
+          iconColor="text-yellow-600"
+        />
+        <DashboardStatCard
+          icon={Zap}
+          label="Total Threads"
+          value={stats?.totalThreads ?? 0}
+          iconBgColor="bg-purple-100"
+          iconColor="text-purple-600"
+        />
       </div>
 
       {/* Recent Activity */}
@@ -101,19 +99,7 @@ export function DashboardClient() {
             </h2>
           </div>
           <div className="p-6">
-            {docsLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="h-10 w-10 rounded" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : recentDocuments.length > 0 ? (
+            {recentDocuments.length > 0 ? (
               <div className="space-y-4">
                 {recentDocuments.map((doc) => (
                   <RecentDocumentItem
@@ -139,19 +125,7 @@ export function DashboardClient() {
             </h2>
           </div>
           <div className="p-6">
-            {threadsLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="h-10 w-10 rounded" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : recentThreads.length > 0 ? (
+            {recentThreads.length > 0 ? (
               <div className="space-y-4">
                 {recentThreads.map((thread) => (
                   <RecentThreadItem

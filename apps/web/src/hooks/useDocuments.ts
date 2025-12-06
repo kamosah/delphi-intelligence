@@ -174,7 +174,7 @@ export function useDocuments(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken, currentOrganization, isOrgSynced } = useAuthStore();
+  const { accessToken, currentOrganization } = useAuthStore();
   const spaceId = options?.spaceId;
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
@@ -188,8 +188,7 @@ export function useDocuments(options?: {
       offset,
     },
     {
-      // If filtering by organizationId, wait for org sync to prevent stale queries
-      enabled: !!accessToken && (orgId ? isOrgSynced : true),
+      enabled: !!accessToken,
       queryKey: queryKeys.documents.list(spaceId || null, {
         limit,
         offset,

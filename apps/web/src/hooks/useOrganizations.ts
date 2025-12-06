@@ -1,14 +1,19 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   useCreateOrganizationMutation,
   useDeleteOrganizationMutation,
   useGetOrganizationQuery,
   useGetOrganizationsQuery,
+  useSwitchOrganizationMutation,
   useUpdateOrganizationMutation,
   type CreateOrganizationMutationVariables,
   type DeleteOrganizationMutationVariables,
+  type GetOrganizationsQuery,
+  type SwitchOrganizationMutationVariables,
   type UpdateOrganizationMutationVariables,
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
@@ -23,7 +28,12 @@ export type {
 } from '@/lib/api/generated';
 
 /**
- * Fetch list of organizations where the authenticated user is a member
+ * Fetch list of organizations where the authenticated user is a member.
+ *
+ * Includes computed `currentOrganization` using same logic as backend:
+ * 1. Organization with is_default=true
+ * 2. Most recently active (last_active_at DESC)
+ * 3. First organization
  */
 export function useOrganizations(options?: {
   limit?: number;
@@ -47,8 +57,22 @@ export function useOrganizations(options?: {
     }
   );
 
+  const organizations = useMemo(
+    () => query.data?.organizations || [],
+    [query.data?.organizations]
+  );
+
+  // Current organization is the first one - backend guarantees correct order:
+  // 1. is_default DESC NULLS LAST
+  // 2. last_active_at DESC NULLS LAST
+  // 3. created_at ASC
+  const currentOrganization = useMemo(() => {
+    return organizations.length > 0 ? organizations[0] : null;
+  }, [organizations]);
+
   return {
-    organizations: query.data?.organizations || [],
+    organizations,
+    currentOrganization,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
@@ -147,6 +171,72 @@ export function useDeleteOrganization() {
     deleteOrganization: (variables: DeleteOrganizationMutationVariables) =>
       mutation.mutateAsync(variables),
     isDeleting: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
+/**
+ * Switch user's current organization
+ *
+ * Updates organization_members.is_default and last_active_at on backend.
+ * Optimistically updates Zustand store and refetches org-scoped queries.
+ */
+export function useSwitchOrganization() {
+  const queryClient = useQueryClient();
+  const { setCurrentOrganization, currentOrganization } = useAuthStore();
+
+  const mutation = useSwitchOrganizationMutation({
+    onMutate: async (variables) => {
+      // Optimistically update Zustand store for instant UI feedback
+      const previousOrg = currentOrganization;
+
+      // Find the organization from the organizations query cache
+      const organizationsData = queryClient.getQueryData<GetOrganizationsQuery>(
+        queryKeys.organizations.lists()
+      );
+
+      const newOrg = organizationsData?.organizations?.find(
+        (org) => org.id === variables.input.organizationId
+      );
+
+      if (newOrg) {
+        setCurrentOrganization(newOrg);
+      }
+
+      return { previousOrg };
+    },
+    onSuccess: async () => {
+      // CRITICAL: Refetch organizations list to get updated is_default and last_active_at
+      // This ensures useOrganizations recomputes currentOrganization with fresh data
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.organizations.all,
+      });
+
+      // Invalidate all org-scoped queries to refetch with new org context
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.spaces.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.all });
+
+      toast.success('Organization switched successfully');
+    },
+    onError: (error, variables, context) => {
+      // Rollback Zustand update on error
+      if (context?.previousOrg) {
+        setCurrentOrganization(context.previousOrg);
+      }
+
+      toast.error('Failed to switch organization', {
+        description:
+          error instanceof Error ? error.message : 'Please try again',
+      });
+    },
+  });
+
+  return {
+    switchOrganization: (variables: SwitchOrganizationMutationVariables) =>
+      mutation.mutateAsync(variables),
+    isSwitching: mutation.isPending,
     error: mutation.error,
   };
 }

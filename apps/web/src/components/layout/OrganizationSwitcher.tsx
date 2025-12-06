@@ -13,8 +13,12 @@ import {
   Skeleton,
 } from '@olympus/ui';
 import { CreateOrganizationDialog } from '@/components/organizations/CreateOrganizationDialog';
-import { useOrganizations, type Organization } from '@/hooks/useOrganizations';
-import { useUpdateCurrentOrganization } from '@/hooks/useUserPreferences';
+import { useIsOrgSwitching } from '@/hooks/useIsOrgSwitching';
+import {
+  useOrganizations,
+  useSwitchOrganization,
+  type Organization,
+} from '@/hooks/useOrganizations';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 
@@ -31,26 +35,27 @@ interface OrganizationSwitcherProps {
 export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const { currentOrganization } = useAuthStore();
   const { organizations = [], isLoading } = useOrganizations();
-  const { updateCurrentOrganization } = useUpdateCurrentOrganization();
+  const { switchOrganization } = useSwitchOrganization();
+  const isSwitching = useIsOrgSwitching();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const handleSelectOrganization = async (orgId: string) => {
     try {
-      await updateCurrentOrganization(orgId);
+      await switchOrganization({ input: { organizationId: orgId } });
     } catch (error) {
       console.error(
         '[OrganizationSwitcher] Failed to switch organization:',
         error
       );
-      // Error already shown via toast in useUpdateCurrentOrganization
+      // Error already shown via toast in useSwitchOrganization
     }
   };
 
   const handleOrganizationCreated = async (organization: Organization) => {
     // Auto-select the newly created organization
     try {
-      await updateCurrentOrganization(organization.id);
+      await switchOrganization({ input: { organizationId: organization.id } });
     } catch (error) {
       console.error('Failed to set new organization as current:', error);
     }
@@ -76,13 +81,19 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
+            disabled={isSwitching}
             className={cn(
               'flex h-10 w-full items-center justify-between gap-2 rounded-lg border-gray-200 bg-white px-3 py-2 text-left font-normal hover:bg-gray-50',
+              isSwitching && 'opacity-50 cursor-not-allowed',
               className
             )}
           >
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              <Building2 className="h-4 w-4 shrink-0 text-gray-600" />
+              {isSwitching ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+              ) : (
+                <Building2 className="h-4 w-4 shrink-0 text-gray-600" />
+              )}
               <span className="truncate text-sm font-medium text-gray-900">
                 {currentOrganization?.name || 'Select organization'}
               </span>
@@ -113,6 +124,7 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
             organizations.map((org) => (
               <DropdownMenuItem
                 key={org.id}
+                disabled={isSwitching}
                 className={cn(
                   'flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-2 text-sm',
                   'hover:bg-gray-50 focus:bg-gray-50',
@@ -146,6 +158,7 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
           <DropdownMenuSeparator className="my-1 bg-gray-100" />
 
           <DropdownMenuItem
+            disabled={isSwitching}
             className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 focus:bg-blue-50"
             onSelect={() => setIsCreateDialogOpen(true)}
           >

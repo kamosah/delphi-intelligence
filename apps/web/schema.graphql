@@ -109,6 +109,7 @@ type Mutation {
   deleteThread(id: ID!): Boolean!
   deleteUser(id: ID!): Boolean!
   removeOrganizationMember(organizationId: ID!, userId: ID!): Boolean!
+  switchOrganization(input: SwitchOrganizationInput!): Organization!
   updateMemberRole(organizationId: ID!, role: OrganizationRole!, userId: ID!): OrganizationMember
   updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization
   updateSpace(id: ID!, input: UpdateSpaceInput!): Space
@@ -133,6 +134,8 @@ type Organization {
 type OrganizationMember {
   createdAt: DateTime!
   id: ID!
+  isDefault: Boolean!
+  lastActiveAt: DateTime
   organizationId: ID!
   role: OrganizationRole!
   user: User
@@ -148,14 +151,14 @@ enum OrganizationRole {
 
 type Query {
   dashboardStats(organizationId: ID = null): DashboardStats!
-  documents(limit: Int! = 100, offset: Int! = 0, spaceId: ID = null): [Document!]!
+  documents(limit: Int! = 100, offset: Int! = 0, organizationId: ID = null, spaceId: ID = null): [Document!]!
   health: String!
   organization(id: ID!): Organization
   organizationMembers(limit: Int! = 50, offset: Int! = 0, organizationId: ID!): [OrganizationMember!]!
   organizations(limit: Int! = 10, offset: Int! = 0): [Organization!]!
   searchDocuments(input: SearchDocumentsInput!): [SearchResult!]!
   space(id: ID!): Space
-  spaces(limit: Int! = 10, offset: Int! = 0): [Space!]!
+  spaces(limit: Int! = 10, offset: Int! = 0, organizationId: ID = null): [Space!]!
   thread(id: ID!): Thread
   threads(limit: Int! = 50, offset: Int! = 0, organizationId: ID = null, spaceId: ID = null): [Thread!]!
   user(id: ID!): User
@@ -194,6 +197,10 @@ type Space {
   updatedAt: DateTime!
 }
 
+input SwitchOrganizationInput {
+  organizationId: ID!
+}
+
 type Thread {
   agentSteps: JSON
   completedAt: DateTime
@@ -204,6 +211,7 @@ type Thread {
   createdBy: ID!
   errorMessage: String
   id: ID!
+  isStarred: Boolean!
   messages: [Message!]!
   modelUsed: String
   organizationId: ID!
@@ -237,6 +245,7 @@ input UpdateSpaceInput {
 }
 
 input UpdateThreadInput {
+  isStarred: Boolean = null
   result: String = null
   title: String = null
 }

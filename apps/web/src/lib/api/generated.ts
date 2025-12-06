@@ -132,6 +132,7 @@ export type Mutation = {
   deleteThread: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
   removeOrganizationMember: Scalars['Boolean']['output'];
+  switchOrganization: Organization;
   updateMemberRole?: Maybe<OrganizationMember>;
   updateOrganization?: Maybe<Organization>;
   updateSpace?: Maybe<Space>;
@@ -181,6 +182,10 @@ export type MutationRemoveOrganizationMemberArgs = {
   userId: Scalars['ID']['input'];
 };
 
+export type MutationSwitchOrganizationArgs = {
+  input: SwitchOrganizationInput;
+};
+
 export type MutationUpdateMemberRoleArgs = {
   organizationId: Scalars['ID']['input'];
   role: OrganizationRole;
@@ -216,6 +221,8 @@ export type Organization = {
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  isDefault?: Maybe<Scalars['Boolean']['output']>;
+  lastActiveAt?: Maybe<Scalars['DateTime']['output']>;
   memberCount: Scalars['Int']['output'];
   name: Scalars['String']['output'];
   ownerId?: Maybe<Scalars['ID']['output']>;
@@ -229,6 +236,8 @@ export type OrganizationMember = {
   __typename?: 'OrganizationMember';
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  lastActiveAt?: Maybe<Scalars['DateTime']['output']>;
   organizationId: Scalars['ID']['output'];
   role: OrganizationRole;
   user?: Maybe<User>;
@@ -357,6 +366,10 @@ export type Space = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type SwitchOrganizationInput = {
+  organizationId: Scalars['ID']['input'];
+};
+
 export type Thread = {
   __typename?: 'Thread';
   agentSteps?: Maybe<Scalars['JSON']['output']>;
@@ -415,7 +428,6 @@ export type UpdateUserInput = {
 
 export type UpdateUserPreferencesInput = {
   browserNotificationsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  currentOrganizationId?: InputMaybe<Scalars['ID']['input']>;
   customSettings?: InputMaybe<Scalars['JSON']['input']>;
   emailNotifications?: InputMaybe<Scalars['Boolean']['input']>;
   language?: InputMaybe<Scalars['String']['input']>;
@@ -438,7 +450,6 @@ export type User = {
 export type UserPreferences = {
   __typename?: 'UserPreferences';
   browserNotificationsEnabled?: Maybe<Scalars['Boolean']['output']>;
-  currentOrganizationId?: Maybe<Scalars['ID']['output']>;
   customSettings?: Maybe<Scalars['JSON']['output']>;
   emailNotifications: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
@@ -467,6 +478,8 @@ export type CreateOrganizationMutation = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   };
 };
 
@@ -489,6 +502,8 @@ export type UpdateOrganizationMutation = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   } | null;
 };
 
@@ -543,6 +558,29 @@ export type UpdateMemberRoleMutation = {
     role: OrganizationRole;
     createdAt: string;
   } | null;
+};
+
+export type SwitchOrganizationMutationVariables = Exact<{
+  input: SwitchOrganizationInput;
+}>;
+
+export type SwitchOrganizationMutation = {
+  __typename?: 'Mutation';
+  switchOrganization: {
+    __typename?: 'Organization';
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    ownerId?: string | null;
+    memberCount: number;
+    spaceCount: number;
+    threadCount: number;
+    createdAt: string;
+    updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
+  };
 };
 
 export type CreateSpaceMutationVariables = Exact<{
@@ -692,7 +730,6 @@ export type UpdateUserPreferencesMutation = {
     language: string;
     timezone?: string | null;
     customSettings?: any | null;
-    currentOrganizationId?: string | null;
   };
 };
 
@@ -802,6 +839,8 @@ export type GetOrganizationsQuery = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   }>;
 };
 
@@ -823,6 +862,8 @@ export type GetOrganizationQuery = {
     threadCount: number;
     createdAt: string;
     updatedAt: string;
+    isDefault?: boolean | null;
+    lastActiveAt?: string | null;
   } | null;
 };
 
@@ -1001,7 +1042,6 @@ export type UserPreferencesQuery = {
     language: string;
     timezone?: string | null;
     customSettings?: any | null;
-    currentOrganizationId?: string | null;
   } | null;
 };
 

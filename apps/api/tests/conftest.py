@@ -1,7 +1,8 @@
 """
 Test Configuration and Fixtures
 
-This module provides pytest fixtures for testing with mocked dependencies.
+This module provides pytest fixtures for testing with real in-memory database
+and mocked dependencies where necessary.
 """
 
 from unittest.mock import AsyncMock, MagicMock
@@ -9,8 +10,13 @@ from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import JSON, event
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.main import app
+from app.models.base import Base
 from app.models.message import Message, MessageRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember, OrganizationRole
@@ -214,3 +220,62 @@ async def graphql_client(async_client: AsyncClient):
             return response.json()
 
     return GraphQLClient(async_client)
+
+
+# --------------------------------------------------------------------------- #
+# In-Memory Database Fixtures for Real Unit/Integration Tests
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture()
+async def db_session():
+    """
+    Provide an in-memory SQLite database session for testing.
+
+    This fixture creates a fresh database for each test, ensuring complete isolation.
+    Uses StaticPool to maintain the :memory: database connection throughout the test.
+
+    Benefits over mocking:
+    - Tests actual SQLAlchemy queries
+    - Catches real SQL bugs (joins, filters, ordering)
+    - Fast (~0.1s per test)
+    - CI-perfect (no Docker, no flakes)
+    - Works with pytest-xdist parallel testing
+    - Reusable across all API tests
+
+    Note: Automatically converts PostgreSQL JSONB to SQLite JSON for compatibility.
+    All tables are created for maximum reusability across test suites.
+    """
+    # Create in-memory SQLite engine
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,  # Critical for :memory: + concurrency
+        echo=False,  # Set to True for SQL debugging
+    )
+
+    # Convert JSONB columns to JSON for SQLite compatibility
+    # This event listener replaces PostgreSQL JSONB with SQLite JSON during table creation
+    @event.listens_for(Base.metadata, "before_create")
+    def receive_before_create(target, connection, **kw):
+        """Replace JSONB columns with JSON for SQLite."""
+        if connection.dialect.name == "sqlite":
+            for table in Base.metadata.sorted_tables:
+                for column in table.columns:
+                    if isinstance(column.type, JSONB):
+                        column.type = JSON()
+
+    # Create ALL tables for reusability across test suites
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # Create session factory
+    async_session_local = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    # Provide session
+    async with async_session_local() as session:
+        yield session
+        await session.rollback()  # Rollback any uncommitted changes
+
+    # Cleanup
+    await engine.dispose()

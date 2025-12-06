@@ -10,6 +10,8 @@ query GetOrganizations($limit: Int, $offset: Int) {
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
 
@@ -25,6 +27,8 @@ query GetOrganization($id: ID!) {
     threadCount
     createdAt
     updatedAt
+    isDefault
+    lastActiveAt
   }
 }
 
