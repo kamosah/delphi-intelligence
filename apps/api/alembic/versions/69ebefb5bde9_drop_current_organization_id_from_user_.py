@@ -73,6 +73,14 @@ def downgrade() -> None:
             sa.Column('current_organization_id', UUID(as_uuid=True), nullable=True)
         )
 
+    # Check if foreign key already exists before creating
+    foreign_keys = inspector.get_foreign_keys('user_preferences')
+    fk_exists = any(
+        fk.get('name') == 'fk_user_preferences_current_organization'
+        for fk in foreign_keys
+    )
+
+    if not fk_exists:
         # Re-create foreign key
         op.create_foreign_key(
             'fk_user_preferences_current_organization',
@@ -81,6 +89,14 @@ def downgrade() -> None:
             ondelete='SET NULL'
         )
 
+    # Check if index already exists before creating
+    indexes = inspector.get_indexes('user_preferences')
+    index_exists = any(
+        idx.get('name') == 'idx_user_preferences_current_organization'
+        for idx in indexes
+    )
+
+    if not index_exists:
         # Re-create index
         op.create_index(
             'idx_user_preferences_current_organization',
@@ -88,7 +104,8 @@ def downgrade() -> None:
             ['current_organization_id']
         )
 
-        # Backfill from organization_members.is_default
+    # Backfill from organization_members.is_default (only if column was just added)
+    if 'current_organization_id' not in columns:
         op.execute("""
             UPDATE user_preferences up
             SET current_organization_id = (
