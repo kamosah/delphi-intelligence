@@ -625,5 +625,3 @@ See [Development Commands - Pre-Commit Checklist](./docs/guides/development-comm
 ## Getting Help
 
 If you need more details on any topic, refer to the appropriate guide in `docs/guides/` or ask for clarification.
-
-- Add to memory. Read any files needed to gain context needed to accomplish tasks. Read by default and do not request permission for read operations

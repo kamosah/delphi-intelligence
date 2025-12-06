@@ -529,7 +529,7 @@ class Mutation:
             input: Organization ID to switch to
 
         Returns:
-            The selected organization
+            The selected organization with updated membership data
 
         Raises:
             ValueError: If user is not a member of the organization
@@ -552,7 +552,7 @@ class Mutation:
                     user_id=user_id, new_org_id=org_id, db=session
                 )
 
-                # Fetch and return the organization
+                # Fetch the organization
                 org_stmt = select(OrganizationModel).where(OrganizationModel.id == org_id)
                 result = await session.execute(org_stmt)
                 org_model = result.scalar_one_or_none()
@@ -561,7 +561,16 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                return Organization.from_model(org_model)
+                # Fetch the user's membership for this organization
+                membership_stmt = select(OrganizationMemberModel).where(
+                    OrganizationMemberModel.user_id == user_id,
+                    OrganizationMemberModel.organization_id == org_id,
+                )
+                membership_result = await session.execute(membership_stmt)
+                membership = membership_result.scalar_one_or_none()
+
+                # Return organization with membership data
+                return Organization.from_model(org_model, membership)
 
             except ValueError:
                 await session.rollback()

@@ -50,8 +50,6 @@ export function useThreads(options?: {
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
 
-  console.log('[useThreads]: accessToken', accessToken);
-
   const query = useGetThreadsQuery(
     {
       spaceId: spaceId,
