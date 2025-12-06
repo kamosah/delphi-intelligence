@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TooltipProvider } from '@olympus/ui';
-import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
@@ -33,17 +33,18 @@ export function AppSidebar() {
   }, []);
 
   // Global keyboard shortcuts
-  useKeyboardShortcut({
-    key: 'j',
-    metaKey: true,
-    callback: () => router.push('/threads'),
-  });
-
-  useKeyboardShortcut({
-    key: '.',
-    metaKey: true,
-    callback: () => toggleSidebarIconMode(),
-  });
+  useKeyboardShortcuts([
+    {
+      key: 'j',
+      metaKey: true,
+      callback: () => router.push('/threads'),
+    },
+    {
+      key: '.',
+      metaKey: true,
+      callback: () => toggleSidebarIconMode(),
+    },
+  ]);
 
   // Determine which navigation to render
   let NavigationComponent;

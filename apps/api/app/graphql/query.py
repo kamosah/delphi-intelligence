@@ -16,6 +16,7 @@ from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
+from app.services.organization_service import OrganizationService
 from app.services.vector_search_service import get_vector_search_service
 
 from .types import (
@@ -211,20 +212,19 @@ class Query:
 
             user_id = user.id
 
-            # Verify organization_id matches user's current organization preference
+            # Verify organization_id matches user's current organization
             if organization_id:
                 org_uuid = UUID(str(organization_id))
 
-                user_preferences_stmt = select(UserPreferencesModel).where(
-                    UserPreferencesModel.user_id == user_id
+                # Get user's current organization from OrganizationService
+                current_org_id = await OrganizationService.get_current_organization_id(
+                    user_id=user_id, db=session
                 )
-                user_preferences_result = await session.execute(user_preferences_stmt)
-                user_preferences = user_preferences_result.scalar_one_or_none()
 
-                if not user_preferences or user_preferences.current_organization_id != org_uuid:
+                if not current_org_id or current_org_id != org_uuid:
                     logger.warning(
-                        f"User {user_id} attempted to query spaces for org {org_uuid} "
-                        f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                        f"User {user_id} queried spaces for org {org_uuid} "
+                        f"but current org is {current_org_id}. Returning empty list."
                     )
                     return []
 
@@ -259,7 +259,7 @@ class Query:
         return []
 
     @strawberry.field
-    async def documents(
+    async def documents(  # noqa: PLR0911
         self,
         info: strawberry.types.Info,
         space_id: strawberry.ID | None = None,
@@ -325,21 +325,18 @@ class Query:
                 # Filter by organization - get documents from all accessible spaces in this org
                 org_uuid = UUID(str(organization_id))
 
-                # Verify organization_id matches user's current organization preference
-                user_preferences_stmt = select(UserPreferencesModel).where(
-                    UserPreferencesModel.user_id == user_id
+                # Verify organization_id matches user's current organization
+                current_org_id = await OrganizationService.get_current_organization_id(
+                    user_id=user_id, db=session
                 )
-                user_preferences_result = await session.execute(user_preferences_stmt)
-                user_preferences = user_preferences_result.scalar_one_or_none()
 
-                if not user_preferences or user_preferences.current_organization_id != org_uuid:
-                    # Organization doesn't match current org preference
+                if not current_org_id or current_org_id != org_uuid:
+                    # Organization doesn't match current org
                     logger.warning(
-                        f"User {user_id} attempted to query documents for org {org_uuid} "
-                        f"but current org is {user_preferences.current_organization_id if user_preferences else None}"
+                        f"User {user_id} queried documents for org {org_uuid} "
+                        f"but current org is {current_org_id}. Returning empty list."
                     )
-                    msg = "You must switch to this organization to view its documents"
-                    raise ValueError(msg)
+                    return []
 
                 # Verify user is a member of this organization
                 org_access_stmt = select(OrganizationMemberModel.id).where(
@@ -534,14 +531,15 @@ class Query:
                 )
             else:
                 # No space_id - filter by organization and user
-                # Use explicit organization_id or fall back to user's current org from middleware
+                # Use explicit organization_id or fall back to user's current org
                 org_uuid: UUID | None
                 if organization_id:
                     org_uuid = UUID(str(organization_id))
                 else:
-                    # Fall back to user's current organization from middleware (user preferences)
-                    current_org_id = getattr(request.state, "current_organization_id", None)
-                    org_uuid = UUID(str(current_org_id)) if current_org_id else None
+                    # Fall back to user's current organization from OrganizationService
+                    org_uuid = await OrganizationService.get_current_organization_id(
+                        user_id=user_id, db=session
+                    )
 
                 if org_uuid:
                     # Verify user is a member of the organization
@@ -705,22 +703,31 @@ class Query:
 
             user_id = user.id
 
-            # Get organizations where user is a member
+            # Get organizations where user is a member, along with membership data
+            # Order by: is_default DESC → last_active_at DESC → created_at ASC
+            # This ensures consistent ordering for current org computation
             stmt = (
-                select(OrganizationModel)
+                select(OrganizationModel, OrganizationMemberModel)
                 .join(
                     OrganizationMemberModel,
                     OrganizationMemberModel.organization_id == OrganizationModel.id,
                 )
                 .where(OrganizationMemberModel.user_id == user_id)
+                .order_by(
+                    OrganizationMemberModel.is_default.desc().nulls_last(),
+                    OrganizationMemberModel.last_active_at.desc().nulls_last(),
+                    OrganizationModel.created_at.asc(),
+                )
                 .limit(limit)
                 .offset(offset)
             )
 
             result = await session.execute(stmt)
-            organization_models = result.scalars().all()
+            org_membership_pairs = result.all()
 
-            return [Organization.from_model(org) for org in organization_models]
+            return [
+                Organization.from_model(org, membership) for org, membership in org_membership_pairs
+            ]
 
         return []
 
@@ -766,15 +773,15 @@ class Query:
                 user_id = user.id
                 organization_id = UUID(str(id))
 
-                # Check if user is a member of the organization
+                # Check if user is a member and get membership data
                 member_stmt = select(OrganizationMemberModel).where(
                     (OrganizationMemberModel.organization_id == organization_id)
                     & (OrganizationMemberModel.user_id == user_id)
                 )
                 member_result = await session.execute(member_stmt)
-                is_member = member_result.scalar_one_or_none() is not None
+                membership = member_result.scalar_one_or_none()
 
-                if not is_member:
+                if not membership:
                     msg = "Access denied: not a member of this organization"
                     raise ValueError(msg)
 
@@ -784,7 +791,7 @@ class Query:
                 organization_model = result.scalar_one_or_none()
 
                 if organization_model:
-                    return Organization.from_model(organization_model)
+                    return Organization.from_model(organization_model, membership)
                 return None
 
             except ValueError:
@@ -916,14 +923,15 @@ class Query:
                 )
 
             user_id = user.id
-            # Use organization_id parameter if provided, else fall back to user's current org from middleware
+            # Use organization_id parameter if provided, else fall back to user's current org
             org_id: UUID | None
             if organization_id:
                 org_id = UUID(str(organization_id))
             else:
-                # Fall back to user's current organization from middleware (user preferences)
-                current_org_id = getattr(request.state, "current_organization_id", None)
-                org_id = UUID(str(current_org_id)) if current_org_id else None
+                # Fall back to user's current organization from OrganizationService
+                org_id = await OrganizationService.get_current_organization_id(
+                    user_id=user_id, db=session
+                )
 
             # Get accessible space IDs (where user is owner or member)
             space_ids_stmt = (
