@@ -193,7 +193,7 @@ async def exchange_token(data: dict[str, str]) -> TokenResponse:
 
 @router.post("/exchange")
 async def exchange_supabase_token_for_olympus_jwt(
-    authorization: str = Header(..., alias="Authorization")
+    authorization: str = Header(..., alias="Authorization"),
 ) -> dict[str, str]:
     """
     Exchange Supabase token for Olympus JWT (HTTP-only cookie flow) with Redis caching.
@@ -276,7 +276,7 @@ async def exchange_supabase_token_for_olympus_jwt(
         raise
     except Exception as e:
         # Log and return generic error for unexpected exceptions
-        logger.error(f"Token exchange failed: {str(e)}", exc_info=True)
+        logger.exception(f"Token exchange failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Token exchange failed",
@@ -343,5 +343,67 @@ async def get_sse_token(
 
     return {
         "sse_token": sse_token,
-        "expires_in": int(sse_token_expiry.total_seconds()),  # Calculate from timedelta
+        "expires_in": int(sse_token_expiry.total_seconds()),
+    }
+
+
+@router.post("/client-token")
+async def get_client_token(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str | int]:
+    """
+    Exchange HTTP-only cookie session for a short-lived client token.
+
+    This endpoint creates short-lived tokens (5-minute TTL) for client-side REST API calls.
+    Allows authenticated requests from Client Components that can't access HTTP-only cookies.
+
+    Args:
+        current_user: Authenticated user dict from HTTP-only cookie session
+
+    Returns:
+        Dictionary with short-lived client token and expiry time (seconds)
+
+    Security:
+        - Token expires in 5 minutes
+        - Automatic refresh via React Query (staleTime: 4 min)
+        - Can be revoked on logout/password change
+    """
+
+    # Token data
+    token_data = {
+        "sub": current_user.get("id"),
+        "email": current_user.get("email"),
+        "purpose": "client",
+    }
+
+    # Create short-lived token (5 minutes)
+    client_token_expiry = timedelta(minutes=5)
+    client_token = jwt_manager.create_access_token(
+        data=token_data,
+        expires_delta=client_token_expiry,
+    )
+
+    # Store token in Redis for verification and revocation
+    user_id = current_user.get("id")
+    if not user_id or not isinstance(user_id, str):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user session",
+        )
+
+    success = await redis_manager.store_sse_token(
+        token=client_token,
+        user_id=user_id,
+        expire=client_token_expiry,
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create client token",
+        )
+
+    return {
+        "client_token": client_token,
+        "expires_in": int(client_token_expiry.total_seconds()),
     }

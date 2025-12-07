@@ -1,9 +1,9 @@
 'use client';
 
+import { useClientToken } from '@/hooks/useClientToken';
 import type { SearchDocumentsInput } from '@/lib/api/hooks.generated';
 import { useSearchDocumentsQuery } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
-import { useAuthStore } from '../lib/stores';
 
 // Re-export types for convenience
 export type {
@@ -37,12 +37,12 @@ export type {
  * });
  */
 export function useSearchDocuments(input: SearchDocumentsInput) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const query = useSearchDocumentsQuery(
     { input },
     {
-      enabled: !!accessToken && !!input.query && input.query.trim().length > 0,
+      enabled: !!clientToken && input.query.trim().length > 0,
       queryKey: queryKeys.search.documents(input),
     }
   );

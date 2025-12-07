@@ -1,6 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { useClientToken } from '@/hooks/useClientToken';
 import {
   useGetOrganizationMembersQuery,
   useAddOrganizationMemberMutation,
@@ -11,7 +12,6 @@ import {
   type UpdateMemberRoleMutationVariables,
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
-import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Re-export generated types
 export type {
@@ -30,7 +30,7 @@ export function useOrganizationMembers(
     offset?: number;
   }
 ) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const query = useGetOrganizationMembersQuery(
     {
@@ -39,7 +39,7 @@ export function useOrganizationMembers(
       offset: options?.offset,
     },
     {
-      enabled: !!accessToken && !!organizationId,
+      enabled: !!clientToken && !!organizationId,
       queryKey: organizationId
         ? queryKeys.organizationMembers.list(organizationId, {
             limit: options?.limit,

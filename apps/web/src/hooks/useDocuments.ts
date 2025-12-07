@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useClientToken } from '@/hooks/useClientToken';
 import {
   documentsApi,
   type Document,
@@ -49,7 +50,7 @@ function sanitizeFilename(filename: string): string {
  */
 export function useUploadDocument() {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
     {}
   );
@@ -58,13 +59,13 @@ export function useUploadDocument() {
     mutationFn: async (
       request: UploadDocumentRequest & { fileId?: string }
     ) => {
-      if (!accessToken) {
+      if (!clientToken) {
         throw new Error('Authentication required');
       }
 
       const fileId = request.fileId || request.file.name;
 
-      return documentsApi.upload(request, accessToken, (progress) => {
+      return documentsApi.upload(request, clientToken, (progress) => {
         setUploadProgress((prev) => ({
           ...prev,
           [fileId]: progress,
@@ -174,7 +175,8 @@ export function useDocuments(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken, currentOrganization } = useAuthStore();
+  const { clientToken } = useClientToken();
+  const { currentOrganization } = useAuthStore();
   const spaceId = options?.spaceId;
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
@@ -188,7 +190,7 @@ export function useDocuments(options?: {
       offset,
     },
     {
-      enabled: !!accessToken,
+      enabled: !!clientToken,
       queryKey: queryKeys.documents.list(spaceId || null, {
         limit,
         offset,
@@ -213,17 +215,17 @@ export function useDocuments(options?: {
  * const { document, isLoading } = useDocument(documentId);
  */
 export function useDocument(documentId: string) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const query = useQuery({
     queryKey: queryKeys.documents.detail(documentId),
     queryFn: async () => {
-      if (!accessToken) {
+      if (!clientToken) {
         throw new Error('Authentication required');
       }
-      return documentsApi.get(documentId, accessToken);
+      return documentsApi.get(documentId, clientToken);
     },
-    enabled: !!accessToken && !!documentId,
+    enabled: !!clientToken && !!documentId,
   });
 
   return {
@@ -246,14 +248,14 @@ export function useDocument(documentId: string) {
  */
 export function useDeleteDocument() {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const mutation = useMutation({
     mutationFn: async (variables: { documentId: string; spaceId: string }) => {
-      if (!accessToken) {
+      if (!clientToken) {
         throw new Error('Authentication required');
       }
-      return documentsApi.delete(variables.documentId, accessToken);
+      return documentsApi.delete(variables.documentId, clientToken);
     },
     // Optimistically update the cache before mutation runs
     onMutate: async (variables) => {
@@ -329,7 +331,7 @@ export function useDeleteDocument() {
  * };
  */
 export function useDownloadDocument() {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -339,12 +341,12 @@ export function useDownloadDocument() {
       documentId: string;
       fileName: string;
     }) => {
-      if (!accessToken) {
+      if (!clientToken) {
         throw new Error('Authentication required');
       }
 
       // Download file as blob
-      const blob = await documentsApi.download(documentId, accessToken);
+      const blob = await documentsApi.download(documentId, clientToken);
 
       // Create download link and trigger download
       const url = window.URL.createObjectURL(blob);

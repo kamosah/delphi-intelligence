@@ -431,10 +431,10 @@ class AuthService:
     async def exchange_supabase_token(self, supabase_access_token: str) -> TokenResponse:
         """
         Exchange Supabase access token for our backend tokens
-        Used for auto-login after email verification
+        Used for HTTP-only cookie authentication flow
 
         Args:
-            supabase_access_token: Access token from Supabase verification callback
+            supabase_access_token: JWT access token from Supabase session
 
         Returns:
             Our backend JWT tokens
@@ -443,17 +443,15 @@ class AuthService:
             HTTPException: If token exchange fails
         """
         try:
-            # Use Supabase token to get user info
-            user_client = get_user_client()
-            # Set the Supabase session
-            user_client.auth.set_session(supabase_access_token, supabase_access_token)
+            # Verify Supabase JWT token using admin client (service role)
+            admin_client = get_admin_client()
 
-            # Get the authenticated user
-            user_response = user_client.auth.get_user()
+            # Verify the JWT token and get user data
+            user_response = admin_client.auth.get_user(supabase_access_token)
             if not user_response.user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired Supabase token",
+                    detail="Invalid authentication credentials",
                 )
 
             user = user_response.user

@@ -8,6 +8,7 @@ import {
   NON_RETRYABLE_ERRORS,
   RETRY_DELAY_MS,
 } from '@/constants/streaming';
+import { useClientToken } from '@/hooks/useClientToken';
 import type { GetThreadQuery } from '@/lib/api/generated';
 import { MessageRole, ThreadStatusEnum } from '@/lib/api/generated';
 import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
@@ -52,7 +53,8 @@ import type { MessageMetadata } from '@/types/ui/messages';
  * });
  */
 export function useStreamingQuery(threadId?: string) {
-  const { accessToken, user } = useAuthStore();
+  const { clientToken } = useClientToken();
+  const { user } = useAuthStore();
   const {
     getSession,
     startSession,
@@ -144,7 +146,7 @@ export function useStreamingQuery(threadId?: string) {
     ): Promise<void> => {
       try {
         // Validate authentication
-        if (!accessToken) {
+        if (!clientToken) {
           throw new Error('Authentication required');
         }
 
@@ -192,7 +194,7 @@ export function useStreamingQuery(threadId?: string) {
         // Create EventSource with auth token in URL
         // Note: EventSource doesn't support custom headers, so we pass token as query param
         const eventSource = new EventSource(
-          `${streamUrl}&token=${accessToken}`
+          `${streamUrl}&token=${clientToken}`
         );
         eventSourceRef.current = eventSource;
 
@@ -461,7 +463,7 @@ export function useStreamingQuery(threadId?: string) {
       }
     },
     [
-      accessToken,
+      clientToken,
       user?.id,
       threadId,
       startSession,
