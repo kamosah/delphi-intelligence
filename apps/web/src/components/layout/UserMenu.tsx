@@ -12,7 +12,7 @@ import {
   Badge,
   Kbd,
 } from '@olympus/ui';
-import { useAuth } from '@/hooks/useAuth';
+import { createClient } from '@/lib/supabase/client';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -22,11 +22,16 @@ interface UserMenuProps {
 
 /**
  * User menu dropdown component for the dashboard.
- * Shows user info and provides logout functionality.
+ * Shows user info and provides logout functionality using Supabase SSR.
+ *
+ * Logout flow:
+ * 1. Calls Supabase signOut() which clears HTTP-only cookies
+ * 2. Redirects to home page
+ * 3. Middleware will redirect to /login if accessing protected routes
  */
 export function UserMenu({ iconMode = false }: UserMenuProps) {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const supabase = createClient();
   const { user } = useAuthStore();
 
   // Global keyboard shortcut: ⇧⌘, (Shift+Command+Comma) to navigate to settings
@@ -38,8 +43,10 @@ export function UserMenu({ iconMode = false }: UserMenuProps) {
   });
 
   const handleLogout = async () => {
-    await signOut();
+    // Sign out with Supabase (clears HTTP-only cookies automatically)
+    await supabase.auth.signOut();
     router.push('/');
+    router.refresh(); // Refresh server components
   };
 
   // Get user initials for avatar

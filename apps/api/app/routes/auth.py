@@ -3,8 +3,9 @@ Authentication routes for user registration, login, and token management
 """
 
 from typing import Any
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from datetime import timedelta
 from app.auth.jwt_handler import jwt_manager
 
@@ -187,6 +188,68 @@ async def exchange_token(data: dict[str, str]) -> TokenResponse:
             status_code=status.HTTP_400_BAD_REQUEST, detail="supabase_token is required"
         )
     return await get_auth_service().exchange_supabase_token(supabase_token)
+
+
+@router.post("/exchange")
+async def exchange_supabase_token_for_olympus_jwt(
+    authorization: str = Header(..., alias="Authorization")
+) -> dict[str, str]:
+    """
+    Exchange Supabase token for Olympus JWT (HTTP-only cookie flow).
+
+    This endpoint is called by Next.js Server Components via the getServerGraphQLClient()
+    utility to exchange Supabase HTTP-only cookie tokens for Olympus JWTs.
+
+    Flow:
+    1. Frontend: Supabase SSR manages HTTP-only cookies
+    2. Server Component: Reads Supabase session from HTTP-only cookie
+    3. Server Component: Calls this endpoint with Supabase token in Authorization header
+    4. Backend: Verifies Supabase token and creates Olympus JWT
+    5. Backend: Returns Olympus JWT
+    6. Server Component: Uses Olympus JWT for GraphQL requests
+
+    Args:
+        authorization: Authorization header with Bearer token (from Supabase session)
+
+    Returns:
+        Dictionary with 'olympus_token' (Olympus JWT for backend auth)
+
+    Raises:
+        HTTPException: 401 if token is invalid or missing
+
+    Security:
+        - Verifies Supabase token with service role key
+        - Embeds Supabase token in Olympus JWT for RLS policies
+        - Short-lived tokens (24 hour expiry)
+    """
+    logger = logging.getLogger(__name__)
+
+    # Extract token from Authorization header
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid Authorization header",
+        )
+
+    supabase_token = authorization.replace("Bearer ", "")
+
+    # Exchange Supabase token for Olympus JWT
+    try:
+        # Use existing exchange_supabase_token service method
+        token_response = await get_auth_service().exchange_supabase_token(supabase_token)
+
+        # Return only the access token (Server Components only need this)
+        return {"olympus_token": token_response.access_token}
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Log and return generic error for unexpected exceptions
+        logger.error(f"Token exchange failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Token exchange failed",
+        )
 
 
 @router.post("/sse-token")

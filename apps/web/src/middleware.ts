@@ -1,20 +1,54 @@
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Next.js middleware for route protection and authentication.
- * Checks for authentication state in cookies (set by client-side auth via setAuthCookies).
- * Redirects unauthorized users to login and prevents authenticated users from accessing auth pages.
+ * Next.js middleware for route protection and authentication with Supabase SSR.
+ *
+ * This middleware:
+ * 1. Manages Supabase HTTP-only cookies for secure authentication
+ * 2. Automatically refreshes Supabase sessions
+ * 3. Protects routes requiring authentication
+ * 4. Redirects authenticated users away from auth pages
  *
  * Protected routes: /dashboard, /spaces, /documents, /settings
- * Public routes: /, /login, /signup, /forgot-password, /reset-password, /verify-email, /auth/confirm
+ * Auth routes (redirect if authenticated): /login, /signup
+ * Public routes: /, /forgot-password, /reset-password, /verify-email, /auth/confirm
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check for authentication cookie (set by useAuth hook via setAuthCookies)
-  const authToken = request.cookies.get('olympus-auth-token');
-  const isAuthenticated = !!authToken?.value;
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  // Create Supabase client for HTTP-only cookie management
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  // Refresh session (updates HTTP-only cookies automatically)
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const isAuthenticated = !!session;
 
   // Define protected routes (require authentication)
   const protectedRoutes = ['/dashboard', '/spaces', '/documents', '/settings'];
@@ -44,7 +78,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Allow the request to continue
-  return NextResponse.next();
+  return response;
 }
 
 /**
