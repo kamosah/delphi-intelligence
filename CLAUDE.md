@@ -88,33 +88,50 @@ See [Development Commands Guide](./docs/guides/development-commands.md) for comp
 The frontend uses a **hybrid state management approach**:
 
 - **React Query (TanStack Query)** - Server state from GraphQL API (spaces, documents, queries)
-- **Zustand** - Client state (UI, theme, navigation, auth tokens)
+- **Zustand** - Client state (UI, theme, navigation, user data)
 - **React Hook Form** - Form state and validation
 - **Yjs** (planned) - Real-time collaborative state
 - **useState/useReducer** - Component-local state
 
 **Key principle**: Never put server data in Zustand. Use React Query for all API data.
 
+**Note**: Authentication tokens are stored in HTTP-only cookies (Supabase SSR), NOT in Zustand or localStorage.
+
 See [Frontend Guide](./docs/guides/frontend-guide.md) for detailed patterns.
 
 ### Authentication Flow
 
-**Hybrid architecture** (REST + GraphQL):
+**Hybrid architecture** (Supabase SSR + FastAPI Custom JWTs):
 
-1. **REST endpoints** for auth operations:
-   - `POST /auth/login` - User login
-   - `POST /auth/register` - User registration
-   - `POST /auth/refresh` - Token refresh
-   - `POST /auth/logout` - User logout
-   - `GET /auth/me` - Current user profile
+1. **Frontend Authentication** (Supabase SSR):
+   - Login: `supabase.auth.signInWithPassword()` in LoginForm
+   - Logout: `supabase.auth.signOut()` in UserMenu
+   - Session management: Automatic via Supabase HTTP-only cookies
+   - Clients: `apps/web/src/lib/supabase/client.ts` (browser), `server.ts` (SSR)
 
-2. **GraphQL endpoint** (`/graphql`) for all data operations (spaces, documents, queries)
+2. **Token Exchange** (Next.js Middleware):
+   - Middleware reads Supabase session from HTTP-only cookies
+   - Exchanges Supabase token for Olympus JWT via `/auth/exchange`
+   - Forwards Olympus JWT to backend in Authorization header
+   - Cached in Redis (5-min TTL) for performance
 
-3. **JWT tokens** stored in:
-   - Zustand auth store (`apps/web/src/lib/stores/auth-store.ts`)
-   - HTTP-only cookies (via backend)
+3. **Backend Authentication** (FastAPI Custom JWTs):
+   - Verifies Olympus JWT from Authorization header
+   - Extracts embedded Supabase token for RLS policies
+   - GraphQL context receives authenticated user
+   - REST endpoints: `/auth/register`, `/auth/me`, `/auth/sse-token`
 
-4. **Token injection**: GraphQL client automatically adds JWT to headers via auth store
+4. **Server Components**:
+   - Use `getServerGraphQLClient()` utility for authenticated requests
+   - Automatically handles session check and token exchange
+   - Redirects to `/login` if not authenticated
+
+5. **State Management**:
+   - User data: Zustand auth store (`apps/web/src/lib/stores/auth-store.ts`)
+   - Tokens: HTTP-only cookies (NOT accessible to JavaScript)
+   - Organization: Synced from API to Zustand
+
+**Security**: HTTP-only cookies protect against XSS attacks. Tokens are never accessible via JavaScript.
 
 ### Database Architecture
 
@@ -472,6 +489,14 @@ For in-depth information, refer to these topic-specific guides:
 5. **Component state → useState** (dropdown open, hover state)
 
 Never duplicate server data in Zustand.
+
+### Authentication
+
+1. **Login/Logout**: Always use Supabase client directly (`supabase.auth.signInWithPassword()`, `supabase.auth.signOut()`)
+2. **Server Components**: Use `getServerGraphQLClient()` for authenticated GraphQL requests
+3. **User Data**: Access via `useAuth()` hook (provides `user`, `isAuthenticated`, `currentOrganization`)
+4. **Tokens**: NEVER try to access tokens - they are HTTP-only cookies managed by Supabase
+5. **Zustand Auth Store**: Only stores user data for UI display, NOT tokens
 
 ### GraphQL & React Query Patterns
 

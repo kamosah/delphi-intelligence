@@ -1,5 +1,4 @@
 import { GraphQLClient } from 'graphql-request';
-import { useAuthStore } from '@/lib/stores/auth-store';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
@@ -7,29 +6,24 @@ const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
   : 'http://localhost:8000/graphql';
 
 /**
- * Create a GraphQL client with dynamic auth token injection.
+ * Client-side GraphQL client for React components.
  *
- * Uses requestMiddleware to read the current auth token from Zustand store
- * on every request, ensuring the latest token is always used without manual syncing.
+ * Authentication flow:
+ * 1. Supabase manages HTTP-only cookies automatically
+ * 2. Cookies are sent with every request via `credentials: 'include'`
+ * 3. Next.js middleware reads Supabase session from HTTP-only cookies
+ * 4. Middleware exchanges Supabase token for Olympus JWT
+ * 5. Middleware forwards Olympus JWT to GraphQL backend
+ *
+ * Security benefits:
+ * - HTTP-only cookies prevent XSS attacks (tokens inaccessible to JavaScript)
+ * - Automatic cookie management (no manual token storage)
+ * - SameSite protection against CSRF
+ *
+ * Note: No manual Authorization header needed - middleware handles token exchange
  */
 export const graphqlClient = new GraphQLClient(GRAPHQL_ENDPOINT, {
-  requestMiddleware: (request) => {
-    // Read token fresh from store on each request
-    const token = useAuthStore.getState().accessToken;
-
-    if (token) {
-      // Create a new Headers object from the existing one
-      const headers = new Headers(request.headers);
-      headers.set('authorization', `Bearer ${token}`);
-
-      return {
-        ...request,
-        headers,
-      };
-    }
-
-    return request;
-  },
+  credentials: 'include', // Send HTTP-only cookies automatically
 });
 
 // Helper function to make authenticated requests
