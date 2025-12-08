@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { Button, ScrollArea } from '@olympus/ui';
 import { NotificationPermissionDialog } from '@/components/notifications/NotificationPermissionDialog';
+import { useAuth } from '@/hooks/useAuth';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useNotificationPrompt } from '@/hooks/useNotificationPrompt';
 import { useStreamingQuery } from '@/hooks/useStreamingQuery';
 import { useThreadNotifications } from '@/hooks/useThreadNotifications';
 import type { Thread } from '@/hooks/useThreads';
 import type { Citation } from '@/lib/api/queries-client';
-import { useAuthStore } from '@/lib/stores';
 import { ThreadsEmptyState } from '../threads/ThreadsEmptyState';
 import { CitationList } from './CitationList';
 import { ThreadInput } from './ThreadInput';
@@ -57,7 +57,7 @@ export function ThreadInterface({
   initialThread,
   spaceId,
 }: ThreadInterfaceProps) {
-  const { currentOrganization } = useAuthStore();
+  const { currentOrganization } = useAuth();
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       id: string;

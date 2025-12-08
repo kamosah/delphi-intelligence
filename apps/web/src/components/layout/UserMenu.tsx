@@ -12,9 +12,9 @@ import {
   Badge,
   Kbd,
 } from '@olympus/ui';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { createClient } from '@/lib/supabase/client';
 
 interface UserMenuProps {
   iconMode?: boolean;
@@ -32,7 +32,7 @@ interface UserMenuProps {
 export function UserMenu({ iconMode = false }: UserMenuProps) {
   const router = useRouter();
   const supabase = createClient();
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   // Global keyboard shortcut: ⇧⌘, (Shift+Command+Comma) to navigate to settings
   useKeyboardShortcuts({

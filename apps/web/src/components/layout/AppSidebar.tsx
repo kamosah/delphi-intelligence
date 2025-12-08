@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TooltipProvider } from '@olympus/ui';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useOrganizations } from '@/hooks/useOrganizations';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
 import { DashboardNavigation } from './DashboardNavigation';
@@ -19,7 +19,7 @@ export function AppSidebar() {
   const router = useRouter();
   const { sidebarIconMode, sidebarVisible, toggleSidebarIconMode } =
     useUIStore();
-  const { currentOrganization } = useAuthStore();
+  const { currentOrganization } = useOrganizations();
   const [mounted, setMounted] = useState(false);
 
   const isThreadsRoute =

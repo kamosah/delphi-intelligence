@@ -1,6 +1,6 @@
-import { GraphQLClient } from 'graphql-request';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { GraphQLClient } from 'graphql-request';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/graphql`
@@ -32,7 +32,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
  * @throws Redirects to /login if no Supabase session exists
  */
 export async function getServerGraphQLClient(): Promise<GraphQLClient> {
-  const supabase = await createClient();
+  const supabase = await createSupabaseServerClient();
 
   // Check authentication (HTTP-only cookies managed by Supabase)
   const {

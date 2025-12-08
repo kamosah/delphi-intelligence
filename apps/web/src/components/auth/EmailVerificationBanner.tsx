@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { Alert, AlertDescription, Button } from '@olympus/ui';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Email verification banner component.
@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
  * ```
  */
 export function EmailVerificationBanner() {
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const [isDismissed, setIsDismissed] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);

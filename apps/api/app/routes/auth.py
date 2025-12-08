@@ -240,11 +240,14 @@ async def exchange_supabase_token_for_olympus_jwt(
         )
 
     supabase_token = authorization.replace("Bearer ", "")
+    logger.info(f"[EXCHANGE_ENDPOINT] Received token (first 20 chars): {supabase_token[:20]}...")
 
     # Check Redis cache first (5-minute TTL)
     cache_key = f"token_exchange:{hashlib.sha256(supabase_token.encode()).hexdigest()}"
+    logger.info(f"[EXCHANGE_ENDPOINT] Cache key: {cache_key[:40]}...")
     try:
         cached_token = await redis_manager.redis.get(cache_key)
+        logger.info(f"[EXCHANGE_ENDPOINT] Cache lookup result: {'HIT' if cached_token else 'MISS'}")
         if cached_token:
             # Cache hit - return cached Olympus JWT
             logger.debug(f"Token exchange cache hit for key: {cache_key[:20]}...")
@@ -349,16 +352,22 @@ async def get_sse_token(
 
 @router.post("/client-token")
 async def get_client_token(
-    current_user: dict[str, Any] = Depends(get_current_user),
+    authorization: str | None = Header(None, alias="Authorization"),
 ) -> dict[str, str | int]:
     """
-    Exchange HTTP-only cookie session for a short-lived client token.
+    Exchange Supabase token for short-lived client token.
 
     This endpoint creates short-lived tokens (5-minute TTL) for client-side REST API calls.
     Allows authenticated requests from Client Components that can't access HTTP-only cookies.
 
+    Flow:
+    1. Client Component: Reads Supabase session from HTTP-only cookie
+    2. Client Component: Calls this endpoint with Supabase token in Authorization header
+    3. Backend: Verifies Supabase token and creates short-lived Olympus JWT
+    4. Client Component: Uses Olympus JWT for GraphQL/REST requests
+
     Args:
-        current_user: Authenticated user dict from HTTP-only cookie session
+        authorization: Optional Authorization header with Bearer token (from Supabase session)
 
     Returns:
         Dictionary with short-lived client token and expiry time (seconds)
@@ -367,43 +376,78 @@ async def get_client_token(
         - Token expires in 5 minutes
         - Automatic refresh via React Query (staleTime: 4 min)
         - Can be revoked on logout/password change
+        - Verifies Supabase token with service role key
+
+    Raises:
+        HTTPException: 401 if token is invalid or missing
     """
+    logger = logging.getLogger(__name__)
 
-    # Token data
-    token_data = {
-        "sub": current_user.get("id"),
-        "email": current_user.get("email"),
-        "purpose": "client",
-    }
-
-    # Create short-lived token (5 minutes)
-    client_token_expiry = timedelta(minutes=5)
-    client_token = jwt_manager.create_access_token(
-        data=token_data,
-        expires_delta=client_token_expiry,
-    )
-
-    # Store token in Redis for verification and revocation
-    user_id = current_user.get("id")
-    if not user_id or not isinstance(user_id, str):
+    # Extract token from Authorization header
+    if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user session",
+            detail="Missing or invalid Authorization header",
         )
 
-    success = await redis_manager.store_sse_token(
-        token=client_token,
-        user_id=user_id,
-        expire=client_token_expiry,
+    supabase_token = authorization.replace("Bearer ", "")
+    logger.info(
+        f"[CLIENT_TOKEN] Received Supabase token (first 20 chars): {supabase_token[:20]}..."
     )
 
-    if not success:
+    try:
+        # Use existing exchange_supabase_token service method to verify token
+        token_response = await get_auth_service().exchange_supabase_token(supabase_token)
+
+        # Extract user ID from the access token (it's embedded in the JWT)
+        token_payload = jwt_manager.verify_token(token_response.access_token)
+        if not token_payload:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to decode generated token",
+            )
+
+        user_id = token_payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Invalid token payload",
+            )
+
+        # The access token from exchange_supabase_token is already suitable for client use
+        # But we'll create a new one with "client" purpose for clarity
+        client_token_expiry = timedelta(minutes=5)
+        client_token = jwt_manager.create_access_token(
+            data={
+                "sub": user_id,
+                "email": token_payload.get("email"),
+                "purpose": "client",
+                "supabase_token": supabase_token,  # Embed Supabase token for RLS
+            },
+            expires_delta=client_token_expiry,
+        )
+
+        # Store token in Redis for verification and revocation
+        success = await redis_manager.store_sse_token(
+            token=client_token,
+            user_id=user_id,
+            expire=client_token_expiry,
+        )
+
+        if not success:
+            logger.warning(f"Failed to store client token in Redis for user {user_id}")
+            # Don't fail the request - token is still valid even if not in Redis
+
+        logger.info(f"[CLIENT_TOKEN] Successfully created client token for user {user_id}")
+        return {
+            "client_token": client_token,
+            "expires_in": int(client_token_expiry.total_seconds()),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Client token creation failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create client token",
         )
-
-    return {
-        "client_token": client_token,
-        "expires_in": int(client_token_expiry.total_seconds()),
-    }

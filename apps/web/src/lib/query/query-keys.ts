@@ -83,9 +83,10 @@ export const queryKeys = {
       [...queryKeys.userPreferences.details(), userId] as const,
   },
 
-  // Auth queries (for client-side short-lived tokens)
+  // Auth queries (for client-side short-lived tokens and user data)
   auth: {
     all: ['auth'] as const,
     clientToken: () => [...queryKeys.auth.all, 'clientToken'] as const,
+    me: () => [...queryKeys.auth.all, 'me'] as const,
   },
 } as const;

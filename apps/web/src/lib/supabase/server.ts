@@ -1,5 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
 /**
  * Supabase client for Server Components and API routes.
@@ -14,13 +14,13 @@ import { cookies } from 'next/headers';
  *
  * Usage in Server Components:
  * ```typescript
- * const supabase = await createClient();
+ * const supabase = await createSupabaseServerClient();
  * const { data: { session } } = await supabase.auth.getSession();
  * ```
  *
  * @returns Supabase client configured for server use with HTTP-only cookies
  */
-export async function createClient() {
+export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
