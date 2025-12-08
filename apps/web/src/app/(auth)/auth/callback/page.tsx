@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 /**
- * Client-side auth callback page for Supabase.
- * Handles OAuth redirects and email verification links.
- * Supabase automatically sets HTTP-only cookies after successful authentication.
+ * Auth callback content component.
+ * Separated from page component to allow Suspense boundary wrapping.
+ *
+ * Note: useSearchParams() requires a Suspense boundary in Next.js App Router
+ * to prevent build errors during static generation. This ensures the component
+ * only renders on the client after search params are available.
  */
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
@@ -83,5 +86,29 @@ export default function AuthCallbackPage() {
         <p className="text-gray-600">Processing authentication...</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Auth callback page with Suspense boundary.
+ *
+ * Wraps AuthCallbackContent in Suspense to satisfy Next.js requirement
+ * for useSearchParams() in App Router. This prevents build-time errors
+ * during static generation.
+ */
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-full overflow-y-auto flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4" />
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
