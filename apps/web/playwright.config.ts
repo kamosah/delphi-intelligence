@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env.local
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
 /**
  * Playwright configuration for e2e testing
@@ -35,6 +40,13 @@ export default defineConfig({
 
     /* Video on failure */
     video: 'retain-on-failure',
+  },
+
+  /* Pass environment variables to test workers */
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   },
 
   /* Configure projects for major browsers */
