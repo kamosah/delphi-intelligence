@@ -42,13 +42,6 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
-  /* Pass environment variables to test workers */
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    NEXT_PUBLIC_API_URL:
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-  },
-
   /* Configure projects for major browsers */
   projects: [
     {
