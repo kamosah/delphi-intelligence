@@ -72,13 +72,89 @@ const { data, isLoading, error } = useQuery({
 
 ### Authentication
 
-Access auth state via Zustand
+**Hybrid Authentication** (Supabase SSR + FastAPI Custom JWTs):
+
+The frontend uses Supabase's `@supabase/ssr` package for HTTP-only cookie management, which are then exchanged for Olympus JWTs by Next.js middleware.
+
+#### Login Flow
 
 ```typescript
-import { useAuthStore } from '@/lib/stores/auth-store';
+// apps/web/src/components/auth/LoginForm.tsx
+import { createClient } from '@/lib/supabase/client';
 
-const { user, isAuthenticated, logout } = useAuthStore();
+const supabase = createClient();
+
+// Login - sets HTTP-only cookies automatically
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'user@example.com',
+  password: 'password',
+});
+
+if (!error) {
+  router.push('/dashboard');
+}
 ```
+
+#### Logout Flow
+
+```typescript
+// apps/web/src/components/layout/UserMenu.tsx
+import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
+
+// Logout - clears HTTP-only cookies automatically
+await supabase.auth.signOut();
+router.push('/login');
+router.refresh();
+```
+
+#### Accessing User Data in Components
+
+```typescript
+import { useAuth } from '@/hooks/useAuth';
+
+// useAuth hook provides user data and organization state
+const { user, isAuthenticated, currentOrganization } = useAuth();
+```
+
+**Note**: The `useAuth` hook is now simplified and only provides user data for UI display. All authentication operations (login, logout, token refresh) are handled directly by Supabase.
+
+#### Server Components Authentication
+
+Use the `getServerGraphQLClient()` utility for authenticated GraphQL requests:
+
+```typescript
+// apps/web/src/app/dashboard/page.tsx
+import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
+
+export default async function DashboardPage() {
+  // Automatically checks auth, exchanges tokens, returns authenticated client
+  const graphqlClient = await getServerGraphQLClient();
+
+  // Use client for GraphQL queries
+  const data = await fetchDashboardStats(graphqlClient);
+
+  return <Dashboard data={data} />;
+}
+```
+
+**How it works**:
+
+1. Checks Supabase session (HTTP-only cookies)
+2. Redirects to `/login` if not authenticated
+3. Exchanges Supabase token for Olympus JWT (cached in Redis)
+4. Returns authenticated GraphQL client with Olympus JWT
+
+#### Token Storage (Security)
+
+- **Supabase tokens**: HTTP-only cookies (NOT accessible to JavaScript)
+- **User data**: Zustand auth store (for UI reactivity)
+- **No tokens in localStorage**: Prevents XSS attacks
+
+**Important**: Never try to access tokens directly. They are managed by Supabase and are HTTP-only for security.
+
+See [ADR-010: HTTP-Only Cookie Authentication](../adr/010-http-only-cookie-authentication.md) for architecture details.
 
 ### Query Keys Factory
 

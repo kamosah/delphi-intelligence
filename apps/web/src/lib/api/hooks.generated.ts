@@ -263,6 +263,7 @@ export type Query = {
   dashboardStats: DashboardStats;
   documents: Array<Document>;
   health: Scalars['String']['output'];
+  me: User;
   organization?: Maybe<Organization>;
   organizationMembers: Array<OrganizationMember>;
   organizations: Array<Organization>;
@@ -449,8 +450,11 @@ export type User = {
   bio?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   email: Scalars['String']['output'];
+  emailConfirmed: Scalars['Boolean']['output'];
   fullName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  role: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -1050,6 +1054,25 @@ export type UserPreferencesQuery = {
     timezone?: string | null;
     customSettings?: any | null;
   } | null;
+};
+
+export type GetMeQueryVariables = Exact<{ [key: string]: never }>;
+
+export type GetMeQuery = {
+  __typename?: 'Query';
+  me: {
+    __typename?: 'User';
+    id: string;
+    email: string;
+    fullName?: string | null;
+    role: string;
+    isActive: boolean;
+    avatarUrl?: string | null;
+    emailConfirmed: boolean;
+    bio?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
 };
 
 export type GetUserQueryVariables = Exact<{
@@ -2510,6 +2533,52 @@ useUserPreferencesQuery.fetcher = (
 ) =>
   graphqlRequestFetcher<UserPreferencesQuery, UserPreferencesQueryVariables>(
     UserPreferencesDocument,
+    variables,
+    options
+  );
+
+export const GetMeDocument = `
+    query GetMe {
+  me {
+    id
+    email
+    fullName
+    role
+    isActive
+    avatarUrl
+    emailConfirmed
+    bio
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetMeQuery = <TData = GetMeQuery, TError = Error>(
+  variables?: GetMeQueryVariables,
+  options?: Omit<UseQueryOptions<GetMeQuery, TError, TData>, 'queryKey'> & {
+    queryKey?: UseQueryOptions<GetMeQuery, TError, TData>['queryKey'];
+  }
+) => {
+  return useQuery<GetMeQuery, TError, TData>({
+    queryKey: variables === undefined ? ['GetMe'] : ['GetMe', variables],
+    queryFn: graphqlRequestFetcher<GetMeQuery, GetMeQueryVariables>(
+      GetMeDocument,
+      variables
+    ),
+    ...options,
+  });
+};
+
+useGetMeQuery.getKey = (variables?: GetMeQueryVariables) =>
+  variables === undefined ? ['GetMe'] : ['GetMe', variables];
+
+useGetMeQuery.fetcher = (
+  variables?: GetMeQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<GetMeQuery, GetMeQueryVariables>(
+    GetMeDocument,
     variables,
     options
   );

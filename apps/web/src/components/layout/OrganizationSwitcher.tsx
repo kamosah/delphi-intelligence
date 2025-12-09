@@ -19,7 +19,6 @@ import {
   useSwitchOrganization,
   type Organization,
 } from '@/hooks/useOrganizations';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { cn } from '@/lib/utils';
 
 interface OrganizationSwitcherProps {
@@ -33,8 +32,11 @@ interface OrganizationSwitcherProps {
  * current organization indicator, and seamless switching UX.
  */
 export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
-  const { currentOrganization } = useAuthStore();
-  const { organizations = [], isLoading } = useOrganizations();
+  const {
+    organizations = [],
+    currentOrganization,
+    isLoading,
+  } = useOrganizations();
   const { switchOrganization } = useSwitchOrganization();
   const isSwitching = useIsOrgSwitching();
 

@@ -1,34 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { authApi } from '@/lib/api/auth-client';
-import { setAuthCookies } from '@/lib/auth-cookies';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 /**
- * Client-side auth callback page for Supabase.
- * Handles hash-based parameters that server-side routes cannot access.
+ * Auth callback content component.
+ * Separated from page component to allow Suspense boundary wrapping.
+ *
+ * Note: useSearchParams() requires a Suspense boundary in Next.js App Router
+ * to prevent build errors during static generation. This ensures the component
+ * only renders on the client after search params are available.
  */
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
-  const { setTokens, setUser } = useAuthStore();
+  const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
     const handleCallback = async () => {
-      // Parse hash parameters (Supabase sends params in hash, not query string)
-      const hash = window.location.hash.substring(1); // Remove the '#'
-      const params = new URLSearchParams(hash);
+      const supabase = createClient();
 
-      const type = params.get('type');
-      const error = params.get('error');
-      const errorDescription = params.get('error_description');
-      const accessToken = params.get('access_token');
-      // Supabase refresh_token intentionally unused - backend manages token lifecycle via exchange-token endpoint
-      const _refreshToken = params.get('refresh_token');
+      // Check for error in query params
+      const error = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
 
-      // Handle errors
       if (error) {
         console.error('Auth callback error:', error, errorDescription);
         router.push(
@@ -37,72 +33,47 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      // Handle email verification with auto-login
-      if (type === 'signup' || type === 'email') {
-        if (accessToken) {
-          try {
-            // Exchange Supabase token for our backend tokens
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/auth/exchange-token`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ supabase_token: accessToken }),
-              }
-            );
+      // Exchange the code for a session (Supabase SSR handles this automatically)
+      const { error: sessionError } =
+        await supabase.auth.exchangeCodeForSession(window.location.href);
 
-            if (!response.ok) {
-              throw new Error('Token exchange failed');
-            }
-
-            const tokenResponse = await response.json();
-
-            // Auto-login: Set our backend tokens
-            setTokens(tokenResponse.access_token, tokenResponse.refresh_token);
-            setAuthCookies(
-              tokenResponse.access_token,
-              tokenResponse.refresh_token
-            );
-            // Token auto-injected via GraphQL client middleware
-
-            // Get user profile with our backend token
-            const userProfile = await authApi.me(tokenResponse.access_token);
-            setUser(userProfile);
-
-            // Redirect to dashboard with success message
-            router.push('/dashboard?verified=true');
-            return;
-          } catch (error) {
-            console.error('Failed to auto-login after verification:', error);
-            // Fall back to showing success page without auto-login
-            router.push('/confirm?type=signup&verified=true');
-            return;
-          }
-        } else {
-          // No tokens available, just show success
-          router.push('/confirm?type=signup&verified=true');
-          return;
-        }
+      if (sessionError) {
+        console.error('Session exchange error:', sessionError);
+        router.push('/login?error=auth_failed');
+        return;
       }
 
-      if (type === 'recovery') {
-        // Password reset - redirect to reset password page with token
-        if (accessToken) {
-          router.push(`/reset-password?token=${accessToken}`);
-          return;
-        } else {
-          console.error('Password reset callback missing access token');
-        }
-      }
+      // Get the session to check auth type
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      // Default: redirect to login
-      router.push('/login');
+      if (session) {
+        // Check if this was an email verification
+        const type = searchParams.get('type');
+
+        if (type === 'signup' || type === 'email') {
+          // Email verified - redirect to dashboard with success message
+          router.push('/dashboard?verified=true');
+          return;
+        }
+
+        if (type === 'recovery') {
+          // Password reset - redirect to reset password page
+          router.push('/reset-password');
+          return;
+        }
+
+        // Default: redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        // No session - redirect to login
+        router.push('/login');
+      }
     };
 
     handleCallback().finally(() => setIsProcessing(false));
-  }, [router, setTokens, setUser]);
+  }, [router, searchParams]);
 
   if (!isProcessing) {
     return null; // Redirect will happen, no need to show anything
@@ -115,5 +86,29 @@ export default function AuthCallbackPage() {
         <p className="text-gray-600">Processing authentication...</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Auth callback page with Suspense boundary.
+ *
+ * Wraps AuthCallbackContent in Suspense to satisfy Next.js requirement
+ * for useSearchParams() in App Router. This prevents build-time errors
+ * during static generation.
+ */
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-full overflow-y-auto flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4" />
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

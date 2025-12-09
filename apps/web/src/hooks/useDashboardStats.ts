@@ -1,5 +1,6 @@
 'use client';
 
+import { useClientToken } from '@/hooks/useClientToken';
 import { useGetDashboardStatsQuery } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -19,7 +20,8 @@ export type { DashboardStats } from '@/lib/api/generated';
 export function useDashboardStats(options?: {
   organizationId?: string | null;
 }) {
-  const { accessToken, currentOrganization } = useAuthStore();
+  const { clientToken } = useClientToken();
+  const { currentOrganization } = useAuthStore();
 
   // Use provided organizationId or fall back to currentOrganization
   const orgId = options?.organizationId ?? currentOrganization?.id;
@@ -29,7 +31,7 @@ export function useDashboardStats(options?: {
       organizationId: orgId || undefined,
     },
     {
-      enabled: !!accessToken,
+      enabled: !!clientToken,
       queryKey: queryKeys.dashboard.stats(orgId),
       // Keep stats fresh but not too aggressive
       staleTime: 30000, // 30 seconds

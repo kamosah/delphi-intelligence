@@ -31,6 +31,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/auth/refresh",
         "/auth/forgot-password",
         "/auth/verify-email",
+        "/auth/exchange",  # Supabase token exchange endpoint (Server Components)
+        "/auth/resend-verification",
+        "/auth/reset-password",
+        "/auth/client-token",  # Client-side Supabase token exchange (Client Components)
     }
 
     async def dispatch(  # noqa: PLR0911

@@ -1,5 +1,7 @@
 # Authentication Testing Guide
 
+> **Note**: This guide has been updated for HTTP-only cookie authentication (Supabase SSR). See [ADR-010](../adr/010-http-only-cookie-authentication.md) for architecture details.
+
 ## Setup: Configure Supabase Redirect URLs
 
 **IMPORTANT**: Before testing, configure Supabase Auth redirect URLs:
@@ -16,7 +18,7 @@ Without this configuration, email verification will redirect to the wrong page.
 
 ## Problem: Redirected to Dashboard When Accessing Login/Signup
 
-This happens because the middleware detects the `olympus-auth-token` cookie in your browser, even though the backend sessions have been cleared.
+This happens because the middleware detects Supabase session cookies in your browser, even though the backend sessions have been cleared.
 
 ## Solution: Clear Browser State
 
@@ -27,11 +29,10 @@ This happens because the middleware detects the `olympus-auth-token` cookie in y
 1. Open DevTools (F12 or Cmd+Option+I)
 2. Go to **Application** tab
 3. Under **Storage** → **Local Storage** → Select your localhost URL
-   - Click "Clear All" button
+   - Click "Clear All" button (clears Zustand auth store)
 4. Under **Storage** → **Cookies** → Select your localhost URL
-   - Delete these cookies:
-     - `olympus-auth-token`
-     - `olympus-refresh-token`
+   - Delete Supabase cookies (format: `sb-<project-id>-auth-token`)
+   - Look for cookies with `HttpOnly` flag
 5. Under **Storage** → **Session Storage** → Select your localhost URL
    - Click "Clear All" button
 6. Refresh the page (Cmd+R or Ctrl+R)
@@ -69,8 +70,7 @@ Open your app in an incognito/private window for a clean slate.
 
 ### 🔄 Browser Setup Needed
 
-- [ ] Clear `olympus-auth-token` cookie
-- [ ] Clear `olympus-refresh-token` cookie
+- [ ] Clear Supabase cookies (`sb-<project-id>-auth-token`)
 - [ ] Clear localStorage (`olympus-auth-store`)
 - [ ] Clear sessionStorage
 
@@ -164,7 +164,7 @@ Open your app in an incognito/private window for a clean slate.
 ### 9. Test Logout
 
 1. From dashboard, logout
-2. **Expected**: Cookies cleared (`olympus-auth-token`, `olympus-refresh-token`)
+2. **Expected**: Supabase cookies cleared (HTTP-only cookies)
 3. **Expected**: LocalStorage cleared (`olympus-auth-store`)
 4. Try to access `/dashboard`
 5. **Expected**: Redirect to `/login`
@@ -173,19 +173,21 @@ Open your app in an incognito/private window for a clean slate.
 
 ## Current Issue: Why Login/Signup Redirects to Dashboard
 
-The middleware (`apps/web/src/middleware.ts`) checks for the `olympus-auth-token` cookie:
+The middleware (`apps/web/src/middleware.ts`) checks for Supabase session cookies:
 
 ```typescript
-const authToken = request.cookies.get('olympus-auth-token');
-const isAuthenticated = !!authToken?.value;
+const supabase = createServerClient(/* ... */);
+const {
+  data: { session },
+} = await supabase.auth.getSession();
 
 // Redirect to dashboard if accessing auth routes while authenticated
-if (isAuthRoute && isAuthenticated) {
+if (isAuthRoute && session) {
   return NextResponse.redirect(new URL('/dashboard', request.url));
 }
 ```
 
-Even though Redis is cleared, your browser still has the cookie, so middleware thinks you're authenticated.
+Even though backend sessions are cleared, your browser still has Supabase HTTP-only cookies, so middleware thinks you're authenticated.
 
 **Solution**: Clear the cookies as described above!
 
@@ -215,9 +217,10 @@ Even though Redis is cleared, your browser still has the cookie, so middleware t
 ### Issue: Middleware Not Working
 
 - Check middleware config in `apps/web/src/middleware.ts`
-- Check cookie names match: `olympus-auth-token` (not `auth-token`)
+- Check Supabase client is configured correctly
 - Clear Next.js cache: `rm -rf apps/web/.next`
 - Restart dev server: `npm run dev`
+- Verify environment variables are set (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 
 ---
 

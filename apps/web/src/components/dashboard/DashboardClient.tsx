@@ -1,17 +1,17 @@
 'use client';
 
 import { Database, FileText, Loader2, MessageSquare, Zap } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDocuments } from '@/hooks/useDocuments';
 import { useIsOrgSwitching } from '@/hooks/useIsOrgSwitching';
 import { useThreads } from '@/hooks/useThreads';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { DashboardStatCard } from './DashboardStatCard';
 import { RecentDocumentItem } from './RecentDocumentItem';
 import { RecentThreadItem } from './RecentThreadItem';
 
 export function DashboardClient() {
-  const { currentOrganization } = useAuthStore();
+  const { currentOrganization } = useAuth();
   const isSwitching = useIsOrgSwitching();
 
   const { stats } = useDashboardStats({

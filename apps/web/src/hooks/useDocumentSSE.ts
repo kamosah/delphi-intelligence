@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useClientToken } from '@/hooks/useClientToken';
 import { queryKeys } from '@/lib/query/query-keys';
-import { useAuthStore } from '@/lib/stores/auth-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -58,14 +58,14 @@ interface SSEMessage {
  */
 export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Only connect if enabled and we have an access token
-    if (!enabled || !accessToken || !spaceId) {
+    // Only connect if enabled and we have a client token
+    if (!enabled || !clientToken || !spaceId) {
       return;
     }
 
@@ -75,11 +75,11 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
       if (isCancelled) return;
 
       try {
-        // Step 1: Exchange access token for short-lived SSE token
+        // Step 1: Exchange client token for short-lived SSE token
         const response = await fetch(`${API_BASE_URL}/auth/sse-token`, {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${clientToken}`,
             'Content-Type': 'application/json',
           },
         });
@@ -197,7 +197,7 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
         eventSourceRef.current = null;
       }
     };
-  }, [spaceId, enabled, accessToken, queryClient]);
+  }, [spaceId, enabled, clientToken, queryClient]);
 
   return {
     isConnected,

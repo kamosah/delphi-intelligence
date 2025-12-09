@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useClientToken } from '@/hooks/useClientToken';
 import {
   useCreateOrganizationMutation,
   useDeleteOrganizationMutation,
@@ -39,7 +40,7 @@ export function useOrganizations(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
 
@@ -49,7 +50,7 @@ export function useOrganizations(options?: {
       offset,
     },
     {
-      enabled: !!accessToken,
+      enabled: !!clientToken,
       queryKey: queryKeys.organizations.list({
         limit,
         offset,
@@ -83,12 +84,12 @@ export function useOrganizations(options?: {
  * Fetch a single organization by ID
  */
 export function useOrganization(id: string | undefined) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const query = useGetOrganizationQuery(
     { id: id || '' },
     {
-      enabled: !!accessToken && !!id,
+      enabled: !!clientToken && !!id,
       queryKey: id ? queryKeys.organizations.detail(id) : undefined,
     }
   );

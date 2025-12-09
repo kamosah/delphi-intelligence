@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Client component that redirects authenticated users to the dashboard.
@@ -10,7 +10,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
  */
 export function AuthenticatedRedirect() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     // Only redirect if authentication is confirmed and not loading

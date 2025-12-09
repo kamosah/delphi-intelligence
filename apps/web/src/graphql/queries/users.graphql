@@ -2,6 +2,21 @@
 # User Query Operations
 # ============================================
 
+query GetMe {
+  me {
+    id
+    email
+    fullName
+    role
+    isActive
+    avatarUrl
+    emailConfirmed
+    bio
+    createdAt
+    updatedAt
+  }
+}
+
 query GetUser($id: ID!) {
   user(id: $id) {
     id

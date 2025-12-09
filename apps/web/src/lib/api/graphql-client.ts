@@ -1,35 +1,32 @@
 import { GraphQLClient } from 'graphql-request';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { getQueryClient } from '@/lib/query/provider';
+import { queryKeys } from '@/lib/query/query-keys';
+import { createClient } from '@/lib/supabase/client';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/graphql`
   : 'http://localhost:8000/graphql';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 /**
- * Create a GraphQL client with dynamic auth token injection.
+ * Client-side GraphQL client for React components.
  *
- * Uses requestMiddleware to read the current auth token from Zustand store
- * on every request, ensuring the latest token is always used without manual syncing.
+ * Authentication flow:
+ * 1. Supabase manages HTTP-only cookies automatically
+ * 2. makeGraphQLRequest() reads Supabase session from HTTP-only cookies
+ * 3. Exchanges Supabase token for Olympus JWT (cached in React Query)
+ * 4. Injects Olympus JWT into GraphQL request Authorization header
+ *
+ * Security benefits:
+ * - HTTP-only cookies prevent XSS attacks (tokens inaccessible to JavaScript)
+ * - Short-lived Olympus tokens (5-min TTL, cached for 4 min)
+ * - Automatic token refresh via React Query staleTime
+ * - SameSite protection against CSRF
  */
 export const graphqlClient = new GraphQLClient(GRAPHQL_ENDPOINT, {
-  requestMiddleware: (request) => {
-    // Read token fresh from store on each request
-    const token = useAuthStore.getState().accessToken;
-
-    if (token) {
-      // Create a new Headers object from the existing one
-      const headers = new Headers(request.headers);
-      headers.set('authorization', `Bearer ${token}`);
-
-      return {
-        ...request,
-        headers,
-      };
-    }
-
-    return request;
-  },
+  credentials: 'include', // Send HTTP-only cookies automatically
 });
 
 // Helper function to make authenticated requests
@@ -42,7 +39,52 @@ export async function makeGraphQLRequest<
   options?: RequestInit['headers']
 ): Promise<TData> {
   try {
-    return await graphqlClient.request<TData>(query, variables, options);
+    // Get Supabase session from HTTP-only cookies
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    // Get QueryClient for token caching
+    const queryClient = getQueryClient();
+
+    // Check cache for Olympus token (using query key factory)
+    const cacheKey = queryKeys.auth.clientToken();
+    let olympusToken = queryClient.getQueryData<string>(cacheKey);
+
+    if (!olympusToken) {
+      // Cache miss - exchange Supabase token for Olympus JWT
+      const response = await fetch(`${API_URL}/auth/client-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch client token: ${errorText}`);
+      }
+
+      const data = await response.json();
+      olympusToken = data.client_token;
+
+      // Cache the token with 4-min staleTime (matches useClientToken hook)
+      queryClient.setQueryData(cacheKey, olympusToken, {
+        updatedAt: Date.now(),
+      });
+    }
+
+    // Make GraphQL request with Olympus JWT in Authorization header
+    return await graphqlClient.request<TData>(query, variables, {
+      ...options,
+      Authorization: `Bearer ${olympusToken}`,
+    });
   } catch (error) {
     console.error('GraphQL request failed:', error);
     throw error;

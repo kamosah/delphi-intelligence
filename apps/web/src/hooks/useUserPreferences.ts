@@ -1,6 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { useClientToken } from '@/hooks/useClientToken';
 import {
   useUserPreferencesQuery,
   useUpdateUserPreferencesMutation,
@@ -23,13 +24,14 @@ export type {
  * const { userPreferences, isLoading } = useUserPreferences();
  */
 export function useUserPreferences() {
-  const { accessToken, user } = useAuthStore();
+  const { clientToken } = useClientToken();
+  const { user } = useAuthStore();
   const userId = user?.id || '';
 
   const query = useUserPreferencesQuery(
     {},
     {
-      enabled: !!accessToken && !!userId,
+      enabled: !!clientToken && !!userId,
       queryKey: queryKeys.userPreferences.detail(userId),
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes

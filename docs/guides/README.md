@@ -24,6 +24,19 @@ The original CLAUDE.md was **43,134 characters**, exceeding the recommended 40k 
   - Database migration workflows
   - Quick reference for common tasks
 
+- **[coding-standards.md](./coding-standards.md)** - Development instructions and coding preferences
+  - State management guidelines
+  - TypeScript preferences
+  - File structure conventions
+  - Naming conventions
+  - Code quality standards
+
+- **[quick-reference.md](./quick-reference.md)** - Quick reference for coding preferences
+  - State management rules
+  - TypeScript patterns
+  - File structure
+  - Naming conventions
+
 - **[environment-setup.md](./environment-setup.md)** (5.9k) - Configuration and setup
   - Environment variables (backend & frontend)
   - MCP server configuration (project-specific & global)
@@ -38,6 +51,12 @@ The original CLAUDE.md was **43,134 characters**, exceeding the recommended 40k 
   - Development workflow
   - Code review checklist
   - Common patterns
+
+- **[authentication-testing.md](./authentication-testing.md)** - Authentication testing guide
+  - Supabase redirect URL configuration
+  - Browser state clearing procedures
+  - Step-by-step test plans
+  - Troubleshooting auth issues
 
 ### Architecture Guides
 
@@ -70,8 +89,11 @@ The original CLAUDE.md was **43,134 characters**, exceeding the recommended 40k 
 **For specific topics**:
 
 - Need to run a command? → [development-commands.md](./development-commands.md)
+- Coding standards and preferences? → [coding-standards.md](./coding-standards.md)
+- Quick reference cheat sheet? → [quick-reference.md](./quick-reference.md)
 - Setting up environment? → [environment-setup.md](./environment-setup.md)
 - Creating components? → [component-development.md](./component-development.md)
+- Testing authentication? → [authentication-testing.md](./authentication-testing.md)
 - Frontend patterns? → [frontend-guide.md](./frontend-guide.md)
 - Backend patterns? → [backend-guide.md](./backend-guide.md)
 

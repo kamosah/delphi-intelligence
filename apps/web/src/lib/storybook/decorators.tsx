@@ -23,10 +23,7 @@ interface AuthDecoratorProps {
 function AuthDecorator({ children, authenticated = true }: AuthDecoratorProps) {
   useEffect(() => {
     if (authenticated) {
-      // Set mock authentication
-      useAuthStore
-        .getState()
-        .setTokens('mock-access-token', 'mock-refresh-token');
+      // Set mock user (tokens are HTTP-only cookies, not managed here)
       useAuthStore.getState().setUser({
         id: 'user-123',
         email: 'demo@olympus.com',
@@ -37,12 +34,12 @@ function AuthDecorator({ children, authenticated = true }: AuthDecoratorProps) {
       });
     } else {
       // Clear authentication
-      useAuthStore.getState().clearAuth();
+      useAuthStore.getState().logout();
     }
 
     // Cleanup on unmount
     return () => {
-      useAuthStore.getState().clearAuth();
+      useAuthStore.getState().logout();
     };
   }, [authenticated]);
 

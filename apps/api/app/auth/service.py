@@ -2,6 +2,7 @@
 Authentication service for handling user auth operations with Supabase
 """
 
+import logging
 from fastapi import HTTPException, status
 from supabase import Client
 
@@ -9,6 +10,8 @@ from app.auth.jwt_handler import jwt_manager
 from app.auth.redis_client import redis_manager
 from app.auth.schemas import TokenResponse, UserProfile
 from app.supabase_client import get_admin_client, get_user_client
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -431,10 +434,10 @@ class AuthService:
     async def exchange_supabase_token(self, supabase_access_token: str) -> TokenResponse:
         """
         Exchange Supabase access token for our backend tokens
-        Used for auto-login after email verification
+        Used for HTTP-only cookie authentication flow
 
         Args:
-            supabase_access_token: Access token from Supabase verification callback
+            supabase_access_token: JWT access token from Supabase session
 
         Returns:
             Our backend JWT tokens
@@ -443,17 +446,23 @@ class AuthService:
             HTTPException: If token exchange fails
         """
         try:
-            # Use Supabase token to get user info
-            user_client = get_user_client()
-            # Set the Supabase session
-            user_client.auth.set_session(supabase_access_token, supabase_access_token)
+            # Verify Supabase JWT token using admin client (service role)
+            admin_client = get_admin_client()
 
-            # Get the authenticated user
-            user_response = user_client.auth.get_user()
+            # Verify the JWT token and get user data
+            logger.info(
+                f"[TOKEN_EXCHANGE] Attempting to verify Supabase token (first 20 chars): {supabase_access_token[:20]}..."
+            )
+            user_response = admin_client.auth.get_user(supabase_access_token)
+            logger.info(
+                f"[TOKEN_EXCHANGE] Supabase get_user response: user={user_response.user}, error={getattr(user_response, 'error', None)}"
+            )
+
             if not user_response.user:
+                logger.error(f"Supabase token verification failed. Response: {user_response}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired Supabase token",
+                    detail="Invalid authentication credentials",
                 )
 
             user = user_response.user
@@ -494,6 +503,7 @@ class AuthService:
         except HTTPException:
             raise
         except Exception as e:
+            logger.exception(f"Token exchange failed with exception: {e!s}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Token exchange failed: {e!s}",

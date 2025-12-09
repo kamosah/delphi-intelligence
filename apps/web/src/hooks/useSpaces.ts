@@ -1,6 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { useClientToken } from '@/hooks/useClientToken';
 import {
   useCreateSpaceMutation,
   useDeleteSpaceMutation,
@@ -38,7 +39,8 @@ export function useSpaces(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken, currentOrganization } = useAuthStore();
+  const { clientToken } = useClientToken();
+  const { currentOrganization } = useAuthStore();
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
   const offset = options?.offset ?? 0;
@@ -50,7 +52,7 @@ export function useSpaces(options?: {
       offset,
     },
     {
-      enabled: !!accessToken,
+      enabled: !!clientToken,
       queryKey: queryKeys.spaces.list({
         limit,
         offset,
@@ -77,12 +79,12 @@ export function useSpaces(options?: {
  * const { space, isLoading } = useSpace(spaceId);
  */
 export function useSpace(id: string) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const query = useGetSpaceQuery(
     { id },
     {
-      enabled: !!accessToken && !!id,
+      enabled: !!clientToken && !!id,
       queryKey: queryKeys.spaces.detail(id),
     }
   );

@@ -8,8 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@olympus/ui';
+import { useAuth } from '@/hooks/useAuth';
 import { useCreateSpace } from '@/hooks/useSpaces';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import type { SpaceFormData } from './SpaceForm';
 import { SpaceForm } from './SpaceForm';
 
@@ -23,7 +23,7 @@ export function CreateSpaceDialog({
   onOpenChange,
 }: CreateSpaceDialogProps) {
   const { createSpace, isCreating, error } = useCreateSpace();
-  const { currentOrganization } = useAuthStore();
+  const { currentOrganization } = useAuth();
 
   const handleSubmit = async (data: SpaceFormData) => {
     if (!currentOrganization) {

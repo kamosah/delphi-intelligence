@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@olympus/ui';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LandingNavProps {
   logoText?: string;
@@ -15,7 +15,7 @@ interface LandingNavProps {
  * Shows dashboard link for authenticated users.
  */
 export function LandingNav({ logoText = 'Olympus' }: LandingNavProps) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuth();
 
   return (
     <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-sm fixed w-full z-10 top-0">
