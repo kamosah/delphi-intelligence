@@ -413,9 +413,123 @@ See [Backend Guide](./docs/guides/backend-guide.md) for complete patterns.
 **Backend**: FastAPI, Strawberry GraphQL, SQLAlchemy, Alembic, Redis, Pydantic
 **AI/ML Layer**: LangChain, LangGraph (simple queries), CrewAI (multi-agent - Phase 3+), pgvector, LangSmith
 **Database**: Supabase PostgreSQL (or Docker PostgreSQL for local dev)
-**Testing**: Pytest (backend), Vitest/Playwright (frontend - planned)
+**Testing**: Pytest (backend), Playwright (frontend E2E)
 **Tooling**: Turborepo, Poetry, Docker, Ruff, ESLint, Prettier
 **Deployment**: Vercel (frontend - planned), Render/Fly.io (backend - planned)
+
+## E2E Testing with Playwright
+
+### Overview
+
+Olympus uses Playwright for end-to-end testing with a focus on:
+
+- **Hybrid authentication** (Supabase SSR + FastAPI JWT)
+- **API testing** (GraphQL, REST, SSE streaming)
+- **Test isolation** and parallelization for speed
+- **Composable fixtures** for reusable test utilities
+
+See [Playwright Testing Guide](./docs/guides/playwright-testing-guide.md) for complete documentation.
+
+### Quick Reference
+
+**Run tests:**
+
+```bash
+cd apps/web
+npm run test:e2e              # Run all tests
+npm run test:e2e:ui           # UI mode (interactive)
+npm run test:e2e:headed       # Headed mode (visible browser)
+npm run test:e2e:debug        # Debug mode
+```
+
+**Key patterns:**
+
+1. **Authentication**: Use Setup Project pattern for shared auth state
+   - API-based auth setup (not UI login)
+   - Storage state in `playwright/.auth/user.json`
+   - HTTP-only cookie management via Playwright
+
+2. **Fixtures**: Import from `e2e/fixtures/`
+
+   ```typescript
+   import { test, expect } from '@/e2e/fixtures';
+
+   test('my test', async ({ authenticatedPage, graphqlMocker }) => {
+     // Test with auth + GraphQL mocking
+   });
+   ```
+
+3. **Test organization**:
+   - Feature-based: `e2e/auth/`, `e2e/documents/`, `e2e/spaces/`
+   - Fixtures: `e2e/fixtures/auth.ts`, `e2e/fixtures/graphql.ts`
+   - Utils: `e2e/utils/test-data.ts`, `e2e/utils/selectors.ts`
+
+4. **API testing**:
+   - GraphQL: Use `graphqlMocker` fixture for operation-based mocking
+   - REST: Use `authenticatedAPI` fixture for Olympus JWT requests
+   - SSE: Use `sseClient` fixture for EventSource testing
+
+### Test Isolation Strategy
+
+**Decision matrix:**
+
+| Test Type                              | Strategy           | Why                           |
+| -------------------------------------- | ------------------ | ----------------------------- |
+| Read-only (viewing documents, spaces)  | Setup Project      | 60-80% faster, parallel-safe  |
+| Creates/updates data (CRUD operations) | Per-Worker Fixture | Prevents cross-test conflicts |
+| Multiple user roles                    | Multi-StorageState | Test admin AND user flows     |
+| Long-running suite (>30 min)           | Token Refresh      | Prevent token expiration      |
+
+### Critical Rules
+
+- ✅ **Always use API-based auth setup** (not UI login in tests)
+- ✅ **Verify auth succeeded before saving storage state**
+- ✅ **Use `testInfo.parallelIndex` for unique test data**
+- ✅ **Prefer semantic selectors** or `data-testid` attributes
+- ❌ **Never commit `playwright/.auth/` files**
+- ❌ **Never use UI login for test setup** (slow and flaky)
+- ❌ **Never share data between parallel workers** without unique IDs
+
+### Example: Complete Auth Test
+
+```typescript
+// e2e/auth/login.spec.ts
+import { test, expect } from '../fixtures';
+
+test.describe('Login Flow', () => {
+  test('should login successfully with valid credentials', async ({
+    page,
+    graphqlMocker,
+  }) => {
+    // Mock GraphQL me query
+    await graphqlMocker.interceptQuery('GetCurrentUser', {
+      me: {
+        id: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+      },
+    });
+
+    // Navigate and interact
+    await page.goto('/login');
+    await page.fill('[name="email"]', 'test@example.com');
+    await page.fill('[name="password"]', 'password123');
+    await page.click('button[type="submit"]');
+
+    // Verify redirect and UI state
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByTestId('user-menu')).toBeVisible();
+    await expect(page.getByText('Test User')).toBeVisible();
+  });
+});
+```
+
+### Resources
+
+- [Playwright Testing Guide](./docs/guides/playwright-testing-guide.md) - Complete testing patterns and best practices
+- [Playwright Config](./apps/web/playwright.config.ts) - Current test configuration
+- [E2E README](./apps/web/e2e/README.md) - Existing test documentation
+- [Playwright Docs](https://playwright.dev/docs/intro) - Official Playwright documentation
 
 ## Detailed Guides
 
@@ -428,6 +542,7 @@ For in-depth information, refer to these topic-specific guides:
 - **[Component Development](./docs/guides/component-development.md)** - Component architecture, creation rules, best practices, Storybook
 - **[Frontend Component Organization](./docs/guides/frontend-component-organization.md)** - **General patterns for all complex components** (tables, navigation, forms, modals) - colocation, composability, shared types
 - **[Table Component Patterns](./docs/guides/table-component-patterns.md)** - TanStack Table organization, naming conventions, file structure, best practices
+- **[Playwright Testing Guide](./docs/guides/playwright-testing-guide.md)** - E2E testing patterns, authentication strategies, fixtures, API testing (GraphQL, REST, SSE)
 
 ### Architecture Guides
 

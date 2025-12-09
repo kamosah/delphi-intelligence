@@ -67,7 +67,7 @@ export async function setupAuthMocks(page: Page) {
           }),
         });
       }
-    } catch (error) {
+    } catch (_error) {
       await route.continue();
     }
   });
@@ -101,14 +101,14 @@ export async function setupAuthMocks(page: Page) {
           },
         }),
       });
-    } catch (error) {
+    } catch (_error) {
       await route.continue();
     }
   });
 
   // Mock Supabase user endpoint
   await page.route('**/auth/v1/user', async (route) => {
-    const authHeader = route.request().headerValue('Authorization');
+    const authHeader = await route.request().headerValue('Authorization');
 
     if (authHeader && authHeader.includes('Bearer')) {
       await route.fulfill({
@@ -135,7 +135,7 @@ export async function setupAuthMocks(page: Page) {
 
   // Mock Olympus client token exchange endpoint
   await page.route('**/auth/client-token', async (route) => {
-    const authHeader = route.request().headerValue('Authorization');
+    const authHeader = await route.request().headerValue('Authorization');
 
     if (authHeader && authHeader.includes('Bearer')) {
       await route.fulfill({
@@ -197,7 +197,7 @@ export async function setupAuthMocks(page: Page) {
  * Use this for tests that modify data (create documents, spaces, etc.)
  */
 export const test = base.extend<AuthFixtures>({
-  authenticatedPage: async ({ page, context }, use, testInfo) => {
+  authenticatedPage: async ({ page }, use, testInfo) => {
     // Each worker gets a unique user to prevent cross-test interference
     const workerIndex = testInfo.parallelIndex;
     const userEmail = `testuser-worker-${workerIndex}@example.com`;
@@ -251,9 +251,9 @@ export const test = base.extend<AuthFixtures>({
 
         authResponse = signupResponse;
       }
-    } catch (error) {
-      console.error(`❌ Worker ${workerIndex}: Auth failed:`, error);
-      throw error;
+    } catch (authError) {
+      console.error(`❌ Worker ${workerIndex}: Auth failed:`, authError);
+      throw authError;
     }
 
     const { access_token, refresh_token, user } = await authResponse.json();
@@ -300,7 +300,7 @@ export const test = base.extend<AuthFixtures>({
         .getByTestId('user-menu')
         .waitFor({ state: 'visible', timeout: 10000 });
       console.log(`✅ Worker ${workerIndex}: Auth verification successful`);
-    } catch (error) {
+    } catch (_error) {
       console.error(`❌ Worker ${workerIndex}: Auth verification failed`);
       throw new Error(
         'Authentication verification failed - user menu not visible'

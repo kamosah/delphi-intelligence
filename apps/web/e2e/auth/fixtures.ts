@@ -9,7 +9,7 @@ import type { Page } from '@playwright/test';
  * - Olympus client token exchange endpoint
  * - GraphQL queries (me, etc.)
  */
-export async function setupAuthMocks(page: Page) {
+export async function setupAuthMocks(_page: Page) {
   // TODO: Implement auth mocks for new Supabase hybrid auth flow
 }
 
