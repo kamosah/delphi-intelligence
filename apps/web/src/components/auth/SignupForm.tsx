@@ -17,7 +17,7 @@ import {
   Input,
 } from '@olympus/ui';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
-import { useAuth } from '@/hooks/useAuth';
+import { createClient } from '@/lib/supabase/client';
 
 const signupSchema = z
   .object({
@@ -56,7 +56,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
  */
 export function SignupForm() {
   const router = useRouter();
-  const { signUp, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   const form = useForm<SignupFormValues>({
@@ -73,17 +73,34 @@ export function SignupForm() {
   const onSubmit = async (data: SignupFormValues) => {
     try {
       setErrorMessage('');
-      await signUp({
+      setIsLoading(true);
+
+      const supabase = createClient();
+
+      // Sign up with Supabase (sets HTTP-only cookies automatically)
+      const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        full_name: data.fullName,
+        options: {
+          data: {
+            full_name: data.fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+        },
       });
+
+      if (error) {
+        throw error;
+      }
+
       // Redirect to verify-email page after successful signup
       router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create account';
       setErrorMessage(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 

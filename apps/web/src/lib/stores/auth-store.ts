@@ -22,11 +22,19 @@ export interface Organization {
   threadCount: number;
 }
 
+/**
+ * Authentication state store using Zustand.
+ *
+ * NOTE: Tokens are now managed by Supabase HTTP-only cookies (not stored here).
+ * This store only manages user data and organization state for UI reactivity.
+ *
+ * Auth flow:
+ * - Login: Supabase sets HTTP-only cookies → update user in this store
+ * - Logout: Supabase clears cookies → clear user from this store
+ */
 interface AuthState {
-  // Authentication state
+  // User state (for UI display)
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 
@@ -34,8 +42,8 @@ interface AuthState {
   currentOrganization: Organization | null;
 
   // Actions
-  setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
+  setAuthenticated: (authenticated: boolean) => void;
   setLoading: (loading: boolean) => void;
   setCurrentOrganization: (organization: Organization | null) => void;
   logout: () => void;
@@ -48,21 +56,19 @@ export const useAuthStore = create<AuthState>()(
       (set) => ({
         // Initial state
         user: null,
-        accessToken: null,
-        refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
         currentOrganization: null,
 
         // Actions
-        setTokens: (accessToken, refreshToken) =>
+        setUser: (user) =>
           set({
-            accessToken,
-            refreshToken,
+            user,
             isAuthenticated: true,
           }),
 
-        setUser: (user) => set({ user }),
+        setAuthenticated: (authenticated) =>
+          set({ isAuthenticated: authenticated }),
 
         setLoading: (loading) => set({ isLoading: loading }),
 
@@ -74,8 +80,6 @@ export const useAuthStore = create<AuthState>()(
         logout: () =>
           set({
             user: null,
-            accessToken: null,
-            refreshToken: null,
             isAuthenticated: false,
             currentOrganization: null,
           }),
@@ -83,18 +87,15 @@ export const useAuthStore = create<AuthState>()(
         clearAuth: () =>
           set({
             user: null,
-            accessToken: null,
-            refreshToken: null,
             isAuthenticated: false,
             currentOrganization: null,
           }),
       }),
       {
         name: 'olympus-auth-store',
+        // Only persist user data and organization (NO TOKENS)
         partialize: (state) => ({
           user: state.user,
-          accessToken: state.accessToken,
-          refreshToken: state.refreshToken,
           isAuthenticated: state.isAuthenticated,
           currentOrganization: state.currentOrganization,
         }),

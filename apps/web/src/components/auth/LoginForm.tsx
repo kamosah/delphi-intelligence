@@ -18,7 +18,7 @@ import {
   FormMessage,
   Input,
 } from '@olympus/ui';
-import { useAuth } from '@/hooks/useAuth';
+import { createClient } from '@/lib/supabase/client';
 
 const loginSchema = z.object({
   email: z
@@ -34,14 +34,18 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 /**
- * Login form component with Shadcn Form and Zod validation.
- * Handles authentication, validation, and error display.
- * Uses design system Form components for consistency.
+ * Login form component with Supabase SSR authentication.
+ *
+ * This component uses Supabase's signInWithPassword() which automatically
+ * sets HTTP-only cookies for secure token storage (XSS protection).
+ *
+ * Uses design system Form components with Zod validation for consistency.
  */
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn, isLoading } = useAuth();
+  const supabase = createClient();
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -90,32 +94,48 @@ export function LoginForm() {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
+      setIsLoading(true);
       setErrorMessage('');
       setIsEmailNotVerified(false);
       setResendSuccess(false);
 
-      await signIn({
+      // Authenticate with Supabase (HTTP-only cookies set automatically)
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
-        rememberMe: data.rememberMe,
       });
+
+      if (error) {
+        // Check if error is email not verified
+        if (
+          error.message.toLowerCase().includes('email not confirmed') ||
+          error.message.toLowerCase().includes('not verified') ||
+          error.message.toLowerCase().includes('verify')
+        ) {
+          setIsEmailNotVerified(true);
+          setErrorMessage(
+            'Please verify your email address before logging in.'
+          );
+        } else {
+          setErrorMessage(error.message || 'Failed to sign in');
+        }
+        return;
+      }
+
+      if (!authData.session) {
+        setErrorMessage('Failed to create session');
+        return;
+      }
+
+      // Supabase has set HTTP-only cookies automatically
       // Redirect to original destination or dashboard
       router.push(redirectTo);
+      router.refresh(); // Refresh server components
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-
-      // Check if error is email not verified
-      // Backend returns: "Login failed: Email not confirmed" or includes "verify"
-      if (
-        errorMsg.toLowerCase().includes('email not confirmed') ||
-        errorMsg.toLowerCase().includes('not verified') ||
-        errorMsg.toLowerCase().includes('verify')
-      ) {
-        setIsEmailNotVerified(true);
-        setErrorMessage('Please verify your email address before logging in.');
-      } else {
-        setErrorMessage(errorMsg || 'Failed to sign in');
-      }
+      setErrorMessage(errorMsg || 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 

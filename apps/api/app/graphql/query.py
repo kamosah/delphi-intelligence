@@ -8,6 +8,7 @@ from sqlalchemy import extract, func, select
 from sqlalchemy.orm import joinedload
 import strawberry
 
+from app.auth.jwt_handler import jwt_manager
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
 from app.models.organization import Organization as OrganizationModel
@@ -18,6 +19,7 @@ from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.services.organization_service import OrganizationService
 from app.services.vector_search_service import get_vector_search_service
+from app.supabase_client import get_admin_client
 
 from .types import (
     DashboardStats,
@@ -56,6 +58,59 @@ class Query:
                 # Invalid UUID format
                 return None
         return None
+
+    @strawberry.field
+    async def me(self, info: strawberry.types.Info) -> User:
+        """
+        Get the current authenticated user with email confirmation status from Supabase.
+
+        Returns:
+            Current user profile (User model fetched by AuthenticationMiddleware)
+
+        Raises:
+            Exception if user is not authenticated
+
+        Example query:
+            query {
+              me {
+                id
+                email
+                fullName
+                role
+                isActive
+                avatarUrl
+                emailConfirmed
+              }
+            }
+        """
+        request = info.context["request"]
+        user_model = request.state.user
+
+        if not user_model:
+            error_msg = "Authentication required"
+            raise ValueError(error_msg)
+
+        # Get Supabase token from JWT payload to check email confirmation
+        email_confirmed = False
+        try:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                olympus_token = auth_header.replace("Bearer ", "")
+                payload = jwt_manager.verify_token(olympus_token)
+
+                if payload and "supabase_token" in payload:
+                    supabase_token = payload["supabase_token"]
+                    admin_client = get_admin_client()
+                    user_response = admin_client.auth.get_user(supabase_token)
+
+                    if user_response.user and user_response.user.email_confirmed_at:
+                        email_confirmed = True
+        except Exception as e:
+            logger.warning(f"Failed to get email confirmation status: {e}")
+            # Continue with email_confirmed=False
+
+        # User model fetched by AuthenticationMiddleware
+        return User.from_model(user_model, email_confirmed=email_confirmed)
 
     @strawberry.field
     async def users(self, limit: int = 10, offset: int = 0) -> list[User]:

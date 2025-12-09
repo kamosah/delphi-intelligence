@@ -2,6 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useClientToken } from '@/hooks/useClientToken';
 import type { Thread } from '@/lib/api/generated';
 import {
   useCreateThreadMutation,
@@ -44,7 +45,8 @@ export function useThreads(options?: {
   limit?: number;
   offset?: number;
 }) {
-  const { accessToken, currentOrganization } = useAuthStore();
+  const { clientToken } = useClientToken();
+  const { currentOrganization } = useAuthStore();
   const spaceId = options?.spaceId;
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
@@ -58,7 +60,7 @@ export function useThreads(options?: {
       offset,
     },
     {
-      enabled: !!accessToken,
+      enabled: !!clientToken,
       queryKey: queryKeys.threads.list({
         spaceId: spaceId,
         organizationId: orgId,
@@ -92,12 +94,12 @@ export function useThreads(options?: {
  * - `isSuccess`: True when the query has successfully completed
  */
 export function useThread(id: string) {
-  const { accessToken } = useAuthStore();
+  const { clientToken } = useClientToken();
 
   const query = useGetThreadQuery(
     { id },
     {
-      enabled: !!accessToken && !!id,
+      enabled: !!clientToken && !!id,
       queryKey: queryKeys.threads.detail(id),
     }
   );

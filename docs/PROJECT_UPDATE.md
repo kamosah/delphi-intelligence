@@ -542,7 +542,7 @@ All commenting features deferred to post-MVP.
 - **GitHub Repository**: [athena](https://github.com/kamosah/athena)
 - **Product Requirements**: `docs/PRODUCT_REQUIREMENTS.md`
 - **Feature Alignment**: `docs/FEATURE_ALIGNMENT.md`
-- **Development Guide**: `DEVELOPMENT.md`
+- **Development Guide**: `docs/guides/coding-standards.md`
 - **API Documentation**: http://localhost:8000/docs (local)
 - **Storybook**: http://localhost:6006 (local)
 

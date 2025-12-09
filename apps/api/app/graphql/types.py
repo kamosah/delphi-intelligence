@@ -26,19 +26,31 @@ class User:
     id: strawberry.ID
     email: str
     full_name: str | None
+    role: str
+    is_active: bool
     avatar_url: str | None
+    email_confirmed: bool
     bio: str | None
     created_at: datetime
     updated_at: datetime
 
     @classmethod
-    def from_model(cls, user: UserModel) -> "User":
-        """Convert SQLAlchemy User model to GraphQL User type."""
+    def from_model(cls, user: UserModel, email_confirmed: bool | None = None) -> "User":
+        """
+        Convert SQLAlchemy User model to GraphQL User type.
+
+        Args:
+            user: SQLAlchemy User model
+            email_confirmed: Optional email confirmation status from Supabase
+        """
         return cls(
             id=strawberry.ID(str(user.id)),
             email=user.email,
             full_name=user.full_name,
+            role=user.role.value if user.role else "member",
+            is_active=user.is_active if user.is_active is not None else True,
             avatar_url=user.avatar_url,
+            email_confirmed=email_confirmed if email_confirmed is not None else False,
             bio=user.bio,
             created_at=user.created_at,
             updated_at=user.updated_at,

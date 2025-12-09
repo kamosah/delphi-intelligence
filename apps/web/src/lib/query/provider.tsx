@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { toast } from 'sonner';
+import { queryKeys } from '@/lib/query/query-keys';
+import { createClient } from '@/lib/supabase/client';
 import {
   getOrganizationErrorMessage,
   isOrganizationError,
@@ -68,7 +71,7 @@ function makeQueryClient() {
 
 let browserQueryClient: QueryClient | undefined = undefined;
 
-function getQueryClient() {
+export function getQueryClient() {
   if (typeof window === 'undefined') {
     // Server: always make a new query client
     return makeQueryClient();
@@ -87,6 +90,27 @@ export function QueryProvider({ children }: QueryProviderProps) {
   //       This ensures the client persists across re-renders when React suspends,
   //       avoiding the client being thrown away on the initial render.
   const queryClient = getQueryClient();
+
+  // Handle Supabase auth state changes (token refresh)
+  useEffect(() => {
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      // When Supabase refreshes its token, invalidate our cached Olympus token
+      // so it gets re-exchanged with the new Supabase token
+      if (event === 'TOKEN_REFRESHED') {
+        queryClient.removeQueries({ queryKey: queryKeys.auth.clientToken() });
+      }
+
+      // When user signs out, clear all cached data
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
