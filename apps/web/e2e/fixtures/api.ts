@@ -1,5 +1,5 @@
 import { test as base } from '@playwright/test';
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
 
 /**
  * REST API testing fixtures for Olympus
@@ -269,7 +269,7 @@ export class AuthenticatedAPIClient {
    * @param expectedStatus - Expected status code (default: 200)
    * @throws Error if status doesn't match
    */
-  async verifyStatus(response: any, expectedStatus = 200) {
+  async verifyStatus(response: APIResponse, expectedStatus = 200) {
     const actualStatus = response.status();
 
     if (actualStatus !== expectedStatus) {
@@ -287,12 +287,15 @@ export class AuthenticatedAPIClient {
    * @returns Parsed JSON data
    * @throws Error if parsing fails
    */
-  async parseJSON<T = any>(response: any): Promise<T> {
+  async parseJSON<T = unknown>(response: APIResponse): Promise<T> {
     try {
       return await response.json();
-    } catch (_error) {
+    } catch (error) {
       const text = await response.text();
-      throw new Error(`Failed to parse JSON response: ${text}`);
+      console.error('Failed to parse JSON:', error);
+      throw new Error(
+        `Failed to parse JSON response: ${text}. Original error: ${error}`
+      );
     }
   }
 
@@ -348,7 +351,7 @@ export { expect } from '@playwright/test';
  * await authenticatedAPI.authenticate(supabaseToken);
  * ```
  */
-export async function getSupabaseTokenFromPage(page: any): Promise<string> {
+export async function getSupabaseTokenFromPage(page: Page): Promise<string> {
   const token = await page.evaluate((projectId: string) => {
     const sessionKey = `sb-${projectId}-auth-token`;
     const sessionData = localStorage.getItem(sessionKey);

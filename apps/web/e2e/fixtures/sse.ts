@@ -22,8 +22,27 @@ export type SSEEventType = 'token' | 'citations' | 'done' | 'error';
  */
 export interface SSEEvent {
   type: SSEEventType;
-  data: any;
+  data: unknown;
   timestamp: number;
+}
+
+/**
+ * Serializable SSE Event for page.evaluate context
+ */
+interface SerializableSSEEvent {
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: number;
+}
+
+/**
+ * Citation source structure from SSE events
+ */
+export interface CitationSource {
+  document_id: string;
+  chunk_id?: string;
+  relevance_score?: number;
+  [key: string]: unknown;
 }
 
 /**
@@ -62,12 +81,11 @@ export class SSETestClient {
   ): Promise<SSEEvent[]> {
     console.log(`🌊 Connecting to SSE stream: ${url}`);
 
-    return await this.page.evaluate(
+    const serializedEvents = await this.page.evaluate(
       async ({ url, timeout }) => {
-        return new Promise<any[]>((resolve, reject) => {
-          const events: any[] = [];
-          // eslint-disable-next-line prefer-const
-          let timeoutId: ReturnType<typeof setTimeout>;
+        return new Promise<SerializableSSEEvent[]>((resolve, reject) => {
+          const events: SerializableSSEEvent[] = [];
+          let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
           const eventSource = new EventSource(url);
 
           const messageHandler = (event: Event) => {
@@ -115,6 +133,13 @@ export class SSETestClient {
       },
       { url, timeout }
     );
+
+    // Convert serialized events to SSEEvent[]
+    return serializedEvents.map((e) => ({
+      type: e.type as SSEEventType,
+      data: e.data,
+      timestamp: e.timestamp,
+    }));
   }
 
   /**
@@ -135,7 +160,10 @@ export class SSETestClient {
   extractTokens(events: SSEEvent[]): string {
     return events
       .filter((e) => e.type === 'token')
-      .map((e) => e.data.content || '')
+      .map((e) => {
+        const data = e.data as { content?: string };
+        return data.content || '';
+      })
       .join('');
   }
 
@@ -154,9 +182,12 @@ export class SSETestClient {
    * expect(citations[0]).toHaveProperty('document_id');
    * ```
    */
-  findCitations(events: SSEEvent[]): any[] {
+  findCitations(events: SSEEvent[]): CitationSource[] {
     const citationEvents = events.filter((e) => e.type === 'citations');
-    return citationEvents.flatMap((e) => e.data.sources || []);
+    return citationEvents.flatMap((e) => {
+      const data = e.data as { sources?: CitationSource[] };
+      return data.sources || [];
+    });
   }
 
   /**
@@ -224,15 +255,18 @@ export class SSETestClient {
     // Check for done event
     const doneEvent = this.findDoneEvent(events);
     expect(doneEvent, 'Expected done event').toBeDefined();
+    const doneData = doneEvent!.data as { confidence_score?: number };
     expect(
-      doneEvent!.data.confidence_score,
+      doneData.confidence_score,
       'Expected confidence score'
     ).toBeDefined();
 
-    console.log(`✅ Stream verification passed:
-    - Tokens: ${tokens.length}
-    - Citations: ${citations.length}
-    - Confidence: ${doneEvent!.data.confidence_score}`);
+    console.log(
+      `✅ Stream verification passed:\n` +
+        `- Tokens: ${tokens.length}\n` +
+        `- Citations: ${citations.length}\n` +
+        `- Confidence: ${doneData.confidence_score}`
+    );
   }
 
   /**
@@ -328,14 +362,20 @@ export class SSETestClient {
           let streamUrl: string | null = null;
 
           // Intercept EventSource constructor
-          (window as any).EventSource = class extends originalEventSource {
-            constructor(url: string) {
-              super(url);
-              streamUrl = url;
-              console.log('🌊 EventSource created:', url);
-              resolve(url);
-            }
-          };
+          (window as Window & { EventSource: typeof EventSource }).EventSource =
+            class extends originalEventSource {
+              constructor(
+                url: string | URL,
+                eventSourceInitDict?: EventSourceInit
+              ) {
+                super(url, eventSourceInitDict);
+                const urlString =
+                  typeof url === 'string' ? url : url.toString();
+                streamUrl = urlString;
+                console.log('🌊 EventSource created:', urlString);
+                resolve(urlString);
+              }
+            };
 
           // Timeout protection
           setTimeout(() => {
@@ -366,7 +406,9 @@ export class SSETestClient {
    * ]);
    * ```
    */
-  async mockSSEStream(mockEvents: Array<{ type: string; data: any }>) {
+  async mockSSEStream(
+    mockEvents: Array<{ type: string; data: Record<string, unknown> }>
+  ) {
     await this.page.route('**/api/thread/stream**', async (route) => {
       console.log('🎭 Mocking SSE stream');
 

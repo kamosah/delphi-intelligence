@@ -225,6 +225,9 @@ export const test = base.extend<AuthFixtures>({
       // If user doesn't exist, create them
       if (!authResponse.ok()) {
         console.log(
+          `⚠️ Worker ${workerIndex}: Login failed (${authResponse.status()}), attempting signup...`
+        );
+        console.log(
           `📝 Worker ${workerIndex}: Creating new test user ${userEmail}`
         );
 

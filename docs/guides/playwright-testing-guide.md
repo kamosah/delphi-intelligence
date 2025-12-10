@@ -814,8 +814,12 @@ test('should send correct variables to GraphQL', async ({
   await page.fill('[name="name"]', 'Updated Name');
   await page.click('button[type="submit"]');
 
-  // Wait for request
-  await page.waitForTimeout(1000);
+  // Wait for the UpdateSpace GraphQL request to be sent
+  await page.waitForResponse(
+    (response) =>
+      response.url().includes('/graphql') &&
+      response.request().postDataJSON()?.operationName === 'UpdateSpace'
+  );
 
   // Verify variables
   expect(requests).toHaveLength(1);
@@ -1664,11 +1668,15 @@ npx playwright show-trace trace.zip
 1. **Use proper wait patterns:**
 
    ```typescript
-   // Bad
-   await page.waitForTimeout(1000);
+   // Instead of waiting for a fixed timeout...
+   // await page.waitForTimeout(1000); // ❌ Anti-pattern: leads to flaky tests
 
-   // Good
-   await expect(page.getByText('Loaded')).toBeVisible();
+   // ...wait for a real condition, such as a UI element or network response:
+   await expect(page.getByText('Loaded')).toBeVisible(); // ✅ Good: waits for UI
+   await page.waitForResponse(
+     (response) =>
+       response.url().includes('/graphql') && response.status() === 200
+   ); // ✅ Good: waits for GraphQL network response
    ```
 
 2. **Wait for network idle:**

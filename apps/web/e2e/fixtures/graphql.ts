@@ -13,6 +13,16 @@ interface GraphQLFixtures {
 }
 
 /**
+ * Captured GraphQL request structure
+ */
+export interface CapturedGraphQLRequest {
+  operationName: string;
+  variables: Record<string, unknown>;
+  query?: string;
+  timestamp?: number;
+}
+
+/**
  * GraphQL Mocker - Intercept and mock GraphQL operations
  *
  * Features:
@@ -23,8 +33,6 @@ interface GraphQLFixtures {
  * - Network delay simulation
  */
 export class GraphQLMocker {
-  private routeHandlers: Map<string, (variables: any) => any> = new Map();
-
   constructor(private page: Page) {}
 
   /**
@@ -218,8 +226,10 @@ export class GraphQLMocker {
    * expect(requests[0].variables).toEqual({ id: 'space-123', name: 'Updated Name' });
    * ```
    */
-  async captureRequests(operationName: string): Promise<any[]> {
-    const requests: any[] = [];
+  async captureRequests(
+    operationName: string
+  ): Promise<CapturedGraphQLRequest[]> {
+    const requests: CapturedGraphQLRequest[] = [];
 
     await this.page.route('**/graphql', async (route) => {
       const request = route.request();
@@ -357,7 +367,6 @@ export class GraphQLMocker {
    */
   async clearAllMocks() {
     await this.page.unroute('**/graphql');
-    this.routeHandlers.clear();
     console.log('🧹 Cleared all GraphQL mocks');
   }
 }
