@@ -64,9 +64,7 @@ async def postgres_session(
     The transaction is rolled back after the test, ensuring no data pollution.
     """
     async with postgres_engine.connect() as conn, conn.begin() as trans:
-        session_factory = async_sessionmaker(
-            bind=conn, class_=AsyncSession, expire_on_commit=False
-        )
+        session_factory = async_sessionmaker(bind=conn, class_=AsyncSession, expire_on_commit=False)
         session = session_factory()
 
         yield session

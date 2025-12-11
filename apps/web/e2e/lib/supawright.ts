@@ -1,29 +1,56 @@
-import { Supawright } from '@supawright/supawright';
-import { supabaseService } from './supabase-test-client';
+import { withSupawright } from 'supawright';
+import type { Database as GeneratedDatabase } from '../types/database.types';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  throw new Error(
+    'Missing Supabase credentials. Ensure .env.test is configured with NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY'
+  );
+}
 
 /**
- * Supawright instance for managing database transactions in E2E tests.
+ * Database type for Supawright.
+ * Omits the __InternalSupabase property from the generated Database type
+ * to make it compatible with Supawright's GenericDatabase constraint.
+ */
+type Database = Omit<GeneratedDatabase, '__InternalSupabase'>;
+
+/**
+ * Playwright test with Supawright integration.
+ *
+ * Extends Playwright's test with Supawright fixtures for automatic
+ * database test data management and cleanup.
  *
  * Features:
- * - Test-level isolation: Each test runs in its own transaction
- * - Auto-rollback: All database changes are rolled back after each test
- * - No manual cleanup: Supawright handles cleanup automatically
+ * - Automatic test data creation based on foreign key constraints
+ * - Smart data generation (enums, types, etc.)
+ * - Auto-cleanup after each test
  *
  * Usage:
  * ```typescript
- * import { supawright } from './lib/supawright';
+ * import { test, expect } from '../lib/supawright';
  *
- * test('my test', async ({ page }) => {
- *   await supawright.startTransaction();
- *   // ... test operations
- *   await supawright.rollback(); // Auto-rollback
+ * test('my test', async ({ page, supawright }) => {
+ *   // Create test data
+ *   const user = await supawright.create('users', {
+ *     email: 'test@example.com'
+ *   });
+ *
+ *   // Test operations...
+ *   // Cleanup happens automatically
  * });
  * ```
+ *
+ * Note: Currently configured for 'public' schema only.
+ * To add more schemas, update both the type parameter and array argument.
  */
-export const supawright = new Supawright({
-  client: supabaseService,
-  // Isolate each test with its own transaction
-  isolationLevel: 'test',
-  // Auto-rollback after each test
-  autoRollback: true,
+export const test = withSupawright<Database, 'public'>(['public'], {
+  supabase: {
+    supabaseUrl,
+    serviceRoleKey,
+  },
 });
+
+export { expect } from '@playwright/test';

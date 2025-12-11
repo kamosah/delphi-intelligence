@@ -71,7 +71,7 @@
     "@storybook/nextjs": "^9.1.10",
     "@storybook/test": "^9.0.0-alpha.2",
     "@storybook/test-runner": "^0.23.0",
-    "@supawright/supawright": "^1.0.0",
+    "supawright": "^0.3.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/node": "^20.0.0",
