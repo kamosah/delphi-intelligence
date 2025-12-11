@@ -2,18 +2,22 @@ import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Load environment variables from .env.local
-dotenv.config({ path: path.resolve(__dirname, '.env.local') });
+// Load test environment variables from .env.test
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 /**
- * Playwright configuration for e2e testing
+ * Playwright configuration for e2e testing with Supawright
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './e2e',
 
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Global setup/teardown for test user management */
+  globalSetup: require.resolve('./e2e/global-setup.ts'),
+  globalTeardown: require.resolve('./e2e/global-teardown.ts'),
+
+  /* Run tests in files in parallel (disable on CI for stability) */
+  fullyParallel: !process.env.CI,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
