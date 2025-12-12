@@ -1,66 +1,22 @@
 /**
- * Composed Playwright fixtures for Olympus E2E testing
+ * Main fixtures export for Olympus E2E tests.
  *
- * This file combines all individual fixtures into a single export for convenience.
- * Import from here to get access to all fixtures in one test.
+ * Composes all fixture layers:
+ * - Supawright fixtures (supabase, supaService)
+ * - Auth fixtures (authenticatedPage, authenticatedUserId)
  *
- * @example
+ * Import from this file in your tests:
  * ```typescript
  * import { test, expect } from '@/e2e/fixtures';
  *
- * test('complex test with all fixtures', async ({
- *   authenticatedPage,
- *   graphqlMocker,
- *   authenticatedAPI,
- *   sseClient,
- * }) => {
- *   // Use any combination of fixtures
+ * test('my test', async ({ authenticatedPage, supaService }) => {
+ *   // Test with authenticated page and service client
  * });
  * ```
  */
 
-import { test as base, expect as baseExpect } from '@playwright/test';
-import { test as apiTest } from './api';
-import { test as authTest } from './auth';
-import { test as graphqlTest } from './graphql';
-import { test as sseTest } from './sse';
+// Re-export composed test with all fixtures
+export { test, expect } from './auth';
 
-/**
- * Composed test fixture with all utilities
- *
- * Available fixtures:
- * - `authenticatedPage` - Page with per-worker authentication
- * - `graphqlMocker` - GraphQL operation mocking
- * - `authenticatedAPI` - REST API client with Olympus JWT
- * - `sseClient` - SSE/EventSource testing utilities
- */
-export const test = base
-  .extend(authTest)
-  .extend(graphqlTest)
-  .extend(apiTest)
-  .extend(sseTest);
-
-/**
- * Re-export expect from Playwright
- */
-export const expect = baseExpect;
-
-/**
- * Re-export individual fixture classes for advanced usage
- */
-export { GraphQLMocker } from './graphql';
-export { AuthenticatedAPIClient, getSupabaseTokenFromPage } from './api';
-export { SSETestClient, type SSEEvent, type SSEEventType } from './sse';
-export { setupAuthMocks, authenticateAs } from './auth';
-
-/**
- * Type definitions for all fixtures
- */
-export type {
-  // Re-export Playwright types
-  Page,
-  BrowserContext,
-  APIRequestContext,
-  Locator,
-  Response,
-} from '@playwright/test';
+// Re-export fixture types for type safety
+export type { SupawrightFixtures } from './supawright';
