@@ -27,19 +27,16 @@ test.describe('Spaces - Create', () => {
     const spaceName = `Test Space ${workerId}-${Date.now()}`;
     const spaceDescription = `Test space for worker ${workerId}`;
 
-    await authenticatedPage.fill('[name="name"]', spaceName);
-    await authenticatedPage.fill('[name="description"]', spaceDescription);
+    // Use data-testid selectors for stable test selection
+    await authenticatedPage.getByTestId('space-name-input').fill(spaceName);
+    await authenticatedPage
+      .getByTestId('space-description-input')
+      .fill(spaceDescription);
 
-    // Select organization (if dropdown exists)
-    const orgDropdown = authenticatedPage.locator('[name="organization_id"]');
-    if ((await orgDropdown.count()) > 0) {
-      await orgDropdown.selectOption(org.id);
-    }
+    // Icon color is selected by default, no need to change
 
     // 5. Submit form
-    await authenticatedPage
-      .getByRole('button', { name: /create|save/i })
-      .click();
+    await authenticatedPage.getByTestId('space-form-submit-button').click();
 
     // 6. Verify: Space appears in UI
     // Should redirect to space page or show success message
@@ -87,9 +84,7 @@ test.describe('Spaces - Create', () => {
     await authenticatedPage.getByTestId('new-space-button').click();
 
     // Try to submit empty form
-    await authenticatedPage
-      .getByRole('button', { name: /create|save/i })
-      .click();
+    await authenticatedPage.getByTestId('space-form-submit-button').click();
 
     // Verify: Validation errors appear
     await expect(

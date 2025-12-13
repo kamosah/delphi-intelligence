@@ -98,13 +98,13 @@ export const test = base.extend<AuthFixtures>({
   },
 
   authenticatedUserId: async ({ supabase }, use, testInfo) => {
-    // Get user ID by signing in programmatically with the same credentials
+    // Get public.users.id (NOT auth.users.id) by signing in programmatically
     const workerIndex = testInfo.parallelIndex;
     const userEmail = `worker-${workerIndex}@example.com`;
     const userPassword = 'TestPassword123!';
 
     try {
-      // Sign in to get the user session
+      // Sign in to get the auth user session
       const { data, error } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: userPassword,
@@ -116,10 +116,27 @@ export const test = base.extend<AuthFixtures>({
         );
       }
 
-      const userId = data.user.id;
-      console.log(`✅ Worker ${workerIndex}: Found user ID ${userId}`);
+      const authUserId = data.user.id;
 
-      await use(userId);
+      // Get the public.users.id from auth_user_id
+      const { data: publicUser, error: queryError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', authUserId)
+        .single();
+
+      if (queryError || !publicUser) {
+        throw new Error(
+          `Failed to find public user for auth user ${authUserId}: ${queryError?.message || 'No user found'}`
+        );
+      }
+
+      const publicUserId = publicUser.id;
+      console.log(
+        `✅ Worker ${workerIndex}: Found public user ID ${publicUserId} (auth: ${authUserId})`
+      );
+
+      await use(publicUserId);
 
       // Cleanup: Sign out after test
       await supabase.auth.signOut();
