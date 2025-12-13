@@ -48,7 +48,11 @@ export function CitationCard({ citation, className }: CitationCardProps) {
     >
       <div className="flex items-start gap-3">
         {/* Citation Index Badge */}
-        <Badge variant="secondary" className="shrink-0">
+        <Badge
+          variant="secondary"
+          className="shrink-0"
+          data-testid="citation-badge"
+        >
           [{citation.index}]
         </Badge>
 

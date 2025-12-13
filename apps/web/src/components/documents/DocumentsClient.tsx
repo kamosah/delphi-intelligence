@@ -16,7 +16,7 @@ export function DocumentsClient() {
             View and manage all documents across your spaces.
           </p>
         </div>
-        <Button>Upload Document</Button>
+        <Button data-testid="upload-button">Upload Document</Button>
       </div>
 
       {error && (

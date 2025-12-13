@@ -1,0 +1,12 @@
+# Docker Compose override for development
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+name: olympus
+
+services:
+  api:
+    ports:
+      - '8000:8000'
+
+  redis:
+    ports:
+      - '6379:6379'

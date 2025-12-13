@@ -26,7 +26,10 @@ export function SpacesClient() {
             Organize your documents into collaborative workspaces.
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
+        <Button
+          onClick={() => setIsCreateDialogOpen(true)}
+          data-testid="new-space-button"
+        >
           Create Space
         </Button>
       </div>

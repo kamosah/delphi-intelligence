@@ -10,10 +10,10 @@ export default async function globalSetup() {
   console.log('🔧 Global setup: Creating test users...');
 
   const testUsers = [
-    { email: 'worker-0@example.com', password: 'testpass123' },
-    { email: 'worker-1@example.com', password: 'testpass123' },
-    { email: 'worker-2@example.com', password: 'testpass123' },
-    { email: 'admin@example.com', password: 'testpass123', role: 'admin' },
+    { email: 'worker-0@example.com', password: 'TestPassword123!' },
+    { email: 'worker-1@example.com', password: 'TestPassword123!' },
+    { email: 'worker-2@example.com', password: 'TestPassword123!' },
+    { email: 'admin@example.com', password: 'TestPassword123!', role: 'admin' },
   ];
 
   for (const user of testUsers) {

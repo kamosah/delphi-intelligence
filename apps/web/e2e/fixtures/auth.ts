@@ -57,65 +57,22 @@ export const test = base.extend<AuthFixtures>({
 
     console.log(`🔐 Worker ${workerIndex}: Authenticating as ${userEmail}`);
 
-    // 1. Authenticate via Supabase REST API
-    const authResponse = await page.request.post(
-      `${supabaseUrl}/auth/v1/token?grant_type=password`,
-      {
-        data: {
-          email: userEmail,
-          password: userPassword,
-        },
-        headers: {
-          apikey: supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!authResponse.ok()) {
-      const errorText = await authResponse.text();
-      throw new Error(
-        `Authentication failed for ${userEmail}: ${authResponse.status()} ${errorText}`
-      );
-    }
-
-    const authData = await authResponse.json();
-    const { access_token, refresh_token, user } = authData;
-
-    if (!access_token || !user) {
-      throw new Error(
-        `Invalid auth response for ${userEmail}: missing access_token or user`
-      );
-    }
-
-    // 2. Set Supabase session cookie (HTTP-only)
-    // This simulates how Supabase SSR sets the auth cookie
-    await page.context().addCookies([
-      {
-        name: `sb-${supabaseProjectId}-auth-token`,
-        value: JSON.stringify({
-          access_token,
-          refresh_token,
-          expires_in: 3600,
-          token_type: 'bearer',
-          user,
-        }),
-        domain: 'localhost',
-        path: '/',
-        httpOnly: true, // HTTP-only cookie (matches Supabase SSR)
-        secure: false, // false for localhost
-        sameSite: 'Lax',
-      },
-    ]);
-
-    // 3. Navigate to trigger Next.js middleware token exchange
-    // Middleware reads Supabase cookie → exchanges for Olympus JWT
-    await page.goto('/dashboard');
+    // 1. Navigate to login page
+    await page.goto('/login');
     await page.waitForLoadState('networkidle');
 
-    // 4. Verify authentication succeeded (check for user menu)
+    // 2. Fill in login form and submit
+    await page.fill('[name="email"]', userEmail);
+    await page.fill('[name="password"]', userPassword);
+    await page.click('button[type="submit"]');
+
+    // 3. Wait for redirect to dashboard
+    await page.waitForURL('/dashboard', { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+
+    // 4. Verify authentication succeeded (check for app logo in dashboard)
     try {
-      await page.getByTestId('user-menu').waitFor({
+      await page.getByTestId('app-logo').waitFor({
         state: 'visible',
         timeout: 10000,
       });
@@ -125,7 +82,7 @@ export const test = base.extend<AuthFixtures>({
         `❌ Worker ${workerIndex}: Authentication verification failed`
       );
       throw new Error(
-        `Authentication verification failed: user-menu not visible after login`
+        `Authentication verification failed: app-logo not visible after login`
       );
     }
 
@@ -140,30 +97,37 @@ export const test = base.extend<AuthFixtures>({
     }
   },
 
-  authenticatedUserId: async ({ page }, use) => {
-    // Extract user ID from page storage
-    const userId = await page.evaluate(() => {
-      // Try to get user ID from localStorage (Supabase session)
-      const storageKeys = Object.keys(localStorage);
-      const authKey = storageKeys.find((key) => key.includes('auth-token'));
+  authenticatedUserId: async ({ supabase }, use, testInfo) => {
+    // Get user ID by signing in programmatically with the same credentials
+    const workerIndex = testInfo.parallelIndex;
+    const userEmail = `worker-${workerIndex}@example.com`;
+    const userPassword = 'TestPassword123!';
 
-      if (authKey) {
-        try {
-          const session = JSON.parse(localStorage.getItem(authKey) || '{}');
-          return session?.user?.id || null;
-        } catch {
-          return null;
-        }
+    try {
+      // Sign in to get the user session
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: userPassword,
+      });
+
+      if (error || !data.user) {
+        throw new Error(
+          `Failed to get user ID for ${userEmail}: ${error?.message || 'No user data'}`
+        );
       }
 
-      return null;
-    });
+      const userId = data.user.id;
+      console.log(`✅ Worker ${workerIndex}: Found user ID ${userId}`);
 
-    if (!userId) {
-      throw new Error('Could not extract user ID from authenticated session');
+      await use(userId);
+
+      // Cleanup: Sign out after test
+      await supabase.auth.signOut();
+    } catch (error) {
+      throw new Error(
+        `Could not extract user ID from authenticated session: ${error}`
+      );
     }
-
-    await use(userId);
   },
 });
 

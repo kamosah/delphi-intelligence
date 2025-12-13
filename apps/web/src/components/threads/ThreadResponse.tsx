@@ -117,7 +117,7 @@ export function ThreadResponse({
   }
 
   return (
-    <div className={`space-y-4 ${className || ''}`}>
+    <div className={`space-y-4 ${className || ''}`} data-testid="ai-response">
       {/* AI Response Message */}
       <ThreadMessage role="assistant" content={response} />
 
