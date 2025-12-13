@@ -2,13 +2,17 @@
 Authentication service for handling user auth operations with Supabase
 """
 
+import datetime
 import logging
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from supabase import Client
 
 from app.auth.jwt_handler import jwt_manager
 from app.auth.redis_client import redis_manager
 from app.auth.schemas import TokenResponse, UserProfile
+from app.db.session import get_session_factory
+from app.models.user import User
 from app.supabase_client import get_admin_client, get_user_client
 
 logger = logging.getLogger(__name__)
@@ -465,30 +469,43 @@ class AuthService:
                     detail="Invalid authentication credentials",
                 )
 
-            user = user_response.user
+            auth_user = user_response.user
 
-            # Create our own JWT tokens
+            # Look up the public.users record by auth_user_id
+            # This is required because public.users.id != auth.users.id
+            async with get_session_factory()() as db:
+                result = await db.execute(select(User).where(User.auth_user_id == auth_user.id))
+                public_user = result.scalar_one_or_none()
+
+                if not public_user:
+                    logger.error(
+                        f"[TOKEN_EXCHANGE] Public user not found for auth user {auth_user.id}"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="User account not properly initialized",
+                    )
+
+            # Create our own JWT tokens using public.users.id (NOT auth.users.id)
             token_data = {
-                "sub": user.id,
-                "email": user.email,
-                "role": user.user_metadata.get("role", "member"),
+                "sub": str(public_user.id),  # Use public.users.id for JWT sub claim
+                "email": auth_user.email,
+                "role": auth_user.user_metadata.get("role", "member"),
                 "supabase_token": supabase_access_token,
             }
 
             access_token = jwt_manager.create_access_token(token_data)
-            refresh_token = jwt_manager.create_refresh_token({"sub": user.id})
+            refresh_token = jwt_manager.create_refresh_token({"sub": str(public_user.id)})
 
             # Store refresh token in Redis with 24 hour TTL (default)
-            import datetime
-
-            await redis_manager.store_refresh_token(user.id, refresh_token)
+            await redis_manager.store_refresh_token(str(public_user.id), refresh_token)
 
             # Store session data
             await redis_manager.set_session(
-                f"session:{user.id}",
+                f"session:{public_user.id}",
                 {
-                    "user_id": user.id,
-                    "email": user.email,
+                    "user_id": str(public_user.id),
+                    "email": auth_user.email,
                     "login_time": datetime.datetime.now(datetime.UTC).isoformat(),
                     "supabase_session": supabase_access_token,
                 },
