@@ -77,12 +77,12 @@ test.describe('Spaces - RLS Policies', () => {
       .single();
 
     // Test: User can see their own space in UI
-    await authenticatedPage.goto(`/spaces/${mySpace.id}`);
+    await authenticatedPage.goto(`/dashboard/spaces/${mySpace.id}`);
     await authenticatedPage.waitForLoadState('networkidle');
     await expect(authenticatedPage.getByText(mySpace.name)).toBeVisible();
 
     // Test: User CANNOT see other organization's space (RLS blocks)
-    await authenticatedPage.goto(`/spaces/${otherSpace.data.id}`);
+    await authenticatedPage.goto(`/dashboard/spaces/${otherSpace.data.id}`);
     await authenticatedPage.waitForLoadState('networkidle');
 
     // Should show access denied or 404 page
@@ -129,13 +129,35 @@ test.describe('Spaces - RLS Policies', () => {
       );
     }
 
+    // Get the admin test user's ID for RLS testing
+    const { data: otherAuthUser } = await supaService.auth.admin.listUsers();
+    const otherUserAuth = otherAuthUser?.users.find(
+      (u) => u.email === 'admin@example.com'
+    );
+
+    if (!otherUserAuth) {
+      throw new Error('Could not find admin test user for RLS testing');
+    }
+
+    const { data: otherPublicUser } = await supaService
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', otherUserAuth.id)
+      .single();
+
+    if (!otherPublicUser) {
+      throw new Error('Could not find public user record for admin user');
+    }
+
+    const otherUserId = otherPublicUser.id;
+
     // Setup: Create other organization with spaces
     const otherOrg = await supaService
       .from('organizations')
       .insert({
         name: `Other Org ${workerId}`,
         slug: `other-org-${workerId}-${Date.now()}`,
-        owner_id: 'other-user-id',
+        owner_id: otherUserId,
       })
       .select()
       .single();
@@ -145,7 +167,7 @@ test.describe('Spaces - RLS Policies', () => {
         name: `Other Space ${workerId}-${i}`,
         slug: `other-space-${workerId}-${i}-${Date.now()}`,
         organization_id: otherOrg.data.id,
-        owner_id: 'other-user-id',
+        owner_id: otherUserId,
       });
     }
 
@@ -173,13 +195,35 @@ test.describe('Spaces - RLS Policies', () => {
   }, testInfo) => {
     const workerId = testInfo.parallelIndex;
 
+    // Get the admin test user's ID for RLS testing
+    const { data: otherAuthUser } = await supaService.auth.admin.listUsers();
+    const otherUserAuth = otherAuthUser?.users.find(
+      (u) => u.email === 'admin@example.com'
+    );
+
+    if (!otherUserAuth) {
+      throw new Error('Could not find admin test user for RLS testing');
+    }
+
+    const { data: otherPublicUser } = await supaService
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', otherUserAuth.id)
+      .single();
+
+    if (!otherPublicUser) {
+      throw new Error('Could not find public user record for admin user');
+    }
+
+    const otherUserId = otherPublicUser.id;
+
     // Setup: Create space owned by another user
     const otherOrg = await supaService
       .from('organizations')
       .insert({
         name: `Other Org ${workerId}`,
         slug: `other-org-${workerId}-${Date.now()}`,
-        owner_id: 'other-user-id',
+        owner_id: otherUserId,
       })
       .select()
       .single();
@@ -190,7 +234,7 @@ test.describe('Spaces - RLS Policies', () => {
         name: `Protected Space ${workerId}`,
         slug: `protected-space-${workerId}-${Date.now()}`,
         organization_id: otherOrg.data.id,
-        owner_id: 'other-user-id',
+        owner_id: otherUserId,
       })
       .select()
       .single();
@@ -222,13 +266,35 @@ test.describe('Spaces - RLS Policies', () => {
   }, testInfo) => {
     const workerId = testInfo.parallelIndex;
 
+    // Get the admin test user's ID for RLS testing
+    const { data: otherAuthUser } = await supaService.auth.admin.listUsers();
+    const otherUserAuth = otherAuthUser?.users.find(
+      (u) => u.email === 'admin@example.com'
+    );
+
+    if (!otherUserAuth) {
+      throw new Error('Could not find admin test user for RLS testing');
+    }
+
+    const { data: otherPublicUser } = await supaService
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', otherUserAuth.id)
+      .single();
+
+    if (!otherPublicUser) {
+      throw new Error('Could not find public user record for admin user');
+    }
+
+    const otherUserId = otherPublicUser.id;
+
     // Setup: Create space owned by another user
     const otherOrg = await supaService
       .from('organizations')
       .insert({
         name: `Other Org ${workerId}`,
         slug: `other-org-${workerId}-${Date.now()}`,
-        owner_id: 'other-user-id',
+        owner_id: otherUserId,
       })
       .select()
       .single();
@@ -239,7 +305,7 @@ test.describe('Spaces - RLS Policies', () => {
         name: `Protected Space ${workerId}`,
         slug: `protected-space-${workerId}-${Date.now()}`,
         organization_id: otherOrg.data.id,
-        owner_id: 'other-user-id',
+        owner_id: otherUserId,
       })
       .select()
       .single();

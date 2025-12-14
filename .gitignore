@@ -137,3 +137,4 @@ docs/design-research/
 # AI agent instructions - keep local only
 .github/copilot-instructions.md
 WARP.md
+GEMINI.md

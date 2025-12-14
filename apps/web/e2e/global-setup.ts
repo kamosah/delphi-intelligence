@@ -13,6 +13,9 @@ export default async function globalSetup() {
     { email: 'worker-0@example.com', password: 'TestPassword123!' },
     { email: 'worker-1@example.com', password: 'TestPassword123!' },
     { email: 'worker-2@example.com', password: 'TestPassword123!' },
+    { email: 'worker-3@example.com', password: 'TestPassword123!' },
+    { email: 'worker-4@example.com', password: 'TestPassword123!' },
+    { email: 'worker-5@example.com', password: 'TestPassword123!' },
     { email: 'admin@example.com', password: 'TestPassword123!', role: 'admin' },
   ];
 
