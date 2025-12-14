@@ -51,7 +51,7 @@ export default async function globalSetup() {
         // Check if user has an organization, create one if not
         const hasOrg = await ensureDefaultOrganization(authUser.id, user.email);
         if (hasOrg) {
-          console.log(`   ✅ User already has an organization`);
+          console.log(`✅ User already has an organization`);
         }
       }
     } catch (error) {
@@ -82,19 +82,42 @@ async function createDefaultOrganization(authUserId: string, email: string) {
     const orgName = `${email.split('@')[0]} Organization`;
     const orgSlug = `${email.split('@')[0]}-org-${Date.now()}`;
 
-    const { error } = await supabaseService.from('organizations').insert({
-      name: orgName,
-      slug: orgSlug,
-      owner_id: publicUser.id,
-    });
+    const { data: org, error } = await supabaseService
+      .from('organizations')
+      .insert({
+        name: orgName,
+        slug: orgSlug,
+        owner_id: publicUser.id,
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error(
         `❌ Failed to create organization for ${email}:`,
         error.message
       );
+      return;
+    }
+
+    console.log(`✅ Created default organization for ${email}`);
+
+    // Create organization_members record to link user to organization
+    const { error: memberInsertError } = await supabaseService
+      .from('organization_members')
+      .insert({
+        organization_id: org.id,
+        user_id: publicUser.id,
+        is_default: true,
+      });
+
+    if (memberInsertError) {
+      console.error(
+        `❌ Failed to create organization member for ${email}:`,
+        memberInsertError.message
+      );
     } else {
-      console.log(`✅ Created default organization for ${email}`);
+      console.log(`✅ Added user as organization owner`);
     }
   } catch (error) {
     console.error(`❌ Error creating organization for ${email}:`, error);
@@ -130,9 +153,54 @@ async function ensureDefaultOrganization(
       .limit(1);
 
     if (!orgs || orgs.length === 0) {
-      console.log(`   📝 Creating missing organization for ${email}`);
+      console.log(`📝 Creating missing organization for ${email}`);
       await createDefaultOrganization(authUserId, email);
       return false;
+    }
+
+    // Check if user has any organization memberships
+    const { data: memberRecords } = await supabaseService
+      .from('organization_members')
+      .select('*')
+      .eq('user_id', publicUser.id)
+      .eq('organization_id', orgs[0].id)
+      .limit(1)
+      .single();
+
+    if (!memberRecords) {
+      // Create organization_members record if missing
+      const { error: memberInsertError } = await supabaseService
+        .from('organization_members')
+        .insert({
+          organization_id: orgs[0].id,
+          user_id: publicUser.id,
+          is_default: true,
+        });
+
+      if (memberInsertError) {
+        console.error(
+          `❌ Failed to create organization member for ${email}:`,
+          memberInsertError.message
+        );
+      } else {
+        console.log(`✅ Created organization member and set as default`);
+      }
+    } else if (!memberRecords.is_default) {
+      // Update existing member to be default
+      const { error: memberError } = await supabaseService
+        .from('organization_members')
+        .update({ is_default: true })
+        .eq('organization_id', orgs[0].id)
+        .eq('user_id', publicUser.id);
+
+      if (memberError) {
+        console.error(
+          `❌ Failed to set default organization for ${email}:`,
+          memberError.message
+        );
+      } else {
+        console.log(`✅ Set existing organization as default`);
+      }
     }
 
     return true;

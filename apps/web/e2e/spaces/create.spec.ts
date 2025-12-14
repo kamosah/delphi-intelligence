@@ -9,16 +9,32 @@ test.describe('Spaces - Create', () => {
   }, testInfo) => {
     const workerId = testInfo.parallelIndex;
 
-    // 1. Setup: Create organization using service role (bypasses RLS)
-    const org = await createTestOrganization(
-      supaService,
-      workerId,
-      authenticatedUserId
-    );
+    // 1. Get user's default organization (created in global-setup)
+    const { data: userOrg, error: orgError } = await supaService
+      .from('organizations')
+      .select('*')
+      .eq('owner_id', authenticatedUserId)
+      .limit(1)
+      .single();
+
+    if (orgError || !userOrg) {
+      throw new Error(
+        `Failed to find user's default organization: ${orgError?.message}`
+      );
+    }
 
     // 2. Navigate to spaces page
     await authenticatedPage.goto('/dashboard/spaces');
     await authenticatedPage.waitForLoadState('networkidle');
+
+    // Wait for organization to load (set as default in global-setup)
+    await authenticatedPage.waitForFunction(
+      () => {
+        const selector = document.querySelector('button');
+        return !selector?.textContent?.includes('Select organization');
+      },
+      { timeout: 10000 }
+    );
 
     // 3. Click "New Space" button
     await authenticatedPage.getByTestId('new-space-button').click();
@@ -56,7 +72,7 @@ test.describe('Spaces - Create', () => {
     expect(space).toBeDefined();
     expect(space.name).toBe(spaceName);
     expect(space.description).toBe(spaceDescription);
-    expect(space.organization_id).toBe(org.id);
+    expect(space.organization_id).toBe(userOrg.id);
     expect(space.owner_id).toBe(authenticatedUserId);
 
     // Cleanup: Automatic via Supawright - org and space will be deleted
