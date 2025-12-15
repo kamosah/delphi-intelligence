@@ -172,7 +172,7 @@ export async function createTestThread(
       title,
       space_id: spaceId,
       created_by: createdBy,
-      status: 'active',
+      status: 'completed',
     })
     .select()
     .single();
@@ -411,6 +411,48 @@ export function generateTestEmbedding(seed = 0): number[] {
   }
 
   return embedding;
+}
+
+/**
+ * Get the public.users.id for a different test user (for RLS testing).
+ *
+ * Uses admin@example.com as the "other user" by default.
+ * Maps from auth.users.id to public.users.id.
+ *
+ * @param supabase - Supabase client (service role required)
+ * @param email - Email of the other test user (default: 'admin@example.com')
+ * @returns Public user ID
+ *
+ * @example
+ * ```typescript
+ * const otherUserId = await getOtherTestUserId(supaService);
+ * // Use otherUserId for creating resources owned by another user
+ * ```
+ */
+export async function getOtherTestUserId(
+  supabase: SupabaseClient,
+  email = 'admin@example.com'
+): Promise<string> {
+  // Get auth user by email
+  const { data: authUsers } = await supabase.auth.admin.listUsers();
+  const otherUserAuth = authUsers?.users.find((u) => u.email === email);
+
+  if (!otherUserAuth) {
+    throw new Error(`Could not find test user with email: ${email}`);
+  }
+
+  // Map auth.users.id to public.users.id
+  const { data: otherPublicUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_user_id', otherUserAuth.id)
+    .single();
+
+  if (!otherPublicUser) {
+    throw new Error(`Could not find public user record for: ${email}`);
+  }
+
+  return otherPublicUser.id;
 }
 
 /**

@@ -27,17 +27,20 @@ test.describe('Spaces - Create', () => {
     await authenticatedPage.goto('/dashboard/spaces');
     await authenticatedPage.waitForLoadState('networkidle');
 
-    // Wait for organization to load (set as default in global-setup)
-    await authenticatedPage.waitForFunction(
-      () => {
-        const selector = document.querySelector('button');
-        return !selector?.textContent?.includes('Select organization');
-      },
-      { timeout: 10000 }
-    );
+    // Wait for organization switcher to show the actual org name (not "Select organization")
+    // More specific selector than generic button
+    await expect(
+      authenticatedPage.locator('button', { hasText: userOrg.name })
+    ).toBeVisible({ timeout: 15000 });
 
     // 3. Click "New Space" button
     await authenticatedPage.getByTestId('new-space-button').click();
+
+    // Wait for dialog to be visible before interacting with form
+    await authenticatedPage.waitForSelector('[role="dialog"]', {
+      state: 'visible',
+      timeout: 5000,
+    });
 
     // 4. Fill in space form
     const spaceName = `Test Space ${workerId}-${Date.now()}`;
@@ -99,6 +102,12 @@ test.describe('Spaces - Create', () => {
     // Click "New Space" button to open modal
     await authenticatedPage.getByTestId('new-space-button').click();
 
+    // Wait for dialog to open
+    await authenticatedPage.waitForSelector('[role="dialog"]', {
+      state: 'visible',
+      timeout: 5000,
+    });
+
     // Try to submit empty form
     await authenticatedPage.getByTestId('space-form-submit-button').click();
 
@@ -130,37 +139,42 @@ test.describe('Spaces - Create', () => {
       authenticatedUserId
     );
 
-    // Create multiple spaces
+    // Create multiple spaces in parallel for efficiency
     const spaceCount = 3;
-    const createdSpaces = [];
+    const timestamp = Date.now();
 
-    for (let i = 0; i < spaceCount; i++) {
-      const { data: space } = await supaService
+    const spaceCreationPromises = Array.from({ length: spaceCount }, (_, i) =>
+      supaService
         .from('spaces')
         .insert({
-          name: `Test Space ${workerId}-${i}-${Date.now()}`,
-          slug: `test-space-${workerId}-${i}-${Date.now()}`,
+          name: `Test Space ${workerId}-${i}-${timestamp}`,
+          slug: `test-space-${workerId}-${i}-${timestamp}`,
           description: `Test space ${i}`,
           organization_id: org.id,
           owner_id: authenticatedUserId,
         })
         .select()
-        .single();
+        .single()
+    );
 
-      createdSpaces.push(space);
-    }
+    const results = await Promise.all(spaceCreationPromises);
+    const createdSpaces = results.map((r) => r.data).filter(Boolean);
 
     // Navigate to spaces list
     await authenticatedPage.goto('/dashboard/spaces');
     await authenticatedPage.waitForLoadState('networkidle');
 
-    // Verify: All spaces appear in the list
-    for (const space of createdSpaces) {
-      await expect(authenticatedPage.getByText(space.name)).toBeVisible();
-    }
+    // Verify: All spaces appear in the list (check in parallel for efficiency)
+    await Promise.all(
+      createdSpaces.map((space) =>
+        expect(authenticatedPage.getByText(space.name)).toBeVisible({
+          timeout: 10000,
+        })
+      )
+    );
 
     // Verify: Space count is correct
     const spaceCards = authenticatedPage.locator('[data-testid="space-card"]');
-    expect(await spaceCards.count()).toBeGreaterThanOrEqual(spaceCount);
+    await expect(spaceCards).toHaveCount(spaceCount, { timeout: 5000 });
   });
 });
