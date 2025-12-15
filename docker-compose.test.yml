@@ -1,0 +1,25 @@
+# Docker Compose override for E2E testing
+# Usage: docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
+name: olympus-test
+
+services:
+  api:
+    env_file:
+      - ./apps/api/.env.test
+    environment:
+      - ENV=test
+      - DEBUG=true
+      - PORT=8001
+      - REDIS_URL=redis://redis:6379/0
+    command: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - '8001:8001'
+
+  redis:
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_test_data:/data
+
+volumes:
+  redis_test_data:

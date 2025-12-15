@@ -267,7 +267,7 @@ services:
 
 - **Playwright**: End-to-end testing framework
   - Authentication flow tests (login, signup, password reset)
-  - Mock API fixtures for isolated testing
+  - Real database interactions with Supawright (see [Test Project Setup](./docs/guides/test-project-setup.md))
   - Headless and headed test modes
   - Auto-wait for elements and network
   - Visual regression testing ready
@@ -278,6 +278,8 @@ services:
   - Interaction tests with @storybook/test
   - Accessibility checks ready
   - Chromatic integration for visual regression
+
+> **Note**: E2E tests now use real Supabase interactions via Supawright. See [Test Project Setup Guide](./docs/guides/test-project-setup.md) for configuration instructions.
 
 **Running Frontend Tests**:
 

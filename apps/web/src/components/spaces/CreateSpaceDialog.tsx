@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -22,6 +23,7 @@ export function CreateSpaceDialog({
   open,
   onOpenChange,
 }: CreateSpaceDialogProps) {
+  const router = useRouter();
   const { createSpace, isCreating, error } = useCreateSpace();
   const { currentOrganization } = useAuth();
 
@@ -32,7 +34,7 @@ export function CreateSpaceDialog({
     }
 
     try {
-      await createSpace({
+      const result = await createSpace({
         input: {
           organizationId: currentOrganization.id,
           name: data.name,
@@ -42,9 +44,18 @@ export function CreateSpaceDialog({
       });
 
       toast.success('Space created successfully!');
-      onOpenChange(false);
+
+      // Navigate to the newly created space FIRST, then close dialog
+      if (result?.createSpace?.id) {
+        router.push(`/dashboard/spaces/${result.createSpace.id}`);
+        // Close dialog after navigation starts
+        onOpenChange(false);
+      } else {
+        // Close dialog even if navigation fails
+        onOpenChange(false);
+      }
     } catch (err) {
-      console.error('Failed to create space:', err);
+      console.error('[CreateSpaceDialog] Failed to create space:', err);
       toast.error(
         error instanceof Error ? error.message : 'Failed to create space'
       );
@@ -65,7 +76,6 @@ export function CreateSpaceDialog({
         <SpaceForm
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
-          submitLabel="Create Space"
           isSubmitting={isCreating}
         />
       </DialogContent>

@@ -29,6 +29,7 @@ export function DocumentUploadDropZone({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      data-testid="document-upload-dropzone"
       className={`
         relative border-2 border-dashed rounded-lg p-8 transition-colors
         ${
@@ -41,6 +42,7 @@ export function DocumentUploadDropZone({
       <input
         type="file"
         id="file-input"
+        data-testid="document-upload-file-input"
         multiple
         accept={acceptedFileTypes.join(',')}
         onChange={onFileInput}
