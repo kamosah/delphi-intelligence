@@ -234,6 +234,45 @@ class Document:
         )
 
 
+@strawberry.enum
+class DocumentSortField(str, Enum):
+    """Fields that can be used to sort documents."""
+
+    NAME = "name"
+    SIZE = "size_bytes"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+    STATUS = "status"
+    FILE_TYPE = "file_type"
+
+
+@strawberry.enum
+class SortOrder(str, Enum):
+    """Sort order direction."""
+
+    ASC = "asc"
+    DESC = "desc"
+
+
+@strawberry.input
+class DocumentSortInput:
+    """Input type for sorting documents."""
+
+    field: DocumentSortField
+    order: SortOrder = SortOrder.DESC
+
+
+@strawberry.input
+class DocumentFilterInput:
+    """Input type for filtering documents."""
+
+    search: str | None = None  # Global search across name
+    statuses: list[str] | None = None  # Filter by status
+    file_types: list[str] | None = None  # Filter by file type
+    uploaded_after: datetime | None = None
+    uploaded_before: datetime | None = None
+
+
 @strawberry.type
 class DocumentChunk:
     """GraphQL DocumentChunk type."""
