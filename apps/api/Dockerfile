@@ -26,8 +26,8 @@ WORKDIR /app
 # Copy poetry files
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies
-RUN poetry install --only=main && rm -rf $POETRY_CACHE_DIR
+# Install dependencies (including dev for linting, testing, type-checking)
+RUN poetry install --with dev && rm -rf $POETRY_CACHE_DIR
 
 # Copy application code
 COPY . .

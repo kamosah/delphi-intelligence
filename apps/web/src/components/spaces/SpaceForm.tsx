@@ -83,7 +83,11 @@ export function SpaceForm({
                 Name <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Marketing Team" {...field} />
+                <Input
+                  placeholder="e.g., Marketing Team"
+                  data-testid="space-name-input"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
               <p className="text-xs text-gray-500">
@@ -103,6 +107,7 @@ export function SpaceForm({
                 <Textarea
                   placeholder="Describe what this space is for..."
                   rows={3}
+                  data-testid="space-description-input"
                   {...field}
                 />
               </FormControl>
@@ -144,10 +149,19 @@ export function SpaceForm({
         />
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            data-testid="space-form-cancel-button"
+          >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            data-testid="space-form-submit-button"
+          >
             {isSubmitting ? 'Saving...' : submitLabel}
           </Button>
         </div>

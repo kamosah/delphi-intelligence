@@ -174,6 +174,7 @@ export function ThreadInput({
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
                 aria-label={isStreaming ? 'Stop generating' : 'Send message'}
+                data-testid="send-button"
               >
                 {isStreaming ? (
                   <Square className="h-4 w-4" />

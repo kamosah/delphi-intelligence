@@ -1,45 +1,100 @@
-import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
+/**
+ * Next.js middleware for route protection and authentication with Supabase SSR.
+ *
+ * This middleware:
+ * 1. Manages Supabase HTTP-only cookies for secure authentication
+ * 2. Automatically refreshes Supabase sessions
+ * 3. Protects routes requiring authentication
+ * 4. Redirects authenticated users away from auth pages
+ *
+ * Protected routes: /dashboard, /spaces, /documents, /settings
+ * Auth routes (redirect if authenticated): /login, /signup
+ * Public routes: /, /forgot-password, /reset-password, /verify-email, /auth/confirm
+ */
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+  const { pathname } = request.nextUrl;
 
-  // Get the auth token from cookies or localStorage (we'll use a cookie-based approach)
-  const authToken = request.cookies.get('olympus-auth-token')?.value;
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  // Protected routes that require authentication
-  const protectedPaths = ['/dashboard', '/spaces', '/docs'];
-  const isProtectedRoute = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
+  // Create Supabase client for HTTP-only cookie management
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
   );
 
-  // Check if user is trying to access a protected route without a token
-  if (isProtectedRoute && !authToken) {
+  // Refresh session (updates HTTP-only cookies automatically)
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const isAuthenticated = !!session;
+
+  // Define protected routes (require authentication)
+  const protectedRoutes = ['/dashboard', '/spaces', '/documents', '/settings'];
+
+  // Define auth routes (login, signup - should redirect if authenticated)
+  const authRoutes = ['/login', '/signup'];
+
+  // Check if current path is a protected route
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  // Check if current path is an auth route
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+
+  // Redirect to login if accessing protected route without authentication
+  if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
+    // Add redirect parameter to return user after login
+    loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // If user has a token but is trying to access auth pages, redirect to dashboard
-  const authPaths = ['/login', '/signup', '/reset-password'];
-  const isAuthRoute = authPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (isAuthRoute && authToken) {
+  // Redirect to dashboard if accessing auth routes while authenticated
+  if (isAuthRoute && isAuthenticated) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // Allow the request to continue
   return response;
 }
 
+/**
+ * Configure which routes the middleware should run on.
+ * Excludes static files, API routes, and Next.js internal routes.
+ */
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/spaces/:path*',
-    '/docs/:path*',
-    '/login',
-    '/signup',
-    '/reset-password',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_next).*)',
   ],
 };

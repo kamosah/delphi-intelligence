@@ -25,7 +25,10 @@ export function AppHeader() {
 
           {/* Logo / Brand */}
           <Link href="/dashboard" className="flex-shrink-0">
-            <h1 className="text-base font-semibold text-gray-900 hover:text-gray-700 transition-colors">
+            <h1
+              className="text-base font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+              data-testid="app-logo"
+            >
               Olympus MVP
             </h1>
           </Link>

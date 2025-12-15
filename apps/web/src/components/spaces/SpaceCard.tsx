@@ -43,6 +43,7 @@ export function SpaceCard({ space, onClick }: SpaceCardProps) {
       <Card
         className="hover:shadow-md transition-shadow cursor-pointer group"
         onClick={onClick}
+        data-testid="space-card"
       >
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
