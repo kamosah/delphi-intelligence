@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import get_session
+from app.models.document import Document as DocumentModel
 from app.models.organization import Organization as OrganizationModel
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
@@ -18,14 +19,19 @@ from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.services.organization_service import OrganizationService
+from app.services.permissions import permission_service
+from app.services.storage_service import get_storage_service
 from app.utils.slug import generate_unique_slug
 
 from .types import (
     AddOrganizationMemberInput,
+    BulkDeleteDocumentsInput,
+    BulkDeleteResult,
     CreateOrganizationInput,
     CreateSpaceInput,
     CreateThreadInput,
     CreateUserInput,
+    DeleteDocumentInput,
     Organization,
     OrganizationMember,
     OrganizationRole as OrganizationRoleType,
@@ -1308,3 +1314,149 @@ class Mutation:
                 raise  # Re-raise ValueError to propagate to GraphQL
 
         return None
+
+    @strawberry.mutation
+    async def delete_document(
+        self, info: strawberry.types.Info, input: DeleteDocumentInput
+    ) -> bool:
+        """
+        Delete a document.
+
+        Args:
+            input: DeleteDocumentInput with document_id and space_id
+
+        Returns:
+            True if deleted successfully, False otherwise
+
+        Authorization:
+            - User must have permission to delete from the document's space
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                document_id = UUID(str(input.document_id))
+                space_id = UUID(str(input.space_id))
+
+                # Get document
+                stmt = select(DocumentModel).where(DocumentModel.id == document_id)
+                result = await session.execute(stmt)
+                document = result.scalar_one_or_none()
+
+                if not document:
+                    msg = "Document not found"
+                    raise ValueError(msg)
+
+                # Verify document belongs to the specified space
+                if document.space_id != space_id:
+                    msg = "Document does not belong to the specified space"
+                    raise ValueError(msg)
+
+                # Check authorization
+                if not await permission_service.can_delete_from_space(user, space_id, session):
+                    msg = "Insufficient permissions to delete this document"
+                    raise ValueError(msg)
+
+                # Delete file from storage (best effort - don't fail if storage delete fails)
+                try:
+                    await get_storage_service().delete_file(document.file_path)
+                except Exception as e:
+                    logger.warning(f"Failed to delete file from storage: {e}")
+
+                # Delete document record
+                await session.delete(document)
+                await session.commit()
+
+                return True
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return False
+
+    @strawberry.mutation
+    async def bulk_delete_documents(
+        self, info: strawberry.types.Info, input: BulkDeleteDocumentsInput
+    ) -> BulkDeleteResult:
+        """
+        Delete multiple documents in a single transaction.
+
+        Args:
+            input: BulkDeleteDocumentsInput with list of document IDs
+
+        Returns:
+            BulkDeleteResult with count of deleted documents and list of failed IDs
+
+        Authorization:
+            - User must have permission to delete from each document's space
+            - Documents without permission are added to failed_ids
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                if not input.document_ids:
+                    msg = "No document IDs provided"
+                    raise ValueError(msg)
+
+                # Parse all document IDs
+                doc_uuids = [UUID(str(doc_id)) for doc_id in input.document_ids]
+
+                # Get all documents
+                stmt = select(DocumentModel).where(DocumentModel.id.in_(doc_uuids))
+                result = await session.execute(stmt)
+                documents = result.scalars().all()
+
+                if not documents:
+                    return BulkDeleteResult(deleted_count=0, failed_ids=input.document_ids)
+
+                # Verify user has permission to delete each document
+                failed_ids = []
+                documents_to_delete = []
+
+                for document in documents:
+                    if not await permission_service.can_delete_from_space(
+                        user, document.space_id, session
+                    ):
+                        failed_ids.append(strawberry.ID(str(document.id)))
+                    else:
+                        documents_to_delete.append(document)
+
+                # Delete files from storage (best effort - don't fail if storage delete fails)
+                for document in documents_to_delete:
+                    try:
+                        await get_storage_service().delete_file(document.file_path)
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to delete file from storage for document {document.id}: {e}"
+                        )
+
+                # Delete all permitted documents from database
+                for document in documents_to_delete:
+                    await session.delete(document)
+
+                await session.commit()
+
+                return BulkDeleteResult(
+                    deleted_count=len(documents_to_delete),
+                    failed_ids=failed_ids,
+                )
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return BulkDeleteResult(deleted_count=0, failed_ids=[])

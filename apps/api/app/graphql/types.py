@@ -273,6 +273,29 @@ class DocumentFilterInput:
     uploaded_before: datetime | None = None
 
 
+@strawberry.input
+class DeleteDocumentInput:
+    """Input type for deleting a single document."""
+
+    document_id: strawberry.ID
+    space_id: strawberry.ID
+
+
+@strawberry.input
+class BulkDeleteDocumentsInput:
+    """Input type for bulk deleting documents."""
+
+    document_ids: list[strawberry.ID]
+
+
+@strawberry.type
+class BulkDeleteResult:
+    """Result type for bulk delete operation."""
+
+    deleted_count: int
+    failed_ids: list[strawberry.ID]
+
+
 @strawberry.type
 class DocumentChunk:
     """GraphQL DocumentChunk type."""
