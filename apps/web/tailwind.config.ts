@@ -111,11 +111,16 @@ const config: Config = {
       },
       animation: {
         'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        progress: 'progress 1s ease-in-out infinite',
       },
       keyframes: {
         'pulse-glow': {
           '0%, 100%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)' },
           '50%': { boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)' },
+        },
+        progress: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(400%)' },
         },
       },
     },

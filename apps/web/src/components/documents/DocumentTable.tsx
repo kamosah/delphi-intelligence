@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Button,
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@olympus/ui';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   useDocuments,
   useDeleteDocument,
@@ -55,6 +56,9 @@ export function DocumentTable({
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [fileTypeFilters, setFileTypeFilters] = useState<string[]>([]);
 
+  // Debounce search to reduce API calls (300ms delay)
+  const debouncedSearchValue = useDebounce(searchValue, 300);
+
   // Map TanStack Table sorting to GraphQL sort format
   const graphqlSort = useMemo(() => {
     if (sorting.length === 0) return undefined;
@@ -73,21 +77,21 @@ export function DocumentTable({
     };
   }, [sorting]);
 
-  // Map filter state to GraphQL filters
+  // Map filter state to GraphQL filters (use debounced search value)
   const graphqlFilters = useMemo(() => {
     const filters: {
       search?: string;
       statuses?: string[];
       fileTypes?: string[];
     } = {};
-    if (searchValue) filters.search = searchValue;
+    if (debouncedSearchValue) filters.search = debouncedSearchValue;
     if (statusFilters.length > 0) filters.statuses = statusFilters;
     if (fileTypeFilters.length > 0) filters.fileTypes = fileTypeFilters;
     return Object.keys(filters).length > 0 ? filters : undefined;
-  }, [searchValue, statusFilters, fileTypeFilters]);
+  }, [debouncedSearchValue, statusFilters, fileTypeFilters]);
 
   // Use server-side filtering and sorting via GraphQL
-  const { documents, isLoading } = useDocuments({
+  const { documents, isFetching } = useDocuments({
     spaceId,
     organizationId,
     filters: graphqlFilters,
@@ -176,14 +180,6 @@ export function DocumentTable({
 
   const selectedCount = Object.keys(rowSelection).length;
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -210,7 +206,7 @@ export function DocumentTable({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -228,7 +224,13 @@ export function DocumentTable({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className="relative">
+            {/* Linear progress indicator - shows when fetching data */}
+            {isFetching && (
+              <div className="absolute left-0 right-0 top-0 h-1 overflow-hidden bg-gray-100">
+                <div className="h-full w-1/4 animate-progress bg-blue-500" />
+              </div>
+            )}
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
@@ -252,7 +254,7 @@ export function DocumentTable({
                   colSpan={columns.length}
                   className="h-24 text-center text-gray-500"
                 >
-                  No documents found.
+                  {isFetching ? 'Loading documents...' : 'No documents found.'}
                 </TableCell>
               </TableRow>
             )}

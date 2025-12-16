@@ -210,6 +210,7 @@ export function useDocuments(options?: {
         filters: options?.filters,
         sort: options?.sort,
       }),
+      placeholderData: (previousData) => previousData, // Keep previous data while refetching
     }
   );
 
@@ -217,6 +218,8 @@ export function useDocuments(options?: {
     documents: query.data?.documents || [],
     total: query.data?.documents?.length || 0,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isRefetching: query.isRefetching,
     error: query.error,
     refetch: query.refetch,
   };
