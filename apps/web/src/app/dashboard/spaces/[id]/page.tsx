@@ -8,9 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@olympus/ui';
-import { DocumentList } from '@/components/documents/DocumentList';
+import { DocumentTable } from '@/components/documents/DocumentTable';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
-import { useDocuments } from '@/hooks/useDocuments';
 import { useDocumentSSE } from '@/hooks/useDocumentSSE';
 import { useSpace } from '@/hooks/useSpaces';
 
@@ -19,7 +18,6 @@ export default function SpaceDetailPage() {
   const spaceId = params.id as string;
 
   const { space } = useSpace(spaceId);
-  const { documents, isLoading } = useDocuments({ spaceId });
 
   // Subscribe to real-time document status updates via SSE
   useDocumentSSE(spaceId);
@@ -50,13 +48,8 @@ export default function SpaceDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Document List Section */}
-      <DocumentList
-        documents={documents}
-        spaceId={spaceId}
-        isLoading={isLoading}
-        emptyMessage="No documents uploaded yet. Start by uploading files above."
-      />
+      {/* Document Table Section */}
+      <DocumentTable spaceId={spaceId} showSpaceColumn={false} />
     </div>
   );
 }

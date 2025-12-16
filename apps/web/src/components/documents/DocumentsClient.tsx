@@ -1,12 +1,9 @@
 'use client';
 
 import { Button } from '@olympus/ui';
-import { DocumentList } from '@/components/documents/DocumentList';
-import { useDocuments } from '@/hooks/useDocuments';
+import { DocumentTable } from '@/components/documents/DocumentTable';
 
 export function DocumentsClient() {
-  const { documents, error } = useDocuments(); // No loading state - data is prefetched!
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -19,21 +16,7 @@ export function DocumentsClient() {
         <Button data-testid="upload-button">Upload Document</Button>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">
-            Failed to load documents. Please try again.
-          </p>
-        </div>
-      )}
-
-      {!error && (
-        <DocumentList
-          documents={documents}
-          spaceId="" // Empty string for all-documents view
-          emptyMessage="No documents found across all spaces"
-        />
-      )}
+      <DocumentTable showSpaceColumn={true} />
     </div>
   );
 }
