@@ -9,6 +9,15 @@ input AddOrganizationMemberInput {
   userId: ID!
 }
 
+input BulkDeleteDocumentsInput {
+  documentIds: [ID!]!
+}
+
+type BulkDeleteResult {
+  deletedCount: Int!
+  failedIds: [ID!]!
+}
+
 input CreateOrganizationInput {
   description: String = null
   name: String!
@@ -48,6 +57,11 @@ type DashboardStats {
 """Date with time (isoformat)"""
 scalar DateTime
 
+input DeleteDocumentInput {
+  documentId: ID!
+  spaceId: ID!
+}
+
 type Document {
   createdAt: DateTime!
   docMetadata: JSON
@@ -77,6 +91,28 @@ type DocumentChunk {
   tokenCount: Int!
 }
 
+input DocumentFilterInput {
+  fileTypes: [String!] = null
+  search: String = null
+  statuses: [String!] = null
+  uploadedAfter: DateTime = null
+  uploadedBefore: DateTime = null
+}
+
+enum DocumentSortField {
+  CREATED_AT
+  FILE_TYPE
+  NAME
+  SIZE
+  STATUS
+  UPDATED_AT
+}
+
+input DocumentSortInput {
+  field: DocumentSortField!
+  order: SortOrder! = DESC
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
 """
@@ -100,10 +136,12 @@ enum MessageRole {
 
 type Mutation {
   addOrganizationMember(input: AddOrganizationMemberInput!): OrganizationMember!
+  bulkDeleteDocuments(input: BulkDeleteDocumentsInput!): BulkDeleteResult!
   createOrganization(input: CreateOrganizationInput!): Organization!
   createSpace(input: CreateSpaceInput!): Space!
   createThread(input: CreateThreadInput!): Thread
   createUser(input: CreateUserInput!): User!
+  deleteDocument(input: DeleteDocumentInput!): Boolean!
   deleteOrganization(id: ID!): Boolean!
   deleteSpace(id: ID!): Boolean!
   deleteThread(id: ID!): Boolean!
@@ -122,6 +160,8 @@ type Organization {
   createdAt: DateTime!
   description: String
   id: ID!
+  isDefault: Boolean
+  lastActiveAt: DateTime
   memberCount: Int!
   name: String!
   ownerId: ID
@@ -151,8 +191,9 @@ enum OrganizationRole {
 
 type Query {
   dashboardStats(organizationId: ID = null): DashboardStats!
-  documents(limit: Int! = 100, offset: Int! = 0, organizationId: ID = null, spaceId: ID = null): [Document!]!
+  documents(filters: DocumentFilterInput = null, limit: Int! = 100, offset: Int! = 0, organizationId: ID = null, sort: DocumentSortInput = null, spaceId: ID = null): [Document!]!
   health: String!
+  me: User!
   organization(id: ID!): Organization
   organizationMembers(limit: Int! = 50, offset: Int! = 0, organizationId: ID!): [OrganizationMember!]!
   organizations(limit: Int! = 10, offset: Int! = 0): [Organization!]!
@@ -180,6 +221,11 @@ type SearchResult {
   distance: Float!
   document: Document!
   similarityScore: Float!
+}
+
+enum SortOrder {
+  ASC
+  DESC
 }
 
 type Space {
@@ -271,8 +317,11 @@ type User {
   bio: String
   createdAt: DateTime!
   email: String!
+  emailConfirmed: Boolean!
   fullName: String
   id: ID!
+  isActive: Boolean!
+  role: String!
   updatedAt: DateTime!
 }
 

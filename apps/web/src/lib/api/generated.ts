@@ -35,6 +35,16 @@ export type AddOrganizationMemberInput = {
   userId: Scalars['ID']['input'];
 };
 
+export type BulkDeleteDocumentsInput = {
+  documentIds: Array<Scalars['ID']['input']>;
+};
+
+export type BulkDeleteResult = {
+  __typename?: 'BulkDeleteResult';
+  deletedCount: Scalars['Int']['output'];
+  failedIds: Array<Scalars['ID']['output']>;
+};
+
 export type CreateOrganizationInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
@@ -72,6 +82,11 @@ export type DashboardStats = {
   totalThreads: Scalars['Int']['output'];
 };
 
+export type DeleteDocumentInput = {
+  documentId: Scalars['ID']['input'];
+  spaceId: Scalars['ID']['input'];
+};
+
 export type Document = {
   __typename?: 'Document';
   createdAt: Scalars['DateTime']['output'];
@@ -103,6 +118,28 @@ export type DocumentChunk = {
   tokenCount: Scalars['Int']['output'];
 };
 
+export type DocumentFilterInput = {
+  fileTypes?: InputMaybe<Array<Scalars['String']['input']>>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  statuses?: InputMaybe<Array<Scalars['String']['input']>>;
+  uploadedAfter?: InputMaybe<Scalars['DateTime']['input']>;
+  uploadedBefore?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+export enum DocumentSortField {
+  CreatedAt = 'CREATED_AT',
+  FileType = 'FILE_TYPE',
+  Name = 'NAME',
+  Size = 'SIZE',
+  Status = 'STATUS',
+  UpdatedAt = 'UPDATED_AT',
+}
+
+export type DocumentSortInput = {
+  field: DocumentSortField;
+  order?: SortOrder;
+};
+
 export type Message = {
   __typename?: 'Message';
   content: Scalars['String']['output'];
@@ -123,10 +160,12 @@ export enum MessageRole {
 export type Mutation = {
   __typename?: 'Mutation';
   addOrganizationMember: OrganizationMember;
+  bulkDeleteDocuments: BulkDeleteResult;
   createOrganization: Organization;
   createSpace: Space;
   createThread?: Maybe<Thread>;
   createUser: User;
+  deleteDocument: Scalars['Boolean']['output'];
   deleteOrganization: Scalars['Boolean']['output'];
   deleteSpace: Scalars['Boolean']['output'];
   deleteThread: Scalars['Boolean']['output'];
@@ -145,6 +184,10 @@ export type MutationAddOrganizationMemberArgs = {
   input: AddOrganizationMemberInput;
 };
 
+export type MutationBulkDeleteDocumentsArgs = {
+  input: BulkDeleteDocumentsInput;
+};
+
 export type MutationCreateOrganizationArgs = {
   input: CreateOrganizationInput;
 };
@@ -159,6 +202,10 @@ export type MutationCreateThreadArgs = {
 
 export type MutationCreateUserArgs = {
   input: CreateUserInput;
+};
+
+export type MutationDeleteDocumentArgs = {
+  input: DeleteDocumentInput;
 };
 
 export type MutationDeleteOrganizationArgs = {
@@ -276,9 +323,11 @@ export type QueryDashboardStatsArgs = {
 };
 
 export type QueryDocumentsArgs = {
+  filters?: InputMaybe<DocumentFilterInput>;
   limit?: Scalars['Int']['input'];
   offset?: Scalars['Int']['input'];
   organizationId?: InputMaybe<Scalars['ID']['input']>;
+  sort?: InputMaybe<DocumentSortInput>;
   spaceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -350,6 +399,11 @@ export type SearchResult = {
   document: Document;
   similarityScore: Scalars['Float']['output'];
 };
+
+export enum SortOrder {
+  Asc = 'ASC',
+  Desc = 'DESC',
+}
 
 export type Space = {
   __typename?: 'Space';
@@ -462,6 +516,28 @@ export type UserPreferences = {
   theme: Scalars['String']['output'];
   timezone?: Maybe<Scalars['String']['output']>;
   userId: Scalars['ID']['output'];
+};
+
+export type DeleteDocumentMutationVariables = Exact<{
+  input: DeleteDocumentInput;
+}>;
+
+export type DeleteDocumentMutation = {
+  __typename?: 'Mutation';
+  deleteDocument: boolean;
+};
+
+export type BulkDeleteDocumentsMutationVariables = Exact<{
+  input: BulkDeleteDocumentsInput;
+}>;
+
+export type BulkDeleteDocumentsMutation = {
+  __typename?: 'Mutation';
+  bulkDeleteDocuments: {
+    __typename?: 'BulkDeleteResult';
+    deletedCount: number;
+    failedIds: Array<string>;
+  };
 };
 
 export type CreateOrganizationMutationVariables = Exact<{
@@ -757,6 +833,8 @@ export type GetDocumentsQueryVariables = Exact<{
   organizationId?: InputMaybe<Scalars['ID']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<DocumentSortInput>;
+  filters?: InputMaybe<DocumentFilterInput>;
 }>;
 
 export type GetDocumentsQuery = {

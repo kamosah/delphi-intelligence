@@ -1,0 +1,14 @@
+# ============================================
+# Document Mutation Operations
+# ============================================
+
+mutation DeleteDocument($input: DeleteDocumentInput!) {
+  deleteDocument(input: $input)
+}
+
+mutation BulkDeleteDocuments($input: BulkDeleteDocumentsInput!) {
+  bulkDeleteDocuments(input: $input) {
+    deletedCount
+    failedIds
+  }
+}

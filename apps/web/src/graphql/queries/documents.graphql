@@ -2,8 +2,22 @@
 # Document Query Operations
 # ============================================
 
-query GetDocuments($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
-  documents(spaceId: $spaceId, organizationId: $organizationId, limit: $limit, offset: $offset) {
+query GetDocuments(
+  $spaceId: ID
+  $organizationId: ID
+  $limit: Int
+  $offset: Int
+  $sort: DocumentSortInput
+  $filters: DocumentFilterInput
+) {
+  documents(
+    spaceId: $spaceId
+    organizationId: $organizationId
+    limit: $limit
+    offset: $offset
+    sort: $sort
+    filters: $filters
+  ) {
     id
     name
     fileType
