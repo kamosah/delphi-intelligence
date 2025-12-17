@@ -24,6 +24,10 @@ query GetDocuments(
     filePath
     status
     spaceId
+    space {
+      id
+      name
+    }
     uploadedBy
     sizeBytes
     processingError

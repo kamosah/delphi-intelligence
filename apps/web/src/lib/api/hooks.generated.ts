@@ -106,6 +106,7 @@ export type Document = {
   processedAt?: Maybe<Scalars['DateTime']['output']>;
   processingError?: Maybe<Scalars['String']['output']>;
   sizeBytes: Scalars['Int']['output'];
+  space?: Maybe<Space>;
   spaceId: Scalars['ID']['output'];
   status: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
@@ -860,6 +861,7 @@ export type GetDocumentsQuery = {
     processedAt?: string | null;
     createdAt: string;
     updatedAt: string;
+    space?: { __typename?: 'Space'; id: string; name: string } | null;
   }>;
 };
 
@@ -2068,6 +2070,10 @@ export const GetDocumentsDocument = `
     filePath
     status
     spaceId
+    space {
+      id
+      name
+    }
     uploadedBy
     sizeBytes
     processingError

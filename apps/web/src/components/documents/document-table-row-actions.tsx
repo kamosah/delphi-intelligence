@@ -7,10 +7,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@olympus/ui';
-import type { Document } from '@/lib/api/generated';
+import type { GetDocumentsQuery } from '@/lib/api/hooks.generated';
+
+// Extract the document type from the GraphQL query result
+type DocumentFromQuery = NonNullable<GetDocumentsQuery['documents']>[number];
 
 interface DocumentTableRowActionsProps {
-  document: Document;
+  document: DocumentFromQuery;
   onDelete: (documentId: string) => Promise<void>;
   onDownload: (documentId: string) => Promise<void>;
 }

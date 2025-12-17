@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Any
 
 import strawberry
+from sqlalchemy import select
+from strawberry.types import Info
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
@@ -212,6 +214,23 @@ class Document:
     uploaded_by: strawberry.ID
     created_at: datetime
     updated_at: datetime
+
+    @strawberry.field
+    async def space(self, info: Info) -> "Space | None":
+        """
+        Lazy load the space relationship.
+        Only fetches space data when explicitly requested in query.
+        """
+        request = info.context["request"]
+        db = request.state.db
+
+        result = await db.execute(select(SpaceModel).where(SpaceModel.id == self.space_id))
+        space_model = result.scalar_one_or_none()
+
+        if not space_model:
+            return None
+
+        return Space.from_model(space_model)
 
     @classmethod
     def from_model(cls, document: DocumentModel) -> "Document":

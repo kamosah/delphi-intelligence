@@ -1,15 +1,22 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowUpDown } from 'lucide-react';
-import { Button, Checkbox, Badge } from '@olympus/ui';
-import type { Document } from '@/lib/api/generated';
+import {
+  Button,
+  Checkbox,
+  Badge,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@olympus/ui';
+import type { GetDocumentsQuery } from '@/lib/api/hooks.generated';
 import { DocumentTableRowActions } from './document-table-row-actions';
-import { DocumentIcon } from './DocumentIcon';
+import { DocumentIcon, getFileTypeLabel } from './DocumentIcon';
 import { DocumentStatusBadge } from './DocumentStatusBadge';
 
-type DocumentWithSpace = Document & {
-  space?: { id: string; name: string };
-};
+// Extract the document type from the GraphQL query result
+type DocumentFromQuery = NonNullable<GetDocumentsQuery['documents']>[number];
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -31,8 +38,8 @@ export function createDocumentTableColumns(
   showSpaceColumn: boolean,
   onDelete: (documentId: string) => Promise<void>,
   onDownload: (documentId: string) => Promise<void>
-): ColumnDef<DocumentWithSpace>[] {
-  const columns: ColumnDef<DocumentWithSpace>[] = [
+): ColumnDef<DocumentFromQuery>[] {
+  const columns: ColumnDef<DocumentFromQuery>[] = [
     // Checkbox
     {
       id: 'select',
@@ -69,7 +76,21 @@ export function createDocumentTableColumns(
       ),
       cell: ({ row }) => (
         <div className="flex items-center justify-center">
-          <DocumentIcon fileType={row.original.fileType} variant="icon-only" />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <DocumentIcon
+                    fileType={row.original.fileType}
+                    variant="icon-only"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getFileTypeLabel(row.original.fileType)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
       size: 60,
