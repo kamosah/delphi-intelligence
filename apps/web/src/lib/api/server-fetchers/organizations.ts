@@ -1,5 +1,5 @@
 /**
- * Server-side fetchers for user preferences and organizations.
+ * Server-side fetchers for organizations.
  *
  * Use in Server Components for SSR data prefetching.
  */
@@ -19,6 +19,7 @@ import {
  * 3. created_at ASC
  *
  * So current org is always the first one in the list.
+ * This matches client-side logic in `useOrganizations()` hook.
  *
  * Used in Server Components to determine the correct organizationId
  * for SSR query prefetching, ensuring query keys match between server

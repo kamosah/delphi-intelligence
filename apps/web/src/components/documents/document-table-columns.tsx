@@ -54,7 +54,28 @@ export function createDocumentTableColumns(
       enableHiding: false,
     },
 
-    // Name with icon
+    // Type (icon only, sortable)
+    {
+      accessorKey: 'fileType',
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="w-full"
+        >
+          Type
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <DocumentIcon fileType={row.original.fileType} variant="icon-only" />
+        </div>
+      ),
+      size: 60,
+    },
+
+    // Name (text only)
     {
       accessorKey: 'name',
       header: ({ column }) => (
@@ -67,12 +88,9 @@ export function createDocumentTableColumns(
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="flex items-center gap-2 min-w-[200px]">
-          <DocumentIcon fileType={row.original.fileType} />
-          <span className="font-medium text-gray-900 truncate">
-            {row.original.name}
-          </span>
-        </div>
+        <span className="font-medium text-gray-900 truncate">
+          {row.original.name}
+        </span>
       ),
     },
   ];

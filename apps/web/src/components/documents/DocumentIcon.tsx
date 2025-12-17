@@ -4,6 +4,7 @@ import { FileImage, FileSpreadsheet, FileText, File } from 'lucide-react';
 
 interface DocumentIconProps {
   fileType?: string;
+  variant?: 'default' | 'icon-only';
 }
 
 /**
@@ -77,9 +78,18 @@ function getFileTypeStyles(fileType?: string) {
 /**
  * Document icon component.
  * Displays a file icon with file type specific styling.
+ *
+ * @param variant - 'default' shows icon with background, 'icon-only' shows just the icon
  */
-export function DocumentIcon({ fileType }: DocumentIconProps) {
+export function DocumentIcon({
+  fileType,
+  variant = 'default',
+}: DocumentIconProps) {
   const { icon: Icon, bgColor, iconColor } = getFileTypeStyles(fileType);
+
+  if (variant === 'icon-only') {
+    return <Icon className={`w-5 h-5 ${iconColor}`} />;
+  }
 
   return (
     <div

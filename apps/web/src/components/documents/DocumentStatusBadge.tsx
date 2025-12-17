@@ -63,7 +63,7 @@ export function DocumentStatusBadge({ status }: DocumentStatusBadgeProps) {
   return (
     <Badge
       variant={config.variant}
-      className={`flex items-center gap-1 ${config.className || ''}`}
+      className={`gap-1 ${config.className || ''}`}
     >
       <Icon className="w-3 h-3" />
       {config.label}

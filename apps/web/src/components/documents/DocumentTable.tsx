@@ -15,6 +15,7 @@ import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Button,
+  LinearProgress,
   Table,
   TableBody,
   TableCell,
@@ -206,7 +207,7 @@ export function DocumentTable({
         )}
       </div>
 
-      <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -225,12 +226,10 @@ export function DocumentTable({
             ))}
           </TableHeader>
           <TableBody className="relative">
-            {/* Linear progress indicator - shows when fetching data */}
-            {isFetching && (
-              <div className="absolute left-0 right-0 top-0 h-1 overflow-hidden bg-gray-100">
-                <div className="h-full w-1/4 animate-progress bg-blue-500" />
-              </div>
-            )}
+            <LinearProgress
+              active={isFetching}
+              className="absolute left-0 right-0 top-0 z-10"
+            />
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
