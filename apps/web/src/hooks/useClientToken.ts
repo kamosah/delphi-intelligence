@@ -1,8 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/query-keys';
 import { createClient } from '@/lib/supabase/client';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 
 interface ClientTokenResponse {
   client_token: string;
@@ -37,36 +39,74 @@ interface ClientTokenResponse {
  * ```
  */
 export function useClientToken() {
+  const lastFetchRef = useRef<number>(0);
+  const queryClient = useQueryClient();
+
+  // Proactively refresh token when tab becomes active after idle period
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        const timeSinceLastFetch = now - lastFetchRef.current;
+
+        // If token is likely stale (>4 minutes old), force refresh
+        if (timeSinceLastFetch > 240 * 1000) {
+          console.log(
+            'Tab active after idle, refreshing client token proactively...'
+          );
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.auth.clientToken(),
+          });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient]);
+
   const query = useQuery({
     queryKey: queryKeys.auth.clientToken(),
     queryFn: async (): Promise<string> => {
-      // Get Supabase session from HTTP-only cookies
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        // Get Supabase session from HTTP-only cookies
+        const supabase = createClient();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-      if (!session) {
-        throw new Error('No active session');
+        if (error || !session) {
+          throw new Error('No active session');
+        }
+
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_URL}/auth/client-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch client token: ${errorText}`);
+        }
+
+        const data: ClientTokenResponse = await response.json();
+
+        // Track last successful fetch for visibility detection
+        lastFetchRef.current = Date.now();
+
+        return data.client_token;
+      } catch (error) {
+        // Trigger auto-logout on token fetch failure
+        await handleAuthError(error);
+        throw error;
       }
-
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/auth/client-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch client token: ${errorText}`);
-      }
-
-      const data: ClientTokenResponse = await response.json();
-      return data.client_token;
     },
     // Refetch before token expires (5 min = 300s, refetch at 4 min = 240s)
     staleTime: 240 * 1000, // 4 minutes
