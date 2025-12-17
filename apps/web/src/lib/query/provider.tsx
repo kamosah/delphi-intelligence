@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { toast } from 'sonner';
 import { queryKeys } from '@/lib/query/query-keys';
 import { createClient } from '@/lib/supabase/client';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 import {
   getOrganizationErrorMessage,
   isOrganizationError,
@@ -30,6 +31,9 @@ function makeQueryClient() {
 
         // Retry configuration
         retry: (failureCount, error: unknown) => {
+          // Check for auth errors and trigger auto-logout
+          handleAuthError(error);
+
           // Don't retry on 4xx errors (client errors)
           if (isClientError(error)) {
             return false;
@@ -56,6 +60,9 @@ function makeQueryClient() {
 
         // Global error handler for mutations
         onError: (error: unknown) => {
+          // Check for auth errors first and trigger auto-logout
+          handleAuthError(error);
+
           // Show toast notification for organization-related errors
           if (isOrganizationError(error)) {
             toast.error('Organization Required', {

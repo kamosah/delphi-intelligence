@@ -15,6 +15,7 @@ import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 import type { MessageMetadata } from '@/types/ui/messages';
 
 /**
@@ -147,7 +148,9 @@ export function useStreamingQuery(threadId?: string) {
       try {
         // Validate authentication
         if (!clientToken) {
-          throw new Error('Authentication required');
+          const error = new Error('Authentication required');
+          await handleAuthError(error);
+          throw error;
         }
 
         // Clean up any existing connection
@@ -399,10 +402,15 @@ export function useStreamingQuery(threadId?: string) {
           };
 
           // Handle connection errors
-          eventSource.onerror = () => {
+          eventSource.onerror = async () => {
             console.error('SSE connection error');
+            const error = new Error('Connection error');
+
+            // Check for auth errors
+            await handleAuthError(error);
+
             eventSource.close();
-            reject(new Error('Connection error'));
+            reject(error);
           };
         });
       } catch (error) {
@@ -411,6 +419,9 @@ export function useStreamingQuery(threadId?: string) {
           error instanceof Error ? error.message : String(error);
         const errorCode =
           (error as Error & { errorCode?: string }).errorCode || 'UNKNOWN';
+
+        // Check for auth errors first (these should never retry)
+        await handleAuthError(error);
 
         // Determine if we should retry
         const canRetry =
