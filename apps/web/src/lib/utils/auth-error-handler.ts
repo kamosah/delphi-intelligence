@@ -45,19 +45,50 @@ export async function handleAuthError(
 }
 
 /**
- * Check if an error is an authentication error (401, 403, unauthorized, etc.)
+ * Check if an error is an authentication error from the backend.
+ *
+ * Matches ONLY specific error messages returned by the API when authentication fails.
+ * Does NOT match client-side errors like "Authentication required" (waiting for token).
+ *
+ * Backend error messages (from app/middleware/auth.py and app/routes/*.py):
+ * - "Token has been revoked"
+ * - "Invalid authentication credentials"
+ * - "User not found" (401 context)
+ * - "Invalid or expired SSE token"
+ * - "SSE token has been revoked or expired"
+ * - "Token validation failed"
+ * - "You do not have access to this space"
  */
 function isAuthError(error: unknown): boolean {
+  // Check if error has HTTP status code (from fetch responses)
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const status = (error as { status: number }).status;
+    if (status === 401 || status === 403) {
+      return true;
+    }
+  }
+
+  // Check error message for specific backend auth failure messages
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    return (
-      message.includes('401') ||
-      message.includes('403') ||
-      message.includes('unauthorized') ||
-      message.includes('forbidden') ||
-      message.includes('authentication') ||
-      (message.includes('token') && message.includes('expired'))
-    );
+
+    // HTTP status codes in error message
+    if (message.includes('http 401') || message.includes('http 403')) {
+      return true;
+    }
+
+    // Exact backend error messages (case-insensitive)
+    const authErrorPatterns = [
+      'token has been revoked',
+      'invalid authentication credentials',
+      'invalid or expired sse token',
+      'sse token has been revoked or expired',
+      'token validation failed',
+      'you do not have access to this space',
+    ];
+
+    return authErrorPatterns.some((pattern) => message.includes(pattern));
   }
+
   return false;
 }

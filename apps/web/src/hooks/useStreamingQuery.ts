@@ -148,9 +148,7 @@ export function useStreamingQuery(threadId?: string) {
       try {
         // Validate authentication
         if (!clientToken) {
-          const error = new Error('Authentication required');
-          await handleAuthError(error);
-          throw error;
+          throw new Error('Authentication required');
         }
 
         // Clean up any existing connection
@@ -402,15 +400,10 @@ export function useStreamingQuery(threadId?: string) {
           };
 
           // Handle connection errors
-          eventSource.onerror = async () => {
+          eventSource.onerror = () => {
             console.error('SSE connection error');
-            const error = new Error('Connection error');
-
-            // Check for auth errors
-            await handleAuthError(error);
-
             eventSource.close();
-            reject(error);
+            reject(new Error('Connection error'));
           };
         });
       } catch (error) {
