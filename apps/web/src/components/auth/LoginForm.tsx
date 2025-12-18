@@ -131,11 +131,13 @@ export function LoginForm() {
       // Redirect to original destination or dashboard
       router.push(redirectTo);
       router.refresh(); // Refresh server components
+
+      // Keep spinner showing until navigation completes
+      // Component will unmount during navigation, so no need to set isLoading(false)
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       setErrorMessage(errorMsg || 'An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Only stop spinner on error
     }
   };
 
