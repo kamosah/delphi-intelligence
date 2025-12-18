@@ -58,7 +58,7 @@ async def login(credentials: UserLogin) -> TokenResponse:
         JWT tokens for authentication
     """
     return await get_auth_service().login_user(
-        email=credentials.email, password=credentials.password, remember_me=credentials.remember_me
+        email=credentials.email, password=credentials.password
     )
 
 

@@ -29,7 +29,6 @@ const loginSchema = z.object({
   password: z
     .string()
     .min(8, { message: 'Password must be at least 8 characters' }),
-  rememberMe: z.boolean(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -61,7 +60,6 @@ export function LoginForm() {
     defaultValues: {
       email: '',
       password: '',
-      rememberMe: false,
     },
   });
 
@@ -240,29 +238,7 @@ export function LoginForm() {
           )}
         />
 
-        <div className="flex items-center justify-between">
-          <FormField
-            control={form.control}
-            name="rememberMe"
-            render={({ field }) => (
-              <div className="flex items-center">
-                <input
-                  id="rememberMe"
-                  type="checkbox"
-                  checked={field.value}
-                  onChange={field.onChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="rememberMe"
-                  className="ml-2 block text-sm text-gray-700"
-                >
-                  Remember me
-                </label>
-              </div>
-            )}
-          />
-
+        <div className="flex items-center justify-end">
           <Link
             href="/forgot-password"
             className="text-sm font-medium text-blue-600 hover:text-blue-500"
