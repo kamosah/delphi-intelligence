@@ -122,9 +122,43 @@ export function QueryProvider({ children }: QueryProviderProps) {
   // Proactively refresh client token when tab becomes active after idle period
   // Centralized here to avoid multiple event listeners (one per useClientToken call)
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        // Check when client token was last fetched using React Query state
+        // Step 1: Check session age (enforce 2-hour max session duration)
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.access_token) {
+          try {
+            // Parse JWT to get issued-at timestamp
+            const tokenPayload = JSON.parse(
+              atob(session.access_token.split('.')[1])
+            );
+            const sessionCreatedAt = tokenPayload.iat * 1000; // Convert to milliseconds
+            const sessionAge = Date.now() - sessionCreatedAt;
+            const MAX_SESSION_DURATION = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+            if (sessionAge > MAX_SESSION_DURATION) {
+              console.log(
+                `[QueryProvider] Session exceeded max duration (${Math.round(sessionAge / 1000 / 60)} minutes). Logging out...`
+              );
+
+              // Force logout with specific error type for correct message
+              await handleAuthError(
+                new Error('Session expired after 2 hours of total time'),
+                { errorType: 'session_timeout' }
+              );
+              return; // Don't continue with token refresh
+            }
+          } catch (error) {
+            // If we can't parse the JWT, log but don't block
+            console.error('[QueryProvider] Failed to parse JWT token:', error);
+          }
+        }
+
+        // Step 2: Check client token staleness (only if session is still valid)
         const tokenState = queryClient.getQueryState(
           queryKeys.auth.clientToken()
         );
