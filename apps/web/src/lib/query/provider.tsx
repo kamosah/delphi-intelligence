@@ -119,6 +119,38 @@ export function QueryProvider({ children }: QueryProviderProps) {
     return () => subscription.unsubscribe();
   }, [queryClient]);
 
+  // Proactively refresh client token when tab becomes active after idle period
+  // Centralized here to avoid multiple event listeners (one per useClientToken call)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Check when client token was last fetched using React Query state
+        const tokenState = queryClient.getQueryState(
+          queryKeys.auth.clientToken()
+        );
+
+        if (tokenState?.dataUpdatedAt) {
+          const now = Date.now();
+          const timeSinceLastFetch = now - tokenState.dataUpdatedAt;
+
+          // If token is likely stale (>4 minutes old), force refresh
+          if (timeSinceLastFetch > 240 * 1000) {
+            console.log(
+              '[QueryProvider] Tab active after idle, refreshing client token...'
+            );
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.auth.clientToken(),
+            });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [queryClient]);
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}

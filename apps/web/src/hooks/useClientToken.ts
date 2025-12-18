@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import { handleAuthError } from '@/lib/utils/auth-error-handler';
@@ -39,33 +38,6 @@ interface ClientTokenResponse {
  * ```
  */
 export function useClientToken() {
-  const lastFetchRef = useRef<number>(0);
-  const queryClient = useQueryClient();
-
-  // Proactively refresh token when tab becomes active after idle period
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        const now = Date.now();
-        const timeSinceLastFetch = now - lastFetchRef.current;
-
-        // If token is likely stale (>4 minutes old), force refresh
-        if (timeSinceLastFetch > 240 * 1000) {
-          console.log(
-            'Tab active after idle, refreshing client token proactively...'
-          );
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.auth.clientToken(),
-          });
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () =>
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [queryClient]);
-
   const query = useQuery({
     queryKey: queryKeys.auth.clientToken(),
     queryFn: async (): Promise<string> => {
@@ -97,9 +69,6 @@ export function useClientToken() {
         }
 
         const data: ClientTokenResponse = await response.json();
-
-        // Track last successful fetch for visibility detection
-        lastFetchRef.current = Date.now();
 
         return data.client_token;
       } catch (error) {

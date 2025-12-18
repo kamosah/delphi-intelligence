@@ -67,35 +67,11 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
   const reconnectAttemptsRef = useRef<number>(0);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Add Page Visibility detection to reconnect SSE when tab becomes active
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (
-        document.visibilityState === 'visible' &&
-        enabled &&
-        clientToken &&
-        spaceId
-      ) {
-        // Check if SSE connection is closed
-        if (
-          !eventSourceRef.current ||
-          eventSourceRef.current.readyState === EventSource.CLOSED
-        ) {
-          console.log('[SSE] Tab active after idle, reconnecting SSE...');
-          // Reset reconnect attempts when user returns
-          reconnectAttemptsRef.current = 0;
-          // Trigger a re-render by invalidating client token (forces reconnect)
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.auth.clientToken(),
-          });
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () =>
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [enabled, clientToken, spaceId, queryClient]);
+  // Note: SSE automatically reconnects when tab becomes active because:
+  // 1. QueryProvider's visibility handler refreshes clientToken when stale
+  // 2. This useEffect has clientToken as a dependency
+  // 3. When clientToken changes, connectSSE() runs and reconnects
+  // No need for a separate visibility handler here!
 
   useEffect(() => {
     // Only connect if enabled and we have a client token

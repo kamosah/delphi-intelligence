@@ -6,7 +6,7 @@ from typing import Any
 
 import strawberry
 from sqlalchemy import select
-from strawberry.types import Info
+from app.db.session import get_session
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
@@ -216,21 +216,24 @@ class Document:
     updated_at: datetime
 
     @strawberry.field
-    async def space(self, info: Info) -> "Space | None":
+    async def space(self) -> "Space | None":
         """
         Lazy load the space relationship.
         Only fetches space data when explicitly requested in query.
         """
-        request = info.context["request"]
-        db = request.state.db
+        async for session in get_session():
+            try:
+                result = await session.execute(
+                    select(SpaceModel).where(SpaceModel.id == self.space_id)
+                )
+                space_model = result.scalar_one_or_none()
+                if not space_model:
+                    return None
+                return Space.from_model(space_model)
+            except Exception as e:
+                return None
+    
 
-        result = await db.execute(select(SpaceModel).where(SpaceModel.id == self.space_id))
-        space_model = result.scalar_one_or_none()
-
-        if not space_model:
-            return None
-
-        return Space.from_model(space_model)
 
     @classmethod
     def from_model(cls, document: DocumentModel) -> "Document":
