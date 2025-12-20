@@ -230,10 +230,9 @@ class Document:
                 if not space_model:
                     return None
                 return Space.from_model(space_model)
-            except Exception as e:
+            except Exception:
                 return None
-    
-
+        return None  # Explicit return for mypy
 
     @classmethod
     def from_model(cls, document: DocumentModel) -> "Document":

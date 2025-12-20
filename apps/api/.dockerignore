@@ -78,9 +78,11 @@ docs/
 *.md
 !README.md
 
-# Docker
-Dockerfile*
-docker-compose*
+# Docker (keep Dockerfile.prod for deployment)
+Dockerfile
+docker-compose.yml
+docker-compose.dev.yml
+docker-compose.test.yml
 .dockerignore
 
 # Git
