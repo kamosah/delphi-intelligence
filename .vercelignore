@@ -1,0 +1,53 @@
+# Vercel Ignore - Exclude from deployment uploads
+
+# Backend API (not deployed to Vercel)
+apps/api/
+
+# Documentation
+docs/
+*.md
+!README.md
+!apps/web/README.md
+
+# Tests
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+e2e/
+playwright/
+playwright-report/
+test-results/
+
+# Storybook
+.storybook/
+storybook-static/
+**/*.stories.tsx
+**/*.stories.ts
+
+# Development files
+.env.local
+.env.development
+.env.test
+**/.turbo/
+**/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.husky/
