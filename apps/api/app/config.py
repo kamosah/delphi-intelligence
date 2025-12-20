@@ -34,7 +34,11 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     cors_origins: list[str] = Field(
-        default=["http://localhost:3000"], description="Allowed CORS origins"
+        default=[], description="Allowed CORS origins (exact matches for production)"
+    )
+    cors_origin_regex: str | None = Field(
+        default=r"^https?://localhost:300[0-5]$",  # Matches ports 3000-3005 for development
+        description="CORS origin regex pattern (env specific)",
     )
 
     # JWT Configuration
