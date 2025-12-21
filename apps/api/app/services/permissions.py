@@ -143,8 +143,8 @@ class PermissionService:
             )
         )
         memberships: dict[UUID, SpaceMember] = {
-            membership.space_id: membership
-            for membership in memberships_result.scalars().all()  # type: ignore[misc]
+            membership.space_id: membership  # type: ignore[misc]
+            for membership in memberships_result.scalars().all()
         }
 
         # Role hierarchy for permission checking
