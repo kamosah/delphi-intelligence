@@ -8,9 +8,15 @@ import {
   type Document,
   type UploadDocumentRequest,
 } from '@/lib/api/documents-client';
+import type {
+  DocumentSortInput,
+  DocumentFilterInput,
+} from '@/lib/api/generated';
 import {
   useGetDocumentsQuery,
   type GetDocumentsQuery,
+  useDeleteDocumentMutation,
+  useBulkDeleteDocumentsMutation,
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -156,24 +162,28 @@ export function useUploadDocument() {
  * React Query hook for listing documents in a space or organization via GraphQL.
  *
  * Returns documents with camelCase fields (GraphQL convention).
+ * Now supports server-side filtering and sorting.
  *
  * @example
  * const { documents, isLoading } = useDocuments({ spaceId });
  *
  * @example
- * const { documents, isLoading } = useDocuments({ organizationId }); // All docs in org
+ * const { documents, isLoading } = useDocuments({
+ *   organizationId,
+ *   filters: { search: 'report', statuses: ['processed'] },
+ *   sort: { field: 'NAME', order: 'ASC' }
+ * });
  *
  * @example
  * const { documents, isLoading } = useDocuments({ limit: 3 }); // All accessible documents, top 3
- *
- * @example
- * const { documents, isLoading } = useDocuments(); // All accessible documents
  */
 export function useDocuments(options?: {
   spaceId?: string;
   organizationId?: string;
   limit?: number;
   offset?: number;
+  filters?: DocumentFilterInput;
+  sort?: DocumentSortInput;
 }) {
   const { clientToken } = useClientToken();
   const { currentOrganization } = useAuthStore();
@@ -188,6 +198,8 @@ export function useDocuments(options?: {
       organizationId: orgId || null,
       limit,
       offset,
+      sort: options?.sort || null,
+      filters: options?.filters || null,
     },
     {
       enabled: !!clientToken,
@@ -195,7 +207,10 @@ export function useDocuments(options?: {
         limit,
         offset,
         organizationId: orgId,
+        filters: options?.filters,
+        sort: options?.sort,
       }),
+      placeholderData: (previousData) => previousData, // Keep UI smooth while global LinearProgress shows loading
     }
   );
 
@@ -203,6 +218,8 @@ export function useDocuments(options?: {
     documents: query.data?.documents || [],
     total: query.data?.documents?.length || 0,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isRefetching: query.isRefetching,
     error: query.error,
     refetch: query.refetch,
   };
@@ -237,7 +254,7 @@ export function useDocument(documentId: string) {
 }
 
 /**
- * React Query hook for deleting a document.
+ * React Query hook for deleting a document via GraphQL.
  *
  * @example
  * const { deleteDocument } = useDeleteDocument();
@@ -248,73 +265,130 @@ export function useDocument(documentId: string) {
  */
 export function useDeleteDocument() {
   const queryClient = useQueryClient();
-  const { clientToken } = useClientToken();
 
-  const mutation = useMutation({
-    mutationFn: async (variables: { documentId: string; spaceId: string }) => {
-      if (!clientToken) {
-        throw new Error('Authentication required');
-      }
-      return documentsApi.delete(variables.documentId, clientToken);
-    },
-    // Optimistically update the cache before mutation runs
+  const mutation = useDeleteDocumentMutation<
+    Error,
+    { previousDocuments: GetDocumentsQuery | undefined }
+  >({
     onMutate: async (variables) => {
       const queryKeyPrefix = [
         ...queryKeys.documents.lists(),
-        variables.spaceId,
+        variables.input.spaceId,
       ];
 
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: queryKeyPrefix });
 
-      // Snapshot all matching queries for rollback
-      const previousQueries = queryClient.getQueriesData({
-        queryKey: queryKeyPrefix,
+      // Snapshot the current documents for this specific query
+      const previousDocuments =
+        queryClient.getQueryData<GetDocumentsQuery>(queryKeyPrefix);
+
+      // Optimistically remove the document
+      queryClient.setQueryData<GetDocumentsQuery>(queryKeyPrefix, (oldData) => {
+        if (!oldData) return oldData;
+        return {
+          documents: (oldData.documents || []).filter(
+            (doc) => doc.id !== variables.input.documentId
+          ),
+        };
       });
 
-      // Optimistically remove the document from ALL matching cache entries
-      queryClient.setQueriesData(
-        { queryKey: queryKeyPrefix },
-        (oldData: GetDocumentsQuery | undefined) => {
-          if (!oldData) return oldData;
-
-          return {
-            documents: (oldData.documents || []).filter(
-              (doc) => doc.id !== variables.documentId
-            ),
-          };
-        }
-      );
-
-      // Return context object with the snapshots
-      return { previousQueries };
+      // Return snapshot for rollback
+      return { previousDocuments };
     },
     // Rollback on error
     onError: (error, variables, context) => {
-      // Restore all previous states
-      if (context?.previousQueries) {
-        context.previousQueries.forEach(([queryKey, data]) => {
-          queryClient.setQueryData(queryKey, data);
-        });
+      // Restore previous state
+      if (context?.previousDocuments) {
+        queryClient.setQueryData(
+          [...queryKeys.documents.lists(), variables.input.spaceId],
+          context.previousDocuments
+        );
       }
     },
     // Always refetch after error or success to ensure consistency
     onSettled: (data, error, variables) => {
       // Invalidate all document list queries for this space
       queryClient.invalidateQueries({
-        queryKey: [...queryKeys.documents.lists(), variables.spaceId],
+        queryKey: [...queryKeys.documents.lists(), variables.input.spaceId],
       });
 
       // Remove from detail cache
       queryClient.removeQueries({
-        queryKey: queryKeys.documents.detail(variables.documentId),
+        queryKey: queryKeys.documents.detail(variables.input.documentId),
       });
     },
   });
 
   return {
-    deleteDocument: mutation.mutateAsync,
-    deleteDocumentSync: mutation.mutate,
+    deleteDocument: (variables: { documentId: string; spaceId: string }) =>
+      mutation.mutateAsync({
+        input: {
+          documentId: variables.documentId,
+          spaceId: variables.spaceId,
+        },
+      }),
+    deleteDocumentSync: (variables: { documentId: string; spaceId: string }) =>
+      mutation.mutate({
+        input: {
+          documentId: variables.documentId,
+          spaceId: variables.spaceId,
+        },
+      }),
+    isDeleting: mutation.isPending,
+    deleteError: mutation.error,
+  };
+}
+
+/**
+ * React Query hook for bulk deleting documents via GraphQL.
+ *
+ * @example
+ * const { bulkDeleteDocuments } = useBulkDeleteDocuments();
+ *
+ * const handleBulkDelete = async (documentIds: string[], spaceId: string) => {
+ *   const result = await bulkDeleteDocuments({ documentIds });
+ *   console.log(`Deleted ${result.deletedCount} documents`);
+ *   if (result.failedIds.length > 0) {
+ *     console.warn(`Failed to delete: ${result.failedIds.join(', ')}`);
+ *   }
+ * };
+ */
+export function useBulkDeleteDocuments() {
+  const queryClient = useQueryClient();
+
+  const mutation = useBulkDeleteDocumentsMutation<Error>({
+    onSuccess: (data, variables) => {
+      // Invalidate all document list queries to refetch
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.documents.lists(),
+      });
+
+      // Remove deleted documents from detail cache
+      variables.input.documentIds.forEach((id) => {
+        // Only remove if it was successfully deleted
+        if (!data.bulkDeleteDocuments.failedIds.includes(id)) {
+          queryClient.removeQueries({
+            queryKey: queryKeys.documents.detail(id),
+          });
+        }
+      });
+    },
+  });
+
+  return {
+    bulkDeleteDocuments: (variables: { documentIds: string[] }) =>
+      mutation.mutateAsync({
+        input: {
+          documentIds: variables.documentIds,
+        },
+      }),
+    bulkDeleteDocumentsSync: (variables: { documentIds: string[] }) =>
+      mutation.mutate({
+        input: {
+          documentIds: variables.documentIds,
+        },
+      }),
     isDeleting: mutation.isPending,
     deleteError: mutation.error,
   };

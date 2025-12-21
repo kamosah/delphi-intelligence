@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Any
 
 import strawberry
+from sqlalchemy import select
+from app.db.session import get_session
 
 from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
@@ -213,6 +215,25 @@ class Document:
     created_at: datetime
     updated_at: datetime
 
+    @strawberry.field
+    async def space(self) -> "Space | None":
+        """
+        Lazy load the space relationship.
+        Only fetches space data when explicitly requested in query.
+        """
+        async for session in get_session():
+            try:
+                result = await session.execute(
+                    select(SpaceModel).where(SpaceModel.id == self.space_id)
+                )
+                space_model = result.scalar_one_or_none()
+                if not space_model:
+                    return None
+                return Space.from_model(space_model)
+            except Exception:
+                return None
+        return None
+
     @classmethod
     def from_model(cls, document: DocumentModel) -> "Document":
         """Convert SQLAlchemy Document model to GraphQL Document type."""
@@ -232,6 +253,69 @@ class Document:
             created_at=document.created_at,
             updated_at=document.updated_at,
         )
+
+
+@strawberry.enum
+class DocumentSortField(str, Enum):
+    """Fields that can be used to sort documents."""
+
+    NAME = "name"
+    SIZE = "size_bytes"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+    STATUS = "status"
+    FILE_TYPE = "file_type"
+
+
+@strawberry.enum
+class SortOrder(str, Enum):
+    """Sort order direction."""
+
+    ASC = "asc"
+    DESC = "desc"
+
+
+@strawberry.input
+class DocumentSortInput:
+    """Input type for sorting documents."""
+
+    field: DocumentSortField
+    order: SortOrder = SortOrder.DESC
+
+
+@strawberry.input
+class DocumentFilterInput:
+    """Input type for filtering documents."""
+
+    search: str | None = None  # Global search across name
+    statuses: list[str] | None = None  # Filter by status
+    file_types: list[str] | None = None  # Filter by file type
+    uploaded_after: datetime | None = None
+    uploaded_before: datetime | None = None
+
+
+@strawberry.input
+class DeleteDocumentInput:
+    """Input type for deleting a single document."""
+
+    document_id: strawberry.ID
+    space_id: strawberry.ID
+
+
+@strawberry.input
+class BulkDeleteDocumentsInput:
+    """Input type for bulk deleting documents."""
+
+    document_ids: list[strawberry.ID]
+
+
+@strawberry.type
+class BulkDeleteResult:
+    """Result type for bulk delete operation."""
+
+    deleted_count: int
+    failed_ids: list[strawberry.ID]
+    storage_failures: list[strawberry.ID] = strawberry.field(default_factory=list)
 
 
 @strawberry.type

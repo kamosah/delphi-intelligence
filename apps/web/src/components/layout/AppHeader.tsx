@@ -1,15 +1,27 @@
 'use client';
 
 import Link from 'next/link';
+import { useIsFetching } from '@tanstack/react-query';
 import { Menu, Search, Bell } from 'lucide-react';
-import { Button } from '@olympus/ui';
+import { Button, LinearProgress } from '@olympus/ui';
+import { useIsFetchingStore } from '@/lib/stores/is-fetching-store';
 import { useUIStore } from '@/store/ui-store';
 
 export function AppHeader() {
   const { sidebarVisible, toggleSidebarVisibility } = useUIStore();
 
+  // Global fetching state: React Query (auto) + Manual operations (Zustand)
+  const queryCount = useIsFetching();
+  const manualOps = useIsFetchingStore((state) => state.manualOperations);
+  const isFetching = queryCount > 0 || manualOps.size > 0;
+
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="relative bg-white border-b border-gray-200">
+      {/* Global loading indicator */}
+      <LinearProgress
+        active={isFetching}
+        className="absolute left-0 right-0 top-0 z-50"
+      />
       <div className="flex justify-between h-14 px-4">
         <div className="flex items-center gap-2">
           {/* Sidebar Toggle - Always Hamburger */}

@@ -68,7 +68,7 @@ export { Input } from './components/input';
 export { Kbd, KbdGroup } from './components/kbd';
 export { Label } from './components/label';
 export { List, ListItem } from './components/list';
-export { Progress } from './components/progress';
+export { Progress, LinearProgress } from './components/progress';
 export { ScrollArea, ScrollBar } from './components/scroll-area';
 export {
   Select,

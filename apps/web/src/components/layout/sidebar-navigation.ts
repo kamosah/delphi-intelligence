@@ -36,7 +36,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
     icon: FileText,
     label: 'Documents',
     href: '/dashboard/documents',
-    description: 'Document intelligence',
+    description: 'Documents',
   },
 ];
 

@@ -4,6 +4,7 @@
  */
 
 import type { GraphQLClient } from 'graphql-request';
+import type { DocumentFilterInput, DocumentSortInput } from '../generated';
 import {
   GetDocumentsDocument,
   type GetDocumentsQuery,
@@ -14,6 +15,8 @@ export interface FetchDocumentsOptions {
   organizationId?: string | null;
   limit?: number;
   offset?: number;
+  filters?: DocumentFilterInput | null;
+  sort?: DocumentSortInput | null;
 }
 
 /**
@@ -37,6 +40,8 @@ export async function fetchDocuments(
     organizationId: options?.organizationId ?? null,
     limit: options?.limit ?? 100,
     offset: options?.offset ?? 0,
+    sort: options?.sort ?? null,
+    filters: options?.filters ?? null,
   });
 
   return result;

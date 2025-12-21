@@ -17,6 +17,6 @@
 
 export * from './dashboard';
 export * from './documents';
-export * from './threads';
+export * from './organizations';
 export * from './spaces';
-export * from './user-preferences';
+export * from './threads';

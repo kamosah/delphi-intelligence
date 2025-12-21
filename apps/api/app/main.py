@@ -98,7 +98,7 @@ def create_app() -> FastAPI:
     async def root() -> dict[str, str]:
         """Root endpoint"""
         return {
-            "message": f"Welcome to {settings.app_name} API",
+            "message": f"Welcome to {settings.app_name}",
             "version": "0.1.0",
             "environment": settings.env,
             "docs": "/docs" if settings.debug else "disabled in production",
