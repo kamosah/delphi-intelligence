@@ -1363,15 +1363,21 @@ class Mutation:
                     msg = "Insufficient permissions to delete this document"
                     raise ValueError(msg)
 
-                # Delete file from storage (best effort - don't fail if storage delete fails)
+                # Step 1: Delete from database FIRST (can be rolled back if commit fails)
+                await session.delete(document)
+
+                # Step 2: Commit database changes
+                await session.commit()
+
+                # Step 3: THEN delete from storage (best effort - can't be rolled back)
                 try:
                     await get_storage_service().delete_file(document.file_path)
                 except Exception as e:
-                    logger.warning(f"Failed to delete file from storage: {e}")
-
-                # Delete document record
-                await session.delete(document)
-                await session.commit()
+                    logger.exception(
+                        f"ORPHANED FILE: Failed to delete {document.file_path} "
+                        f"for document {document.id}: {e}",
+                        extra={"document_id": str(document.id), "file_path": document.file_path},
+                    )
 
                 return True
 
@@ -1423,36 +1429,51 @@ class Mutation:
                 if not documents:
                     return BulkDeleteResult(deleted_count=0, failed_ids=input.document_ids)
 
-                # Verify user has permission to delete each document
+                # Batch permission checks (optimized: 2 queries instead of N queries)
+                unique_space_ids = list({doc.space_id for doc in documents})
+                space_permissions = await permission_service.can_delete_from_spaces_batch(
+                    user, unique_space_ids, session
+                )
+
+                # Filter documents based on batch permission results
                 failed_ids = []
                 documents_to_delete = []
 
                 for document in documents:
-                    if not await permission_service.can_delete_from_space(
-                        user, document.space_id, session
-                    ):
+                    if not space_permissions.get(document.space_id, False):
                         failed_ids.append(strawberry.ID(str(document.id)))
                     else:
                         documents_to_delete.append(document)
 
-                # Delete files from storage (best effort - don't fail if storage delete fails)
+                # Step 1: Delete from database FIRST (can be rolled back if commit fails)
+                for document in documents_to_delete:
+                    await session.delete(document)
+
+                # Step 2: Commit database changes
+                await session.commit()
+
+                # Step 3: THEN delete from storage (best effort - can't be rolled back)
+                # If this fails, we have orphaned files but DB is consistent
+                # Background cleanup job can reconcile later
+                storage_failures = []
                 for document in documents_to_delete:
                     try:
                         await get_storage_service().delete_file(document.file_path)
                     except Exception as e:
-                        logger.warning(
-                            f"Failed to delete file from storage for document {document.id}: {e}"
+                        logger.exception(
+                            f"ORPHANED FILE: Failed to delete {document.file_path} "
+                            f"for document {document.id}: {e}",
+                            extra={
+                                "document_id": str(document.id),
+                                "file_path": document.file_path,
+                            },
                         )
-
-                # Delete all permitted documents from database
-                for document in documents_to_delete:
-                    await session.delete(document)
-
-                await session.commit()
+                        storage_failures.append(strawberry.ID(str(document.id)))
 
                 return BulkDeleteResult(
                     deleted_count=len(documents_to_delete),
                     failed_ids=failed_ids,
+                    storage_failures=storage_failures,
                 )
 
             except ValueError:

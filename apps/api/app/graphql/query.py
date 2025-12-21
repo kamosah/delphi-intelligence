@@ -40,6 +40,30 @@ from .types import (
 logger = logging.getLogger(__name__)
 
 
+def escape_like_pattern(text: str) -> str:
+    """
+    Escape special characters in LIKE/ILIKE patterns.
+
+    Escapes wildcards (%, _) and escape character (\\) to prevent users
+    from injecting wildcard patterns that could cause performance issues
+    or unintended matches.
+
+    Args:
+        text: The search text to escape
+
+    Returns:
+        Escaped text safe for use in LIKE/ILIKE patterns
+
+    Example:
+        >>> escape_like_pattern("Q1_Report")
+        "Q1\\_Report"
+        >>> escape_like_pattern("50% done")
+        "50\\% done"
+    """
+    # Escape backslash first, then other wildcards
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 @strawberry.type
 class Query:
     """GraphQL query root."""
@@ -440,7 +464,8 @@ class Query:
             # Apply filters if provided
             if filters:
                 if filters.search:
-                    stmt = stmt.where(DocumentModel.name.ilike(f"%{filters.search}%"))
+                    escaped_search = escape_like_pattern(filters.search)
+                    stmt = stmt.where(DocumentModel.name.ilike(f"%{escaped_search}%"))
 
                 if filters.statuses:
                     stmt = stmt.where(DocumentModel.status.in_(filters.statuses))

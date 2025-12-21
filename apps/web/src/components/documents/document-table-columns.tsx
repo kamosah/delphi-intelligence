@@ -76,7 +76,7 @@ export function createDocumentTableColumns(
       ),
       cell: ({ row }) => (
         <div className="flex items-center justify-center">
-          <TooltipProvider>
+          <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
@@ -125,7 +125,9 @@ export function createDocumentTableColumns(
       cell: ({ row }) => {
         const space = row.original.space;
         return space ? (
-          <Badge className="bg-blue-100 text-blue-700">{space.name}</Badge>
+          <Badge className="border-blue-100 bg-blue-50 text-blue-700 hover:border-blue-100 hover:bg-blue-50">
+            {space.name}
+          </Badge>
         ) : (
           <span className="text-gray-400">—</span>
         );

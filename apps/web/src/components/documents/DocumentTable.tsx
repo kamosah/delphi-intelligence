@@ -15,7 +15,6 @@ import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Button,
-  LinearProgress,
   Table,
   TableBody,
   TableCell,
@@ -139,12 +138,23 @@ export function DocumentTable({
       const result = await bulkDeleteDocuments({ documentIds: selectedIds });
       const successCount = result.bulkDeleteDocuments.deletedCount;
       const failedCount = result.bulkDeleteDocuments.failedIds.length;
+      const storageFailureCount =
+        result.bulkDeleteDocuments.storageFailures?.length || 0;
 
-      if (failedCount === 0) {
+      // Show appropriate toast based on results
+      if (failedCount === 0 && storageFailureCount === 0) {
         toast.success(`${successCount} documents deleted`);
+      } else if (failedCount > 0 && storageFailureCount === 0) {
+        toast.warning(
+          `${successCount} documents deleted, ${failedCount} failed due to permissions`
+        );
+      } else if (failedCount === 0 && storageFailureCount > 0) {
+        toast.warning(
+          `${successCount} documents deleted, but ${storageFailureCount} files remain in storage`
+        );
       } else {
         toast.warning(
-          `${successCount} documents deleted, ${failedCount} failed`
+          `${successCount} deleted, ${failedCount} permission errors, ${storageFailureCount} storage errors`
         );
       }
 
@@ -225,11 +235,7 @@ export function DocumentTable({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="relative">
-            <LinearProgress
-              active={isFetching}
-              className="absolute left-0 right-0 top-0 z-10"
-            />
+          <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
