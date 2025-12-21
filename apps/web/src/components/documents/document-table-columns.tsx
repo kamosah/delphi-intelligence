@@ -125,7 +125,10 @@ export function createDocumentTableColumns(
       cell: ({ row }) => {
         const space = row.original.space;
         return space ? (
-          <Badge className="border-blue-100 bg-blue-50 text-blue-700 hover:border-blue-100 hover:bg-blue-50">
+          <Badge
+            variant="outline"
+            className="border-blue-100 bg-blue-50 text-blue-700 hover:border-blue-100"
+          >
             {space.name}
           </Badge>
         ) : (
