@@ -120,7 +120,7 @@ const config: Config = {
         },
         progress: {
           '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(400%)' },
+          '100%': { transform: 'translateX(300%)' },
         },
       },
     },
