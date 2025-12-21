@@ -24,10 +24,13 @@ from app.supabase_client import get_admin_client
 from .types import (
     DashboardStats,
     Document,
+    DocumentFilterInput,
+    DocumentSortInput,
     Organization,
     OrganizationMember,
     SearchDocumentsInput,
     SearchResult,
+    SortOrder,
     Space,
     Thread,
     User,
@@ -35,6 +38,30 @@ from .types import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def escape_like_pattern(text: str) -> str:
+    """
+    Escape special characters in LIKE/ILIKE patterns.
+
+    Escapes wildcards (%, _) and escape character (\\) to prevent users
+    from injecting wildcard patterns that could cause performance issues
+    or unintended matches.
+
+    Args:
+        text: The search text to escape
+
+    Returns:
+        Escaped text safe for use in LIKE/ILIKE patterns
+
+    Example:
+        >>> escape_like_pattern("Q1_Report")
+        "Q1\\_Report"
+        >>> escape_like_pattern("50% done")
+        "50\\% done"
+    """
+    # Escape backslash first, then other wildcards
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 @strawberry.type
@@ -314,13 +341,15 @@ class Query:
         return []
 
     @strawberry.field
-    async def documents(  # noqa: PLR0911
+    async def documents(  # noqa: PLR0911, PLR0915
         self,
         info: strawberry.types.Info,
         space_id: strawberry.ID | None = None,
         organization_id: strawberry.ID | None = None,
         limit: int = 100,
         offset: int = 0,
+        sort: DocumentSortInput | None = None,
+        filters: DocumentFilterInput | None = None,
     ) -> list[Document]:
         """
         Get a list of documents the authenticated user has access to.
@@ -330,6 +359,8 @@ class Query:
             organization_id: Optional organization ID to filter documents by organization (returns docs from all accessible spaces in org).
             limit: Maximum number of documents to return (default: 100)
             offset: Number of documents to skip for pagination
+            sort: Optional sorting configuration
+            filters: Optional filters (search, status, file type, date range)
 
         Returns:
             List of documents
@@ -369,13 +400,7 @@ class Query:
                     msg = f"You do not have access to space {space_id}"
                     raise PermissionError(msg)
 
-                stmt = (
-                    select(DocumentModel)
-                    .where(DocumentModel.space_id == space_uuid)
-                    .order_by(DocumentModel.created_at.desc())
-                    .limit(limit)
-                    .offset(offset)
-                )
+                stmt = select(DocumentModel).where(DocumentModel.space_id == space_uuid)
             elif organization_id:
                 # Filter by organization - get documents from all accessible spaces in this org
                 org_uuid = UUID(str(organization_id))
@@ -419,13 +444,7 @@ class Query:
                 if not space_ids:
                     return []
 
-                stmt = (
-                    select(DocumentModel)
-                    .where(DocumentModel.space_id.in_(space_ids))
-                    .order_by(DocumentModel.created_at.desc())
-                    .limit(limit)
-                    .offset(offset)
-                )
+                stmt = select(DocumentModel).where(DocumentModel.space_id.in_(space_ids))
             else:
                 # Get documents from all spaces user has access to (across all orgs)
                 accessible_spaces_stmt = (
@@ -440,13 +459,38 @@ class Query:
                 if not space_ids:
                     return []
 
-                stmt = (
-                    select(DocumentModel)
-                    .where(DocumentModel.space_id.in_(space_ids))
-                    .order_by(DocumentModel.created_at.desc())
-                    .limit(limit)
-                    .offset(offset)
-                )
+                stmt = select(DocumentModel).where(DocumentModel.space_id.in_(space_ids))
+
+            # Apply filters if provided
+            if filters:
+                if filters.search:
+                    escaped_search = escape_like_pattern(filters.search)
+                    stmt = stmt.where(DocumentModel.name.ilike(f"%{escaped_search}%"))
+
+                if filters.statuses:
+                    stmt = stmt.where(DocumentModel.status.in_(filters.statuses))
+
+                if filters.file_types:
+                    stmt = stmt.where(DocumentModel.file_type.in_(filters.file_types))
+
+                if filters.uploaded_after:
+                    stmt = stmt.where(DocumentModel.created_at >= filters.uploaded_after)
+
+                if filters.uploaded_before:
+                    stmt = stmt.where(DocumentModel.created_at <= filters.uploaded_before)
+
+            # Apply sorting
+            if sort:
+                sort_column = getattr(DocumentModel, sort.field.value)
+                if sort.order == SortOrder.ASC:
+                    stmt = stmt.order_by(sort_column.asc())
+                else:
+                    stmt = stmt.order_by(sort_column.desc())
+            else:
+                stmt = stmt.order_by(DocumentModel.created_at.desc())
+
+            # Apply pagination
+            stmt = stmt.limit(limit).offset(offset)
 
             result = await session.execute(stmt)
             document_models = result.scalars().all()

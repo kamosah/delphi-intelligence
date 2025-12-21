@@ -2,6 +2,7 @@ import { GraphQLClient } from 'graphql-request';
 import { getQueryClient } from '@/lib/query/provider';
 import { queryKeys } from '@/lib/query/query-keys';
 import { createClient } from '@/lib/supabase/client';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_API_URL
@@ -68,7 +69,14 @@ export async function makeGraphQLRequest<
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to fetch client token: ${errorText}`);
+        const error = new Error(`Failed to fetch client token: ${errorText}`);
+
+        // Check for auth errors (401/403) and trigger auto-logout
+        if (response.status === 401 || response.status === 403) {
+          await handleAuthError(error);
+        }
+
+        throw error;
       }
 
       const data = await response.json();
@@ -87,6 +95,10 @@ export async function makeGraphQLRequest<
     });
   } catch (error) {
     console.error('GraphQL request failed:', error);
+
+    // Check for auth errors and trigger auto-logout
+    await handleAuthError(error);
+
     throw error;
   }
 }

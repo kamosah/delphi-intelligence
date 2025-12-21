@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/query-keys';
 import { createClient } from '@/lib/supabase/client';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 
 interface ClientTokenResponse {
   client_token: string;
@@ -40,33 +41,41 @@ export function useClientToken() {
   const query = useQuery({
     queryKey: queryKeys.auth.clientToken(),
     queryFn: async (): Promise<string> => {
-      // Get Supabase session from HTTP-only cookies
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        // Get Supabase session from HTTP-only cookies
+        const supabase = createClient();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-      if (!session) {
-        throw new Error('No active session');
+        if (error || !session) {
+          throw new Error('No active session');
+        }
+
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_URL}/auth/client-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch client token: ${errorText}`);
+        }
+
+        const data: ClientTokenResponse = await response.json();
+
+        return data.client_token;
+      } catch (error) {
+        // Trigger auto-logout on token fetch failure
+        await handleAuthError(error);
+        throw error;
       }
-
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/auth/client-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch client token: ${errorText}`);
-      }
-
-      const data: ClientTokenResponse = await response.json();
-      return data.client_token;
     },
     // Refetch before token expires (5 min = 300s, refetch at 4 min = 240s)
     staleTime: 240 * 1000, // 4 minutes

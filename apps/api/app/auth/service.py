@@ -110,16 +110,13 @@ class AuthService:
                 detail=f"Registration failed: {e!s}",
             )
 
-    async def login_user(
-        self, email: str, password: str, remember_me: bool = False
-    ) -> TokenResponse:
+    async def login_user(self, email: str, password: str) -> TokenResponse:
         """
         Login user and return JWT tokens
 
         Args:
             email: User email
             password: User password
-            remember_me: If True, extends session to 30 days; otherwise 24 hours
 
         Returns:
             Token response with access and refresh tokens
@@ -162,19 +159,13 @@ class AuthService:
                 "supabase_token": session.access_token,  # Store Supabase token for API calls
             }
 
-            # Set token expiration based on remember_me
-            # Remember me: 30 days, otherwise: 24 hours
-            token_expiry_hours = 720 if remember_me else 24  # 30 days = 720 hours
-
             access_token = jwt_manager.create_access_token(token_data)
             refresh_token = jwt_manager.create_refresh_token({"sub": user.id})
 
-            # Store refresh token in Redis with appropriate TTL
-            # Remember me: 30 days, otherwise: 24 hours
+            # Store refresh token in Redis with 24-hour TTL
             import datetime
 
-            ttl_seconds = token_expiry_hours * 3600
-            ttl_timedelta = datetime.timedelta(seconds=ttl_seconds)
+            ttl_timedelta = datetime.timedelta(hours=24)
             await redis_manager.store_refresh_token(user.id, refresh_token, ttl_timedelta)
 
             # Store session data
@@ -193,7 +184,7 @@ class AuthService:
             return TokenResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
-                expires_in=ttl_seconds,  # 24 hours or 30 days based on remember_me
+                expires_in=3600 * 24,  # 24 hours
             )
 
         except HTTPException:

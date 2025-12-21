@@ -1,62 +1,69 @@
-'use client';
-
-import { useParams } from 'next/navigation';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@olympus/ui';
-import { DocumentList } from '@/components/documents/DocumentList';
-import { DocumentUpload } from '@/components/documents/DocumentUpload';
-import { useDocuments } from '@/hooks/useDocuments';
-import { useDocumentSSE } from '@/hooks/useDocumentSSE';
-import { useSpace } from '@/hooks/useSpaces';
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from '@tanstack/react-query';
+import { SpaceDetailClient } from '@/components/spaces/SpaceDetailClient';
+import { DocumentSortField, SortOrder } from '@/lib/api/generated';
+import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
+import {
+  fetchDocuments,
+  getCurrentOrganizationId,
+} from '@/lib/api/server-fetchers';
+import { queryKeys } from '@/lib/query/query-keys';
 
-export default function SpaceDetailPage() {
-  const params = useParams();
-  const spaceId = params.id as string;
+interface SpaceDetailPageProps {
+  params: { id: string };
+}
 
-  const { space } = useSpace(spaceId);
-  const { documents, isLoading } = useDocuments({ spaceId });
+export default async function SpaceDetailPage({
+  params,
+}: SpaceDetailPageProps) {
+  const spaceId = params.id;
+  const queryClient = new QueryClient();
+  const graphqlClient = await getServerGraphQLClient();
 
-  // Subscribe to real-time document status updates via SSE
-  useDocumentSSE(spaceId);
+  // Get current organization ID to match client query key
+  const currentOrgId = await getCurrentOrganizationId();
+
+  // Default sort matches DocumentTable initial state (line 48-49: { id: 'createdAt', desc: true })
+  const defaultSort = {
+    field: DocumentSortField.CreatedAt,
+    order: SortOrder.Desc,
+  };
+
+  // Prefetch documents for this space for instant page load
+  // Query key must EXACTLY match client's initial fetch for proper hydration
+  // Client initial state (from DocumentTable.tsx):
+  // - limit: 100, offset: 0 (useDocuments defaults, lines 192-193)
+  // - organizationId: currentOrganization?.id (from Zustand, line 191)
+  // - filters: undefined (graphqlFilters is undefined when no user input, line 91-92)
+  // - sort: { field: CREATED_AT, order: DESC } (default sorting, lines 64-78)
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.documents.list(spaceId, {
+        limit: 100,
+        offset: 0,
+        organizationId: currentOrgId,
+        filters: undefined,
+        sort: defaultSort,
+      }),
+      queryFn: () =>
+        fetchDocuments(graphqlClient, {
+          spaceId,
+          limit: 100,
+          offset: 0,
+          sort: defaultSort,
+        }),
+    });
+  } catch (error) {
+    // Log error but allow page to render - client-side queries will fetch data as needed
+    console.error('Space documents SSR prefetch failed:', error);
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {space?.name || 'Space Details'}
-        </h1>
-        <p className="text-gray-600">
-          {space?.description ||
-            'Upload and manage documents in this workspace.'}
-        </p>
-      </div>
-
-      {/* Document Upload Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Documents</CardTitle>
-          <CardDescription>
-            Upload PDFs, Word documents, spreadsheets, and more to your space.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DocumentUpload spaceId={spaceId} />
-        </CardContent>
-      </Card>
-
-      {/* Document List Section */}
-      <DocumentList
-        documents={documents}
-        spaceId={spaceId}
-        isLoading={isLoading}
-        emptyMessage="No documents uploaded yet. Start by uploading files above."
-      />
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <SpaceDetailClient spaceId={spaceId} />
+    </HydrationBoundary>
   );
 }

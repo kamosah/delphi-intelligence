@@ -1,9 +1,16 @@
 'use client';
 
-import { FileImage, FileSpreadsheet, FileText, File } from 'lucide-react';
+import {
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  File,
+} from 'lucide-react';
 
 interface DocumentIconProps {
   fileType?: string;
+  variant?: 'default' | 'icon-only';
 }
 
 /**
@@ -51,13 +58,20 @@ function getFileTypeStyles(fileType?: string) {
     };
   }
 
-  // Text documents (Word, plain text, etc.)
+  // Plain text files (.txt)
+  if (type.includes('text/plain') || type.includes('txt')) {
+    return {
+      icon: FileType,
+      bgColor: 'bg-gray-100',
+      iconColor: 'text-gray-600',
+    };
+  }
+
+  // Word documents (.doc, .docx)
   if (
     type.includes('document') ||
     type.includes('word') ||
-    type.includes('doc') ||
-    type.includes('text') ||
-    type.includes('txt')
+    type.includes('doc')
   ) {
     return {
       icon: FileText,
@@ -75,11 +89,54 @@ function getFileTypeStyles(fileType?: string) {
 }
 
 /**
+ * Get human-readable label for file type (for tooltips, etc.)
+ */
+export function getFileTypeLabel(fileType?: string): string {
+  const type = fileType?.toLowerCase() || '';
+
+  if (type.includes('pdf')) return 'PDF Document';
+  if (
+    type.includes('image') ||
+    type.includes('png') ||
+    type.includes('jpg') ||
+    type.includes('jpeg') ||
+    type.includes('gif') ||
+    type.includes('webp')
+  )
+    return 'Image';
+  if (
+    type.includes('sheet') ||
+    type.includes('excel') ||
+    type.includes('csv') ||
+    type.includes('xls')
+  )
+    return 'Spreadsheet';
+  if (type.includes('text/plain') || type.includes('txt')) return 'Text File';
+  if (
+    type.includes('document') ||
+    type.includes('word') ||
+    type.includes('doc')
+  )
+    return 'Word Document';
+
+  return 'File';
+}
+
+/**
  * Document icon component.
  * Displays a file icon with file type specific styling.
+ *
+ * @param variant - 'default' shows icon with background, 'icon-only' shows just the icon
  */
-export function DocumentIcon({ fileType }: DocumentIconProps) {
+export function DocumentIcon({
+  fileType,
+  variant = 'default',
+}: DocumentIconProps) {
   const { icon: Icon, bgColor, iconColor } = getFileTypeStyles(fileType);
+
+  if (variant === 'icon-only') {
+    return <Icon className={`w-5 h-5 ${iconColor}`} />;
+  }
 
   return (
     <div

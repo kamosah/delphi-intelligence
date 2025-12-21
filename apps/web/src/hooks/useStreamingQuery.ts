@@ -15,6 +15,7 @@ import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useStreamingStore } from '@/lib/stores/streaming-store';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 import type { MessageMetadata } from '@/types/ui/messages';
 
 /**
@@ -411,6 +412,9 @@ export function useStreamingQuery(threadId?: string) {
           error instanceof Error ? error.message : String(error);
         const errorCode =
           (error as Error & { errorCode?: string }).errorCode || 'UNKNOWN';
+
+        // Check for auth errors first (these should never retry)
+        await handleAuthError(error);
 
         // Determine if we should retry
         const canRetry =

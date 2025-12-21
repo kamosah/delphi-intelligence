@@ -2,15 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useClientToken } from '@/hooks/useClientToken';
 import { queryKeys } from '@/lib/query/query-keys';
+import { handleAuthError } from '@/lib/utils/auth-error-handler';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // SSE configuration constants
-const SSE_TOKEN_REFRESH_BUFFER = 30; // seconds - refresh token before expiry
+const SSE_TOKEN_REFRESH_BUFFER = 60; // seconds - refresh token before expiry (increased from 30s to 1 minute)
 const SSE_RECONNECT_DELAY = 2000; // milliseconds - delay before reconnect on error
 const SSE_ERROR_RETRY_DELAY = 5000; // milliseconds - delay before retry on connection error
+const MAX_RECONNECT_ATTEMPTS = 3; // max reconnection attempts before showing error
 
 interface SSEMessage {
   event: string;
@@ -61,7 +64,14 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
   const { clientToken } = useClientToken();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Note: SSE automatically reconnects when tab becomes active because:
+  // 1. QueryProvider's visibility handler refreshes clientToken when stale
+  // 2. This useEffect has clientToken as a dependency
+  // 3. When clientToken changes, connectSSE() runs and reconnects
+  // No need for a separate visibility handler here!
 
   useEffect(() => {
     // Only connect if enabled and we have a client token
@@ -102,6 +112,8 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
         eventSource.addEventListener('open', () => {
           console.log('[SSE] Connected to document updates stream');
           setIsConnected(true);
+          // Reset reconnect attempts on successful connection
+          reconnectAttemptsRef.current = 0;
         });
 
         // Handle connection established event
@@ -144,6 +156,24 @@ export function useDocumentSSE(spaceId: string, enabled: boolean = true) {
             console.log('[SSE] Connection closed, will reconnect...');
             eventSource.close();
             eventSourceRef.current = null;
+
+            // Check reconnection attempts
+            reconnectAttemptsRef.current += 1;
+
+            if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+              // Max attempts reached - likely true session expiration
+              console.error(
+                '[SSE] Max reconnection attempts reached, triggering logout'
+              );
+              toast.error('Session Expired', {
+                description: 'Please log in again to continue.',
+                duration: 5000,
+              });
+              handleAuthError(
+                new Error('SSE connection failed: session expired')
+              );
+              return;
+            }
 
             // Reconnect after a short delay
             if (!isCancelled) {
