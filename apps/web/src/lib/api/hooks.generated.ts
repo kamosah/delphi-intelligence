@@ -50,6 +50,7 @@ export type BulkDeleteResult = {
   __typename?: 'BulkDeleteResult';
   deletedCount: Scalars['Int']['output'];
   failedIds: Array<Scalars['ID']['output']>;
+  storageFailures: Array<Scalars['ID']['output']>;
 };
 
 export type CreateOrganizationInput = {
@@ -545,6 +546,7 @@ export type BulkDeleteDocumentsMutation = {
     __typename?: 'BulkDeleteResult';
     deletedCount: number;
     failedIds: Array<string>;
+    storageFailures: Array<string>;
   };
 };
 
@@ -1254,6 +1256,7 @@ export const BulkDeleteDocumentsDocument = `
   bulkDeleteDocuments(input: $input) {
     deletedCount
     failedIds
+    storageFailures
   }
 }
     `;

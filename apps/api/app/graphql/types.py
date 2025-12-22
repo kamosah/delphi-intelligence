@@ -232,7 +232,7 @@ class Document:
                 return Space.from_model(space_model)
             except Exception:
                 return None
-        return None  # Explicit return for mypy
+        return None
 
     @classmethod
     def from_model(cls, document: DocumentModel) -> "Document":
@@ -315,6 +315,7 @@ class BulkDeleteResult:
 
     deleted_count: int
     failed_ids: list[strawberry.ID]
+    storage_failures: list[strawberry.ID] = strawberry.field(default_factory=list)
 
 
 @strawberry.type

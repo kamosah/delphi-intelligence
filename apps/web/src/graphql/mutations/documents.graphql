@@ -10,5 +10,6 @@ mutation BulkDeleteDocuments($input: BulkDeleteDocumentsInput!) {
   bulkDeleteDocuments(input: $input) {
     deletedCount
     failedIds
+    storageFailures
   }
 }

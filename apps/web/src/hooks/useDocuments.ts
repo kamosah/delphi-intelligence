@@ -210,7 +210,7 @@ export function useDocuments(options?: {
         filters: options?.filters,
         sort: options?.sort,
       }),
-      placeholderData: (previousData) => previousData, // Keep previous data while refetching
+      placeholderData: (previousData) => previousData, // Keep UI smooth while global LinearProgress shows loading
     }
   );
 
