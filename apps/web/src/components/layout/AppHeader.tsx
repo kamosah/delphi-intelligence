@@ -41,7 +41,7 @@ export function AppHeader() {
               className="text-base font-semibold text-gray-900 hover:text-gray-700 transition-colors"
               data-testid="app-logo"
             >
-              Olympus MVP
+              Olympus
             </h1>
           </Link>
         </div>
