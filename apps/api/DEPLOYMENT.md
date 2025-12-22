@@ -129,7 +129,7 @@ Once deployed, check:
 
 ```bash
 # Health endpoint
-curl https://olympus-api.onrender.com/health/
+curl https://olympus-api.onrender.com/health
 
 # Expected response:
 {
@@ -256,7 +256,7 @@ curl -X POST https://olympus-api.onrender.com/graphql \
 1. Check logs for startup errors
 2. Verify `DATABASE_URL` format (must use session pooler)
 3. Ensure Redis is connected (check `REDIS_URL`)
-4. Test health endpoint: `curl https://olympus-api.onrender.com/health/`
+4. Test health endpoint: `curl https://olympus-api.onrender.com/health`
 
 ### Issue: CORS Errors
 
@@ -308,7 +308,7 @@ curl -X POST https://olympus-api.onrender.com/graphql \
 Render runs health checks every 30 seconds:
 
 ```bash
-curl https://olympus-api.onrender.com/health/
+curl https://olympus-api.onrender.com/health
 ```
 
 ### Logs

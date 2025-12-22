@@ -78,7 +78,7 @@ docs/
 *.md
 !README.md
 
-# Docker (keep Dockerfile.prod for deployment)
+# Docker - Exclude development/test Docker files but keep Dockerfile.prod for deployment
 Dockerfile
 docker-compose.yml
 docker-compose.dev.yml

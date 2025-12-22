@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379", description="Redis connection URL")
 
     # CORS Configuration
+    # WARNING: At least one of cors_origins or cors_origin_regex must be configured
+    # in production, otherwise all CORS requests will be rejected.
+    # Development: Uses cors_origin_regex for localhost:3000-3005
+    # Production: Set cors_origins to your frontend URLs and cors_origin_regex to None
     cors_origins: list[str] = Field(
         default=[], description="Allowed CORS origins (exact matches for production)"
     )

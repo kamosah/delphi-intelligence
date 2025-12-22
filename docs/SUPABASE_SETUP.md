@@ -374,7 +374,9 @@ Before deploying to production, verify:
 
 ## Cost Considerations
 
-### Free Tier Limits (as of 2024)
+### Free Tier Limits (as of December 2025)
+
+**Note**: Verify current pricing at https://supabase.com/pricing as costs may change.
 
 - **Database**: 500 MB storage
 - **File Storage**: 50 MB (for document uploads)
