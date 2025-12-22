@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     # App Configuration
-    app_name: str = Field(default="Olympus MVP API", description="Application name")
+    app_name: str = Field(default="Olympus API", description="Application name")
     debug: bool = Field(default=True, description="Debug mode")
     env: str = Field(default="development", description="Environment")
     host: str = Field(default="0.0.0.0", description="Server host")
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     # LangSmith Configuration (Optional Observability)
     langchain_tracing_v2: bool = Field(default=False, description="Enable LangSmith tracing")
     langchain_api_key: str = Field(default="", description="LangSmith API key for observability")
-    langchain_project: str = Field(default="olympus-mvp", description="LangSmith project name")
+    langchain_project: str = Field(default="olympus", description="LangSmith project name")
 
     @property
     def db_url(self) -> str:

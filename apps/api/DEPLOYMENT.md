@@ -299,6 +299,41 @@ curl -X POST https://olympus-api.onrender.com/graphql \
 2. Check `REDIS_URL` is populated (Render auto-sets this)
 3. Redis must be in same region as web service
 
+### Issue: Out of Memory Errors
+
+**Symptoms**: "Out of memory (used over 512Mi)" during deployment or startup
+
+**Root Cause**: Render's free tier has a 512MB memory limit. Memory can spike during:
+- Poetry creating virtualenvs at runtime
+- Heavy dependency loading (LangChain, OpenAI, PyMuPDF, NLTK)
+- Multiple Uvicorn workers
+
+**Solution**:
+
+**Option 1: Optimized Dockerfile (Recommended)**
+The latest `Dockerfile.prod` includes these optimizations:
+1. **No Poetry at runtime**: Run `uvicorn` directly instead of `poetry run`
+2. **Single worker**: Uses `--workers 1` for free tier
+3. **No virtualenv creation**: Sets `POETRY_VIRTUALENVS_CREATE=false`
+
+If using an older Dockerfile, update to the latest version or apply these changes manually.
+
+**Option 2: Upgrade Instance Type**
+If memory issues persist after optimization:
+1. Go to Render dashboard → Your service → Settings
+2. Scroll to "Instance Type"
+3. Upgrade to **Starter ($7/month)** with 512MB+ RAM
+
+**Verification**:
+```bash
+# Check logs for successful startup
+docker logs <container-id> 2>&1 | grep "Uvicorn running"
+
+# Should see:
+# INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+# INFO:     Started parent process [1]
+```
+
 ---
 
 ## Monitoring & Maintenance

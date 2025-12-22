@@ -114,34 +114,62 @@ Fill in the web service configuration form:
 
 ## Step 3: Add Redis Add-on
 
-While the web service is building, add Redis:
+While the web service is building, add Redis for session management and caching.
 
 ### 3.1 Create Redis Instance
 
-1. In your web service dashboard, click **"Settings"** tab (left sidebar)
-2. Scroll to **"Environment"** section
-3. Click **"Add Environment Variable"** is NOT what we want - look for **"Add-ons"**
-4. Actually, let's go back to the main dashboard:
-   - Click **"New +"** → **"Redis"**
-   - OR in your web service, go to **"Environment"** tab → **"Add Database"** → **"Redis"**
+**From Render Dashboard** (recommended method):
 
-### 3.2 Configure Redis
+1. Go to your main Render dashboard (click the Render logo in top-left)
+2. Click **"New +"** → **"Redis"**
+3. This opens the Redis creation form
 
-- **Name**: `olympus-redis` (or auto-generated)
-- **Region**: **Same as your web service** (critical for low latency)
-- **Plan**: **Free** (25 MB, sufficient for sessions)
+**Configure Redis Settings**:
+
+- **Name**: `olympus-redis` (or use auto-generated name)
+- **Region**: **Must match your web service region** ⚠️
+  - Critical for low latency
+  - Example: If web service is in Oregon, Redis must be in Oregon
+- **Plan**: **Free** (25 MB)
+  - Sufficient for JWT session caching
   - Shared instance, not persistent across restarts
-  - Upgrade to Starter ($10/month) for 1GB persistent Redis
+  - **Upgrade to Starter ($10/month)** for:
+    - 1GB persistent storage
+    - Dedicated instance
+    - Better performance
 
-### 3.3 Connect Redis to Web Service
+4. Click **"Create Redis"**
+5. Wait ~30 seconds for Redis to provision
 
-1. After creating Redis, go back to your web service
-2. Go to **"Environment"** tab
-3. Render should auto-populate `REDIS_URL` environment variable
-   - Format: `redis://red-xxxxx:6379`
-4. If not, manually add:
-   - Key: `REDIS_URL`
-   - Value: Copy from Redis instance details
+**Alternative Method**: From within your web service, go to **"Environment"** tab → look for **"Add Database"** or **"Redis"** option (UI may vary).
+
+### 3.2 Connect Redis to Web Service
+
+After Redis is created, Render automatically configures the connection:
+
+1. Go back to your **web service** (olympus-api)
+2. Click **"Environment"** tab (left sidebar)
+3. Scroll through environment variables
+4. Verify `REDIS_URL` exists:
+   - **Key**: `REDIS_URL`
+   - **Value**: `redis://red-xxxxx:6379` (auto-populated by Render)
+
+**If `REDIS_URL` is missing** (rare):
+
+1. Go to your Redis instance → copy the **Internal Connection String**
+2. Return to web service → **Environment** tab
+3. Click **"Add Environment Variable"**
+4. Add:
+   - **Key**: `REDIS_URL`
+   - **Value**: Paste the connection string from Redis instance
+
+**Verify Connection**:
+
+- After deployment completes, check logs for:
+  ```
+  INFO: Redis connection successful
+  ```
+- If you see Redis connection errors, verify the region matches your web service
 
 ---
 
@@ -153,13 +181,13 @@ In your web service, go to **"Environment"** tab.
 
 Add these variables one by one:
 
-| Key        | Value             | Notes                              |
-| ---------- | ----------------- | ---------------------------------- |
-| `ENV`      | `production`      | Sets production mode               |
-| `DEBUG`    | `false`           | Disables /docs, /redoc endpoints   |
-| `PORT`     | `8000`            | Default port (Render auto-detects) |
-| `APP_NAME` | `Olympus MVP API` | Optional, for logging              |
-| `HOST`     | `0.0.0.0`         | Allow external connections         |
+| Key        | Value         | Notes                              |
+| ---------- | ------------- | ---------------------------------- |
+| `ENV`      | `production`  | Sets production mode               |
+| `DEBUG`    | `false`       | Disables /docs, /redoc endpoints   |
+| `PORT`     | `8000`        | Default port (Render auto-detects) |
+| `APP_NAME` | `Olympus API` | Optional, for logging              |
+| `HOST`     | `0.0.0.0`     | Allow external connections         |
 
 ### 4.2 Database Configuration (Supabase)
 
@@ -213,13 +241,22 @@ openssl rand -hex 32
 | `OPENAI_TEMPERATURE`          | `0.0`                    | Deterministic responses                   |
 | `OPENAI_MAX_TOKENS`           | `2000`                   | Max response length                       |
 
-### 4.6 Redis (Auto-populated)
+### 4.6 Redis Configuration
 
-| Key         | Value                    | Notes                           |
-| ----------- | ------------------------ | ------------------------------- |
-| `REDIS_URL` | `redis://red-xxxxx:6379` | Auto-set by Render Redis add-on |
+**This should already be configured** if you completed Step 3.
 
-**Verify**: Should already exist if you added Redis in Step 3.
+| Key         | Value                    | Notes                                          |
+| ----------- | ------------------------ | ---------------------------------------------- |
+| `REDIS_URL` | `redis://red-xxxxx:6379` | Auto-populated by Render when Redis is created |
+
+**Verify Redis Connection**:
+
+1. Check that `REDIS_URL` exists in your environment variables
+2. Format should be: `redis://red-[unique-id]:6379`
+3. The `red-xxxxx` portion is auto-generated by Render
+4. **Do not modify** this value - Render manages it automatically
+
+**If missing**: Return to Step 3.2 to manually add the Redis connection string.
 
 ### 4.7 LangSmith (Optional - for AI observability)
 
@@ -465,5 +502,5 @@ Continue to:
 ---
 
 **Created**: 2024-12-20
-**For**: Olympus MVP Backend Deployment
+**For**: Olympus Backend Deployment
 **Phase**: 5 of 7 (Render Deployment)
