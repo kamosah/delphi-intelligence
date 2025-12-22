@@ -70,10 +70,13 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if settings.debug else None,
     )
 
-    # Add CORS middleware
+    # Add CORS middleware (supports both exact origins and regex pattern)
+    # Development: Uses regex for localhost:3000-3005
+    # Production: Uses explicit origins list
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r"^https?://localhost:300[0-9]$",  # Matches ports 3000-3009
+        allow_origins=settings.cors_origins,
+        allow_origin_regex=settings.cors_origin_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
