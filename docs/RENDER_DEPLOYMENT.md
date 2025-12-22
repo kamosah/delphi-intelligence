@@ -181,13 +181,13 @@ In your web service, go to **"Environment"** tab.
 
 Add these variables one by one:
 
-| Key        | Value             | Notes                              |
-| ---------- | ----------------- | ---------------------------------- |
-| `ENV`      | `production`      | Sets production mode               |
-| `DEBUG`    | `false`           | Disables /docs, /redoc endpoints   |
-| `PORT`     | `8000`            | Default port (Render auto-detects) |
-| `APP_NAME` | `Olympus MVP API` | Optional, for logging              |
-| `HOST`     | `0.0.0.0`         | Allow external connections         |
+| Key        | Value         | Notes                              |
+| ---------- | ------------- | ---------------------------------- |
+| `ENV`      | `production`  | Sets production mode               |
+| `DEBUG`    | `false`       | Disables /docs, /redoc endpoints   |
+| `PORT`     | `8000`        | Default port (Render auto-detects) |
+| `APP_NAME` | `Olympus API` | Optional, for logging              |
+| `HOST`     | `0.0.0.0`     | Allow external connections         |
 
 ### 4.2 Database Configuration (Supabase)
 
@@ -502,5 +502,5 @@ Continue to:
 ---
 
 **Created**: 2024-12-20
-**For**: Olympus MVP Backend Deployment
+**For**: Olympus Backend Deployment
 **Phase**: 5 of 7 (Render Deployment)
