@@ -9,6 +9,8 @@ import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
 import {
   GetOrganizationsDocument,
   type GetOrganizationsQuery,
+  GetOrganizationDocument,
+  type GetOrganizationQuery,
   GetOrganizationMembersDocument,
   type GetOrganizationMembersQuery,
 } from '@/lib/api/hooks.generated';
@@ -103,4 +105,37 @@ export async function fetchOrganizationMembers(
       offset: options.offset ?? 0,
     }
   );
+}
+
+/**
+ * Fetch organization details (server-side only).
+ *
+ * Used in Server Components for SSR data prefetching of organization details.
+ * Query key must match client-side hook for proper hydration.
+ *
+ * @param client - GraphQL client instance from getServerGraphQLClient()
+ * @param options - Query options with organization ID
+ * @returns Organization query result
+ *
+ * @example
+ * ```typescript
+ * // In Server Component (e.g., settings/organizations/[orgId]/page.tsx)
+ * import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
+ * import { fetchOrganization } from '@/lib/api/server-fetchers';
+ * import { queryKeys } from '@/lib/query/query-keys';
+ *
+ * const graphqlClient = await getServerGraphQLClient();
+ * await queryClient.prefetchQuery({
+ *   queryKey: queryKeys.organizations.detail(organizationId),
+ *   queryFn: () => fetchOrganization(graphqlClient, { id: organizationId }),
+ * });
+ * ```
+ */
+export async function fetchOrganization(
+  client: GraphQLClient,
+  options: { id: string }
+): Promise<GetOrganizationQuery> {
+  return client.request<GetOrganizationQuery>(GetOrganizationDocument, {
+    id: options.id,
+  });
 }
