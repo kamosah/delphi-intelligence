@@ -13,10 +13,28 @@ import type { Metric } from 'web-vitals';
 import { onCLS, onFCP, onLCP, onTTFB, onINP } from 'web-vitals';
 import { Card, Button } from '@olympus/ui';
 
+// Type definitions for metric configuration
+interface MetricConfig {
+  name: string;
+  description: string;
+  unit: string;
+  thresholds: { good: number; poor: number };
+}
+
+type RatingType = 'good' | 'needs-improvement' | 'poor';
+
+interface PerformanceWithMemory extends Performance {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+}
+
 interface PerformanceMetric {
   name: string;
   value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
+  rating: RatingType;
   description: string;
   unit: string;
 }
@@ -42,6 +60,18 @@ interface MemoryMetric {
   jsHeapSizeLimit: number;
 }
 
+/**
+ * Determines the performance rating based on value and thresholds
+ */
+function getRating(
+  value: number,
+  thresholds: { good: number; poor: number }
+): RatingType {
+  if (value <= thresholds.good) return 'good';
+  if (value <= thresholds.poor) return 'needs-improvement';
+  return 'poor';
+}
+
 export default function PerformanceDebugPage() {
   const [metricsMap, setMetricsMap] = useState<Map<string, PerformanceMetric>>(
     new Map()
@@ -56,15 +86,7 @@ export default function PerformanceDebugPage() {
   const [fpsMetric, setFpsMetric] = useState<number>(0);
 
   const handleMetric = (metric: Metric) => {
-    const metricConfig: Record<
-      string,
-      {
-        name: string;
-        description: string;
-        unit: string;
-        thresholds: { good: number; poor: number };
-      }
-    > = {
+    const metricConfig: Record<string, MetricConfig> = {
       CLS: {
         name: 'CLS (Cumulative Layout Shift)',
         description: 'Visual stability - measures unexpected layout shifts',
@@ -100,14 +122,7 @@ export default function PerformanceDebugPage() {
     const config = metricConfig[metric.name];
     if (!config) return;
 
-    let rating: 'good' | 'needs-improvement' | 'poor';
-    if (metric.value <= config.thresholds.good) {
-      rating = 'good';
-    } else if (metric.value <= config.thresholds.poor) {
-      rating = 'needs-improvement';
-    } else {
-      rating = 'poor';
-    }
+    const rating = getRating(metric.value, config.thresholds);
 
     const performanceMetric: PerformanceMetric = {
       name: config.name,
@@ -189,7 +204,8 @@ export default function PerformanceDebugPage() {
         {
           name: 'DOM Processing',
           value: Math.round(
-            navigationEntry.domComplete - navigationEntry.domLoading
+            navigationEntry.domContentLoadedEventEnd -
+              navigationEntry.domInteractive
           ),
           unit: 'ms',
         },
@@ -237,7 +253,9 @@ export default function PerformanceDebugPage() {
   useEffect(() => {
     if ('memory' in performance) {
       const updateMemory = () => {
-        const memory = (performance as any).memory;
+        const memory = (performance as PerformanceWithMemory).memory;
+        if (!memory) return;
+
         setMemoryMetrics({
           usedJSHeapSize: Math.round(memory.usedJSHeapSize / 1048576),
           totalJSHeapSize: Math.round(memory.totalJSHeapSize / 1048576),
