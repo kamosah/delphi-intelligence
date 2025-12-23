@@ -47,7 +47,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_JWT_SECRET=your-jwt-secret
 
 # NextAuth
 NEXTAUTH_SECRET=your-nextauth-secret
@@ -138,7 +137,6 @@ NEXT_PUBLIC_API_URL=https://olympus-api.onrender.com
 # Supabase (from your production Supabase project)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx
-SUPABASE_JWT_SECRET=your-supabase-jwt-secret
 
 # NextAuth (generate random secret)
 NEXTAUTH_SECRET=<generate-with-openssl-rand-hex-32>
@@ -337,10 +335,11 @@ apps/web/
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_JWT_SECRET=your-jwt-secret
 NEXTAUTH_SECRET=your-secret
 NEXTAUTH_URL=http://localhost:3000
 ```
+
+**Note:** `SUPABASE_JWT_SECRET` is only needed for backend deployment (Render), not for frontend (Vercel). The frontend uses Supabase SSR with HTTP-only cookies.
 
 ### Required for Production
 
