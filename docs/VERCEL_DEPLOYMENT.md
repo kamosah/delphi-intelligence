@@ -131,7 +131,22 @@ In the "Environment Variables" section:
 
 **Note**: Authentication is handled by Supabase SSR with HTTP-only cookies. No additional auth secrets needed for the frontend.
 
-### 3.3 Environment Selection
+### 3.3 Application Configuration
+
+| Variable Name         | Value                                    | Notes                                          |
+| --------------------- | ---------------------------------------- | ---------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL` | `https://olympus-[random-id].vercel.app` | Your Vercel deployment URL (no trailing slash) |
+
+**Critical**:
+
+- Must start with `NEXT_PUBLIC_` to be accessible in browser
+- Use your actual Vercel URL from Step 4.3 deployment
+- Used for email verification redirects and absolute URLs
+- No trailing slash
+
+**Note**: You'll need to add this variable AFTER your first deployment, once you have your Vercel URL. Then redeploy for changes to take effect.
+
+### 3.4 Environment Selection
 
 For each environment variable, select which environments it applies to:
 
@@ -139,14 +154,15 @@ For each environment variable, select which environments it applies to:
 - **Preview**: ✅ (checked) - for PR deployments
 - **Development**: ❌ (unchecked) - use local `.env.local` instead
 
-### 3.4 Review Environment Variables
+### 3.5 Review Environment Variables
 
-You should have **3 environment variables** configured:
+You should have **4 environment variables** configured (add `NEXT_PUBLIC_APP_URL` after first deployment):
 
 ```
 NEXT_PUBLIC_API_URL=https://olympus-api.onrender.com
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx
+NEXT_PUBLIC_APP_URL=https://olympus-[random-id].vercel.app
 ```
 
 Double-check:
@@ -210,6 +226,111 @@ After successful deployment:
    ```
 3. Vercel assigns a random subdomain for first deployment
 4. Copy this URL - you'll need it for next steps
+
+### 4.4 Add NEXT_PUBLIC_APP_URL Environment Variable
+
+Now that you have your deployment URL, add it to Vercel environment variables:
+
+1. In Vercel project dashboard, go to **"Settings"** → **"Environment Variables"**
+2. Click **"Add Another"**
+3. Add:
+   - **Key**: `NEXT_PUBLIC_APP_URL`
+   - **Value**: `https://olympus-[random-id].vercel.app` (your actual URL, no trailing slash)
+   - **Environments**: Check **Production** and **Preview**
+4. Click **"Save"**
+5. Go to **"Deployments"** tab → Click **"⋯"** next to latest deployment → **"Redeploy"**
+6. Wait for redeployment (~1-2 minutes)
+
+**Why this is needed**: Email verification and password reset links need an absolute URL to redirect users back to your app after they click the link.
+
+### 4.5 Configure Supabase Redirect URLs
+
+**CRITICAL**: Configure allowed redirect URLs in Supabase to prevent authentication errors.
+
+#### Where to Configure
+
+1. Go to [Supabase Dashboard](https://app.supabase.com/)
+2. Select your project
+3. Navigate to **Authentication** → **URL Configuration**
+4. Scroll to **Redirect URLs** section
+
+#### URLs to Add
+
+Add BOTH development and production URLs for all auth flows:
+
+**Development:**
+
+```
+http://localhost:3000/auth/callback
+```
+
+**Production** (use your actual Vercel URL):
+
+```
+https://olympus-[random-id].vercel.app/auth/callback
+```
+
+**Preview Deployments** (optional - if you want to test auth in PR previews):
+
+```
+https://olympus-git-*-[your-team].vercel.app/auth/callback
+```
+
+**Note**: For preview deployments, you'll need to add each URL manually or use a wildcard pattern if Supabase supports it.
+
+#### Affected Auth Flows
+
+The `/auth/callback` route handles ALL Supabase auth flows:
+
+- ✅ Email verification (signup confirmation)
+- ✅ Password reset
+- ✅ Magic link authentication
+- ✅ OAuth provider callbacks (Google, GitHub, etc. - if added later)
+
+#### Why This Matters
+
+When users click links in auth emails (verification, password reset, etc.):
+
+1. Link points to Supabase auth servers
+2. Supabase validates the token
+3. Supabase redirects to your configured `emailRedirectTo` URL
+4. **If the URL is not in allowed list → Authentication fails with "Invalid redirect URL" error**
+
+#### Common Mistakes to Avoid
+
+❌ **Don't include query parameters** in redirect URLs
+
+- Wrong: `http://localhost:3000/auth/callback?type=signup`
+- Right: `http://localhost:3000/auth/callback`
+
+❌ **Don't forget to add BOTH localhost AND production URLs**
+
+- Local testing requires `http://localhost:3000/auth/callback`
+- Production requires `https://your-domain.vercel.app/auth/callback`
+
+❌ **Don't use wildcards unless explicitly supported**
+
+- Supabase requires exact URL matches
+- Add each domain separately (localhost, production, staging, etc.)
+
+#### Site URL Configuration
+
+While you're in Supabase Dashboard → Authentication → URL Configuration:
+
+1. Set **Site URL** to your primary domain (production):
+   ```
+   https://olympus-[random-id].vercel.app
+   ```
+2. This is the default redirect if no `emailRedirectTo` is provided
+
+#### Testing After Configuration
+
+After adding redirect URLs:
+
+- [ ] Sign up with new account (email verification link should work)
+- [ ] Request password reset (reset link should work)
+- [ ] Check Supabase logs for any redirect URL errors
+- [ ] Test from both localhost and production domain
 
 ---
 
