@@ -1,3 +1,4 @@
+import { DebugNav } from '@/components/debug/DebugNav';
 import { VectorSearchDebugger } from '@/components/debug/VectorSearchDebugger';
 
 /**
@@ -25,7 +26,14 @@ export default function VectorSearchDebuggerPage() {
     );
   }
 
-  return <VectorSearchDebugger />;
+  return (
+    <div className="h-screen flex flex-col overflow-hidden">
+      <DebugNav />
+      <main className="flex-1 overflow-y-auto bg-gray-50">
+        <VectorSearchDebugger />
+      </main>
+    </div>
+  );
 }
 
 /**

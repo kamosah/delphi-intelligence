@@ -31,9 +31,8 @@ Ensure you have:
 
 - ✅ Backend deployed to Render (see [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md))
 - ✅ Backend URL: `https://olympus-api.onrender.com`
-- ✅ Supabase project credentials (URL, anon key, JWT secret)
+- ✅ Supabase project credentials (URL, anon key)
 - ✅ GitHub repository with code pushed
-- ✅ Generated NextAuth secret: `openssl rand -hex 32`
 
 ---
 
@@ -119,36 +118,33 @@ In the "Environment Variables" section:
 
 ### 3.2 Supabase Configuration
 
-| Variable Name                   | Value                                        | Notes                                                     |
-| ------------------------------- | -------------------------------------------- | --------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | `https://[PROJECT-REF].supabase.co`          | From Supabase Settings → API                              |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx` | Anon (public) key - safe to expose                        |
-| `SUPABASE_JWT_SECRET`           | `<your-jwt-secret>`                          | From Supabase Settings → API → JWT Settings (KEEP SECRET) |
+| Variable Name                   | Value                                        | Notes                              |
+| ------------------------------- | -------------------------------------------- | ---------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://[PROJECT-REF].supabase.co`          | From Supabase Settings → API       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx` | Anon (public) key - safe to expose |
 
 **How to get these**:
 
 1. Go to your Supabase project → **Settings** → **API**
 2. Copy Project URL → `NEXT_PUBLIC_SUPABASE_URL`
 3. Copy anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Scroll to **JWT Settings** → Copy JWT Secret → `SUPABASE_JWT_SECRET`
 
-### 3.3 NextAuth Configuration
+**Note**: Authentication is handled by Supabase SSR with HTTP-only cookies. No additional auth secrets needed for the frontend.
 
-| Variable Name     | Value                             | Notes                                              |
-| ----------------- | --------------------------------- | -------------------------------------------------- |
-| `NEXTAUTH_SECRET` | `<random-32-char-string>`         | Generate with `openssl rand -hex 32` (KEEP SECRET) |
-| `NEXTAUTH_URL`    | `https://olympus-demo.vercel.app` | Your Vercel URL (update after first deploy)        |
+### 3.3 Application Configuration
 
-**Generate NEXTAUTH_SECRET**:
+| Variable Name         | Value                                    | Notes                                          |
+| --------------------- | ---------------------------------------- | ---------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL` | `https://olympus-[random-id].vercel.app` | Your Vercel deployment URL (no trailing slash) |
 
-```bash
-openssl rand -hex 32
-```
+**Critical**:
 
-**IMPORTANT**:
+- Must start with `NEXT_PUBLIC_` to be accessible in browser
+- Use your actual Vercel URL from Step 4.3 deployment
+- Used for email verification redirects and absolute URLs
+- No trailing slash
 
-- For first deployment, use a placeholder URL for `NEXTAUTH_URL`
-- After deployment, come back and update with actual Vercel URL
+**Note**: You'll need to add this variable AFTER your first deployment, once you have your Vercel URL. Then redeploy for changes to take effect.
 
 ### 3.4 Environment Selection
 
@@ -160,23 +156,21 @@ For each environment variable, select which environments it applies to:
 
 ### 3.5 Review Environment Variables
 
-You should have **6 environment variables** configured:
+You should have **4 environment variables** configured (add `NEXT_PUBLIC_APP_URL` after first deployment):
 
 ```
 NEXT_PUBLIC_API_URL=https://olympus-api.onrender.com
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx
-SUPABASE_JWT_SECRET=<your-supabase-jwt-secret>
-NEXTAUTH_SECRET=<your-nextauth-secret>
-NEXTAUTH_URL=https://olympus-demo.vercel.app
+NEXT_PUBLIC_APP_URL=https://olympus-[random-id].vercel.app
 ```
 
 Double-check:
 
 - ✅ No quotes around values
 - ✅ `NEXT_PUBLIC_*` variables are accessible in browser (safe for public keys)
-- ✅ Secret variables (`SUPABASE_JWT_SECRET`, `NEXTAUTH_SECRET`) are NOT `NEXT_PUBLIC_`
 - ✅ All values are from production Supabase (not local dev)
+- ✅ Backend URL has no trailing slash
 
 ---
 
@@ -233,28 +227,116 @@ After successful deployment:
 3. Vercel assigns a random subdomain for first deployment
 4. Copy this URL - you'll need it for next steps
 
----
+### 4.4 Add NEXT_PUBLIC_APP_URL Environment Variable
 
-## Step 5: Update Configuration
+Now that you have your deployment URL, add it to Vercel environment variables:
 
-### 5.1 Update NEXTAUTH_URL
+1. In Vercel project dashboard, go to **"Settings"** → **"Environment Variables"**
+2. Click **"Add Another"**
+3. Add:
+   - **Key**: `NEXT_PUBLIC_APP_URL`
+   - **Value**: `https://olympus-[random-id].vercel.app` (your actual URL, no trailing slash)
+   - **Environments**: Check **Production** and **Preview**
+4. Click **"Save"**
+5. Go to **"Deployments"** tab → Click **"⋯"** next to latest deployment → **"Redeploy"**
+6. Wait for redeployment (~1-2 minutes)
 
-If you used a placeholder URL in Step 3.3:
+**Why this is needed**: Email verification and password reset links need an absolute URL to redirect users back to your app after they click the link.
 
-1. Go to your project in Vercel dashboard
-2. Click **"Settings"** → **"Environment Variables"**
-3. Find `NEXTAUTH_URL`
-4. Click **"Edit"**
-5. Update value to your actual Vercel URL:
+### 4.5 Configure Supabase Redirect URLs
+
+**CRITICAL**: Configure allowed redirect URLs in Supabase to prevent authentication errors.
+
+#### Where to Configure
+
+1. Go to [Supabase Dashboard](https://app.supabase.com/)
+2. Select your project
+3. Navigate to **Authentication** → **URL Configuration**
+4. Scroll to **Redirect URLs** section
+
+#### URLs to Add
+
+Add BOTH development and production URLs for all auth flows:
+
+**Development:**
+
+```
+http://localhost:3000/auth/callback
+```
+
+**Production** (use your actual Vercel URL):
+
+```
+https://olympus-[random-id].vercel.app/auth/callback
+```
+
+**Preview Deployments** (optional - if you want to test auth in PR previews):
+
+```
+https://olympus-git-*-[your-team].vercel.app/auth/callback
+```
+
+**Note**: For preview deployments, you'll need to add each URL manually or use a wildcard pattern if Supabase supports it.
+
+#### Affected Auth Flows
+
+The `/auth/callback` route handles ALL Supabase auth flows:
+
+- ✅ Email verification (signup confirmation)
+- ✅ Password reset
+- ✅ Magic link authentication
+- ✅ OAuth provider callbacks (Google, GitHub, etc. - if added later)
+
+#### Why This Matters
+
+When users click links in auth emails (verification, password reset, etc.):
+
+1. Link points to Supabase auth servers
+2. Supabase validates the token
+3. Supabase redirects to your configured `emailRedirectTo` URL
+4. **If the URL is not in allowed list → Authentication fails with "Invalid redirect URL" error**
+
+#### Common Mistakes to Avoid
+
+❌ **Don't include query parameters** in redirect URLs
+
+- Wrong: `http://localhost:3000/auth/callback?type=signup`
+- Right: `http://localhost:3000/auth/callback`
+
+❌ **Don't forget to add BOTH localhost AND production URLs**
+
+- Local testing requires `http://localhost:3000/auth/callback`
+- Production requires `https://your-domain.vercel.app/auth/callback`
+
+❌ **Don't use wildcards unless explicitly supported**
+
+- Supabase requires exact URL matches
+- Add each domain separately (localhost, production, staging, etc.)
+
+#### Site URL Configuration
+
+While you're in Supabase Dashboard → Authentication → URL Configuration:
+
+1. Set **Site URL** to your primary domain (production):
    ```
    https://olympus-[random-id].vercel.app
    ```
-6. Click **"Save"**
-7. Vercel will prompt you to redeploy - click **"Redeploy"**
+2. This is the default redirect if no `emailRedirectTo` is provided
 
-### 5.2 Update Backend CORS
+#### Testing After Configuration
 
-Your backend needs to allow requests from your frontend:
+After adding redirect URLs:
+
+- [ ] Sign up with new account (email verification link should work)
+- [ ] Request password reset (reset link should work)
+- [ ] Check Supabase logs for any redirect URL errors
+- [ ] Test from both localhost and production domain
+
+---
+
+## Step 5: Update Backend CORS
+
+After deployment, your backend needs to allow requests from your frontend Vercel URL:
 
 1. Go to Render dashboard → `olympus-api` service
 2. Click **"Environment"** tab
@@ -365,13 +447,13 @@ Vercel will provide DNS records to add:
 
 Add these records in your domain registrar's DNS settings.
 
-### 7.3 Update Environment Variables
+### 7.3 Update Backend CORS
 
 After adding custom domain:
 
-1. Update `NEXTAUTH_URL` to your custom domain
-2. Update backend `CORS_ORIGINS` to include custom domain
-3. Redeploy both frontend and backend
+1. Update backend `CORS_ORIGINS` in Render to include your custom domain
+2. Example: `["https://app.olympus.com"]`
+3. Render will automatically restart the backend
 
 ---
 
@@ -463,21 +545,23 @@ cd ../.. && npm install && npm run build --filter=@olympus/web
 
 **Solution**:
 
-1. Verify `NEXTAUTH_URL` matches your Vercel URL exactly
-2. Verify `NEXTAUTH_SECRET` is set and unique (not placeholder)
-3. Check Supabase keys are correct:
+1. Check Supabase keys are correct:
+   - `NEXT_PUBLIC_SUPABASE_URL` - matches your Supabase project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - anon public key (not service role)
-   - `SUPABASE_JWT_SECRET` - JWT secret (not anon key)
-4. Test Supabase auth directly:
+2. Verify Supabase HTTP-only cookies are working:
+   - Check browser DevTools → Application → Cookies
+   - Should see cookies with `sb-` prefix
+3. Test Supabase auth directly in browser console:
    ```javascript
-   // In browser console
-   import { createBrowserClient } from '@supabase/ssr';
-   const supabase = createBrowserClient(
-     process.env.NEXT_PUBLIC_SUPABASE_URL,
-     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-   );
-   await supabase.auth.getSession();
+   // Test authentication connection
+   fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/health`)
+     .then((r) => r.json())
+     .then(console.log);
+   // Should return: { version: "..." }
    ```
+4. Check middleware is protecting routes:
+   - Try accessing `/dashboard` without logging in
+   - Should redirect to `/login`
 
 ### Build Succeeds but Pages Show Errors
 
@@ -522,9 +606,9 @@ cd ../.. && npm install && npm run build --filter=@olympus/web
 
 Continue to:
 
-1. **Update Backend CORS**: Add Vercel URL to `CORS_ORIGINS` (if not done in Step 5.2)
+1. **Update Backend CORS**: Add Vercel URL to `CORS_ORIGINS` (if not done in Step 5)
 2. **Test User Flows**: Registration, login, navigation
-3. **Phase 7**: [Integration Testing and Documentation](#)
+3. **Phase 7**: Integration Testing and Documentation
 
 ---
 
@@ -624,14 +708,15 @@ Consider integrating:
 
 Before going live:
 
-- [ ] `NEXTAUTH_URL` set to production URL
-- [ ] `NEXTAUTH_SECRET` is strong random string (32+ chars)
-- [ ] `SUPABASE_JWT_SECRET` kept secret (not `NEXT_PUBLIC_`)
-- [ ] Backend `CORS_ORIGINS` restricted to your domains only
-- [ ] Environment variables in Vercel secrets (not in git)
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are correct
+- [ ] Backend `CORS_ORIGINS` restricted to your domains only (no wildcards)
+- [ ] Environment variables in Vercel (not in git)
 - [ ] HTTPS enabled (Vercel does this automatically)
+- [ ] Supabase Row Level Security (RLS) enabled on all tables
+- [ ] Authentication middleware protecting sensitive routes
 - [ ] CSP headers configured (optional but recommended)
 - [ ] Rate limiting enabled on backend (prevent abuse)
+- [ ] HTTP-only cookies enabled (Supabase SSR default)
 
 ---
 
