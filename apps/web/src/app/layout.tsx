@@ -1,4 +1,6 @@
 import { DM_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/lib/query/provider';
@@ -84,6 +86,8 @@ export default function RootLayout({
           </div>
           <Toaster position="top-right" richColors duration={5000} />
         </QueryProvider>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

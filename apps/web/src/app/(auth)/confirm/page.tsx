@@ -4,16 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import {
-  AnimatedPageLoader,
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@olympus/ui';
+import { AnimatedPageLoader, Button } from '@olympus/ui';
 
 type VerificationStatus = 'loading' | 'success' | 'error';
 
@@ -66,82 +57,99 @@ function ConfirmContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="h-full overflow-y-auto flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
-      <Card className="w-full max-w-md">
-        {status === 'loading' && (
-          <>
-            <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              </div>
-              <CardTitle className="text-2xl">Verifying your email</CardTitle>
-              <CardDescription className="text-base">
+    <div className="space-y-6">
+      {status === 'loading' && (
+        <>
+          {/* Icon and Title */}
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Verifying your email
+              </h2>
+              <p className="mt-2 text-base text-muted-foreground">
                 Please wait while we confirm your email address...
-              </CardDescription>
-            </CardHeader>
-          </>
-        )}
-
-        {status === 'success' && (
-          <>
-            <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
-              </div>
-              <CardTitle className="text-2xl">Email verified!</CardTitle>
-              <CardDescription className="text-base">
-                Your account is now active.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Redirecting to dashboard in {redirectSeconds} seconds...
               </p>
-            </CardContent>
+            </div>
+          </div>
+        </>
+      )}
 
-            <CardFooter>
-              <Button asChild className="w-full">
-                <Link href="/dashboard">Continue to Dashboard</Link>
-              </Button>
-            </CardFooter>
-          </>
-        )}
+      {status === 'success' && (
+        <>
+          {/* Icon and Title */}
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Email verified!
+              </h2>
+              <p className="mt-2 text-base text-muted-foreground">
+                Your account is now active.
+              </p>
+            </div>
+          </div>
 
-        {status === 'error' && (
-          <>
-            <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                <XCircle className="w-8 h-8 text-red-600" />
-              </div>
-              <CardTitle className="text-2xl">Verification failed</CardTitle>
-              <CardDescription className="text-base">
+          {/* Redirect Message */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Redirecting to dashboard in {redirectSeconds} seconds...
+            </p>
+          </div>
+
+          {/* Action Button */}
+          <div className="pt-2">
+            <Button asChild className="w-full">
+              <Link href="/dashboard">Continue to Dashboard</Link>
+            </Button>
+          </div>
+        </>
+      )}
+
+      {status === 'error' && (
+        <>
+          {/* Icon and Title */}
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <XCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Verification failed
+              </h2>
+              <p className="mt-2 text-base text-muted-foreground">
                 {errorMessage}
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
+          </div>
 
-            <CardContent className="space-y-4">
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>This verification link may have:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Expired (links are valid for 24 hours)</li>
-                  <li>Already been used</li>
-                  <li>Been copied incorrectly</li>
-                </ul>
-              </div>
-            </CardContent>
+          {/* Error Details */}
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>This verification link may have:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Expired (links are valid for 24 hours)</li>
+                <li>Already been used</li>
+                <li>Been copied incorrectly</li>
+              </ul>
+            </div>
+          </div>
 
-            <CardFooter className="flex flex-col space-y-3">
-              <Button asChild variant="default" className="w-full">
-                <Link href="/verify-email">Request new verification email</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/login">Back to login</Link>
-              </Button>
-            </CardFooter>
-          </>
-        )}
-      </Card>
+          {/* Action Buttons */}
+          <div className="flex flex-col space-y-3 pt-2">
+            <Button asChild variant="default" className="w-full">
+              <Link href="/verify-email">Request new verification email</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/login">Back to login</Link>
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
