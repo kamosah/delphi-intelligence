@@ -46,9 +46,15 @@ export async function middleware(request: NextRequest) {
   // Refresh session (updates HTTP-only cookies automatically)
   const {
     data: { session },
+    error,
   } = await supabase.auth.getSession();
 
-  const isAuthenticated = !!session;
+  // Log session errors for debugging production issues
+  if (error) {
+    console.error('[Middleware] Session error:', error.message);
+  }
+
+  const isAuthenticated = !!session && !error;
 
   // Define protected routes (require authentication)
   const protectedRoutes = ['/dashboard', '/spaces', '/documents', '/settings'];
@@ -64,8 +70,8 @@ export async function middleware(request: NextRequest) {
   // Check if current path is an auth route
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  // Redirect to login if accessing protected route without authentication
-  if (isProtectedRoute && !isAuthenticated) {
+  // Redirect to login if accessing protected route without authentication OR session error
+  if (isProtectedRoute && (!isAuthenticated || error)) {
     const loginUrl = new URL('/login', request.url);
     // Add redirect parameter to return user after login
     loginUrl.searchParams.set('redirect', pathname);
