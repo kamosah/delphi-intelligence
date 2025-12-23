@@ -16,7 +16,10 @@ export function DebugNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-gray-200 bg-white">
+    <nav
+      className="border-b border-gray-200 bg-white"
+      aria-label="Debug navigation"
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center space-x-1 py-2">
           <div className="flex items-center space-x-2 mr-4">

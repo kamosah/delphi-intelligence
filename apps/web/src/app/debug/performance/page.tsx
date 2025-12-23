@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   Zap,
@@ -85,7 +85,7 @@ export default function PerformanceDebugPage() {
   const [memoryMetrics, setMemoryMetrics] = useState<MemoryMetric | null>(null);
   const [fpsMetric, setFpsMetric] = useState<number>(0);
 
-  const handleMetric = (metric: Metric) => {
+  const handleMetric = useCallback((metric: Metric) => {
     const metricConfig: Record<string, MetricConfig> = {
       CLS: {
         name: 'CLS (Cumulative Layout Shift)',
@@ -136,7 +136,7 @@ export default function PerformanceDebugPage() {
     };
 
     setMetricsMap((prev) => new Map(prev).set(metric.name, performanceMetric));
-  };
+  }, []);
 
   const refreshMetrics = () => {
     setIsLoading(true);
@@ -163,7 +163,7 @@ export default function PerformanceDebugPage() {
     // Mark as loaded after a short delay
     const timer = setTimeout(() => setIsLoading(false), 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [handleMetric]);
 
   // Navigation Timing metrics
   useEffect(() => {
@@ -535,7 +535,14 @@ export default function PerformanceDebugPage() {
                   <p className="text-4xl font-bold">{fpsMetric}</p>
                 </div>
                 <div className="flex-1">
-                  <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div
+                    className="w-full bg-gray-200 rounded-full h-4"
+                    role="progressbar"
+                    aria-label="Frames per second"
+                    aria-valuenow={fpsMetric}
+                    aria-valuemin={0}
+                    aria-valuemax={60}
+                  >
                     <div
                       className={`h-4 rounded-full transition-all ${
                         fpsMetric >= 55
@@ -550,7 +557,7 @@ export default function PerformanceDebugPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Target: 60 FPS (smooth) | 30-60 FPS (acceptable) | &lt;30
+                    Target: 60 FPS (smooth) | 30-60 FPS (acceptable) | {'<'}30
                     FPS (poor)
                   </p>
                 </div>
