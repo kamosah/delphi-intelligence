@@ -1166,4 +1166,4 @@ For issues or questions:
 1. Check [Troubleshooting](#troubleshooting) section
 2. Review backend logs: `docker compose logs api`
 3. Use VectorSearchDebugger: `/debug/vector-search` (dev only)
-4. Create Linear ticket in Olympus MVP project
+4. Create Linear ticket in Olympus project

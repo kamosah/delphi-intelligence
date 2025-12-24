@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Olympus MVP API now includes a comprehensive authentication system that integrates:
+The Olympus API now includes a comprehensive authentication system that integrates:
 
 - **Supabase Auth** for user management and authentication
 - **JWT tokens** for session management and API authorization

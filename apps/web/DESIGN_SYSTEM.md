@@ -2,7 +2,7 @@
 
 ## Overview
 
-Olympus MVP uses a modern, accessible design system built with:
+Olympus uses a modern, accessible design system built with:
 
 - **Shadcn-ui** (New York style) - Component library foundation
 - **TailwindCSS** - Utility-first CSS framework
@@ -566,4 +566,4 @@ Components should be tested for:
 
 ## Version
 
-Design System v1.0.0 - Olympus MVP Week 1
+Design System v1.0.0 - Olympus Week 1

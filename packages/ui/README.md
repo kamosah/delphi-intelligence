@@ -242,4 +242,4 @@ document.documentElement.classList.toggle('dark');
 
 ## License
 
-Private package - Part of Olympus MVP
+Private package - Part of Olympus

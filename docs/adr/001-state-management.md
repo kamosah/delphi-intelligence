@@ -9,7 +9,7 @@
 
 ## Context
 
-The Olympus MVP requires a robust client-side state management solution to handle:
+The Olympus requires a robust client-side state management solution to handle:
 
 1. **Server state**: Data from GraphQL API (spaces, documents, queries, users)
 2. **Client state**: UI-specific state (theme, sidebar, modals, current selections)

@@ -1,6 +1,6 @@
 # Development Commands Reference
 
-This guide provides a comprehensive reference of all development commands for the Olympus MVP project.
+This guide provides a comprehensive reference of all development commands for the Olympus project.
 
 ## Root Commands (Turborepo)
 

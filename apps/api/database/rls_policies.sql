@@ -1,4 +1,4 @@
--- Olympus MVP - Row Level Security (RLS) Policies
+-- Olympus - Row Level Security (RLS) Policies
 -- This file contains all RLS policies for data security
 -- Run this AFTER running schema.sql
 

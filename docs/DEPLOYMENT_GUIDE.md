@@ -1,4 +1,4 @@
-# Olympus MVP - Complete Deployment Guide
+# Olympus - Complete Deployment Guide
 
 Comprehensive guide for deploying the Olympus AI-powered document intelligence platform to production.
 
@@ -18,7 +18,7 @@ Comprehensive guide for deploying the Olympus AI-powered document intelligence p
 
 ## Overview
 
-This guide walks through deploying Olympus MVP as a full-stack application with the following architecture:
+This guide walks through deploying Olympus as a full-stack application with the following architecture:
 
 **Production Stack**:
 
@@ -723,6 +723,6 @@ Use this checklist to track your deployment progress:
 ---
 
 **Created**: 2024-12-20
-**For**: Olympus MVP Full-Stack Deployment
+**For**: Olympus Full-Stack Deployment
 **Branch**: `feat/vercel-deployment`
 **Status**: Ready for execution (Phases 4-7 pending manual deployment)

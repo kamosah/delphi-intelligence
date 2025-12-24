@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Olympus MVP (codenamed "Athena") is an AI-powered document intelligence platform built as a Turborepo monorepo with a Next.js 14 frontend and FastAPI backend. The project follows a modern tech stack with hybrid authentication, GraphQL data layer, and a sophisticated state management architecture.
+Olympus (codenamed "Athena") is an AI-powered document intelligence platform built as a Turborepo monorepo with a Next.js 14 frontend and FastAPI backend. The project follows a modern tech stack with hybrid authentication, GraphQL data layer, and a sophisticated state management architecture.
 
 ## Project Context
 
@@ -571,7 +571,7 @@ For in-depth information, refer to these topic-specific guides:
 **Team**: Logarithmic
 **Team ID**: `c82a64d5-68cb-4728-bf2f-7567c5a27777`
 
-**Project**: Olympus MVP
+**Project**: Olympus
 **Project ID**: `f38a33af-fdc7-42c8-aa23-dd3ddc6f4e4c`
 
 **Story Point Scale**: Modified Fibonacci (0.5, 1, 2, 3, 5, 8, 13, 20)
