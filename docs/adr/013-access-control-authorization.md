@@ -142,12 +142,12 @@ allow(user: User, "read", doc: Document) if
     allow(user, "read", doc.space);
 
 allow(user: User, "delete", doc: Document) if
-    user.id = doc.uploaded_by
+    user.id == doc.uploaded_by
     or has_space_role(user, "owner", doc.space);
 
 # Database connection credentials
 allow(user: User, "view_credentials", conn: DatabaseConnection) if
-    user.id = conn.created_by
+    user.id == conn.created_by
     or has_space_role(user, "owner", conn.space);
 ```
 
