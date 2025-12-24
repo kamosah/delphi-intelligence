@@ -32,7 +32,7 @@ export function useUserPreferences() {
     {},
     {
       enabled: !!clientToken && !!userId,
-      queryKey: queryKeys.userPreferences.detail(userId),
+      queryKey: queryKeys.userPreferences.details(),
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes
     }
