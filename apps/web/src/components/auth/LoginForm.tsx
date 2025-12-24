@@ -119,11 +119,13 @@ export function LoginForm() {
         } else {
           setErrorMessage(error.message || 'Failed to sign in');
         }
+        setIsLoading(false);
         return;
       }
 
       if (!authData.session) {
         setErrorMessage('Failed to create session');
+        setIsLoading(false);
         return;
       }
 

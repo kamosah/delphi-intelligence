@@ -20,3 +20,4 @@ export * from './documents';
 export * from './organizations';
 export * from './spaces';
 export * from './threads';
+export * from './user-preferences';
