@@ -1,14 +1,14 @@
 # Feature Alignment Summary
 
-**Project**: Olympus MVP (Hybrid Intelligence Platform)
+**Project**: Olympus (Hybrid Intelligence Platform)
 **Last Updated**: 2025-10-25
-**Purpose**: Track alignment between Olympus MVP and its dual inspirations (Athena Intelligence + Hex)
+**Purpose**: Track alignment between Olympus and its dual inspirations (Athena Intelligence + Hex)
 
 ---
 
 ## Overview
 
-**MAJOR UPDATE (2025-10-25)**: Olympus MVP has pivoted to a **hybrid intelligence platform** combining:
+**MAJOR UPDATE (2025-10-25)**: Olympus has pivoted to a **hybrid intelligence platform** combining:
 
 - **Athena Intelligence** inspiration for document intelligence features
 - **Hex** inspiration for database analytics features AND UI/UX aesthetic
@@ -17,7 +17,7 @@ This document tracks the 3-way alignment between:
 
 1. **Athena Intelligence** - Document processing, RAG, multi-agent workflows
 2. **Hex** - Database connectors, Threads UI, Notebook Agent, SQL analytics
-3. **Olympus MVP** - Hybrid platform unifying both worlds
+3. **Olympus** - Hybrid platform unifying both worlds
 
 ### Unique Value Proposition
 
@@ -29,7 +29,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 1. Infrastructure & Architecture
 
-| Feature                | Athena Intelligence | Olympus MVP                  | Status         |
+| Feature                | Athena Intelligence | Olympus                      | Status         |
 | ---------------------- | ------------------- | ---------------------------- | -------------- |
 | **Platform Name**      | "Olympus Platform"  | ✅ "Olympus" (project name)  | ✅ Aligned     |
 | **AI Agent Name**      | "Athena"            | ✅ Project codename "Athena" | ✅ Aligned     |
@@ -41,7 +41,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 2. User Authentication & Security
 
-| Feature                | Athena Intelligence | Olympus MVP        | Status          |
+| Feature                | Athena Intelligence | Olympus            | Status          |
 | ---------------------- | ------------------- | ------------------ | --------------- |
 | **User Registration**  | ✅ Yes              | ✅ Implemented     | ✅ Aligned      |
 | **Login/Logout**       | ✅ Yes              | ✅ Implemented     | ✅ Aligned      |
@@ -54,7 +54,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 3. Workspace Management ("Spaces")
 
-| Feature                     | Athena Intelligence | Olympus MVP              | Status                    |
+| Feature                     | Athena Intelligence | Olympus                  | Status                    |
 | --------------------------- | ------------------- | ------------------------ | ------------------------- |
 | **Create Workspaces**       | ✅ Yes              | ✅ Database model exists | 🟡 Partial (backend only) |
 | **Workspace Collaboration** | ✅ Real-time        | ❌ Not implemented       | 🔴 Gap                    |
@@ -63,7 +63,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 4. Document Management
 
-| Feature                 | Athena Intelligence   | Olympus MVP               | Status                    |
+| Feature                 | Athena Intelligence   | Olympus                   | Status                    |
 | ----------------------- | --------------------- | ------------------------- | ------------------------- |
 | **Document Upload**     | ✅ Multi-format       | ✅ Database model exists  | 🟡 Partial (backend only) |
 | **Supported Formats**   | PDF, DOCX, XLSX, etc. | ❌ Not implemented        | 🔴 Gap                    |
@@ -75,7 +75,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 5. Database Analytics (Hex-Inspired Features) - NEW
 
-| Feature                      | Hex                   | Olympus MVP          | Status             |
+| Feature                      | Hex                   | Olympus              | Status             |
 | ---------------------------- | --------------------- | -------------------- | ------------------ |
 | **PostgreSQL Connector**     | ✅ Yes                | ✅ Backend DB exists | 🟡 Ready (Phase 2) |
 | **Snowflake Connector**      | ✅ Yes                | ❌ Not implemented   | 🔴 Gap (Phase 2)   |
@@ -89,7 +89,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 6. UI/UX Design (Hex Aesthetic) - NEW
 
-| Feature                     | Hex                   | Olympus MVP        | Status                 |
+| Feature                     | Hex                   | Olympus            | Status                 |
 | --------------------------- | --------------------- | ------------------ | ---------------------- |
 | **Threads Chat Interface**  | ✅ Conversational UI  | ❌ Not implemented | 🔴 Gap (Phase 2)       |
 | **Source-Type Badges**      | ✅ Visual indicators  | ❌ Not implemented | 🔴 Gap (Phase 2)       |
@@ -102,13 +102,13 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 
 ### 7. Hybrid Features (Olympus Unique Differentiation) - NEW
 
-| Feature                          | Athena Intel | Hex | Olympus MVP | Status             |
-| -------------------------------- | ------------ | --- | ----------- | ------------------ |
-| **Unified SQL + Document Query** | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
-| **Hybrid Source Citations**      | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
-| **Cross-Source Synthesis**       | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
-| **Intent Routing (SQL/Doc)**     | ❌           | ❌  | ⏳ Planned  | 🔴 Gap (Phase 2)   |
-| **Hex UI for All Features**      | ❌           | ✅  | ⏳ Planned  | 🟡 Design complete |
+| Feature                          | Athena Intel | Hex | Olympus    | Status             |
+| -------------------------------- | ------------ | --- | ---------- | ------------------ |
+| **Unified SQL + Document Query** | ❌           | ❌  | ⏳ Planned | 🔴 Gap (Phase 2)   |
+| **Hybrid Source Citations**      | ❌           | ❌  | ⏳ Planned | 🔴 Gap (Phase 2)   |
+| **Cross-Source Synthesis**       | ❌           | ❌  | ⏳ Planned | 🔴 Gap (Phase 2)   |
+| **Intent Routing (SQL/Doc)**     | ❌           | ❌  | ⏳ Planned | 🔴 Gap (Phase 2)   |
+| **Hex UI for All Features**      | ❌           | ✅  | ⏳ Planned | 🟡 Design complete |
 
 ---
 
@@ -126,7 +126,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Sentiment analysis
 - Key points generation
 
-**Olympus MVP Status**: ❌ Not implemented
+**Olympus Status**: ❌ Not implemented
 
 **Required Implementation**:
 
@@ -155,7 +155,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Multi-step reasoning for complex questions
 - Confidence scoring
 
-**Olympus MVP Status**:
+**Olympus Status**:
 
 - ✅ Database model for `Query` exists
 - ❌ No AI integration
@@ -190,7 +190,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Multi-source information retrieval
 - Relevance ranking
 
-**Olympus MVP Status**: ❌ Not implemented
+**Olympus Status**: ❌ Not implemented
 
 **Required Implementation**:
 
@@ -210,7 +210,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Shared query history
 - Commenting system
 
-**Olympus MVP Status**: ❌ Not implemented
+**Olympus Status**: ❌ Not implemented
 
 **Required Implementation**:
 
@@ -227,7 +227,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Query comments
 - Thread-based discussions
 
-**Olympus MVP Status**: ❌ Not implemented
+**Olympus Status**: ❌ Not implemented
 
 **Required Implementation**:
 
@@ -244,7 +244,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Granular access control
 - Share links with expiration
 
-**Olympus MVP Status**:
+**Olympus Status**:
 
 - ✅ RLS policies exist
 - ❌ No UI for sharing/permissions
@@ -266,7 +266,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - VPC deployment
 - Air-gapped networks
 
-**Olympus MVP Status**: ❌ Cloud only (Vercel/Render planned)
+**Olympus Status**: ❌ Cloud only (Vercel/Render planned)
 
 **Gap**: Not critical for MVP, defer to Phase 2
 
@@ -279,7 +279,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Webhook support
 - API access
 
-**Olympus MVP Status**: ❌ Not implemented
+**Olympus Status**: ❌ Not implemented
 
 **Gap**: Defer to Phase 2 after core features
 
@@ -292,7 +292,7 @@ Olympus is the **first platform** to unify SQL database analytics with document 
 - Video call participation
 - Memory management (learns user preferences)
 
-**Olympus MVP Status**: ❌ Not implemented
+**Olympus Status**: ❌ Not implemented
 
 **Gap**: Start with 1-2 LLM providers (OpenAI, Anthropic), expand later
 
@@ -419,9 +419,9 @@ Based on Athena Intelligence features, here are the **must-have** features for a
 
 ---
 
-## Messaging Alignment: Athena Intelligence vs Olympus MVP
+## Messaging Alignment: Athena Intelligence vs Olympus
 
-### Current Olympus MVP Messaging ❌
+### Current Olympus Messaging ❌
 
 **Landing Page Hero** (apps/web/src/components/landing/HeroSection.tsx:17-18):
 
@@ -503,7 +503,7 @@ subtitle =
 ```markdown
 ## About This Project
 
-Olympus MVP is an open-source recreation of [Athena Intelligence](https://www.athenaintel.com/),
+Olympus is an open-source recreation of [Athena Intelligence](https://www.athenaintel.com/),
 an enterprise AI platform that combines an AI-native infrastructure (Olympus) with autonomous
 AI analysts (Athena). This project aims to build a simplified version focusing on core document
 intelligence and query capabilities.
@@ -538,7 +538,7 @@ Capabilities: Voice, chat, video, multimodal
 Deployment: VPC, air-gapped networks
 ```
 
-### Olympus MVP Tech Stack (current)
+### Olympus Tech Stack (current)
 
 ```
 Frontend: Next.js 14, React Query, Zustand

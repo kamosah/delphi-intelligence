@@ -1,7 +1,7 @@
 # React Query SSR Best Practices Guide
 
 **Last Updated**: 2025-11-10
-**Target**: Olympus MVP (Next.js 14 + React Query)
+**Target**: Olympus (Next.js 14 + React Query)
 
 ---
 

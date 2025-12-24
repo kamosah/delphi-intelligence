@@ -1,4 +1,4 @@
-# Olympus MVP - Project Status Update
+# Olympus - Project Status Update
 
 **Date**: October 19, 2025
 **Version**: 1.0
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Olympus MVP has successfully completed **Phase 1-3 of development**, establishing a solid foundation for AI-powered document intelligence. We've built the complete infrastructure for document processing, semantic search, and AI query processing with streaming responses.
+Olympus has successfully completed **Phase 1-3 of development**, establishing a solid foundation for AI-powered document intelligence. We've built the complete infrastructure for document processing, semantic search, and AI query processing with streaming responses.
 
 **Current Status**: 🟢 On Track
 **Completion**: ~60% of MVP scope

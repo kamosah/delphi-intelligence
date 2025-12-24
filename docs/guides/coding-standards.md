@@ -1,6 +1,6 @@
 # Development Instructions & Coding Preferences
 
-This document outlines the coding standards, preferences, and guidelines for the Olympus MVP project.
+This document outlines the coding standards, preferences, and guidelines for the Olympus project.
 
 ## 📁 Project Structure
 

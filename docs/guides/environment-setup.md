@@ -1,6 +1,6 @@
 # Environment Setup Guide
 
-This guide covers environment configuration, MCP server setup, and project initialization for the Olympus MVP project.
+This guide covers environment configuration, MCP server setup, and project initialization for the Olympus project.
 
 ## Environment Variables
 
@@ -8,7 +8,7 @@ This guide covers environment configuration, MCP server setup, and project initi
 
 ```bash
 # Application
-APP_NAME=Olympus MVP API
+APP_NAME=Olympus API
 ENV=development
 DEBUG=true
 

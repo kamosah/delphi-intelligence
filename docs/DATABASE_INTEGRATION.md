@@ -1,6 +1,6 @@
 # Database Integration & Connector Roadmap
 
-> **Purpose**: Define the database connector architecture and implementation roadmap for Olympus MVP
+> **Purpose**: Define the database connector architecture and implementation roadmap for Olympus
 >
 > **Last Updated**: 2025-10-25
 >
@@ -27,7 +27,7 @@
 
 ### Platform Vision
 
-Olympus MVP is evolving from a document-only intelligence platform to a **hybrid analytics platform** that combines:
+Olympus is evolving from a document-only intelligence platform to a **hybrid analytics platform** that combines:
 
 - **Structured Data**: SQL databases (PostgreSQL, Snowflake, BigQuery, Redshift)
 - **Unstructured Data**: Documents (PDFs, spreadsheets, reports)

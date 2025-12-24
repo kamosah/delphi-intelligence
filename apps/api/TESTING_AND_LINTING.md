@@ -2,7 +2,7 @@
 
 **Last Updated**: October 14, 2025
 
-This guide documents the proper way to run tests, linting, and formatting checks for the Olympus MVP API.
+This guide documents the proper way to run tests, linting, and formatting checks for the Olympus API.
 
 ## Prerequisites
 

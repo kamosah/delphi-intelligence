@@ -1,6 +1,6 @@
 # Design References
 
-Design inspiration and reference materials for the Olympus MVP (Athena) project.
+Design inspiration and reference materials for the Olympus (Athena) project.
 
 ## Structure
 

@@ -1,4 +1,4 @@
-# Olympus MVP - AI-Powered Document Intelligence Platform
+# Olympus - AI-Powered Document Intelligence Platform
 
 An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/), featuring an AI-native platform (Olympus) with autonomous AI analysts (Athena) for document intelligence and analysis.
 
@@ -8,7 +8,7 @@ An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/)
 
 ## About This Project
 
-Olympus MVP is an educational recreation of Athena Intelligence's core capabilities:
+Olympus is an educational recreation of Athena Intelligence's core capabilities:
 
 - **Document Intelligence**: Upload and analyze documents with AI extraction
 - **Natural Language Queries**: Ask questions across your document collection
@@ -332,7 +332,7 @@ npm run build-storybook             # Build static Storybook
 
 ```bash
 # Application
-APP_NAME=Olympus MVP API
+APP_NAME=Olympus API
 ENV=development
 DEBUG=true
 

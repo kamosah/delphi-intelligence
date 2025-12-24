@@ -730,5 +730,5 @@ Before going live:
 ---
 
 **Created**: 2024-12-20
-**For**: Olympus MVP Frontend Deployment
+**For**: Olympus Frontend Deployment
 **Phase**: 6 of 7 (Vercel Deployment)

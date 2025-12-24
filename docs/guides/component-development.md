@@ -1,6 +1,6 @@
 # Component Development Best Practices
 
-This guide covers component architecture, creation rules, and best practices for building UI components in the Olympus MVP project.
+This guide covers component architecture, creation rules, and best practices for building UI components in the Olympus project.
 
 ## Component Architecture Philosophy
 

@@ -9,7 +9,7 @@
 
 ## Context
 
-The Olympus MVP requires an AI agent system capable of handling multiple levels of complexity:
+The Olympus requires an AI agent system capable of handling multiple levels of complexity:
 
 1. **Simple queries**: Single-document Q&A with citations (e.g., "What are the key risks in this 10-K?")
 2. **Multi-document research**: Synthesis across multiple sources (e.g., "Compare YoY revenue growth across all quarterly reports")

@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document describes the implementation of the Document Upload API and Storage Integration for the Olympus MVP. This is the foundational feature for the document intelligence pipeline, allowing users to upload documents that will later be processed by AI for analysis and querying.
+This document describes the implementation of the Document Upload API and Storage Integration for the Olympus. This is the foundational feature for the document intelligence pipeline, allowing users to upload documents that will later be processed by AI for analysis and querying.
 
 ## What Was Implemented
 

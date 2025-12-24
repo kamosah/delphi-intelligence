@@ -1,6 +1,6 @@
 # Supabase Storage Setup for Document Uploads
 
-Quick reference guide for setting up Supabase Storage bucket for the Olympus MVP document upload feature.
+Quick reference guide for setting up Supabase Storage bucket for the Olympus document upload feature.
 
 ## Quick Setup Checklist
 

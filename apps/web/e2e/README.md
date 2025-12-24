@@ -1,6 +1,6 @@
 # E2E Testing with Playwright
 
-This directory contains end-to-end tests for the Olympus MVP web application using Playwright.
+This directory contains end-to-end tests for the Olympus web application using Playwright.
 
 ## Setup
 

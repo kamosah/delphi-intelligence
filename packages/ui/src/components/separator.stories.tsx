@@ -24,7 +24,7 @@ export const Horizontal: Story = {
   render: () => (
     <div className="w-[350px]">
       <div className="space-y-1">
-        <h4 className="text-sm font-medium leading-none">Olympus MVP</h4>
+        <h4 className="text-sm font-medium leading-none">Olympus</h4>
         <p className="text-sm text-muted-foreground">
           An AI-powered document intelligence platform.
         </p>
