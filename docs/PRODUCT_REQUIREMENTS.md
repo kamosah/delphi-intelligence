@@ -1,4 +1,4 @@
-# Olympus MVP - Product Requirements Document
+# Olympus - Product Requirements Document
 
 **Project Codename**: Athena
 **Version**: 1.0
@@ -21,7 +21,7 @@ Olympus is a **hybrid intelligence platform** that bridges structured and unstru
 
 ### Dual Inspiration: Athena Intelligence + Hex
 
-Olympus MVP combines the best of two worlds:
+Olympus combines the best of two worlds:
 
 #### 1. **Athena Intelligence** - Document Intelligence Foundation
 
@@ -663,26 +663,26 @@ _Updated to include:_
 
 ---
 
-## Feature Comparison: Olympus MVP vs Athena Intelligence vs Hex
+## Feature Comparison: Olympus vs Athena Intelligence vs Hex
 
 ### Document Intelligence Features (vs Athena Intelligence)
 
-| Feature                                | Athena Intelligence | Olympus MVP (Target) | MVP Status     |
-| -------------------------------------- | ------------------- | -------------------- | -------------- |
-| Document upload & management           | ✅                  | ✅                   | 🚧 In Progress |
-| Multi-format support (PDF, DOCX, etc.) | ✅                  | ✅                   | ⏳ Planned     |
-| AI-powered document analysis           | ✅                  | ✅                   | ⏳ Planned     |
-| Natural language querying              | ✅                  | ✅                   | ⏳ Planned     |
-| Source citations                       | ✅                  | ✅                   | ⏳ Planned     |
-| Multi-agent workflows                  | ✅                  | ✅ (CrewAI)          | 🚧 Phase 3-4   |
-| Real-time collaboration                | ✅                  | ✅                   | ⏳ Planned     |
-| Audit trails & logging                 | ✅                  | ✅                   | ⏳ Planned     |
-| Voice & video interface                | ✅                  | ❌                   | Future         |
-| Memory management (learning)           | ✅                  | ❌                   | Future         |
+| Feature                                | Athena Intelligence | Olympus (Target) | MVP Status     |
+| -------------------------------------- | ------------------- | ---------------- | -------------- |
+| Document upload & management           | ✅                  | ✅               | 🚧 In Progress |
+| Multi-format support (PDF, DOCX, etc.) | ✅                  | ✅               | ⏳ Planned     |
+| AI-powered document analysis           | ✅                  | ✅               | ⏳ Planned     |
+| Natural language querying              | ✅                  | ✅               | ⏳ Planned     |
+| Source citations                       | ✅                  | ✅               | ⏳ Planned     |
+| Multi-agent workflows                  | ✅                  | ✅ (CrewAI)      | 🚧 Phase 3-4   |
+| Real-time collaboration                | ✅                  | ✅               | ⏳ Planned     |
+| Audit trails & logging                 | ✅                  | ✅               | ⏳ Planned     |
+| Voice & video interface                | ✅                  | ❌               | Future         |
+| Memory management (learning)           | ✅                  | ❌               | Future         |
 
 ### Database Analytics Features (vs Hex) - NEW
 
-| Feature                       | Hex                 | Olympus MVP (Target) | MVP Status |
+| Feature                       | Hex                 | Olympus (Target)     | MVP Status |
 | ----------------------------- | ------------------- | -------------------- | ---------- |
 | Database connections          | ✅ (10+ warehouses) | ✅ (PostgreSQL → 3+) | 🚧 Phase 2 |
 | Threads conversational UI     | ✅                  | ✅                   | ⏳ Planned |
@@ -696,12 +696,12 @@ _Updated to include:_
 
 ### Unique Hybrid Features (Olympus Differentiation)
 
-| Feature                            | Athena Intelligence | Hex | Olympus MVP |
-| ---------------------------------- | ------------------- | --- | ----------- |
-| **Unified SQL + Document queries** | ❌                  | ❌  | ✅          |
-| **Hybrid source citations**        | ❌                  | ❌  | ✅          |
-| **Cross-source synthesis**         | ❌                  | ❌  | ✅          |
-| **Hex aesthetic for all features** | ❌                  | ✅  | ✅          |
+| Feature                            | Athena Intelligence | Hex | Olympus |
+| ---------------------------------- | ------------------- | --- | ------- |
+| **Unified SQL + Document queries** | ❌                  | ❌  | ✅      |
+| **Hybrid source citations**        | ❌                  | ❌  | ✅      |
+| **Cross-source synthesis**         | ❌                  | ❌  | ✅      |
+| **Hex aesthetic for all features** | ❌                  | ✅  | ✅      |
 
 ---
 

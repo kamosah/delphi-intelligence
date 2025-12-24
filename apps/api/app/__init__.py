@@ -1,5 +1,5 @@
 """
-Olympus MVP FastAPI Application
+Olympus FastAPI Application
 """
 
 __version__ = "0.1.0"

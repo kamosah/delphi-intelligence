@@ -12,7 +12,7 @@
 
 ## Context
 
-The Olympus MVP platform requires a rich mentions system to enable users to reference three types of entities within Threads (chat interface) and Notebooks:
+The Olympus platform requires a rich mentions system to enable users to reference three types of entities within Threads (chat interface) and Notebooks:
 
 1. **@user** - Mention team members for collaboration and notifications
 2. **@database** - Reference connected database sources for SQL context

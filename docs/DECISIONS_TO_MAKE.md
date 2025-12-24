@@ -1,6 +1,6 @@
 # Key Decisions to Make
 
-**Project**: Olympus MVP (Athena Intelligence Clone)
+**Project**: Olympus (Athena Intelligence Clone)
 **Date Created**: 2025-10-14
 **Status**: Pending Review
 
@@ -201,7 +201,7 @@ This document tracks important product, technical, and strategic decisions that 
 | **Long Polling** | - Works everywhere<br>- Simple fallback | - Inefficient<br>- Higher latency<br>- Not real-time | Legacy browser support only |
 | **No Streaming (wait for full response)** | - Simplest implementation<br>- No complexity | - Poor UX (long wait times)<br>- Not modern AI experience<br>- No progress indication | Not recommended for AI queries |
 
-**Use Cases in Olympus MVP**:
+**Use Cases in Olympus**:
 
 1. **AI Query Streaming** ✅ Perfect for SSE
    - Stream LLM response tokens as they're generated
@@ -372,7 +372,7 @@ eventSource.onerror = () => {
 **Priority**: 🟢 Low (after MVP features)
 **Impact**: Infrastructure, cost, operational complexity
 
-**Question**: How should we deploy Olympus MVP?
+**Question**: How should we deploy Olympus?
 
 **Options**:
 | Option | Pros | Cons | Cost |

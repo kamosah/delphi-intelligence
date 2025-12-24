@@ -12,7 +12,7 @@
 
 ## Context
 
-The Olympus MVP requires a hierarchical document and folder management interface within Spaces. Users need to:
+The Olympus requires a hierarchical document and folder management interface within Spaces. Users need to:
 
 1. **Organize documents** into nested folder structures for better data source management
 2. **Move documents** between folders efficiently (before creating queries in Threads)

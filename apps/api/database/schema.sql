@@ -1,4 +1,4 @@
--- Olympus MVP - Initial Database Schema
+-- Olympus - Initial Database Schema
 -- This file contains the complete database schema for Supabase
 -- Run this in the Supabase SQL editor
 

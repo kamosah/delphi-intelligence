@@ -1,6 +1,6 @@
 # Backend Development Guide
 
-This guide covers the FastAPI backend architecture, patterns, and best practices for the Olympus MVP project.
+This guide covers the FastAPI backend architecture, patterns, and best practices for the Olympus project.
 
 ## Application Structure
 

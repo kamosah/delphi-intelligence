@@ -1,6 +1,6 @@
 # Frontend Development Guide
 
-This guide covers the Next.js 14 frontend architecture, state management, and data fetching patterns for the Olympus MVP project.
+This guide covers the Next.js 14 frontend architecture, state management, and data fetching patterns for the Olympus project.
 
 ## Application Structure
 

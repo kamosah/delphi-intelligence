@@ -1,6 +1,6 @@
-# Olympus MVP API
+# Olympus API
 
-FastAPI backend for Olympus MVP - an AI-native document intelligence platform inspired by [Athena Intelligence](https://www.athenaintel.com/).
+FastAPI backend for Olympus - an AI-native document intelligence platform inspired by [Athena Intelligence](https://www.athenaintel.com/).
 
 **Core Features**:
 

@@ -1,6 +1,6 @@
 # Supabase Production Setup Guide
 
-This guide walks through setting up a production Supabase PostgreSQL database for the Olympus MVP platform.
+This guide walks through setting up a production Supabase PostgreSQL database for the Olympus platform.
 
 ## Table of Contents
 
@@ -426,5 +426,5 @@ After completing this setup:
 ---
 
 **Created**: 2024-12-20
-**For**: Olympus MVP Production Deployment
+**For**: Olympus Production Deployment
 **Phase**: 4 of 7 (Supabase Setup)

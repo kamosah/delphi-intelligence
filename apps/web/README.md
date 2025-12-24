@@ -1,6 +1,6 @@
 # Olympus Web - Next.js Frontend
 
-Frontend application for Olympus MVP - AI-powered document intelligence platform.
+Frontend application for Olympus - AI-powered document intelligence platform.
 
 ## Tech Stack
 

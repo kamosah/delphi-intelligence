@@ -1,11 +1,11 @@
 # Supabase Setup Guide
 
-This guide walks through setting up Supabase for the Olympus MVP project.
+This guide walks through setting up Supabase for the Olympus project.
 
 ## 📋 Prerequisites
 
 - [Supabase account](https://supabase.com) (free tier is fine)
-- Access to the Olympus MVP monorepo
+- Access to the Olympus monorepo
 
 ## 🚀 Step-by-Step Setup
 

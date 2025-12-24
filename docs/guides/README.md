@@ -1,6 +1,6 @@
 # Documentation Guides
 
-This directory contains modular documentation for the Olympus MVP project, extracted from the main CLAUDE.md for better performance.
+This directory contains modular documentation for the Olympus project, extracted from the main CLAUDE.md for better performance.
 
 ## Why Modular Documentation?
 

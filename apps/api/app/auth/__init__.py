@@ -1,3 +1,3 @@
 """
-Authentication package for Olympus MVP
+Authentication package for Olympus
 """

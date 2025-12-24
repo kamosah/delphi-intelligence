@@ -1,7 +1,7 @@
 # Server-Side Fetchers Guide
 
 **Last Updated**: 2025-11-27
-**Target**: Olympus MVP - Next.js SSR with React Query
+**Target**: Olympus - Next.js SSR with React Query
 
 ---
 
