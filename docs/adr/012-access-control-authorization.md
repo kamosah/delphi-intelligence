@@ -1,4 +1,4 @@
-# ADR-013: Access Control and Authorization Architecture
+# ADR-012: Access Control and Authorization Architecture
 
 **Status**: Proposed
 **Date**: 2025-12-24
@@ -325,7 +325,7 @@ apps/api/
 ### Related ADRs
 
 - [ADR-010: HTTP-Only Cookie Authentication](./010-http-only-cookie-authentication.md) - Auth token management
-- [ADR-012: Error Handling and Observability](./012-error-handling-and-observability.md) - Audit logging
+- [ADR-011: Error Handling and Observability](./011-error-handling-and-observability.md) - Audit logging
 - [HYBRID_ARCHITECTURE.md](../HYBRID_ARCHITECTURE.md) - Organization context management
 
 ## Approval

@@ -25,8 +25,8 @@ We use the following format for ADRs:
 | [ADR-008](./008-micro-frontend-architecture.md)      | Micro Frontend Architecture for Olympus Dashboard | Proposed |
 | [ADR-009](./009-nextjs-ssr-react-query.md)           | Next.js SSR with React Query Implementation       | Proposed |
 | [ADR-010](./010-http-only-cookie-authentication.md)  | HTTP-Only Cookie Authentication                   | Accepted |
-| [ADR-012](./012-error-handling-and-observability.md) | Error Handling and Observability                  | Accepted |
-| [ADR-013](./013-access-control-authorization.md)     | Access Control and Authorization Architecture     | Proposed |
+| [ADR-011](./011-error-handling-and-observability.md) | Error Handling and Observability                  | Accepted |
+| [ADR-012](./012-access-control-authorization.md)     | Access Control and Authorization Architecture     | Proposed |
 
 ## Naming Convention
 
