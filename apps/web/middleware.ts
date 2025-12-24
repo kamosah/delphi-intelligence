@@ -57,7 +57,13 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = !!session && !error;
 
   // Define protected routes (require authentication)
-  const protectedRoutes = ['/dashboard', '/spaces', '/documents', '/settings'];
+  const protectedRoutes = [
+    '/dashboard',
+    '/spaces',
+    '/documents',
+    '/settings',
+    '/onboarding',
+  ];
 
   // Define auth routes (login, signup - should redirect if authenticated)
   const authRoutes = ['/login', '/signup'];
@@ -70,8 +76,8 @@ export async function middleware(request: NextRequest) {
   // Check if current path is an auth route
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  // Redirect to login if accessing protected route without authentication OR session error
-  if (isProtectedRoute && (!isAuthenticated || error)) {
+  // Redirect to login if accessing a protected route without authentication
+  if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     // Add redirect parameter to return user after login
     loginUrl.searchParams.set('redirect', pathname);
