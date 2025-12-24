@@ -240,7 +240,7 @@ allow(user: User, "view_credentials", conn: DatabaseConnection) if
 | Risk                                       | Mitigation                                                       |
 | ------------------------------------------ | ---------------------------------------------------------------- |
 | Oso policy bugs allow unauthorized access  | Comprehensive policy test suite + PostgreSQL RLS as backup       |
-| Performance degradation from policy checks | Implement caching for policy decisions, monitor with LangSmith   |
+| Performance degradation from policy checks | Implement caching for policy decisions, monitor with Sentry      |
 | Oso library becomes unmaintained           | Oso is well-funded and widely used; fallback to custom if needed |
 | Team struggles with Polar syntax           | Training session + pair programming for first policies           |
 | Incomplete migration leaves security gaps  | Phased rollout with audit logging to catch permission failures   |
