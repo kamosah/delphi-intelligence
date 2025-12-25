@@ -24,27 +24,27 @@ const signupSchema = z
   .object({
     fullName: z
       .string()
-      .min(2, { error: 'Full name must be at least 2 characters' }),
+      .min(2, { message: 'Full name must be at least 2 characters' }),
     email: z
       .string()
-      .min(1, { error: 'Email is required' })
-      .email({ error: 'Invalid email address' }),
+      .min(1, { message: 'Email is required' })
+      .email({ message: 'Invalid email address' }),
     password: z
       .string()
-      .min(8, { error: 'Password must be at least 8 characters' })
+      .min(8, { message: 'Password must be at least 8 characters' })
       .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
-        error:
+        message:
           'Password must contain at least one uppercase letter, one lowercase letter, and one number',
       }),
     confirmPassword: z
       .string()
-      .min(1, { error: 'Please confirm your password' }),
+      .min(1, { message: 'Please confirm your password' }),
     acceptTerms: z.boolean().refine((val) => val === true, {
-      error: 'You must accept the terms and conditions',
+      message: 'You must accept the terms and conditions',
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    error: "Passwords don't match",
+    message: "Passwords don't match",
     path: ['confirmPassword'],
   });
 

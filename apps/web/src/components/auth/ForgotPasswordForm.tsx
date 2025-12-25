@@ -22,8 +22,8 @@ import {
 const forgotPasswordSchema = z.object({
   email: z
     .string()
-    .min(1, { error: 'Email is required' })
-    .email({ error: 'Invalid email address' }),
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
 });
 
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
