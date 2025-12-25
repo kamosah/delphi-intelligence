@@ -18,12 +18,12 @@ import { Input } from './input';
 const profileFormSchema = z.object({
   username: z
     .string()
-    .min(2, { error: 'Username must be at least 2 characters' })
-    .max(30, { error: 'Username must not be longer than 30 characters' }),
+    .min(2, { message: 'Username must be at least 2 characters' })
+    .max(30, { message: 'Username must not be longer than 30 characters' }),
   email: z
     .string()
-    .min(1, { error: 'Email is required' })
-    .email({ error: 'Invalid email address' }),
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
   bio: z.string().max(160).optional(),
 });
 
@@ -107,10 +107,10 @@ function ProfileForm() {
 
 // Login form component
 const loginFormSchema = z.object({
-  email: z.string().email({ error: 'Invalid email address' }),
+  email: z.string().email({ message: 'Invalid email address' }),
   password: z
     .string()
-    .min(8, { error: 'Password must be at least 8 characters' }),
+    .min(8, { message: 'Password must be at least 8 characters' }),
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
@@ -252,7 +252,7 @@ export const WithError: RenderOnlyStory = {
     const form = useForm({
       resolver: zodResolver(
         z.object({
-          email: z.string().email({ error: 'Invalid email address' }),
+          email: z.string().email({ message: 'Invalid email address' }),
         })
       ),
       defaultValues: {
