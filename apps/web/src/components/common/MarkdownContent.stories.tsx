@@ -163,7 +163,7 @@ Code block:
 
 \`\`\`json
 {
-  "name": "olympus-mvp",
+  "name": "olympus",
   "version": "1.0.0",
   "description": "AI-powered document intelligence"
 }

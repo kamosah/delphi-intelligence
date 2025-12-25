@@ -504,19 +504,19 @@ description: 'Your Olympus workspace - analyze documents, run queries, and colla
 **Current**:
 
 ```json
-"name": "olympus-mvp",
+"name": "olympus",
 "version": "0.1.0",
 ```
 
 **Recommended Addition**:
 
 ```json
-"name": "olympus-mvp",
+"name": "olympus",
 "version": "0.1.0",
 "description": "Open-source recreation of Athena Intelligence - AI-native document intelligence platform",
 "repository": {
   "type": "git",
-  "url": "https://github.com/yourusername/olympus-mvp"
+  "url": "https://github.com/yourusername/olympus"
 },
 "keywords": [
   "ai",

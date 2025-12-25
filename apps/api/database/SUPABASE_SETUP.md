@@ -16,7 +16,7 @@ This guide walks through setting up Supabase for the Olympus project.
 3. **Click "New Project"**
 4. **Fill in project details:**
    - **Organization**: Select or create one
-   - **Project Name**: `olympus-mvp`
+   - **Project Name**: `olympus`
    - **Database Password**: Generate a strong password and **save it**
    - **Region**: Choose closest to your users
 5. **Click "Create new project"**
