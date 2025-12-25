@@ -1,7 +1,7 @@
 # SpiceDB Authorization System - Detailed Implementation Plan
 
 **Date**: 2025-12-25
-**Related ADR**: [ADR-003: Authorization System](../adr/003-authorization-system.md)
+**Related ADR**: [ADR-013: Authorization System - SpiceDB Migration](../adr/013-authorization-system-spicedb.md)
 **Parent Epic**: LOG-218 (Access Control & Authorization)
 **Total Effort**: 13 points (~16-20 hours)
 
@@ -241,7 +241,9 @@ from authzed.api.v1 import (
     Consistency,
     ObjectReference,
     Relationship,
+    RelationshipFilter,
     RelationshipUpdate,
+    SubjectFilter,
     SubjectReference,
     WriteRelationshipsRequest,
     DeleteRelationshipsRequest,
@@ -1299,6 +1301,6 @@ curl http://localhost:9090/metrics  # Prometheus metrics
 ## References
 
 - [SpiceDB Documentation](https://authzed.com/docs/spicedb/getting-started/discovering-spicedb)
-- [ADR-003: Authorization System](../adr/003-authorization-system.md)
+- [ADR-013: Authorization System - SpiceDB Migration](../adr/013-authorization-system-spicedb.md)
 - [Authorization Research Document](../research/authorization-solutions-2025.md)
 - [Zanzibar Paper](https://research.google/pubs/pub48190/)
