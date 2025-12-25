@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "npm rebuild @swc/core || true",
     "dev": "next dev",
     "dev:turbo": "next dev --turbo",
     "build": "next build",
@@ -92,6 +93,8 @@
     "@storybook/nextjs": "^9.1.10",
     "@storybook/test": "^9.0.0-alpha.2",
     "@storybook/test-runner": "^0.23.0",
+    "@swc/core": "^1.9.4",
+    "@swc/helpers": "^0.5.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/node": "^20.0.0",
