@@ -36,7 +36,7 @@ This plan details the implementation of SpiceDB as Olympus's authorization syste
 # 1. Add SpiceDB to docker-compose.yml
 services:
   spicedb:
-    image: authzed/spicedb:latest
+    image: authzed/spicedb:v1.48.0  # Pinned version for security and reproducibility
     platform: linux/amd64
     command: serve
     ports:
@@ -642,7 +642,33 @@ def downgrade():
     op.execute("DROP FUNCTION IF EXISTS sync_organization_owner_to_spicedb()")
 ```
 
-**Note**: The actual SpiceDB write will be done via Python HTTP/gRPC call from within Supabase using Edge Functions or via API webhook.
+**Important - Trigger Implementation Options**:
+
+The trigger functions above reference `spicedb_write_relationship()` and `spicedb_delete_relationship()` which need to be implemented. There are three approaches:
+
+**Option 1: Application-Level Sync (Recommended)**
+
+- Remove database triggers entirely
+- Handle relationship syncing in `SpiceDBService` methods
+- Called explicitly after creating/updating/deleting memberships
+- Pros: Simpler, easier to test, better error handling
+- Cons: Requires discipline to call sync methods
+
+**Option 2: PostgreSQL HTTP Extension**
+
+- Use `pg_net` extension (Supabase) or `http` extension
+- Implement `spicedb_write_relationship()` as PostgreSQL function that makes HTTP POST to API webhook
+- Pros: Automatic syncing via triggers
+- Cons: Requires HTTP extension, harder to debug
+
+**Option 3: Event-Based with pg_notify**
+
+- Use PostgreSQL `NOTIFY/LISTEN` for event emission
+- Background worker listens and syncs to SpiceDB
+- Pros: Decoupled, async processing
+- Cons: Requires background worker infrastructure
+
+**Recommended Approach**: Start with **Option 1** (application-level) in Phase 2, then optionally add triggers in Phase 4 if needed.
 
 **Acceptance Criteria**:
 
