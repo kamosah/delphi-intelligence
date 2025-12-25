@@ -235,7 +235,7 @@ from typing import Any
 from uuid import UUID
 
 from authzed.api.v1 import (
-    Client,
+    AsyncClient,
     CheckPermissionRequest,
     CheckPermissionResponse,
     Consistency,
@@ -262,6 +262,8 @@ class SpiceDBService:
 
     This service handles all permission checks and relationship management
     for Olympus using the SpiceDB authorization system.
+
+    Note: Uses AsyncClient for proper async/await support in FastAPI.
     """
 
     _instance: "SpiceDBService | None" = None
@@ -273,11 +275,11 @@ class SpiceDBService:
         return cls._instance
 
     def __init__(self):
-        """Initialize the SpiceDB client."""
+        """Initialize the SpiceDB async client."""
         if hasattr(self, "_initialized"):
             return
 
-        self.client = Client(
+        self.client = AsyncClient(
             settings.spicedb_endpoint,
             settings.spicedb_token,
         )
@@ -309,7 +311,7 @@ class SpiceDBService:
                 # Allow access
         """
         try:
-            response: CheckPermissionResponse = self.client.permissions_service.check_permission(
+            response: CheckPermissionResponse = await self.client.permissions_service.check_permission(
                 CheckPermissionRequest(
                     consistency=Consistency(fully_consistent=True),
                     resource=ObjectReference(
@@ -390,7 +392,7 @@ class SpiceDBService:
             if expiration:
                 relationship.optional_expiration.seconds = expiration
 
-            self.client.permissions_service.write_relationships(
+            await self.client.permissions_service.write_relationships(
                 WriteRelationshipsRequest(
                     updates=[
                         RelationshipUpdate(
@@ -432,7 +434,7 @@ class SpiceDBService:
             True if successful, False otherwise
         """
         try:
-            self.client.permissions_service.delete_relationships(
+            await self.client.permissions_service.delete_relationships(
                 DeleteRelationshipsRequest(
                     relationship_filter=RelationshipFilter(
                         resource_type=resource_type,
