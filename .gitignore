@@ -22,6 +22,7 @@ out/
 .env.test
 .env.test.local
 .env.production.local
+.env.production.reference
 
 # Runtime data
 pids
