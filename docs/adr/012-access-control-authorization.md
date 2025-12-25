@@ -1,9 +1,16 @@
 # ADR-012: Access Control and Authorization Architecture
 
-**Status**: Proposed
+**Status**: ~~Proposed~~ **Superseded by [ADR-013](./013-authorization-system-spicedb.md)**
 **Date**: 2025-12-24
+**Superseded Date**: 2025-12-25
+**Reason**: Oso open-source library deprecated (December 2023), pivoted to SpiceDB
 **Deciders**: Engineering Team
-**Technical Story**: TBD - Access Control Implementation
+**Technical Story**: LOG-246
+
+---
+
+> **⚠️ IMPORTANT**: This ADR recommended Oso, which was deprecated in December 2023.
+> See [ADR-013: Authorization System - SpiceDB Migration](./013-authorization-system-spicedb.md) for the current decision.
 
 ---
 

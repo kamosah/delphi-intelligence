@@ -58,8 +58,10 @@ export type SuggestionMenuRenderProps<T = DefaultContext> = {
   onSelect: (item: SuggestionItem<T>) => void;
 };
 
-export interface SuggestionMenuProps<T = DefaultContext>
-  extends Omit<SuggestionOptions<SuggestionItem<T>>, 'pluginKey' | 'editor'> {
+export interface SuggestionMenuProps<T = DefaultContext> extends Omit<
+  SuggestionOptions<SuggestionItem<T>>,
+  'pluginKey' | 'editor'
+> {
   /**
    * The Tiptap editor instance.
    */
