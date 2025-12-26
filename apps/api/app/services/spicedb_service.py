@@ -22,7 +22,6 @@ from authzed.api.v1 import (
     SubjectReference,
     WriteRelationshipsRequest,
 )
-from authzed.api.v1.permission_service_pb2 import Permissionship as PermissionshipValue
 
 from app.config import settings
 
@@ -89,27 +88,28 @@ class SpiceDBService:
                 # Allow access
         """
         try:
-            response: CheckPermissionResponse = (
-                await self.client.permissions_service.check_permission(
-                    CheckPermissionRequest(
-                        consistency=Consistency(fully_consistent=True),
-                        resource=ObjectReference(
-                            object_type=resource_type,
-                            object_id=str(resource_id),
-                        ),
-                        permission=permission,
-                        subject=SubjectReference(
-                            object=ObjectReference(
-                                object_type="user",
-                                object_id=str(user_id),
-                            )
-                        ),
-                        context=context or {},
-                    )
+            response: CheckPermissionResponse = await self.client.CheckPermission(
+                CheckPermissionRequest(
+                    consistency=Consistency(fully_consistent=True),
+                    resource=ObjectReference(
+                        object_type=resource_type,
+                        object_id=str(resource_id),
+                    ),
+                    permission=permission,
+                    subject=SubjectReference(
+                        object=ObjectReference(
+                            object_type="user",
+                            object_id=str(user_id),
+                        )
+                    ),
+                    context=context or {},
                 )
             )
 
-            allowed = response.permissionship == PermissionshipValue.PERMISSIONSHIP_HAS_PERMISSION
+            allowed = (
+                response.permissionship
+                == CheckPermissionResponse.Permissionship.PERMISSIONSHIP_HAS_PERMISSION
+            )
 
             logger.debug(
                 f"Permission check: user={user_id}, permission={permission}, "
@@ -172,7 +172,7 @@ class SpiceDBService:
             if expiration:
                 relationship.optional_expiration.seconds = expiration
 
-            await self.client.permissions_service.write_relationships(
+            await self.client.WriteRelationships(
                 WriteRelationshipsRequest(
                     updates=[
                         RelationshipUpdate(
@@ -214,7 +214,7 @@ class SpiceDBService:
             True if successful, False otherwise
         """
         try:
-            await self.client.permissions_service.delete_relationships(
+            await self.client.DeleteRelationships(
                 DeleteRelationshipsRequest(
                     relationship_filter=RelationshipFilter(
                         resource_type=resource_type,

@@ -5,15 +5,19 @@ This module provides pytest fixtures for testing with real in-memory database
 and mocked dependencies where necessary.
 """
 
+from collections.abc import AsyncGenerator, Generator
+from typing import TYPE_CHECKING, Any, Callable
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import JSON, event
+from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.schema import Table
 
 from app.main import app
 from app.models.base import Base
@@ -23,10 +27,12 @@ from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus
 from app.models.user import User
+from app.config import settings
+from app.services.spicedb_service import SpiceDBService
 
 
 @pytest.fixture()
-def mock_user():
+def mock_user() -> MagicMock:
     """Create a mock user for testing."""
     user = MagicMock(spec=User)
     user.id = uuid4()
@@ -37,7 +43,7 @@ def mock_user():
 
 
 @pytest.fixture()
-def mock_organization(mock_user):
+def mock_organization(mock_user: MagicMock) -> MagicMock:
     """Create a mock organization for testing."""
     org = MagicMock(spec=Organization)
     org.id = uuid4()
@@ -50,7 +56,7 @@ def mock_organization(mock_user):
 
 
 @pytest.fixture()
-def mock_organization_member(mock_organization, mock_user):
+def mock_organization_member(mock_organization: MagicMock, mock_user: MagicMock) -> MagicMock:
     """Create a mock organization member for testing."""
     member = MagicMock(spec=OrganizationMember)
     member.id = uuid4()
@@ -63,7 +69,7 @@ def mock_organization_member(mock_organization, mock_user):
 
 
 @pytest.fixture()
-def mock_space(mock_user, mock_organization):
+def mock_space(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     """Create a mock space for testing."""
     space = MagicMock(spec=Space)
     space.id = uuid4()
@@ -77,7 +83,7 @@ def mock_space(mock_user, mock_organization):
 
 
 @pytest.fixture()
-def mock_thread(mock_user, mock_organization, mock_space):
+def mock_thread(mock_user: MagicMock, mock_organization: MagicMock, mock_space: MagicMock) -> MagicMock:
     """Create a mock thread (space-scoped) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
@@ -114,7 +120,7 @@ def mock_thread(mock_user, mock_organization, mock_space):
 
 
 @pytest.fixture()
-def mock_org_thread(mock_user, mock_organization):
+def mock_org_thread(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     """Create a mock org-wide thread (no space) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
@@ -151,7 +157,7 @@ def mock_org_thread(mock_user, mock_organization):
 
 
 @pytest.fixture()
-def mock_db_session():
+def mock_db_session() -> AsyncMock:
     """Create a mock database session for testing."""
     session = AsyncMock()
     session.add = MagicMock()
@@ -165,7 +171,7 @@ def mock_db_session():
 
 
 @pytest.fixture()
-def mock_info(mock_user):
+def mock_info(mock_user: MagicMock) -> MagicMock:
     """Create a mock GraphQL info context with authenticated user."""
     mock_request = MagicMock()
     mock_request.state.user = mock_user
@@ -175,7 +181,7 @@ def mock_info(mock_user):
 
 
 @pytest.fixture()
-def mock_info_no_auth():
+def mock_info_no_auth() -> MagicMock:
     """Create a mock GraphQL info context without authenticated user."""
     mock_request = MagicMock()
     mock_request.state.user = None
@@ -185,40 +191,41 @@ def mock_info_no_auth():
 
 
 @pytest.fixture()
-def mock_get_session(mock_db_session):
+def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[AsyncMock, None]]:
     """Create a mock get_session generator for patching."""
 
-    async def _mock_get_session():
+    async def _mock_get_session() -> AsyncGenerator[AsyncMock, None]:
         yield mock_db_session
 
     return _mock_get_session
 
 
 @pytest.fixture()
-async def async_client():
+async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """Provide an async HTTP client for testing endpoints."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 
 
+class GraphQLClient:
+    """Simple GraphQL client for testing."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self.client = client
+
+    async def execute(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Execute a GraphQL query."""
+        response = await self.client.post(
+            "/graphql",
+            json={"query": query, "variables": variables or {}},
+        )
+        result: dict[str, Any] = response.json()
+        return result
+
+
 @pytest.fixture()
-async def graphql_client(async_client: AsyncClient):
+async def graphql_client(async_client: AsyncClient) -> GraphQLClient:
     """Provide a GraphQL client wrapper for testing."""
-
-    class GraphQLClient:
-        """Simple GraphQL client for testing."""
-
-        def __init__(self, client: AsyncClient):
-            self.client = client
-
-        async def execute(self, query: str, variables: dict | None = None):
-            """Execute a GraphQL query."""
-            response = await self.client.post(
-                "/graphql",
-                json={"query": query, "variables": variables or {}},
-            )
-            return response.json()
-
     return GraphQLClient(async_client)
 
 
@@ -228,7 +235,7 @@ async def graphql_client(async_client: AsyncClient):
 
 
 @pytest.fixture()
-async def db_session():
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide an in-memory SQLite database session for testing.
 
@@ -257,7 +264,7 @@ async def db_session():
     # Convert JSONB columns to JSON for SQLite compatibility
     # This event listener replaces PostgreSQL JSONB with SQLite JSON during table creation
     @event.listens_for(Base.metadata, "before_create")
-    def receive_before_create(target, connection, **kw):
+    def receive_before_create(target: Table, connection: Connection, **kw: Any) -> None:
         """Replace JSONB columns with JSON for SQLite."""
         if connection.dialect.name == "sqlite":
             for table in Base.metadata.sorted_tables:
@@ -279,3 +286,35 @@ async def db_session():
 
     # Cleanup
     await engine.dispose()
+
+
+# --------------------------------------------------------------------------- #
+# SpiceDB Fixtures for Authorization Testing
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture()
+async def spicedb_service() -> AsyncGenerator[SpiceDBService, None]:
+    """
+    Provide SpiceDBService configured for testing.
+
+    Uses Docker Compose SpiceDB instance for integration testing.
+    For in-memory testing, see planned enhancement in LOG-246.
+
+    Note: Requires SPICEDB_TOKEN and SPICEDB_ENDPOINT environment variables.
+    """
+    # Store original settings
+    original_endpoint = settings.spicedb_endpoint
+    original_token = settings.spicedb_token
+
+    # Clear singleton to force new instance with test settings
+    SpiceDBService._instance = None
+
+    try:
+        service = SpiceDBService()
+        yield service
+    finally:
+        # Restore original settings
+        settings.spicedb_endpoint = original_endpoint
+        settings.spicedb_token = original_token
+        SpiceDBService._instance = None
