@@ -7,6 +7,8 @@
  * - ABAC: Subscription tiers, time-based access via caveats
  */
 
+use expiration
+
 // ============================================================================
 // User Definition
 // ============================================================================
@@ -21,7 +23,7 @@ definition organization {
   // Relationships
   relation owner: user
   relation admin: user
-  relation member: user
+  relation member: user | user with expiration
   relation viewer: user
 
   // Permissions (hierarchical)
@@ -96,8 +98,8 @@ caveat has_enterprise_subscription(user_tier string) {
   user_tier == "enterprise"
 }
 
-caveat within_trial_period(trial_end timestamp) {
-  now() < trial_end
+caveat within_trial_period(current_time timestamp, trial_end timestamp) {
+  current_time < trial_end
 }
 
 // ============================================================================
@@ -105,7 +107,7 @@ caveat within_trial_period(trial_end timestamp) {
 // ============================================================================
 
 definition advanced_feature {
-  relation user: user with has_pro_subscription | within_trial_period
+  relation user: user with has_pro_subscription | user with within_trial_period
   permission access = user
 }
 

@@ -9,11 +9,11 @@ from typing import Any
 from uuid import UUID
 
 from authzed.api.v1 import (
-    AsyncClient,
     CheckPermissionRequest,
     CheckPermissionResponse,
     Consistency,
     DeleteRelationshipsRequest,
+    InsecureClient,
     ObjectReference,
     Relationship,
     RelationshipFilter,
@@ -54,7 +54,8 @@ class SpiceDBService:
             error_msg = "SPICEDB_TOKEN is required. Set SPICEDB_TOKEN environment variable."
             raise ValueError(error_msg)
 
-        self.client = AsyncClient(
+        # Use InsecureClient for local development (no TLS)
+        self.client = InsecureClient(
             settings.spicedb_endpoint,
             settings.spicedb_token,
         )
@@ -88,7 +89,7 @@ class SpiceDBService:
                 # Allow access
         """
         try:
-            response: CheckPermissionResponse = await self.client.CheckPermission(
+            response: CheckPermissionResponse = self.client.CheckPermission(
                 CheckPermissionRequest(
                     consistency=Consistency(fully_consistent=True),
                     resource=ObjectReference(
@@ -170,9 +171,9 @@ class SpiceDBService:
             )
 
             if expiration:
-                relationship.optional_expiration.seconds = expiration
+                relationship.optional_expires_at.seconds = expiration
 
-            await self.client.WriteRelationships(
+            self.client.WriteRelationships(
                 WriteRelationshipsRequest(
                     updates=[
                         RelationshipUpdate(
@@ -214,7 +215,7 @@ class SpiceDBService:
             True if successful, False otherwise
         """
         try:
-            await self.client.DeleteRelationships(
+            self.client.DeleteRelationships(
                 DeleteRelationshipsRequest(
                     relationship_filter=RelationshipFilter(
                         resource_type=resource_type,
