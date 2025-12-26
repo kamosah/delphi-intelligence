@@ -11,6 +11,27 @@ services:
       timeout: 5s
       retries: 5
 
+  spicedb:
+    image: authzed/spicedb:v1.48.0
+    platform: linux/amd64
+    command: serve
+    ports:
+      - "50051:50051"  # gRPC
+      - "8443:8443"    # HTTP
+    env_file:
+      - ./apps/api/.env
+    environment:
+      - SPICEDB_DATASTORE_ENGINE=postgres
+      - SPICEDB_DATASTORE_CONN_URI=${SPICEDB_DATASTORE_CONN_URI}
+      - SPICEDB_GRPC_PRESHARED_KEY=${SPICEDB_TOKEN}
+    healthcheck:
+      test: ["CMD", "grpcurl", "-plaintext", "localhost:50051", "grpc.health.v1.Health/Check"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   api:
     build:
       context: ./apps/api
@@ -27,6 +48,8 @@ services:
       - PYTHONUNBUFFERED=1
     depends_on:
       redis:
+        condition: service_healthy
+      spicedb:
         condition: service_healthy
     restart: unless-stopped
 
