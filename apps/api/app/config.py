@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Redis Configuration
     redis_url: str = Field(default="redis://localhost:6379", description="Redis connection URL")
 
+    # SpiceDB Configuration
+    spicedb_endpoint: str = Field(default="localhost:50051", description="SpiceDB gRPC endpoint")
+    spicedb_token: str = Field(default="", description="SpiceDB pre-shared key for authentication")
+
     # CORS Configuration
     # WARNING: At least one of cors_origins or cors_origin_regex must be configured
     # in production, otherwise all CORS requests will be rejected.
