@@ -23,6 +23,7 @@ alembic = "^1.13.1"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-decouple = "^3.8"
+authzed = "^1.0.0"  # SpiceDB authorization client
 
 # GraphQL
 strawberry-graphql = {extras = ["fastapi"], version = "^0.240.0"}
