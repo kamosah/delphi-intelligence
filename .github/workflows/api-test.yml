@@ -53,6 +53,16 @@ jobs:
               with:
                   version: "latest"
 
+            - name: Load SpiceDB schema
+              run: |
+                  docker run --rm --network host \
+                    -v ${{ github.workspace }}/apps/api/app/policies:/policies \
+                    authzed/zed:latest \
+                    schema write /policies/olympus.zed \
+                    --endpoint localhost:50051 \
+                    --token testtoken \
+                    --insecure
+
             - name: Run pytest
               env:
                   SPICEDB_ENDPOINT: "localhost:50051"
