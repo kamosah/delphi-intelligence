@@ -141,9 +141,7 @@ class TestSpiceDBServiceIntegration:
         )
         assert has_permission is False
 
-    async def test_relationship_with_expiration(
-        self, spicedb_service: SpiceDBService
-    ) -> None:
+    async def test_relationship_with_expiration(self, spicedb_service: SpiceDBService) -> None:
         """Test writing relationship with expiration timestamp."""
         user_id = str(uuid4())
         org_id = str(uuid4())
@@ -201,9 +199,7 @@ class TestSpiceDBServiceErrorHandling:
         # Assert
         assert result is False
 
-    async def test_write_relationship_with_empty_ids(
-        self, spicedb_service: SpiceDBService
-    ) -> None:
+    async def test_write_relationship_with_empty_ids(self, spicedb_service: SpiceDBService) -> None:
         """Test error handling for empty IDs."""
         # Act: Should return False on invalid input
         result = await spicedb_service.write_relationship(

@@ -83,7 +83,9 @@ def mock_space(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
 
 
 @pytest.fixture()
-def mock_thread(mock_user: MagicMock, mock_organization: MagicMock, mock_space: MagicMock) -> MagicMock:
+def mock_thread(
+    mock_user: MagicMock, mock_organization: MagicMock, mock_space: MagicMock
+) -> MagicMock:
     """Create a mock thread (space-scoped) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
