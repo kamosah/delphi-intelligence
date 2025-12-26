@@ -51,7 +51,7 @@ jobs:
             - name: Start SpiceDB test server
               uses: authzed/action-spicedb@v1
               with:
-                  version: "latest"
+                  version: "v1.48.0"
 
             - name: Load SpiceDB schema
               run: |

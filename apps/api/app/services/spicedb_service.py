@@ -4,13 +4,13 @@ This module provides a centralized authorization service using SpiceDB. All perm
 through this service to ensure consistent, centralized access control.
 """
 
+import asyncio
 import logging
-from typing import Any
-from uuid import UUID
 
 from authzed.api.v1 import (
     CheckPermissionRequest,
     CheckPermissionResponse,
+    Client,
     Consistency,
     DeleteRelationshipsRequest,
     InsecureClient,
@@ -22,8 +22,15 @@ from authzed.api.v1 import (
     SubjectReference,
     WriteRelationshipsRequest,
 )
+from grpcutil import bearer_token_credentials
+from pydantic import ValidationError
 
 from app.config import settings
+from app.schemas.spicedb import (
+    CheckPermissionInput,
+    DeleteRelationshipInput,
+    WriteRelationshipInput,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +41,15 @@ class SpiceDBService:
     This service handles all permission checks and relationship management
     for Olympus using the SpiceDB authorization system.
 
-    Note: Uses AsyncClient for proper async/await support in FastAPI.
+    Client Selection (environment-based):
+    - Development (ENV=development): InsecureClient (no TLS)
+    - Production (ENV=production): SecureClient (TLS with bearer token)
+
+    Async Handling:
+    The authzed-py library only provides synchronous gRPC clients. To prevent
+    blocking FastAPI's event loop, all gRPC calls are wrapped in asyncio.to_thread(),
+    which executes them in a thread pool. This maintains async behavior without
+    blocking the main event loop.
     """
 
     _instance: "SpiceDBService | None" = None
@@ -46,7 +61,7 @@ class SpiceDBService:
         return cls._instance
 
     def __init__(self) -> None:
-        """Initialize the SpiceDB async client."""
+        """Initialize the SpiceDB client (environment-based)."""
         if hasattr(self, "_initialized"):
             return
 
@@ -54,57 +69,66 @@ class SpiceDBService:
             error_msg = "SPICEDB_TOKEN is required. Set SPICEDB_TOKEN environment variable."
             raise ValueError(error_msg)
 
-        # Use InsecureClient for local development (no TLS)
-        self.client = InsecureClient(
-            settings.spicedb_endpoint,
-            settings.spicedb_token,
-        )
-        self._initialized = True
-        logger.info(
-            f"SpiceDB service initialized successfully (endpoint: {settings.spicedb_endpoint})"
-        )
+        # Select client based on environment
+        use_tls = settings.env == "production"
 
-    async def check_permission(
-        self,
-        user_id: str | UUID,
-        permission: str,
-        resource_type: str,
-        resource_id: str | UUID,
-        context: dict[str, Any] | None = None,
-    ) -> bool:
+        if use_tls:
+            # Production: Use SecureClient with TLS
+            self.client = Client(
+                settings.spicedb_endpoint,
+                bearer_token_credentials(settings.spicedb_token),
+            )
+            logger.info(
+                f"SpiceDB SecureClient initialized (endpoint: {settings.spicedb_endpoint}, TLS: enabled)"
+            )
+        else:
+            # Development: Use InsecureClient (no TLS)
+            self.client = InsecureClient(
+                settings.spicedb_endpoint,
+                settings.spicedb_token,
+            )
+            logger.info(
+                f"SpiceDB InsecureClient initialized (endpoint: {settings.spicedb_endpoint}, TLS: disabled)"
+            )
+
+        self._initialized = True
+
+    async def check_permission(self, input: CheckPermissionInput) -> bool:
         """Check if a user has permission on a resource.
 
         Args:
-            user_id: The user attempting the action
-            permission: The permission to check (e.g., "read", "update", "delete")
-            resource_type: The type of resource (e.g., "organization", "space", "document")
-            resource_id: The ID of the resource
-            context: Optional context for caveats (e.g., subscription_tier)
+            input: Validated permission check parameters
 
         Returns:
             True if the user has permission, False otherwise
 
         Example:
-            if await spicedb.check_permission(user.id, "read", "space", space.id):
-                # Allow access
+            result = await spicedb.check_permission(CheckPermissionInput(
+                user_id=user.id,
+                permission="read",
+                resource_type="space",
+                resource_id=space.id
+            ))
         """
         try:
-            response: CheckPermissionResponse = self.client.CheckPermission(
+            # Run synchronous gRPC call in thread pool to avoid blocking event loop
+            response: CheckPermissionResponse = await asyncio.to_thread(
+                self.client.CheckPermission,
                 CheckPermissionRequest(
                     consistency=Consistency(fully_consistent=True),
                     resource=ObjectReference(
-                        object_type=resource_type,
-                        object_id=str(resource_id),
+                        object_type=input.resource_type,
+                        object_id=str(input.resource_id),
                     ),
-                    permission=permission,
+                    permission=input.permission,
                     subject=SubjectReference(
                         object=ObjectReference(
                             object_type="user",
-                            object_id=str(user_id),
+                            object_id=str(input.user_id),
                         )
                     ),
-                    context=context or {},
-                )
+                    context=input.context or {},
+                ),
             )
 
             allowed = (
@@ -113,67 +137,65 @@ class SpiceDBService:
             )
 
             logger.debug(
-                f"Permission check: user={user_id}, permission={permission}, "
-                f"resource={resource_type}:{resource_id}, allowed={allowed}"
+                f"Permission check: user={input.user_id}, permission={input.permission}, "
+                f"resource={input.resource_type}:{input.resource_id}, allowed={allowed}"
             )
 
             return bool(allowed)
 
+        except ValidationError as e:
+            logger.exception(f"Invalid permission check input: {e}")
+            # Fail closed - deny access on validation errors
+            return False
+
         except Exception as e:
             logger.exception(
-                f"Permission check failed: user={user_id}, permission={permission}, "
-                f"resource={resource_type}:{resource_id}: {e}"
+                f"Permission check failed: user={input.user_id}, permission={input.permission}, "
+                f"resource={input.resource_type}:{input.resource_id}: "
+                f"{type(e).__name__}: {e}"
             )
             # Fail closed - deny access on errors
             return False
 
-    async def write_relationship(
-        self,
-        resource_type: str,
-        resource_id: str | UUID,
-        relation: str,
-        subject_type: str,
-        subject_id: str | UUID,
-        expiration: int | None = None,
-    ) -> bool:
+    async def write_relationship(self, input: WriteRelationshipInput) -> bool:
         """Write a relationship to SpiceDB.
 
         Args:
-            resource_type: The type of resource (e.g., "organization")
-            resource_id: The ID of the resource
-            relation: The relation name (e.g., "member", "owner")
-            subject_type: The type of subject (usually "user")
-            subject_id: The ID of the subject
-            expiration: Optional expiration timestamp (seconds since epoch)
+            input: Validated relationship write parameters
 
         Returns:
             True if successful, False otherwise
 
         Example:
-            # Add user as organization member
-            await spicedb.write_relationship(
-                "organization", org.id, "member", "user", user.id
-            )
+            result = await spicedb.write_relationship(WriteRelationshipInput(
+                resource_type="organization",
+                resource_id=org.id,
+                relation="member",
+                subject_type="user",
+                subject_id=user.id
+            ))
         """
         try:
             relationship = Relationship(
                 resource=ObjectReference(
-                    object_type=resource_type,
-                    object_id=str(resource_id),
+                    object_type=input.resource_type,
+                    object_id=str(input.resource_id),
                 ),
-                relation=relation,
+                relation=input.relation,
                 subject=SubjectReference(
                     object=ObjectReference(
-                        object_type=subject_type,
-                        object_id=str(subject_id),
+                        object_type=input.subject_type,
+                        object_id=str(input.subject_id),
                     )
                 ),
             )
 
-            if expiration:
-                relationship.optional_expires_at.seconds = expiration
+            if input.expiration:
+                relationship.optional_expires_at.seconds = input.expiration
 
-            self.client.WriteRelationships(
+            # Run synchronous gRPC call in thread pool to avoid blocking event loop
+            await asyncio.to_thread(
+                self.client.WriteRelationships,
                 WriteRelationshipsRequest(
                     updates=[
                         RelationshipUpdate(
@@ -181,62 +203,78 @@ class SpiceDBService:
                             relationship=relationship,
                         )
                     ]
-                )
+                ),
             )
 
             logger.debug(
-                f"Relationship written: {resource_type}:{resource_id}#{relation}@{subject_type}:{subject_id}"
+                f"Relationship written: {input.resource_type}:{input.resource_id}#{input.relation}@{input.subject_type}:{input.subject_id}"
             )
 
             return True
 
-        except Exception as e:
-            logger.exception(f"Failed to write relationship: {e}")
+        except ValidationError as e:
+            logger.exception(f"Invalid relationship write input: {e}")
             return False
 
-    async def delete_relationship(
-        self,
-        resource_type: str,
-        resource_id: str | UUID,
-        relation: str,
-        subject_type: str,
-        subject_id: str | UUID,
-    ) -> bool:
+        except Exception as e:
+            logger.exception(
+                f"Failed to write relationship "
+                f"{input.resource_type}:{input.resource_id}#{input.relation}@{input.subject_type}:{input.subject_id}: "
+                f"{type(e).__name__}: {e}"
+            )
+            return False
+
+    async def delete_relationship(self, input: DeleteRelationshipInput) -> bool:
         """Delete a relationship from SpiceDB.
 
         Args:
-            resource_type: The type of resource
-            resource_id: The ID of the resource
-            relation: The relation name
-            subject_type: The type of subject
-            subject_id: The ID of the subject
+            input: Validated relationship delete parameters
 
         Returns:
             True if successful, False otherwise
+
+        Example:
+            result = await spicedb.delete_relationship(DeleteRelationshipInput(
+                resource_type="organization",
+                resource_id=org.id,
+                relation="member",
+                subject_type="user",
+                subject_id=user.id
+            ))
         """
         try:
-            self.client.DeleteRelationships(
+            # Run synchronous gRPC call in thread pool to avoid blocking event loop
+            await asyncio.to_thread(
+                self.client.DeleteRelationships,
                 DeleteRelationshipsRequest(
                     relationship_filter=RelationshipFilter(
-                        resource_type=resource_type,
-                        optional_resource_id=str(resource_id),
-                        optional_relation=relation,
+                        resource_type=input.resource_type,
+                        optional_resource_id=str(input.resource_id),
+                        optional_relation=input.relation,
                         optional_subject_filter=SubjectFilter(
-                            subject_type=subject_type,
-                            optional_subject_id=str(subject_id),
+                            subject_type=input.subject_type,
+                            optional_subject_id=str(input.subject_id),
                         ),
                     )
-                )
+                ),
             )
 
             logger.debug(
-                f"Relationship deleted: {resource_type}:{resource_id}#{relation}@{subject_type}:{subject_id}"
+                f"Relationship deleted: {input.resource_type}:{input.resource_id}#{input.relation}@{input.subject_type}:{input.subject_id}"
             )
 
             return True
 
+        except ValidationError as e:
+            logger.exception(f"Invalid relationship delete input: {e}")
+            return False
+
         except Exception as e:
-            logger.exception(f"Failed to delete relationship: {e}")
+            logger.exception(
+                f"Failed to delete relationship "
+                f"{input.resource_type}:{input.resource_id}#{input.relation}@{input.subject_type}:{input.subject_id}: "
+                f"{type(e).__name__}: {e}"
+            )
             return False
 
 

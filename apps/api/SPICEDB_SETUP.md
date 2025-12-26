@@ -34,7 +34,7 @@ SPICEDB_TOKEN=<your-generated-token-here>
 SPICEDB_ENDPOINT=spicedb:50051
 # Uses same Supabase database connection for SpiceDB datastore
 # Note: Remove +asyncpg from DATABASE_URL for SpiceDB
-SPICEDB_DATASTORE_CONN_URI=postgresql://postgres.mvqjahridaytxfsuzljy:<password>@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+SPICEDB_DATASTORE_CONN_URI=postgresql://postgres.[your-project-ref]:[password]@aws-X-[region].pooler.supabase.com:5432/postgres
 ```
 
 #### File: `.env` (repo root)
@@ -42,7 +42,7 @@ SPICEDB_DATASTORE_CONN_URI=postgresql://postgres.mvqjahridaytxfsuzljy:<password>
 ```env
 # SpiceDB Configuration (required by docker-compose.yml)
 SPICEDB_TOKEN=<same-token-as-above>
-SPICEDB_DATASTORE_CONN_URI=postgresql://postgres.mvqjahridaytxfsuzljy:<password>@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+SPICEDB_DATASTORE_CONN_URI=postgresql://postgres.[your-project-ref]:[password]@aws-X-[region].pooler.supabase.com:5432/postgres
 ```
 
 **Important**: Docker Compose reads from the **repo root** `.env` file for variable substitution (`${SPICEDB_TOKEN}`), while the API service reads from `apps/api/.env`. Both need these variables.

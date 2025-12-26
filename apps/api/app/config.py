@@ -34,7 +34,9 @@ class Settings(BaseSettings):
 
     # SpiceDB Configuration
     spicedb_endpoint: str = Field(default="localhost:50051", description="SpiceDB gRPC endpoint")
-    spicedb_token: str = Field(default="", description="SpiceDB pre-shared key for authentication")
+    spicedb_token: str | None = Field(
+        default=None, description="SpiceDB pre-shared key for authentication"
+    )
 
     # CORS Configuration
     # WARNING: At least one of cors_origins or cors_origin_regex must be configured
