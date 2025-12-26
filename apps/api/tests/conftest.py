@@ -5,8 +5,8 @@ This module provides pytest fixtures for testing with real in-memory database
 and mocked dependencies where necessary.
 """
 
-from collections.abc import AsyncGenerator, Generator
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import AsyncGenerator, Callable
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
