@@ -17,21 +17,6 @@ jobs:
         name: Run Pytest
         runs-on: ubuntu-latest
 
-        services:
-            spicedb:
-                image: authzed/spicedb:latest
-                ports:
-                    - 50051:50051
-                    - 8443:8443
-                options: >-
-                    --health-cmd "grpcurl -plaintext localhost:50051 grpc.health.v1.Health/Check"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-                env:
-                    SPICEDB_GRPC_PRESHARED_KEY: "test-token"
-                    SPICEDB_DATASTORE_ENGINE: "memory"
-
         defaults:
             run:
                 working-directory: apps/api
@@ -63,23 +48,18 @@ jobs:
             - name: Install dependencies
               run: poetry install --no-interaction --no-root
 
-            - name: Load SpiceDB schema
-              run: |
-                  docker run --rm --network host \
-                    -v ${{ github.workspace }}/apps/api/app/policies:/policies \
-                    authzed/zed:latest \
-                    schema write /policies/olympus.zed \
-                    --endpoint localhost:50051 \
-                    --token test-token \
-                    --insecure
+            - name: Start SpiceDB test server
+              uses: authzed/action-spicedb@v1
+              with:
+                  version: "latest"
 
             - name: Run pytest
               env:
+                  SPICEDB_ENDPOINT: "localhost:50051"
+                  SPICEDB_TOKEN: "testtoken"
                   DATABASE_URL: "postgresql://test:test@localhost/test"
                   REDIS_URL: "redis://localhost:6379"
                   OPENAI_API_KEY: "test-key"
-                  SPICEDB_TOKEN: "test-token"
-                  SPICEDB_ENDPOINT: "localhost:50051"
               run: |
                   poetry run pytest tests/ -v
 

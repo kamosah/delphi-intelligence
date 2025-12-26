@@ -300,23 +300,29 @@ async def spicedb_service() -> AsyncGenerator[SpiceDBService, None]:
     """
     Provide SpiceDBService configured for testing.
 
-    Uses Docker Compose SpiceDB instance for integration testing.
-    For in-memory testing, see planned enhancement in LOG-246.
+    Works in both local development and CI environments:
+    - **Local**: Uses Docker Compose SpiceDB (spicedb:50051 from .env)
+    - **CI**: Uses authzed/action-spicedb (localhost:50051 from GitHub Actions env)
 
-    Note: Requires SPICEDB_TOKEN and SPICEDB_ENDPOINT environment variables.
+    Pydantic settings automatically reads SPICEDB_ENDPOINT and SPICEDB_TOKEN
+    from environment variables, so no manual override needed.
+
+    Uses real SpiceDB in-memory instance following TESTING.md principles:
+    - Tests actual permission resolution logic
+    - No mocking of authorization checks
+    - Fast in-memory datastore
     """
-    # Store original settings
-    original_endpoint = settings.spicedb_endpoint
-    original_token = settings.spicedb_token
+    if not settings.spicedb_token or not settings.spicedb_endpoint:
+        pytest.skip(
+            "SpiceDB not configured. Set SPICEDB_TOKEN and SPICEDB_ENDPOINT environment variables."
+        )
 
-    # Clear singleton to force new instance with test settings
+    # Clear singleton to force new instance with current settings
     SpiceDBService._instance = None
 
     try:
         service = SpiceDBService()
         yield service
     finally:
-        # Restore original settings
-        settings.spicedb_endpoint = original_endpoint
-        settings.spicedb_token = original_token
+        # Clear singleton after test
         SpiceDBService._instance = None
