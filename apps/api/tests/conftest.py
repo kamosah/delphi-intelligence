@@ -28,7 +28,7 @@ from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus
 from app.models.user import User
 from app.config import settings
-from app.services.spicedb_service import SpiceDBService
+from app.services.spicedb_service import SpiceDBService, get_spicedb_service
 
 
 @pytest.fixture()
@@ -311,18 +311,23 @@ async def spicedb_service() -> AsyncGenerator[SpiceDBService, None]:
     - Tests actual permission resolution logic
     - No mocking of authorization checks
     - Fast in-memory datastore
+
+    Note: This fixture uses function scope (not session) to ensure test isolation.
+    SpiceDB tests should not run in parallel due to shared datastore state.
+    Use `pytest -n 0` or configure pytest-xdist to exclude SpiceDB tests from parallel execution.
     """
     if not settings.spicedb_token or not settings.spicedb_endpoint:
         pytest.skip(
             "SpiceDB not configured. Set SPICEDB_TOKEN and SPICEDB_ENDPOINT environment variables."
         )
 
-    # Clear singleton to force new instance with current settings
-    SpiceDBService._instance = None
+    # Use the global singleton instance (thread-safe within single process)
+    # For parallel testing, use pytest-xdist with worker-id based isolation
+    service = get_spicedb_service()
+    yield service
 
-    try:
-        service = SpiceDBService()
-        yield service
-    finally:
-        # Clear singleton after test
-        SpiceDBService._instance = None
+    # Cleanup: Delete all test relationships for known resource types
+    # This ensures a clean slate for each test
+    resource_types = ["organization", "space", "document", "user"]
+    for resource_type in resource_types:
+        await service.delete_all_relationships_for_resource_type(resource_type)

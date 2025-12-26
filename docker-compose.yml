@@ -20,8 +20,6 @@ services:
     ports:
       - "50051:50051"  # gRPC
       - "8443:8443"    # HTTP
-    env_file:
-      - ./apps/api/.env
     environment:
       - SPICEDB_DATASTORE_ENGINE=postgres
       - SPICEDB_DATASTORE_CONN_URI=${SPICEDB_DATASTORE_CONN_URI}

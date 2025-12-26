@@ -224,6 +224,40 @@ class SpiceDBService:
             )
             return False
 
+    async def delete_all_relationships_for_resource_type(self, resource_type: str) -> bool:
+        """Delete all relationships for a specific resource type.
+
+        Useful for test cleanup - removes all relationships regardless of resource_id.
+
+        Args:
+            resource_type: The resource type to clear (e.g., "organization", "space")
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            # Clear all test data for organizations
+            await spicedb.delete_all_relationships_for_resource_type("organization")
+        """
+        try:
+            # Run synchronous gRPC call in thread pool to avoid blocking event loop
+            await asyncio.to_thread(
+                self.client.DeleteRelationships,
+                DeleteRelationshipsRequest(
+                    relationship_filter=RelationshipFilter(
+                        resource_type=resource_type,
+                        # No optional fields = delete ALL relationships for this resource type
+                    )
+                ),
+            )
+
+            logger.debug(f"Deleted all relationships for resource_type={resource_type}")
+            return True
+
+        except Exception as e:
+            logger.exception(f"Failed to delete all relationships for {resource_type}: {e}")
+            return False
+
     async def delete_relationship(self, input: DeleteRelationshipInput) -> bool:
         """Delete a relationship from SpiceDB.
 
