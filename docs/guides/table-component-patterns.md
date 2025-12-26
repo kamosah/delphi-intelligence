@@ -664,7 +664,7 @@ type OrganizationMember =
 
 // Now use in column definitions
 export function createOrganizationMembersColumns(): ColumnDef<OrganizationMember>[] {
-// ...
+  // ...
   // ...
 }
 ```
@@ -687,49 +687,71 @@ export interface OrganizationMemberWithUI extends BaseOrganizationMember {
 
 ## Testing Patterns
 
-### Test column definitions separately
+### Test table components with Playwright E2E tests
 
-```tsx
-// organization-members-columns.test.tsx
-import { render, screen } from '@testing-library/react';
-import { createOrganizationMembersColumns } from './organization-members-columns';
+**Testing Philosophy** (per TESTING.md):
 
-describe('OrganizationMembers columns', () => {
-  it('renders role badge correctly', () => {
-    const mockHandleUpdateRole = jest.fn();
-    const mockHandleRemoveMember = jest.fn();
+- Use Playwright for end-to-end tests with real API data
+- No mocking - test actual table behavior with real GraphQL responses
+- AAA pattern: Arrange → Act → Assert
 
-    const columns = createOrganizationMembersColumns(
-      mockHandleUpdateRole,
-      mockHandleRemoveMember
-    );
+```typescript
+// apps/web/e2e/organizations/members.spec.ts
+import { test, expect } from '../fixtures';
 
-    const roleColumn = columns.find((col) => col.accessorKey === 'role');
-    // Test role column rendering
-  });
-});
-```
-
-### Test table component with mock data
-
-```tsx
-// OrganizationMembers.test.tsx
-import { render, screen, waitFor } from '@testing-library/react';
-import { OrganizationMembers } from './OrganizationMembers';
-import { mockOrganizationMembers } from '@/test/mocks/organizations';
-
-jest.mock('@/hooks/queries/useOrganizationMembers');
-
-describe('OrganizationMembers', () => {
-  it('renders member list', async () => {
-    render(<OrganizationMembers organizationId="org-123" />);
-
-    await waitFor(() => {
-      expect(screen.getByText('John Doe')).toBeInTheDocument();
+test.describe('Organization Members Table', () => {
+  test('displays member list with roles', async ({
+    authenticatedPage,
+    graphqlMocker,
+  }) => {
+    // Arrange: Mock GraphQL response with real data structure
+    await graphqlMocker.interceptQuery('GetOrganizationMembers', {
+      organizationMembers: [
+        {
+          id: 'member-1',
+          name: 'John Doe',
+          email: 'john@example.com',
+          role: 'admin',
+          joinedAt: '2025-01-01T00:00:00Z',
+        },
+      ],
     });
+
+    // Act: Navigate to organization members page
+    await authenticatedPage.goto('/organizations/org-123/members');
+
+    // Assert: Verify table renders with correct data
+    await expect(authenticatedPage.getByText('John Doe')).toBeVisible();
+    await expect(authenticatedPage.getByText('admin')).toBeVisible();
+    await expect(authenticatedPage.getByText('john@example.com')).toBeVisible();
+  });
+
+  test('handles role update action', async ({
+    authenticatedPage,
+    graphqlMocker,
+  }) => {
+    // Arrange: Set up initial data and mutation response
+    await graphqlMocker.interceptQuery('GetOrganizationMembers', {
+      /* ... */
+    });
+    await graphqlMocker.interceptMutation('UpdateMemberRole', {
+      success: true,
+    });
+
+    // Act: Click role dropdown and select new role
+    await authenticatedPage.goto('/organizations/org-123/members');
+    await authenticatedPage
+      .getByRole('button', { name: /change role/i })
+      .click();
+    await authenticatedPage.getByRole('menuitem', { name: 'Member' }).click();
+
+    // Assert: Verify success message
+    await expect(authenticatedPage.getByText(/role updated/i)).toBeVisible();
   });
 });
 ```
+
+**Note**: For table-specific testing, focus on user interactions (sorting, filtering, actions) rather than internal column rendering logic. Playwright E2E tests provide better confidence than unit tests with mocks.
 
 ## Performance Considerations
 

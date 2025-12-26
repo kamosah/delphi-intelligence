@@ -1,51 +1,87 @@
 # Database Model Testing Strategy
 
-This document outlines different approaches to testing your SQLAlchemy models, from simple unit tests to full PostgreSQL integration tests.
+This document outlines different approaches to testing your SQLAlchemy models, from in-memory SQLite tests to full PostgreSQL integration tests.
+
+**Note**: This guide is **deprecated**. See [TESTING.md](./TESTING.md) for the current testing philosophy.
 
 ## 🏁 Quick Start - Recommended Approach
 
-**Use `test_models_simple.py` for day-to-day development**
+**Use in-memory SQLite with the `db_session` fixture** (see [TESTING.md](./TESTING.md))
 
-- ✅ **Fast**: 18 tests in 0.24 seconds
-- ✅ **No dependencies**: No Docker or database required
-- ✅ **Comprehensive**: Tests model logic, validation, and business rules
-- ✅ **Reliable**: No network dependencies or external services
+- ✅ **Fast**: Real database operations in ~0.1s per test
+- ✅ **No mocking**: Tests actual SQLAlchemy queries
+- ✅ **Catches real bugs**: JOIN, filter, ordering issues
+- ✅ **CI-perfect**: No Docker dependencies
 
 ```bash
-poetry run pytest test_models_simple.py -v
+# Use the db_session fixture from conftest.py
+docker compose exec api poetry run pytest tests/ -v
 ```
+
+## Testing Philosophy (per TESTING.md)
+
+**Core Principle**: Test real database operations, not mocks.
+
+### Why In-Memory SQLite?
+
+- ✅ **Tests actual database operations** - Verifies real SQLAlchemy queries
+- ✅ **Catches real SQL bugs** - Joins, filters, ordering, constraints
+- ✅ **Fast execution** - ~0.1s per test
+- ✅ **Complete isolation** - Fresh database per test
+
+### The "Testing the Mock" Anti-Pattern
+
+❌ **Avoid**: Mocking database queries
+
+```python
+# This tests the mock, not the code!
+mock_execute.side_effect = [MagicMock(scalar_one_or_none=lambda: mock_org)]
+result = await OrganizationService.get_current(user.id, mock_session)
+```
+
+✅ **Prefer**: Using real in-memory database
+
+```python
+# This tests actual code with real database!
+user = await create_user(db_session)
+org = await create_organization(db_session, "Test Org")
+await db_session.commit()
+
+result = await OrganizationService.get_current(user.id, db_session)
+assert result == org.id
+```
+
+**See [TESTING.md](./TESTING.md) for complete guidance.**
 
 ## Testing Approaches Overview
 
-### 1. Simple Mock Testing (`test_models_simple.py`)
+### 1. In-Memory SQLite Testing (Recommended)
 
-**Best for**: Daily development, CI/CD, model validation
+**Best for**: Daily development, unit tests, service tests
 
-- **Speed**: ⚡ Super fast (0.24s for 18 tests)
-- **Setup**: None required
-- **Coverage**: Model instantiation, field validation, JSONB structures, business logic
-- **Pros**: Fast feedback loop, reliable, no external dependencies
-- **Cons**: Doesn't test actual database interactions
+- **Speed**: ⚡ Super fast (~0.1s per test)
+- **Setup**: Automatic via `db_session` fixture
+- **Coverage**: Real database operations, model validation, business logic
+- **Pros**: Tests real code, fast feedback, no external dependencies
+- **Cons**: Some PostgreSQL-specific features not available
 
 **Example Test:**
 
 ```python
-def test_query_with_jsonb_data(self):
-    """Test Query model with agent steps and sources."""
-    agent_steps = [
-        {"step": 1, "action": "search", "query": "capital France"},
-        {"step": 2, "action": "analyze", "confidence": 0.95}
-    ]
+@pytest.mark.asyncio()
+async def test_organization_service(db_session: AsyncSession):
+    """Test with real in-memory database."""
+    # Arrange: Create test data
+    user = await create_user(db_session)
+    org = await create_organization(db_session, "Test Org")
+    await create_membership(db_session, user, org, is_default=True)
+    await db_session.commit()
 
-    query = Query(
-        query_text="What is the capital of France?",
-        agent_steps=agent_steps,
-        space_id=uuid.uuid4(),
-        created_by=uuid.uuid4()
-    )
+    # Act: Call service method
+    result = await OrganizationService.get_current(user.id, db_session)
 
-    assert query.agent_steps[0]["action"] == "search"
-    assert query.agent_steps[1]["confidence"] == 0.95
+    # Assert: Verify result
+    assert result == org.id
 ```
 
 ### 2. Docker PostgreSQL Testing (`tests/test_models_postgres.py`)
@@ -188,18 +224,30 @@ def test_complex_agent_steps(self):
     assert query.agent_steps[0]["params"]["max_results"] == 10
 ```
 
-### 5. Test Relationships (Mock)
+### 5. Test Relationships (Real Database)
 
 ```python
-def test_model_relationships_structure(self):
-    user = User(email="test@example.com")
-    assert hasattr(user, 'owned_spaces')
-    assert hasattr(user, 'created_documents')
+@pytest.mark.asyncio()
+async def test_user_relationships(db_session: AsyncSession):
+    """Test relationships with real database."""
+    user = await create_user(db_session)
+    space = await create_space(db_session, "My Space", organization=org, owner=user)
+    await db_session.commit()
+
+    # Refresh to load relationships
+    await db_session.refresh(user)
+
+    # Verify relationships work
+    assert len(user.owned_spaces) > 0
+    assert user.owned_spaces[0].id == space.id
 ```
 
-### 6. Mock Database Operations
+### 6. Test Database Operations (Real Database, Not Mocks)
+
+**❌ Avoid**: Mocking database operations
 
 ```python
+# This tests the mock, not the code!
 @pytest.mark.asyncio
 async def test_successful_user_creation(self):
     mock_session = AsyncMock()
@@ -207,10 +255,26 @@ async def test_successful_user_creation(self):
 
     mock_session.add(user)
     await mock_session.flush()
-    await mock_session.commit()
 
+    # Only verifies mock was called, doesn't test actual behavior
     mock_session.add.assert_called_once()
-    mock_session.flush.assert_called_once()
+```
+
+**✅ Prefer**: Real in-memory database
+
+```python
+@pytest.mark.asyncio()
+async def test_successful_user_creation(db_session: AsyncSession):
+    """Test with real in-memory SQLite database."""
+    # Arrange
+    user = await create_user(db_session, email="new@example.com")
+
+    # Act
+    await db_session.commit()
+
+    # Assert - verify user was actually persisted
+    assert user.id is not None
+    assert user.email == "new@example.com"
 ```
 
 ## Utility Functions
@@ -226,20 +290,22 @@ query = create_test_query(space_id=space.id, created_by=user.id)
 
 ## Performance Comparison
 
-| Test Type         | Speed      | Setup Required | Database Features | Use Case            |
-| ----------------- | ---------- | -------------- | ----------------- | ------------------- |
-| Simple Mock       | 0.24s      | None           | Simulated         | Daily development   |
-| Docker PostgreSQL | 7+ seconds | Docker         | Full              | Integration testing |
-| Local PostgreSQL  | 1-2s       | PostgreSQL     | Full              | Team development    |
+| Test Type              | Speed      | Setup Required | Database Features | Use Case            |
+| ---------------------- | ---------- | -------------- | ----------------- | ------------------- |
+| In-Memory SQLite       | ~0.1s      | None           | Most SQL features | Daily development   |
+| Docker PostgreSQL      | 7+ seconds | Docker         | Full PostgreSQL   | Integration testing |
+| Local PostgreSQL       | 1-2s       | PostgreSQL     | Full PostgreSQL   | Team development    |
 
-## Recommendations
+## Recommendations (Per TESTING.md)
 
-1. **Start with simple mock tests** for rapid development
-2. **Use PostgreSQL tests** for verifying database-specific features
-3. **Run both** before committing code
-4. **Use the test runner script** for interactive testing
-5. **Add new simple tests** for each new model feature
-6. **Use integration tests** to verify complex queries and relationships
+1. **Use in-memory SQLite for unit tests** - Tests real database operations without mocking
+2. **Use Docker PostgreSQL for integration tests** - Verifies PostgreSQL-specific features
+3. **Prefer `db_session` fixture over mocks** - Tests actual SQLAlchemy queries
+4. **Follow AAA pattern** - Arrange → Act → Assert
+5. **Use factory functions** from `tests/utils.py` for creating test data
+6. **See [TESTING.md](./TESTING.md)** for complete best practices
+
+**⚠️ Deprecated Approach**: This guide previously recommended mocking database operations. The current philosophy (per TESTING.md) is to use real in-memory SQLite databases instead of mocks.
 
 ## File Organization
 
