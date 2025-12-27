@@ -30,16 +30,14 @@ def run_simple_tests():
 def run_postgres_tests():
     """Run PostgreSQL tests with Docker."""
     print("🐘 Running PostgreSQL tests (comprehensive, requires Docker)...")
-    result = subprocess.run(
-        [
-            "poetry",
-            "run",
-            "pytest",
-            "tests/test_models_postgres.py",
-            "-v",
-            "-s",  # Don't capture output so we can see Docker logs
-        ]
-    )
+    result = subprocess.run([
+        "poetry",
+        "run",
+        "pytest",
+        "tests/test_models_postgres.py",
+        "-v",
+        "-s",  # Don't capture output so we can see Docker logs
+    ])
     return result.returncode == 0
 
 

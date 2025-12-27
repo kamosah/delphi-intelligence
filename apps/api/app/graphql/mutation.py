@@ -258,9 +258,10 @@ class Mutation:
                     (OrganizationMemberModel.organization_id == org_id)
                     & (OrganizationMemberModel.user_id == user_id)
                     & (
-                        OrganizationMemberModel.organization_role.in_(
-                            [OrganizationRole.ADMIN, OrganizationRole.OWNER]
-                        )
+                        OrganizationMemberModel.organization_role.in_([
+                            OrganizationRole.ADMIN,
+                            OrganizationRole.OWNER,
+                        ])
                     )
                 )
                 member_result = await session.execute(member_stmt)
@@ -385,9 +386,10 @@ class Mutation:
                     (OrganizationMemberModel.organization_id == org_id)
                     & (OrganizationMemberModel.user_id == current_user_id)
                     & (
-                        OrganizationMemberModel.organization_role.in_(
-                            [OrganizationRole.ADMIN, OrganizationRole.OWNER]
-                        )
+                        OrganizationMemberModel.organization_role.in_([
+                            OrganizationRole.ADMIN,
+                            OrganizationRole.OWNER,
+                        ])
                     )
                 )
                 member_result = await session.execute(member_stmt)
@@ -487,9 +489,10 @@ class Mutation:
                     (OrganizationMemberModel.organization_id == org_id)
                     & (OrganizationMemberModel.user_id == current_user_id)
                     & (
-                        OrganizationMemberModel.organization_role.in_(
-                            [OrganizationRole.ADMIN, OrganizationRole.OWNER]
-                        )
+                        OrganizationMemberModel.organization_role.in_([
+                            OrganizationRole.ADMIN,
+                            OrganizationRole.OWNER,
+                        ])
                     )
                 )
                 member_result = await session.execute(member_stmt)
@@ -960,9 +963,10 @@ class Mutation:
                         (OrganizationMemberModel.organization_id == thread_model.organization_id)
                         & (OrganizationMemberModel.user_id == user_id)
                         & (
-                            OrganizationMemberModel.organization_role.in_(
-                                [OrganizationRole.ADMIN, OrganizationRole.OWNER]
-                            )
+                            OrganizationMemberModel.organization_role.in_([
+                                OrganizationRole.ADMIN,
+                                OrganizationRole.OWNER,
+                            ])
                         )
                     )
                     org_member_result = await session.execute(org_member_stmt)
@@ -1263,9 +1267,10 @@ class Mutation:
                         (OrganizationMemberModel.organization_id == thread_model.organization_id)
                         & (OrganizationMemberModel.user_id == user_id)
                         & (
-                            OrganizationMemberModel.organization_role.in_(
-                                [OrganizationRole.ADMIN, OrganizationRole.OWNER]
-                            )
+                            OrganizationMemberModel.organization_role.in_([
+                                OrganizationRole.ADMIN,
+                                OrganizationRole.OWNER,
+                            ])
                         )
                     )
                     org_member_result = await session.execute(org_member_stmt)

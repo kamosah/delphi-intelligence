@@ -61,12 +61,12 @@ def calculate_confidence_with_params(
 
 async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
     """Run diagnostic analysis on a query."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("CONFIDENCE DIAGNOSTIC TOOL")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"\nSpace ID: {space_id}")
     print(f"Query: {query}")
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
 
     # Get services
     vector_search = get_vector_search_service()
@@ -95,7 +95,7 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
 
             # Display search results
             print("[2] Search Results (with similarity scores):")
-            print(f"{'-'*80}")
+            print(f"{'-' * 80}")
             for i, result in enumerate(search_results, 1):
                 chunk = result.chunk
                 doc = result.document
@@ -114,11 +114,11 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
                 print(f"    Chunk {chunk.chunk_index} (chars {chunk.start_char}-{chunk.end_char})")
                 print(f"    Preview: {chunk.chunk_text[:150]}...")
 
-            print(f"\n{'-'*80}")
+            print(f"\n{'-' * 80}")
 
             # Calculate current confidence (with current thresholds)
             print("\n[3] Current Confidence Calculation:")
-            print(f"{'-'*80}")
+            print(f"{'-' * 80}")
 
             # Assume 2 citations used (typical for a good answer)
             num_citations = 2
@@ -142,7 +142,7 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
                 f"  - Coverage: {num_citations}/3 = {current['coverage']:.4f} * 0.2 = {current['coverage'] * 0.2:.4f}"
             )
             print(
-                f"\n  TOTAL CONFIDENCE: {current['confidence']:.4f} ({current['confidence']*100:.1f}%)"
+                f"\n  TOTAL CONFIDENCE: {current['confidence']:.4f} ({current['confidence'] * 100:.1f}%)"
             )
 
             passes = current["confidence"] >= 0.5
@@ -153,7 +153,7 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
 
             # Test alternative thresholds
             print("\n[4] Alternative Threshold Scenarios:")
-            print(f"{'-'*80}")
+            print(f"{'-' * 80}")
 
             scenarios = [
                 ("Option 1: Lower confidence only", 0.7, 0.3),
@@ -173,7 +173,7 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
                 print(f"  - High Quality Threshold: {quality_threshold}")
                 print(f"  - Confidence Threshold: {confidence_threshold}")
                 print(
-                    f"  - Calculated Confidence: {result['confidence']:.4f} ({result['confidence']*100:.1f}%)"
+                    f"  - Calculated Confidence: {result['confidence']:.4f} ({result['confidence'] * 100:.1f}%)"
                 )
                 print(
                     f"  - High Quality Count: {result['high_quality_count']}/{len(search_results)}"
@@ -182,7 +182,7 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
 
             # Recommendations
             print("\n[5] Recommendations:")
-            print(f"{'-'*80}")
+            print(f"{'-' * 80}")
 
             # Check if any chunks are >0.7
             high_quality_count_07 = sum(1 for r in search_results if r.similarity_score > 0.7)
@@ -214,7 +214,7 @@ async def diagnose_query(space_id: UUID, query: str):  # noqa: PLR0915
                 print(f"  ⚠️  Semantic matches are weak (avg: {avg_top_3:.3f})")
                 print("  📊 Recommendation: May need better document coverage or query rephrasing")
 
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
 
         finally:
             await db.close()

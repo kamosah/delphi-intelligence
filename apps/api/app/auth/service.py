@@ -72,13 +72,11 @@ class AuthService:
 
             # Create user with Supabase Auth using sign_up
             user_client = get_user_client()
-            response = user_client.auth.sign_up(
-                {
-                    "email": email,
-                    "password": password,
-                    "options": {"data": {"full_name": full_name} if full_name else {}},
-                }
-            )
+            response = user_client.auth.sign_up({
+                "email": email,
+                "password": password,
+                "options": {"data": {"full_name": full_name} if full_name else {}},
+            })
 
             if not response.user:
                 raise HTTPException(
@@ -127,9 +125,10 @@ class AuthService:
         try:
             # Authenticate with Supabase
             user_client = get_user_client()
-            response = user_client.auth.sign_in_with_password(
-                {"email": email, "password": password}
-            )
+            response = user_client.auth.sign_in_with_password({
+                "email": email,
+                "password": password,
+            })
 
             if not response.user or not response.session:
                 raise HTTPException(
