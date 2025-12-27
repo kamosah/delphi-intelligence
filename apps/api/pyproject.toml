@@ -140,6 +140,10 @@ ignore = [
     "RUF012",  # Mutable class attributes (sometimes intentional for middleware)
     "RUF010",  # Use explicit conversion flag (str(e) is clear and widely used)
     "RUF029",  # Async function without await (FastAPI/LangGraph/pytest convention)
+    "PLR6301", # Method could be static/classmethod (architectural choice - may use self later)
+    "PLR0914", # Too many local variables (acceptable for complex business logic)
+    "PLR0917", # Too many positional arguments (acceptable for complex operations)
+    "PLR0904", # Too many public methods (acceptable for service classes)
 ]
 
 # Allow autofix for all enabled rules
