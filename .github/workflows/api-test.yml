@@ -67,7 +67,7 @@ jobs:
               env:
                   SPICEDB_ENDPOINT: localhost:50051
                   SPICEDB_TOKEN: testtoken
-                  DATABASE_URL: sqlite:///test.db
+                  DATABASE_URL: sqlite+aiosqlite:///test.db
                   REDIS_URL: redis://localhost:6379/0
                   OPENAI_API_KEY: test-openai-api-key
               run: |

@@ -84,7 +84,9 @@ def include_object(object, name, type_, reflected, compare_to):  # noqa: ARG001
 
     # Exclude Supabase internal tables in public schema
     # Include everything except internal migration tables
-    return not (type_ == "table" and name in {"schema_migrations", "supabase_migrations", "alembic_version"})
+    return not (
+        type_ == "table" and name in {"schema_migrations", "supabase_migrations", "alembic_version"}
+    )
 
 
 def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):  # noqa: ARG001
