@@ -83,14 +83,11 @@ def include_object(object, name, type_, reflected, compare_to):  # noqa: ARG001
             return False
 
     # Exclude Supabase internal tables in public schema
-    if type_ == "table" and name in ["schema_migrations", "supabase_migrations", "alembic_version"]:
-        return False
-
-    # Include everything else
-    return True
+    # Include everything except internal migration tables
+    return not (type_ == "table" and name in {"schema_migrations", "supabase_migrations", "alembic_version"})
 
 
-def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):  # noqa: PLR0911, ARG001
+def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):  # noqa: ARG001
     """
     Custom type comparison for better enum and type detection.
 
@@ -106,26 +103,25 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
             # Compare enum values
             metadata_values = set(metadata_type.enums)
             inspected_values = set(inspected_type.enums)
-            if metadata_values != inspected_values:
-                return True  # Types differ
-            return False  # Types match
+            # Return True if types differ, False if they match
+            return metadata_values != inspected_values
 
         # If inspected is string but metadata is enum, they match if enum exists in DB
         # (Alembic sometimes reflects enums as strings)
         if isinstance(inspected_type, postgresql.VARCHAR | str):
             return False  # Assume match, migration will handle if needed
 
-    # Handle numeric types - compare precision
+    # Handle numeric types - compare precision and scale
     if (
         isinstance(metadata_type, postgresql.NUMERIC)
         and hasattr(inspected_type, "precision")
         and hasattr(metadata_type, "precision")
     ):
-        if inspected_type.precision != metadata_type.precision:
-            return True
-        if inspected_type.scale != metadata_type.scale:
-            return True
-        return False
+        # Return True if precision or scale differs
+        return (
+            inspected_type.precision != metadata_type.precision
+            or inspected_type.scale != metadata_type.scale
+        )
 
     # Handle timestamp with/without timezone
     if (
@@ -133,9 +129,8 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
         and hasattr(inspected_type, "timezone")
         and hasattr(metadata_type, "timezone")
     ):
-        if inspected_type.timezone != metadata_type.timezone:
-            return True
-        return False
+        # Return True if timezone setting differs
+        return inspected_type.timezone != metadata_type.timezone
 
     # Default: let Alembic handle the comparison
     return None

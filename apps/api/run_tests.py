@@ -7,7 +7,7 @@ This script demonstrates different approaches to testing the database models:
 2. Docker PostgreSQL tests (comprehensive, requires Docker)
 """
 
-import subprocess
+import subprocess  # noqa: S404 - subprocess is safe for internal test automation
 import sys
 
 
@@ -77,7 +77,7 @@ def main():
     # Run tests based on selection
     success = True
 
-    if test_type in ["simple", "both"]:
+    if test_type in {"simple", "both"}:
         print()
         if not run_simple_tests():
             success = False
@@ -85,14 +85,14 @@ def main():
         else:
             print("✅ Simple tests passed!")
 
-    if test_type in ["postgres", "both"] and docker_available:
+    if test_type in {"postgres", "both"} and docker_available:
         print()
         if not run_postgres_tests():
             success = False
             print("❌ PostgreSQL tests failed!")
         else:
             print("✅ PostgreSQL tests passed!")
-    elif test_type in ["postgres", "both"] and not docker_available:
+    elif test_type in {"postgres", "both"} and not docker_available:
         print("⚠️  PostgreSQL tests skipped - Docker not available")
 
     print()
