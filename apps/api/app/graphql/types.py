@@ -1,7 +1,7 @@
 """GraphQL types for the application."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import strawberry
@@ -79,7 +79,7 @@ class UpdateUserInput:
 
 
 @strawberry.enum
-class OrganizationRole(str, Enum):
+class OrganizationRole(StrEnum):
     """Enum for organization member roles."""
 
     OWNER = "owner"
@@ -256,7 +256,7 @@ class Document:
 
 
 @strawberry.enum
-class DocumentSortField(str, Enum):
+class DocumentSortField(StrEnum):
     """Fields that can be used to sort documents."""
 
     NAME = "name"
@@ -268,7 +268,7 @@ class DocumentSortField(str, Enum):
 
 
 @strawberry.enum
-class SortOrder(str, Enum):
+class SortOrder(StrEnum):
     """Sort order direction."""
 
     ASC = "asc"
@@ -438,7 +438,7 @@ class UpdateSpaceInput:
 
 
 @strawberry.enum
-class ThreadStatusEnum(str, Enum):
+class ThreadStatusEnum(StrEnum):
     """GraphQL enum for thread processing status."""
 
     PENDING = "pending"
@@ -546,7 +546,7 @@ class Thread:
 
 
 @strawberry.enum
-class MessageRole(str, Enum):
+class MessageRole(StrEnum):
     """Enum for message roles in conversations."""
 
     USER = "user"

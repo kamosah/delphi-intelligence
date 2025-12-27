@@ -19,6 +19,7 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.schema import Table
 
+from app.config import settings
 from app.main import app
 from app.models.base import Base
 from app.models.message import Message, MessageRole
@@ -27,8 +28,8 @@ from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus
 from app.models.user import User
-from app.config import settings
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
+from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 
 
 @pytest.fixture()
@@ -296,9 +297,54 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture()
-async def spicedb_service() -> AsyncGenerator[SpiceDBService, None]:
+def test_resource_ids(request: pytest.FixtureRequest) -> Callable[[str], str]:
+    """Generate unique resource IDs scoped to this test (parallel-safe).
+
+    This fixture creates test-scoped resource IDs that prevent conflicts when
+    running tests in parallel with pytest-xdist. Each test gets unique IDs based
+    on the test name and a random suffix.
+
+    Usage:
+        def test_something(test_resource_ids):
+            org_id = test_resource_ids("org")  # "org-test_something-abc123"
+            user_id = test_resource_ids("user")  # "user-test_something-abc123"
+
+    The fixture automatically tracks created IDs for cleanup in the spicedb_service fixture.
+
+    Returns:
+        Callable that generates unique IDs with format: "{prefix}-{test_name}-{random}"
     """
-    Provide SpiceDBService configured for testing.
+    # Create unique test ID from test name and random suffix
+    test_id = f"{request.node.name}-{uuid4().hex[:8]}"
+
+    # Track created IDs for cleanup
+    created_ids: list[str] = []
+
+    def make_id(prefix: str = "test") -> str:
+        """Generate a test-scoped resource ID and track it for cleanup.
+
+        Args:
+            prefix: Prefix for the ID (e.g., "org", "user", "space")
+
+        Returns:
+            Unique ID in format: "{prefix}-{test_name}-{random}"
+        """
+        resource_id = f"{prefix}-{test_id}"
+        created_ids.append(resource_id)
+        return resource_id
+
+    # Attach created_ids list to the function for access in cleanup
+    make_id.created_ids = created_ids  # type: ignore[attr-defined]
+
+    return make_id
+
+
+@pytest.fixture()
+async def spicedb_service(
+    test_resource_ids: Callable[[str], str],
+) -> AsyncGenerator[SpiceDBService, None]:
+    """
+    Provide SpiceDBService configured for testing with parallel-safe cleanup.
 
     Works in both local development and CI environments:
     - **Local**: Uses Docker Compose SpiceDB (spicedb:50051 from .env)
@@ -312,9 +358,16 @@ async def spicedb_service() -> AsyncGenerator[SpiceDBService, None]:
     - No mocking of authorization checks
     - Fast in-memory datastore
 
-    Note: This fixture uses function scope (not session) to ensure test isolation.
-    SpiceDB tests should not run in parallel due to shared datastore state.
-    Use `pytest -n 0` or configure pytest-xdist to exclude SpiceDB tests from parallel execution.
+    **Parallel Test Execution:**
+    This fixture now supports parallel test execution (pytest-xdist) through the
+    test_resource_ids fixture. Tests should use test_resource_ids() to generate
+    unique IDs, and cleanup will only delete relationships for that test's IDs.
+
+    Usage:
+        async def test_permission(spicedb_service, test_resource_ids):
+            org_id = test_resource_ids("org")  # Unique ID for this test
+            await spicedb_service.write_relationship(...)
+            # Cleanup happens automatically for this test's IDs only
     """
     if not settings.spicedb_token or not settings.spicedb_endpoint:
         pytest.skip(
@@ -322,12 +375,17 @@ async def spicedb_service() -> AsyncGenerator[SpiceDBService, None]:
         )
 
     # Use the global singleton instance (thread-safe within single process)
-    # For parallel testing, use pytest-xdist with worker-id based isolation
     service = get_spicedb_service()
     yield service
 
-    # Cleanup: Delete all test relationships for known resource types
-    # This ensures a clean slate for each test
-    resource_types = ["organization", "space", "document", "user"]
-    for resource_type in resource_types:
-        await service.delete_all_relationships_for_resource_type(resource_type)
+    # Parallel-safe cleanup: Only delete relationships for this test's resource IDs
+    if hasattr(test_resource_ids, "created_ids") and test_resource_ids.created_ids:  # type: ignore[attr-defined]
+        try:
+            result = await delete_relationships_by_ids(
+                service,
+                test_resource_ids.created_ids,  # type: ignore[attr-defined]
+            )
+            if result["failed_ids"]:
+                pytest.fail(f"Cleanup failed for IDs: {result['failed_ids']}")
+        except Exception as e:
+            pytest.fail(f"Cleanup error: {e}")

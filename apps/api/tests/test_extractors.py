@@ -21,7 +21,7 @@ class TestTextExtractor:
         extractor = TextExtractor()
 
         # Create temporary text file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="locale") as f:
             f.write("Hello, World!\nThis is a test.")
             temp_path = f.name
 
@@ -42,7 +42,7 @@ class TestTextExtractor:
         extractor = TextExtractor()
 
         # Create empty temporary text file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="locale") as f:
             temp_path = f.name
 
         try:

@@ -146,7 +146,7 @@ class StorageService:
         if hasattr(file, "size") and file.size and file.size > self.MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=413,
-                detail=f"File too large. Maximum size is {self.MAX_FILE_SIZE / (1024*1024):.0f}MB",
+                detail=f"File too large. Maximum size is {self.MAX_FILE_SIZE / (1024 * 1024):.0f}MB",
             )
 
         # Validate MIME type

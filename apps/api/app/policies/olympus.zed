@@ -105,19 +105,27 @@ caveat has_enterprise_subscription(user_tier string) {
  *
  * Usage Example (Python):
  *   from datetime import datetime, timedelta
- *   from app.schemas.spicedb import WriteRelationshipInput
+ *   from app.schemas.spicedb import WriteRelationshipInput, CheckPermissionInput
  *
- *   # Calculate trial end (30 days from now)
+ *   # Step 1: Write relationship (NO context at write time)
  *   trial_end = int((datetime.now() + timedelta(days=30)).timestamp())
- *
- *   # Write relationship with caveat context
  *   await spicedb.write_relationship(
  *       WriteRelationshipInput(
  *           resource_type="advanced_feature",
  *           resource_id="feature-id",
  *           relation="user",
  *           subject_type="user",
- *           subject_id=user_id,
+ *           subject_id=user_id
+ *       )
+ *   )
+ *
+ *   # Step 2: Check permission WITH context (context evaluated at check time)
+ *   has_access = await spicedb.check_permission(
+ *       CheckPermissionInput(
+ *           user_id=user_id,
+ *           permission="access",
+ *           resource_type="advanced_feature",
+ *           resource_id="feature-id",
  *           context={
  *               "current_time": int(datetime.now().timestamp()),
  *               "trial_end": trial_end
@@ -125,8 +133,8 @@ caveat has_enterprise_subscription(user_tier string) {
  *       )
  *   )
  *
- * Note: context values must be provided at permission check time, not relationship write time.
- * The caveat is evaluated when checking permissions, not when creating relationships.
+ * IMPORTANT: Context values are provided at permission check time, NOT at relationship write time.
+ * The caveat is evaluated when checking permissions using the context provided in CheckPermissionInput.
  */
 caveat within_trial_period(current_time timestamp, trial_end timestamp) {
   current_time < trial_end

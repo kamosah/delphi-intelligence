@@ -1,5 +1,12 @@
 name: olympus
 
+# Network Configuration:
+# Docker Compose automatically creates a default bridge network for all services.
+# All services (api, redis, spicedb) communicate on this shared network using service names as hostnames.
+# - API → SpiceDB: Uses "spicedb:50051" for gRPC communication
+# - API → Redis: Uses "redis:6379" for cache/session storage
+# No explicit network definition needed - default network provides service discovery and isolation.
+
 services:
   redis:
     image: redis:7-alpine

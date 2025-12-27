@@ -1,7 +1,7 @@
 """Thread model for storing AI agent conversations and results."""
 
 from datetime import datetime
-from enum import Enum as PyEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class ThreadStatus(str, PyEnum):
+class ThreadStatus(StrEnum):
     """Thread processing status."""
 
     PENDING = "pending"

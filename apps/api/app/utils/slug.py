@@ -4,6 +4,8 @@ import re
 import uuid
 from typing import TYPE_CHECKING
 
+from sqlalchemy import Select, select
+
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,8 +68,6 @@ async def generate_unique_slug(
         If "my-space" exists, returns "my-space-1"
         If "my-space-1" exists, returns "my-space-2"
     """
-    from sqlalchemy import Select, select
-
     base_slug = slugify(base_text)
 
     # If slug is empty after slugification, use a random UUID

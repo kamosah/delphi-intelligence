@@ -20,13 +20,19 @@ class CheckPermissionInput(BaseModel):
     resource_id: str | UUID
     context: dict[str, Any] | None = None
 
-    @field_validator("permission", "resource_type")
+    @field_validator("permission", "resource_type", "user_id", "resource_id")
     @classmethod
-    def validate_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        """Validate that string fields are not empty."""
-        if not v or not v.strip():
-            raise ValueError(f"{info.field_name} cannot be empty")
-        return v.strip()
+    def validate_not_empty(cls, v: str | UUID, info: ValidationInfo) -> str | UUID:
+        """Validate that fields are not empty.
+
+        For string fields: checks not empty and strips whitespace.
+        For UUID fields: validated automatically by Pydantic.
+        """
+        if isinstance(v, str):
+            if not v or not v.strip():
+                raise ValueError(f"{info.field_name} cannot be empty string")
+            return v.strip()
+        return v
 
 
 class WriteRelationshipInput(BaseModel):
@@ -39,13 +45,19 @@ class WriteRelationshipInput(BaseModel):
     subject_id: str | UUID
     expiration: int | None = None
 
-    @field_validator("resource_type", "relation", "subject_type")
+    @field_validator("resource_type", "relation", "subject_type", "resource_id", "subject_id")
     @classmethod
-    def validate_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        """Validate that string fields are not empty."""
-        if not v or not v.strip():
-            raise ValueError(f"{info.field_name} cannot be empty")
-        return v.strip()
+    def validate_not_empty(cls, v: str | UUID, info: ValidationInfo) -> str | UUID:
+        """Validate that fields are not empty.
+
+        For string fields: checks not empty and strips whitespace.
+        For UUID fields: validated automatically by Pydantic.
+        """
+        if isinstance(v, str):
+            if not v or not v.strip():
+                raise ValueError(f"{info.field_name} cannot be empty string")
+            return v.strip()
+        return v
 
 
 class DeleteRelationshipInput(BaseModel):
@@ -57,10 +69,16 @@ class DeleteRelationshipInput(BaseModel):
     subject_type: str
     subject_id: str | UUID
 
-    @field_validator("resource_type", "relation", "subject_type")
+    @field_validator("resource_type", "relation", "subject_type", "resource_id", "subject_id")
     @classmethod
-    def validate_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        """Validate that string fields are not empty."""
-        if not v or not v.strip():
-            raise ValueError(f"{info.field_name} cannot be empty")
-        return v.strip()
+    def validate_not_empty(cls, v: str | UUID, info: ValidationInfo) -> str | UUID:
+        """Validate that fields are not empty.
+
+        For string fields: checks not empty and strips whitespace.
+        For UUID fields: validated automatically by Pydantic.
+        """
+        if isinstance(v, str):
+            if not v or not v.strip():
+                raise ValueError(f"{info.field_name} cannot be empty string")
+            return v.strip()
+        return v

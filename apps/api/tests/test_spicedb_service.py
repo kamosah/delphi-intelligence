@@ -13,6 +13,7 @@ import time
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from app.schemas.spicedb import (
     CheckPermissionInput,
@@ -33,7 +34,7 @@ class TestSpiceDBServiceIntegration:
     """
 
     async def test_write_and_check_organization_owner_permission(
-        self, spicedb_service: SpiceDBService
+        self, spicedb_service: SpiceDBService, test_resource_ids
     ) -> None:
         """Test writing organization owner relationship and checking permissions.
 
@@ -41,9 +42,12 @@ class TestSpiceDBServiceIntegration:
         - Arrange: Create relationships in SpiceDB
         - Act: Check permissions
         - Assert: Verify permission resolution is correct
+
+        Uses test_resource_ids for parallel-safe execution.
         """
-        user_id = str(uuid4())
-        org_id = str(uuid4())
+        # Generate unique IDs for this test (parallel-safe)
+        user_id = test_resource_ids("user")
+        org_id = test_resource_ids("org")
 
         # Arrange: Write relationship - user is owner of organization
         success = await spicedb_service.write_relationship(
@@ -78,6 +82,7 @@ class TestSpiceDBServiceIntegration:
             )
         )
         assert has_view is True
+        # Note: Cleanup happens automatically via test_resource_ids fixture
 
     async def test_check_permission_denied_without_relationship(
         self, spicedb_service: SpiceDBService
@@ -100,12 +105,16 @@ class TestSpiceDBServiceIntegration:
         assert has_permission is False
 
     async def test_hierarchical_permissions_organization_to_space(
-        self, spicedb_service: SpiceDBService
+        self, spicedb_service: SpiceDBService, test_resource_ids
     ) -> None:
-        """Test that org admins can manage spaces via relationship inheritance."""
-        user_id = str(uuid4())
-        org_id = str(uuid4())
-        space_id = str(uuid4())
+        """Test that org admins can manage spaces via relationship inheritance.
+
+        Uses test_resource_ids for parallel-safe execution.
+        """
+        # Generate unique IDs for this test (parallel-safe)
+        user_id = test_resource_ids("user")
+        org_id = test_resource_ids("org")
+        space_id = test_resource_ids("space")
 
         # Arrange: user is admin of organization
         await spicedb_service.write_relationship(
@@ -143,11 +152,15 @@ class TestSpiceDBServiceIntegration:
         assert can_manage is True
 
     async def test_delete_relationship_removes_permission(
-        self, spicedb_service: SpiceDBService
+        self, spicedb_service: SpiceDBService, test_resource_ids
     ) -> None:
-        """Test that deleting relationship removes permissions."""
-        user_id = str(uuid4())
-        org_id = str(uuid4())
+        """Test that deleting relationship removes permissions.
+
+        Uses test_resource_ids for parallel-safe execution.
+        """
+        # Generate unique IDs for this test (parallel-safe)
+        user_id = test_resource_ids("user")
+        org_id = test_resource_ids("org")
 
         # Arrange: Write relationship
         await spicedb_service.write_relationship(
@@ -194,10 +207,16 @@ class TestSpiceDBServiceIntegration:
         )
         assert has_permission is False
 
-    async def test_relationship_with_expiration(self, spicedb_service: SpiceDBService) -> None:
-        """Test writing relationship with expiration timestamp."""
-        user_id = str(uuid4())
-        org_id = str(uuid4())
+    async def test_relationship_with_expiration(
+        self, spicedb_service: SpiceDBService, test_resource_ids
+    ) -> None:
+        """Test writing relationship with expiration timestamp.
+
+        Uses test_resource_ids for parallel-safe execution.
+        """
+        # Generate unique IDs for this test (parallel-safe)
+        user_id = test_resource_ids("user")
+        org_id = test_resource_ids("org")
 
         # Arrange: Write relationship with 1-hour expiration
         expiration = int(time.time()) + 3600
@@ -227,11 +246,15 @@ class TestSpiceDBServiceIntegration:
         assert has_permission is True
 
     async def test_multiple_roles_on_same_organization(
-        self, spicedb_service: SpiceDBService
+        self, spicedb_service: SpiceDBService, test_resource_ids
     ) -> None:
-        """Test user with multiple roles on same organization."""
-        user_id = str(uuid4())
-        org_id = str(uuid4())
+        """Test user with multiple roles on same organization.
+
+        Uses test_resource_ids for parallel-safe execution.
+        """
+        # Generate unique IDs for this test (parallel-safe)
+        user_id = test_resource_ids("user")
+        org_id = test_resource_ids("org")
 
         # Arrange: User has both member and admin roles
         await spicedb_service.write_relationship(
@@ -298,17 +321,18 @@ class TestSpiceDBServiceErrorHandling:
         assert result is False
 
     async def test_write_relationship_with_empty_ids(self, spicedb_service: SpiceDBService) -> None:
-        """Test error handling for empty IDs."""
-        # Act: Should return False on invalid input
-        result = await spicedb_service.write_relationship(
-            WriteRelationshipInput(
-                resource_type="organization",
-                resource_id="",
-                relation="member",
-                subject_type="user",
-                subject_id=str(uuid4()),
+        """Test error handling for empty IDs - validators should catch before SpiceDB call."""
+        # Act & Assert: Pydantic validators should raise ValidationError for empty resource_id
+        with pytest.raises(ValidationError) as exc_info:
+            await spicedb_service.write_relationship(
+                WriteRelationshipInput(
+                    resource_type="organization",
+                    resource_id="",  # Empty ID - should fail validation
+                    relation="member",
+                    subject_type="user",
+                    subject_id=str(uuid4()),
+                )
             )
-        )
 
-        # Assert
-        assert result is False
+        # Verify the error is about resource_id
+        assert "resource_id" in str(exc_info.value)

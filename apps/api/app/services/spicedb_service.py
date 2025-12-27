@@ -22,8 +22,11 @@ from authzed.api.v1 import (
     SubjectReference,
     WriteRelationshipsRequest,
 )
-# grpcutil is bundled with authzed package (not a separate dependency)
-# See: authzed-1.24.0.dist-info/RECORD includes grpcutil
+
+# grpcutil is bundled with authzed package (not a separate PyPI dependency)
+# The authzed package includes grpcutil/__init__.py in its distribution
+# Verified in: authzed-1.24.0.dist-info/RECORD
+# This import is safe and doesn't require adding grpcutil to pyproject.toml dependencies
 from grpcutil import bearer_token_credentials
 from pydantic import ValidationError
 
@@ -226,20 +229,28 @@ class SpiceDBService:
             )
             return False
 
-    async def delete_all_relationships_for_resource_type(self, resource_type: str) -> bool:
-        """Delete all relationships for a specific resource type.
+    async def delete_all_relationships_for_resource(
+        self, resource_type: str, resource_id: str
+    ) -> bool:
+        """Delete all relationships for a specific resource (production-safe).
 
-        Useful for test cleanup - removes all relationships regardless of resource_id.
+        This method deletes all relationships for ONE specific resource instance
+        (e.g., space:123), not all resources of a type. Safe for production use
+        when deleting entities from the database.
+
+        Use case: When deleting an entity from PostgreSQL, also delete its SpiceDB
+        relationships to keep authorization state in sync with database state.
 
         Args:
-            resource_type: The resource type to clear (e.g., "organization", "space")
+            resource_type: The resource type (e.g., "organization", "space")
+            resource_id: The specific resource ID to delete relationships for
 
         Returns:
             True if successful, False otherwise
 
         Example:
-            # Clear all test data for organizations
-            await spicedb.delete_all_relationships_for_resource_type("organization")
+            # Delete all relationships when deleting a space
+            await spicedb.delete_all_relationships_for_resource("space", space_id)
         """
         try:
             # Run synchronous gRPC call in thread pool to avoid blocking event loop
@@ -248,16 +259,19 @@ class SpiceDBService:
                 DeleteRelationshipsRequest(
                     relationship_filter=RelationshipFilter(
                         resource_type=resource_type,
-                        # No optional fields = delete ALL relationships for this resource type
+                        optional_resource_id=str(resource_id),
+                        # Deletes ALL relationships for this specific resource
                     )
                 ),
             )
 
-            logger.debug(f"Deleted all relationships for resource_type={resource_type}")
+            logger.debug(f"Deleted all relationships for {resource_type}:{resource_id}")
             return True
 
         except Exception as e:
-            logger.exception(f"Failed to delete all relationships for {resource_type}: {e}")
+            logger.exception(
+                f"Failed to delete relationships for {resource_type}:{resource_id}: {e}"
+            )
             return False
 
     async def delete_relationship(self, input: DeleteRelationshipInput) -> bool:

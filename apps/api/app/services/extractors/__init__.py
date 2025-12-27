@@ -7,8 +7,8 @@ from .text_extractor import TextExtractor
 
 __all__ = [
     "BaseExtractor",
+    "DOCXExtractor",
     "ExtractionResult",
     "PDFExtractor",
-    "DOCXExtractor",
     "TextExtractor",
 ]

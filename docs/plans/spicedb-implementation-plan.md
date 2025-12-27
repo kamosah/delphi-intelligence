@@ -551,12 +551,12 @@ class TestSpiceDBServiceIntegration:
         # Act: Check owner permission
         has_permission = await spicedb_service.check_permission(
             user_id=user_id,
-            permission="delete",
+            permission="manage_settings",
             resource_type="organization",
             resource_id=org_id,
         )
 
-        # Assert: Owner should have delete permission
+        # Assert: Owner should have manage_settings permission
         assert has_permission is True
 
     async def test_hierarchical_permissions_organization_to_space(

@@ -163,14 +163,10 @@ class AuthService:
             refresh_token = jwt_manager.create_refresh_token({"sub": user.id})
 
             # Store refresh token in Redis with 24-hour TTL
-            import datetime
-
             ttl_timedelta = datetime.timedelta(hours=24)
             await redis_manager.store_refresh_token(user.id, refresh_token, ttl_timedelta)
 
             # Store session data
-            import datetime
-
             await redis_manager.set_session(
                 f"session:{user.id}",
                 {
@@ -287,12 +283,10 @@ class AuthService:
             True if successful
         """
         try:
-            from datetime import UTC, datetime
-
             # Blacklist the access token
             token_expiry = jwt_manager.get_token_expiry(access_token)
             if token_expiry:
-                expire_delta = token_expiry - datetime.now(UTC)
+                expire_delta = token_expiry - datetime.datetime.now(datetime.UTC)
                 await redis_manager.blacklist_token(access_token, expire_delta)
 
             # Revoke refresh token

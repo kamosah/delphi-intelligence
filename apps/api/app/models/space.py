@@ -1,6 +1,6 @@
 """Space and SpaceMember models for workspace management."""
 
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class MemberRole(str, Enum):
+class MemberRole(StrEnum):
     """Enum for space member roles."""
 
     OWNER = "owner"

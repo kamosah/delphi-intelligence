@@ -10,6 +10,7 @@ Example:
 
 import asyncio
 import sys
+import traceback
 from uuid import UUID
 
 from app.db.session import get_session
@@ -241,8 +242,6 @@ async def main():
         sys.exit(1)
     except Exception as e:
         print(f"❌ Error: {e}")
-        import traceback
-
         traceback.print_exc()
         sys.exit(1)
 

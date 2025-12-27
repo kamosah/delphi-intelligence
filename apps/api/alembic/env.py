@@ -1,7 +1,9 @@
 import asyncio
 from logging.config import fileConfig
 
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import pool
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -97,9 +99,6 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
     - PostgreSQL-specific type differences
     - Supabase pooler type variations
     """
-    from sqlalchemy import Enum as SQLEnum
-    from sqlalchemy.dialects import postgresql
-
     # Handle PostgreSQL Enum types
     if isinstance(metadata_type, SQLEnum):
         # If both are enums, compare their values
@@ -149,8 +148,6 @@ def render_item(type_, obj, autogen_context):  # noqa: ARG001
     This ensures that when Alembic generates migrations, it uses create_type=False
     for existing enum types to prevent "type already exists" errors.
     """
-    from sqlalchemy import Enum as SQLEnum
-
     # Handle Enum types - use create_type=False to reference existing enums
     if isinstance(obj, SQLEnum):
         enum_values = ", ".join(repr(e) for e in obj.enums)

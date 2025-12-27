@@ -261,7 +261,7 @@ async def retrieve_context(state: AgentState) -> AgentState:
 
             # Build boost mapping: mentioned spaces get boost, others get 1.0
             mention_boost_factor = 1.2
-            space_boosts = {sid: mention_boost_factor for sid in mentioned_space_ids}
+            space_boosts = dict.fromkeys(mentioned_space_ids, mention_boost_factor)
             # Thread space (if different from mentioned) gets no boost
             if space_id and space_id not in mentioned_space_ids:
                 space_boosts[space_id] = 1.0
@@ -343,7 +343,7 @@ async def generate_response(state: AgentState) -> AgentState:
     # Build prompt with context
     if state["context"]:
         # Number each context chunk for citations
-        numbered_contexts = [f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])]
+        numbered_contexts = [f"[{i + 1}] {chunk}" for i, chunk in enumerate(state["context"])]
         context_text = "\n\n".join(numbered_contexts)
 
         prompt = f"""{FEW_SHOT_EXAMPLES}
@@ -410,7 +410,7 @@ async def generate_response_streaming(state: AgentState) -> AsyncGenerator[str, 
     # Build prompt with context
     if state["context"]:
         # Number each context chunk for citations
-        numbered_contexts = [f"[{i+1}] {chunk}" for i, chunk in enumerate(state["context"])]
+        numbered_contexts = [f"[{i + 1}] {chunk}" for i, chunk in enumerate(state["context"])]
         context_text = "\n\n".join(numbered_contexts)
 
         prompt = f"""{FEW_SHOT_EXAMPLES}
