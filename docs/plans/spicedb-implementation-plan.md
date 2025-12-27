@@ -568,14 +568,35 @@ class TestSpiceDBServiceIntegration:
         space_id = str(uuid4())
 
         # Arrange: user is admin of organization
-        await spicedb_service.write_relationship("organization", org_id, "admin", "user", user_id)
+        await spicedb_service.write_relationship(
+            WriteRelationshipInput(
+                resource_type="organization",
+                resource_id=org_id,
+                relation="admin",
+                subject_type="user",
+                subject_id=user_id
+            )
+        )
 
         # Arrange: space belongs to organization
-        await spicedb_service.write_relationship("space", space_id, "organization", "organization", org_id)
+        await spicedb_service.write_relationship(
+            WriteRelationshipInput(
+                resource_type="space",
+                resource_id=space_id,
+                relation="organization",
+                subject_type="organization",
+                subject_id=org_id
+            )
+        )
 
         # Act: Check if org admin can delete space
         can_delete = await spicedb_service.check_permission(
-            user_id, "delete", "space", space_id
+            CheckPermissionInput(
+                user_id=user_id,
+                permission="delete",
+                resource_type="space",
+                resource_id=space_id
+            )
         )
 
         # Assert: Org admin should inherit space deletion permission

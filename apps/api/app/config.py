@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     spicedb_token: str | None = Field(
         default=None, description="SpiceDB pre-shared key for authentication"
     )
+    spicedb_datastore_conn_uri: str | None = Field(
+        default=None, description="SpiceDB PostgreSQL datastore connection URI"
+    )
 
     # CORS Configuration
     # WARNING: At least one of cors_origins or cors_origin_regex must be configured

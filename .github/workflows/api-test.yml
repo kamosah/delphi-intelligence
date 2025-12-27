@@ -65,11 +65,8 @@ jobs:
 
             - name: Run pytest
               env:
-                  SPICEDB_ENDPOINT: "localhost:50051"
-                  SPICEDB_TOKEN: "testtoken"
-                  DATABASE_URL: "postgresql://test:test@localhost/test"
-                  REDIS_URL: "redis://localhost:6379"
-                  OPENAI_API_KEY: "test-key"
+                  SPICEDB_ENDPOINT: localhost:50051
+                  SPICEDB_TOKEN: testtoken
               run: |
                   poetry run pytest tests/ -v
 

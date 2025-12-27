@@ -98,6 +98,36 @@ caveat has_enterprise_subscription(user_tier string) {
   user_tier == "enterprise"
 }
 
+/**
+ * Caveat: within_trial_period
+ *
+ * Checks if the current time is before the trial end date.
+ *
+ * Usage Example (Python):
+ *   from datetime import datetime, timedelta
+ *   from app.schemas.spicedb import WriteRelationshipInput
+ *
+ *   # Calculate trial end (30 days from now)
+ *   trial_end = int((datetime.now() + timedelta(days=30)).timestamp())
+ *
+ *   # Write relationship with caveat context
+ *   await spicedb.write_relationship(
+ *       WriteRelationshipInput(
+ *           resource_type="advanced_feature",
+ *           resource_id="feature-id",
+ *           relation="user",
+ *           subject_type="user",
+ *           subject_id=user_id,
+ *           context={
+ *               "current_time": int(datetime.now().timestamp()),
+ *               "trial_end": trial_end
+ *           }
+ *       )
+ *   )
+ *
+ * Note: context values must be provided at permission check time, not relationship write time.
+ * The caveat is evaluated when checking permissions, not when creating relationships.
+ */
 caveat within_trial_period(current_time timestamp, trial_end timestamp) {
   current_time < trial_end
 }

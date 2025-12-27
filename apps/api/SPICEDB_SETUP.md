@@ -178,16 +178,32 @@ docker compose exec api poetry run pytest tests/test_spicedb_service.py -v
 # In Python shell
 from app.services.spicedb_service import get_spicedb_service
 from uuid import uuid4
+from app.schemas.spicedb import WriteRelationshipInput, CheckPermissionInput
 
 service = get_spicedb_service()
 
 # Write relationship
 user_id = str(uuid4())
 org_id = str(uuid4())
-await service.write_relationship("organization", org_id, "owner", "user", user_id)
+await service.write_relationship(
+    WriteRelationshipInput(
+        resource_type="organization",
+        resource_id=org_id,
+        relation="owner",
+        subject_type="user",
+        subject_id=user_id
+    )
+)
 
 # Check permission
-has_perm = await service.check_permission(user_id, "manage_settings", "organization", org_id)
+has_perm = await service.check_permission(
+    CheckPermissionInput(
+        user_id=user_id,
+        permission="manage_settings",
+        resource_type="organization",
+        resource_id=org_id
+    )
+)
 print(has_perm)  # Should be True
 ```
 

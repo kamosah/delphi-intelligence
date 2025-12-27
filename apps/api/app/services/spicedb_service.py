@@ -22,6 +22,8 @@ from authzed.api.v1 import (
     SubjectReference,
     WriteRelationshipsRequest,
 )
+# grpcutil is bundled with authzed package (not a separate dependency)
+# See: authzed-1.24.0.dist-info/RECORD includes grpcutil
 from grpcutil import bearer_token_credentials
 from pydantic import ValidationError
 
