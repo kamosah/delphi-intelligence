@@ -9,7 +9,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.jwt_handler import jwt_manager
 from app.auth.redis_client import redis_manager
-from supabase_client import get_user_client
 
 # Security scheme for Bearer token authentication
 security = HTTPBearer()
@@ -117,69 +116,3 @@ async def get_current_user_from_query(
         "role": payload.get("role", "member"),
         **payload,
     }
-
-
-async def get_optional_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
-) -> dict[str, Any] | None:
-    """
-    Optional authentication dependency - returns user if authenticated, None otherwise
-
-    Args:
-        credentials: Optional HTTP Bearer credentials
-
-    Returns:
-        User data from token or None if not authenticated
-    """
-    if not credentials:
-        return None
-
-    try:
-        return await get_current_user(credentials)
-    except HTTPException:
-        return None
-
-
-def require_roles(*required_roles: str):  # type: ignore[no-untyped-def]
-    """
-    Dependency factory to require specific user roles
-
-    Args:
-        required_roles: Required user roles
-
-    Returns:
-        Dependency function that checks user roles
-    """
-
-    async def role_checker(
-        current_user: dict[str, Any] = Depends(get_current_user),
-    ) -> dict[str, Any]:
-        user_role = current_user.get("role", "member")
-        if user_role not in required_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Required roles: {', '.join(required_roles)}",
-            )
-        return current_user
-
-    return role_checker
-
-
-# Common role-based dependencies
-require_admin = require_roles("admin")
-require_admin_or_member = require_roles("admin", "member")
-
-
-def get_supabase_user_client(current_user: dict[str, Any] = Depends(get_current_user)):  # type: ignore[no-untyped-def]
-    """
-    Get Supabase client configured for the current user
-
-    Args:
-        current_user: Current authenticated user
-
-    Returns:
-        Supabase client with user context
-    """
-    # Get the original JWT token from Supabase (if available)
-    supabase_token = current_user.get("supabase_token")
-    return get_user_client(supabase_token)
