@@ -15,7 +15,7 @@ class Base(DeclarativeBase):
 
     # Generate __tablename__ automatically from class name
     @declared_attr.directive
-    def __tablename__(cls) -> str:  # noqa: N805
+    def __tablename__(cls) -> str:  # noqa: N805, PLW3201 - SQLAlchemy special attribute, not a typo
         return cls.__name__.lower() + "s"
 
     # Common fields for all models

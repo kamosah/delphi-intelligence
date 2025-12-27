@@ -139,6 +139,7 @@ ignore = [
     "G004",    # F-string in logging (acceptable for readability)
     "RUF012",  # Mutable class attributes (sometimes intentional for middleware)
     "RUF010",  # Use explicit conversion flag (str(e) is clear and widely used)
+    "RUF029",  # Async function without await (FastAPI/LangGraph/pytest convention)
 ]
 
 # Allow autofix for all enabled rules
