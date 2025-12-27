@@ -637,17 +637,38 @@ spicedb datastore migrate head \
 
 **Expected Output**:
 
+When migrations complete successfully, you'll see:
+
+```
+{"level":"info","targetRevision":"head","message":"server already at requested revision"}
+```
+
+Or if running for the first time:
+
 ```
 successfully migrated to revision "add-index-for-transaction-gc"
 ```
 
 **Verify Migration Success**:
 
-Check SpiceDB logs - you should see:
+1. **Check migration status**:
 
-- ✅ `grpc server started serving` (no more "not migrated" warnings)
-- ✅ `http server started serving`
-- ✅ No more `relation "metadata" does not exist` errors
+   ```bash
+   spicedb datastore migrate head --datastore-engine postgres --datastore-conn-uri "$SPICEDB_DATASTORE_CONN_URI"
+   ```
+
+   - Should show: `"server already at requested revision"` ✅
+
+2. **Check SpiceDB service logs** (Render Dashboard → Logs):
+   - ✅ `grpc server started serving` (no more "not migrated" warnings)
+   - ✅ `http server started serving`
+   - ✅ No more `relation "metadata" does not exist` errors
+
+3. **Database verification** (optional):
+   - Connect to your Supabase database
+   - Verify tables exist: `alembic_version`, `namespace_config`, `relation_tuple`, `caveat`, etc.
+
+**Important**: If you used a separate database for SpiceDB (recommended to avoid Alembic migration conflicts), update the `SPICEDB_DATASTORE_CONN_URI` environment variable in your Render SpiceDB service to point to the new database URL.
 
 ### Step 6: Get Internal Service URL
 
@@ -790,6 +811,26 @@ If you see: `datastore failed readiness checks: datastore is not migrated: curre
 **"Permission denied" errors**:
 
 - Verify tokens match exactly
+
+**"unable to find migration for revision" errors**:
+
+If you see: `unable to find migration for revision: b1dca76ce116` or similar Alembic errors:
+
+1. **Root cause**: SpiceDB uses Alembic for migrations (same as Python API)
+   - If your database already has an `alembic_version` table from Python/FastAPI migrations
+   - SpiceDB will fail because it has different migration revisions
+
+2. **Solution**: Use a **separate database** for SpiceDB (recommended):
+   - Create a new Supabase project or database for SpiceDB only
+   - Update `SPICEDB_DATASTORE_CONN_URI` to point to the new database
+   - Run SpiceDB migrations on the clean database
+   - This keeps Python API and SpiceDB migrations isolated
+
+3. **Verification**:
+   - Check your database for `alembic_version` table
+   - If version is `b1dca76ce116` or other Python revision → use separate database
+   - Fresh SpiceDB database should have revision like `add-index-for-transaction-gc`
+
 - No extra whitespace in token values
 - Token must be base64-encoded
 
