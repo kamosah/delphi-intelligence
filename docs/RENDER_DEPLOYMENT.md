@@ -520,6 +520,294 @@ Continue to:
 
 ---
 
+---
+
+## Optional: Deploy SpiceDB Authorization Service
+
+**When to deploy**: Only if you're implementing fine-grained authorization with SpiceDB (LOG-246, LOG-250, LOG-251, LOG-252)
+
+**Skip this** if you're using basic RBAC with direct database queries.
+
+### SpiceDB Deployment Overview
+
+SpiceDB requires its own service since it's a separate authorization server. We'll deploy it as:
+
+- **Service Type**: Private Service (gRPC, not web)
+- **Image**: `authzed/spicedb:latest`
+- **Database**: Shared with main app (Supabase PostgreSQL)
+- **Cost**: $7/month (Starter tier - always-on required for auth)
+
+### Step 1: Create SpiceDB Private Service
+
+1. From Render dashboard, click **"New +"** → **"Private Service"**
+2. Choose **"Deploy an existing image from a registry"**
+3. Configure:
+   - **Image URL**: `authzed/spicedb:v1.48.0` (pinned version)
+   - **Name**: `olympus-spicedb`
+   - **Region**: **Must match your main web service region** ⚠️
+
+### Step 2: Configure SpiceDB Service
+
+**Instance Type**:
+
+- **Starter** ($7/month) - **Required**, Free tier doesn't work for gRPC services
+- SpiceDB must be always-on for authorization checks
+
+**Environment Variables**:
+
+Add these in the SpiceDB service's Environment tab:
+
+| Key                          | Value                                                                                                     | Notes                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `SPICEDB_GRPC_PRESHARED_KEY` | `<random-base64-string>`                                                                                  | Generate with `openssl rand -base64 32` |
+| `SPICEDB_DATASTORE_CONN_URI` | `postgresql://postgres.[REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require` | Transaction pooler (port **6543**)      |
+
+**Generate SPICEDB_GRPC_PRESHARED_KEY**:
+
+```bash
+openssl rand -base64 32
+```
+
+**CRITICAL - Connection String Format**:
+
+- ✅ Correct: `postgresql://` (standard PostgreSQL driver)
+- ❌ Wrong: `postgresql+asyncpg://` (Python SQLAlchemy dialect - SpiceDB won't parse this)
+- Use port **6543** (Transaction pooler), not 5432 (Direct connection)
+- Must include `?sslmode=require` at the end
+
+**Important**: Use the same database as your main FastAPI app. SpiceDB will create its own tables (prefixed with `_spicedb_`).
+
+### Step 3: Configure Start Command
+
+**CRITICAL**: SpiceDB won't start without the correct command.
+
+In the SpiceDB service settings, add this **Start Command**:
+
+```bash
+spicedb serve --grpc-preshared-key=$SPICEDB_GRPC_PRESHARED_KEY --datastore-engine=postgres --datastore-conn-uri=$SPICEDB_DATASTORE_CONN_URI --grpc-shutdown-grace-period=1s --grpc-addr=0.0.0.0:50051 --http-enabled --http-addr=0.0.0.0:8443 --log-level=trace
+```
+
+**Explanation**:
+
+- `serve` - Start the SpiceDB permissions server
+- `--grpc-preshared-key=$SPICEDB_GRPC_PRESHARED_KEY` - Authentication token (from env var)
+- `--datastore-engine=postgres` - Use PostgreSQL backend (hardcoded)
+- `--datastore-conn-uri=$SPICEDB_DATASTORE_CONN_URI` - Supabase connection string (from env var)
+- `--grpc-addr=0.0.0.0:50051` - Bind gRPC to all interfaces on port 50051 (TLS disabled by default)
+- `--grpc-shutdown-grace-period=1s` - Fast graceful shutdown (hardcoded)
+- `--http-enabled` - Enable HTTP gateway (for health checks and metrics)
+- `--http-addr=0.0.0.0:8443` - HTTP/metrics endpoint on port 8443
+- `--log-level=trace` - Enable maximum logging for troubleshooting (use `info` in production)
+
+**Note**: Only sensitive/dynamic values use environment variables (`$VAR_NAME`). Stable values like engine type and timeouts are hardcoded for simplicity.
+
+### Step 4: Configure Port and Health Check
+
+In SpiceDB service settings:
+
+- **Port**: `50051` (gRPC default)
+- **Health Check Path**: `/healthz` (HTTP endpoint on port 8443)
+  - Or leave empty if health checks fail (gRPC health checks are optional)
+
+### Step 5: Run Database Migrations
+
+**CRITICAL**: SpiceDB requires database migrations to create its tables before it can start accepting requests.
+
+After the service is deployed (even if showing warnings), run migrations:
+
+**Option 1: Using Render Shell (Recommended)**
+
+1. Go to Render Dashboard → SpiceDB Service → **Shell** tab
+2. Run this command:
+   ```bash
+   spicedb datastore migrate head --datastore-engine postgres --datastore-conn-uri "$SPICEDB_DATASTORE_CONN_URI"
+   ```
+
+**Option 2: Using Local zed CLI**
+
+```bash
+# Install zed CLI
+brew install authzed/tap/zed
+
+# Run migrations remotely
+spicedb datastore migrate head \
+  --datastore-engine postgres \
+  --datastore-conn-uri "postgresql://postgres.zipeptuujmmhveektxwb:PASSWORD@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
+```
+
+**Expected Output**:
+
+```
+successfully migrated to revision "add-index-for-transaction-gc"
+```
+
+**Verify Migration Success**:
+
+Check SpiceDB logs - you should see:
+
+- ✅ `grpc server started serving` (no more "not migrated" warnings)
+- ✅ `http server started serving`
+- ✅ No more `relation "metadata" does not exist` errors
+
+### Step 6: Get Internal Service URL
+
+After SpiceDB deploys, Render provides an internal URL:
+
+```
+olympus-spicedb.onrender.com:50051
+```
+
+This is the value you'll use for `SPICEDB_ENDPOINT` in your main web service.
+
+### Step 7: Update Main Web Service
+
+Go back to your main web service (olympus-api) → **Environment** tab:
+
+Add/update these variables:
+
+| Key                | Value                                | Notes                                     |
+| ------------------ | ------------------------------------ | ----------------------------------------- |
+| `SPICEDB_TOKEN`    | `<same-token-from-step-2>`           | Must match `SPICEDB_GRPC_PRESHARED_KEY`   |
+| `SPICEDB_ENDPOINT` | `olympus-spicedb.onrender.com:50051` | Internal Render service URL (no https://) |
+
+**Critical**: The token must be identical in both services.
+
+### Step 8: Upload Authorization Schema
+
+After both services are deployed, upload your SpiceDB schema:
+
+**Option 1: Using zed CLI (recommended)**
+
+1. Install zed CLI:
+
+   ```bash
+   brew install authzed/tap/zed
+   # or
+   npm install -g @authzed/zed
+   ```
+
+2. Upload schema:
+   ```bash
+   zed schema write \
+     --endpoint olympus-spicedb.onrender.com:50051 \
+     --token <your-spicedb-token> \
+     apps/api/app/policies/olympus.zed
+   ```
+
+**Option 2: Using API endpoint**
+
+From your deployed backend, SpiceDB service handles schema uploads automatically on startup (if configured in your FastAPI startup logic).
+
+### Step 9: Verify SpiceDB Connection
+
+Check logs in your main web service:
+
+```
+INFO: SpiceDB SecureClient initialized (endpoint: olympus-spicedb.onrender.com:50051, TLS: enabled)
+```
+
+If you see connection errors:
+
+1. Verify both services are in the same region
+2. Check token matches in both services
+3. Ensure SpiceDB service is **running** (not sleeping)
+
+### SpiceDB Deployment Checklist
+
+- [ ] SpiceDB private service created in same region as main app
+- [ ] SPICEDB_GRPC_PRESHARED_KEY generated and added to SpiceDB service
+- [ ] SPICEDB_DATASTORE_CONN_URI uses same Supabase database (correct format: `postgresql://`, port 6543, `?sslmode=require`)
+- [ ] Start command configured with valid SpiceDB flags
+- [ ] **Database migrations run** via `spicedb datastore migrate head` (CRITICAL)
+- [ ] Internal service URL copied to main app as SPICEDB_ENDPOINT
+- [ ] Same token added to main app as SPICEDB_TOKEN
+- [ ] Authorization schema uploaded via zed CLI
+- [ ] Connection verified in main app logs
+
+### Cost Impact
+
+**With SpiceDB**:
+
+- Main Web Service: $7/month (Starter)
+- SpiceDB Private Service: $7/month (Starter)
+- Redis: $10/month (recommended for production)
+- Supabase: $25/month (Pro)
+
+**Total: ~$69-99/month** (production setup)
+
+### Troubleshooting SpiceDB
+
+**"failed to create datastore" errors**:
+
+If you see: `failed to create datastore: failed to create primary datastore: unable to instantiate datastore`
+
+1. **Check the SPICEDB_DATASTORE_CONN_URI format**:
+   - **CRITICAL**: Must use `postgresql://` prefix, NOT `postgresql+asyncpg://`
+   - The `+asyncpg` dialect is for Python SQLAlchemy only - SpiceDB won't accept it
+   - Correct format: `postgresql://user:password@host:port/database?sslmode=require`
+   - Example: `postgresql://postgres.abc123:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require`
+
+2. **Verify Supabase connection settings**:
+   - Use the **Transaction pooler** (port **6543**), not Direct connection (port 5432)
+   - Include `?sslmode=require` at the end
+   - **DO NOT copy** the Python/SQLAlchemy connection string (it has `+asyncpg`)
+   - Get the string from Supabase Dashboard → Settings → Database → Connection String → **Transaction**
+   - Manually change `postgresql+asyncpg://` to `postgresql://` if you copied the Python version
+
+3. **Check SpiceDB logs with trace level**:
+   - The start command includes `--log-level=trace` for maximum visibility
+   - Look for detailed error messages about the connection failure
+   - Common issues: wrong password, wrong host, SSL mode mismatch, missing `sslmode=require`
+
+**"datastore is not migrated" warnings**:
+
+If you see: `datastore failed readiness checks: datastore is not migrated: currently at revision "b1dca76ce116", but requires "add-index-for-transaction-gc"`
+
+1. **Run database migrations** (see Step 5 above):
+
+   ```bash
+   spicedb datastore migrate head --datastore-engine postgres --datastore-conn-uri "$SPICEDB_DATASTORE_CONN_URI"
+   ```
+
+2. **This is expected** on first deployment - SpiceDB needs to create its tables
+
+3. **Symptoms before migration**:
+   - `relation "metadata" does not exist`
+   - `relation "relation_tuple_transaction" does not exist`
+   - Service keeps retrying readiness checks
+
+4. **After successful migration**:
+   - Warnings stop appearing
+   - Service shows `grpc server started serving`
+   - Health checks pass
+
+**"Connection refused" errors**:
+
+- Ensure SpiceDB service is running (check Events tab)
+- Verify both services in same region
+- Check port 50051 is correct
+
+**"Permission denied" errors**:
+
+- Verify tokens match exactly
+- No extra whitespace in token values
+- Token must be base64-encoded
+
+**"Schema not found" errors**:
+
+- Upload schema using zed CLI
+- Verify schema file path is correct
+- Check logs for schema write errors
+
+**"Database connection failed"**:
+
+- Use same Supabase connection string as main app
+- Verify `?sslmode=require` is in connection string
+- Test database connection from main app first
+
+---
+
 **Created**: 2024-12-20
+**Updated**: 2024-12-27
 **For**: Olympus Backend Deployment
 **Phase**: 5 of 7 (Render Deployment)
