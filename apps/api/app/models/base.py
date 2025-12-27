@@ -14,8 +14,10 @@ class Base(DeclarativeBase):
     """Base class for all database models."""
 
     # Generate __tablename__ automatically from class name
+    # Note: @declared_attr.directive is a SQLAlchemy class-level directive
+    # It's called at class definition time and receives the class (cls), not an instance (self)
     @declared_attr.directive
-    def __tablename__(cls) -> str:  # noqa: N805, PLW3201 - SQLAlchemy special attribute, not a typo
+    def __tablename__(cls) -> str:  # noqa: N805, PLW3201 - SQLAlchemy requires cls for class-level directives
         return cls.__name__.lower() + "s"
 
     # Common fields for all models
