@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
+from supabase_client import get_supabase_client
 
 from app.config import settings
 
@@ -44,9 +45,6 @@ async def detailed_health() -> dict[str, Any]:
 
     # Check Supabase connection
     try:
-        # Import here to avoid circular imports
-        from supabase_client import get_supabase_client
-
         client = get_supabase_client()
         # Simple health check - attempt to authenticate
         _auth_health = client.auth.get_session()

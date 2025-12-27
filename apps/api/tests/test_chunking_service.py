@@ -8,7 +8,7 @@ import pytest
 from uuid import uuid4
 
 from app.models.document import Document
-from app.services.chunking_service import ChunkingService
+from app.services.chunking_service import ChunkingService, chunking_service
 
 
 class TestChunkingService:
@@ -147,7 +147,7 @@ class TestChunkingService:
 
             # There should be some overlap
             overlap_found = any(sent in next_sentences for sent in current_sentences if sent)
-            assert overlap_found, f"No overlap found between chunk {i} and {i+1}"
+            assert overlap_found, f"No overlap found between chunk {i} and {i + 1}"
 
     def test_sentence_boundary_preservation(self, chunking_service, mock_document):
         """Test that chunks preserve sentence boundaries"""
@@ -161,11 +161,11 @@ class TestChunkingService:
         for chunk in chunks:
             chunk_text = chunk.text.strip()
             # Should end with proper punctuation
-            assert chunk_text[-1] in [
+            assert chunk_text[-1] in {
                 ".",
                 "!",
                 "?",
-            ], f"Chunk {chunk.index} doesn't end with sentence terminator: '{chunk_text[-20:]}'"
+            }, f"Chunk {chunk.index} doesn't end with sentence terminator: '{chunk_text[-20:]}'"
 
     def test_empty_text(self, chunking_service, mock_document):
         """Test handling of empty text"""
@@ -382,8 +382,6 @@ class TestChunkingServiceDatabase:
 
     async def test_create_chunks_for_document_no_text(self, mock_document_async):
         """Test error handling when document has no extracted text"""
-        from app.services.chunking_service import chunking_service
-
         mock_document_async.extracted_text = None
 
         with pytest.raises(ValueError, match="has no extracted text"):

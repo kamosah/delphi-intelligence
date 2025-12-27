@@ -1,0 +1,155 @@
+/**
+ * Olympus Authorization Schema
+ *
+ * Models:
+ * - RBAC: Organization roles (owner, admin, member, viewer)
+ * - ReBAC: Space membership and relationships
+ * - ABAC: Subscription tiers, time-based access via caveats
+ */
+
+use expiration
+
+// ============================================================================
+// User Definition
+// ============================================================================
+
+definition user {}
+
+// ============================================================================
+// Organization - RBAC Pattern
+// ============================================================================
+
+definition organization {
+  // Relationships
+  relation owner: user
+  relation admin: user
+  relation member: user | user with expiration
+  relation viewer: user
+
+  // Permissions (hierarchical)
+  permission delete = owner
+  permission manage_settings = owner + admin
+  permission manage_billing = owner
+  permission invite_member = owner + admin
+  permission remove_member = owner + admin
+  permission view = viewer + member + admin + owner
+}
+
+// ============================================================================
+// Space - ReBAC Pattern with Organization Inheritance
+// ============================================================================
+
+definition space {
+  // Relationships
+  relation organization: organization
+  relation owner: user
+  relation editor: user
+  relation viewer: user
+
+  // Permissions
+  permission delete = owner + organization->admin
+  permission manage_members = owner + organization->admin
+  permission upload_document = owner + editor + organization->admin
+  permission update = owner + editor + organization->admin
+  permission read = viewer + editor + owner + organization->member
+}
+
+// ============================================================================
+// Document - Space-Based Permissions
+// ============================================================================
+
+definition document {
+  // Relationships
+  relation space: space
+  relation uploader: user
+
+  // Permissions (inherit from space)
+  permission delete = uploader + space->manage_members
+  permission update = uploader + space->upload_document
+  permission read = space->read
+}
+
+// ============================================================================
+// Organization Invitation - Pre-Authorization
+// ============================================================================
+
+definition organization_invitation {
+  // Relationships
+  relation organization: organization
+  relation inviter: user
+  relation invitee: user
+
+  // Permissions
+  permission revoke = organization->admin
+  permission resend = organization->admin
+  permission accept = invitee
+  permission view = invitee + organization->admin
+}
+
+// ============================================================================
+// Caveats - ABAC for Subscription Tiers
+// ============================================================================
+
+caveat has_pro_subscription(user_tier string) {
+  user_tier == "pro" || user_tier == "enterprise"
+}
+
+caveat has_enterprise_subscription(user_tier string) {
+  user_tier == "enterprise"
+}
+
+/**
+ * Caveat: within_trial_period
+ *
+ * Checks if the current time is before the trial end date.
+ *
+ * Usage Example (Python):
+ *   from datetime import datetime, timedelta
+ *   from app.schemas.spicedb import WriteRelationshipInput, CheckPermissionInput
+ *
+ *   # Step 1: Write relationship (NO context at write time)
+ *   trial_end = int((datetime.now() + timedelta(days=30)).timestamp())
+ *   await spicedb.write_relationship(
+ *       WriteRelationshipInput(
+ *           resource_type="advanced_feature",
+ *           resource_id="feature-id",
+ *           relation="user",
+ *           subject_type="user",
+ *           subject_id=user_id
+ *       )
+ *   )
+ *
+ *   # Step 2: Check permission WITH context (context evaluated at check time)
+ *   has_access = await spicedb.check_permission(
+ *       CheckPermissionInput(
+ *           user_id=user_id,
+ *           permission="access",
+ *           resource_type="advanced_feature",
+ *           resource_id="feature-id",
+ *           context={
+ *               "current_time": int(datetime.now().timestamp()),
+ *               "trial_end": trial_end
+ *           }
+ *       )
+ *   )
+ *
+ * IMPORTANT: Context values are provided at permission check time, NOT at relationship write time.
+ * The caveat is evaluated when checking permissions using the context provided in CheckPermissionInput.
+ */
+caveat within_trial_period(current_time timestamp, trial_end timestamp) {
+  current_time < trial_end
+}
+
+// ============================================================================
+// Advanced Features (Gated by Subscription)
+// ============================================================================
+
+definition advanced_feature {
+  relation user: user with has_pro_subscription | user with within_trial_period
+  permission access = user
+}
+
+definition enterprise_feature {
+  relation user: user with has_enterprise_subscription
+  permission access = user
+}

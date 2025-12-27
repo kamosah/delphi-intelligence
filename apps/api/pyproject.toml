@@ -23,6 +23,7 @@ alembic = "^1.13.1"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-decouple = "^3.8"
+authzed = "^1.0.0"  # SpiceDB authorization client
 
 # GraphQL
 strawberry-graphql = {extras = ["fastapi"], version = "^0.240.0"}
@@ -74,6 +75,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+preview = true  # Enable preview rules (required for PLC0415 - import-outside-top-level)
 extend-exclude = [
     "__pycache__",
     ".venv",
@@ -137,6 +139,11 @@ ignore = [
     "G004",    # F-string in logging (acceptable for readability)
     "RUF012",  # Mutable class attributes (sometimes intentional for middleware)
     "RUF010",  # Use explicit conversion flag (str(e) is clear and widely used)
+    "RUF029",  # Async function without await (FastAPI/LangGraph/pytest convention)
+    "PLR6301", # Method could be static/classmethod (architectural choice - may use self later)
+    "PLR0914", # Too many local variables (acceptable for complex business logic)
+    "PLR0917", # Too many positional arguments (acceptable for complex operations)
+    "PLR0904", # Too many public methods (acceptable for service classes)
 ]
 
 # Allow autofix for all enabled rules

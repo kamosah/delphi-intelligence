@@ -146,6 +146,25 @@ Database switching is controlled via environment variables:
 
 See [Environment Setup Guide](./docs/guides/environment-setup.md) for configuration.
 
+### Authorization & Security
+
+**Authorization System**: SpiceDB (Google Zanzibar-based) for fine-grained access control
+**Implementation**: `apps/api/app/services/spicedb_service.py`
+**Schema**: `apps/api/app/policies/olympus.zed`
+
+**Available MCP Servers**:
+
+- **AuthZed MCP** (`authzed`): Provides searchable documentation and API references for SpiceDB/AuthZed
+  - Search docs: Authorization concepts, schema design, best practices
+  - Search API: Permission service methods, message types, gRPC endpoints
+  - Search examples: Common authorization patterns (RBAC, ReBAC, ABAC)
+  - Use when implementing authorization features or debugging permission checks
+
+- **Supabase MCP** (`supabase`): Database migrations, SQL execution, project management
+  - Use for database operations and Supabase-specific features
+
+See [Environment Setup Guide](./docs/guides/environment-setup.md) for MCP server configuration.
+
 ### Vector Search & RAG Pipeline
 
 **Semantic Search Infrastructure** (pgvector + OpenAI Embeddings):

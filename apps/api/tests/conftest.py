@@ -5,16 +5,21 @@ This module provides pytest fixtures for testing with real in-memory database
 and mocked dependencies where necessary.
 """
 
+from collections.abc import AsyncGenerator, Callable
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import JSON, event
+from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.schema import Table
 
+from app.config import settings
 from app.main import app
 from app.models.base import Base
 from app.models.message import Message, MessageRole
@@ -23,10 +28,12 @@ from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus
 from app.models.user import User
+from app.services.spicedb_service import SpiceDBService, get_spicedb_service
+from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 
 
 @pytest.fixture()
-def mock_user():
+def mock_user() -> MagicMock:
     """Create a mock user for testing."""
     user = MagicMock(spec=User)
     user.id = uuid4()
@@ -37,7 +44,7 @@ def mock_user():
 
 
 @pytest.fixture()
-def mock_organization(mock_user):
+def mock_organization(mock_user: MagicMock) -> MagicMock:
     """Create a mock organization for testing."""
     org = MagicMock(spec=Organization)
     org.id = uuid4()
@@ -50,7 +57,7 @@ def mock_organization(mock_user):
 
 
 @pytest.fixture()
-def mock_organization_member(mock_organization, mock_user):
+def mock_organization_member(mock_organization: MagicMock, mock_user: MagicMock) -> MagicMock:
     """Create a mock organization member for testing."""
     member = MagicMock(spec=OrganizationMember)
     member.id = uuid4()
@@ -63,7 +70,7 @@ def mock_organization_member(mock_organization, mock_user):
 
 
 @pytest.fixture()
-def mock_space(mock_user, mock_organization):
+def mock_space(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     """Create a mock space for testing."""
     space = MagicMock(spec=Space)
     space.id = uuid4()
@@ -77,7 +84,9 @@ def mock_space(mock_user, mock_organization):
 
 
 @pytest.fixture()
-def mock_thread(mock_user, mock_organization, mock_space):
+def mock_thread(
+    mock_user: MagicMock, mock_organization: MagicMock, mock_space: MagicMock
+) -> MagicMock:
     """Create a mock thread (space-scoped) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
@@ -114,7 +123,7 @@ def mock_thread(mock_user, mock_organization, mock_space):
 
 
 @pytest.fixture()
-def mock_org_thread(mock_user, mock_organization):
+def mock_org_thread(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     """Create a mock org-wide thread (no space) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
     thread.id = uuid4()
@@ -151,7 +160,7 @@ def mock_org_thread(mock_user, mock_organization):
 
 
 @pytest.fixture()
-def mock_db_session():
+def mock_db_session() -> AsyncMock:
     """Create a mock database session for testing."""
     session = AsyncMock()
     session.add = MagicMock()
@@ -165,7 +174,7 @@ def mock_db_session():
 
 
 @pytest.fixture()
-def mock_info(mock_user):
+def mock_info(mock_user: MagicMock) -> MagicMock:
     """Create a mock GraphQL info context with authenticated user."""
     mock_request = MagicMock()
     mock_request.state.user = mock_user
@@ -175,7 +184,7 @@ def mock_info(mock_user):
 
 
 @pytest.fixture()
-def mock_info_no_auth():
+def mock_info_no_auth() -> MagicMock:
     """Create a mock GraphQL info context without authenticated user."""
     mock_request = MagicMock()
     mock_request.state.user = None
@@ -185,40 +194,41 @@ def mock_info_no_auth():
 
 
 @pytest.fixture()
-def mock_get_session(mock_db_session):
+def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[AsyncMock, None]]:
     """Create a mock get_session generator for patching."""
 
-    async def _mock_get_session():
+    async def _mock_get_session() -> AsyncGenerator[AsyncMock, None]:
         yield mock_db_session
 
     return _mock_get_session
 
 
 @pytest.fixture()
-async def async_client():
+async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """Provide an async HTTP client for testing endpoints."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 
 
+class GraphQLClient:
+    """Simple GraphQL client for testing."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self.client = client
+
+    async def execute(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Execute a GraphQL query."""
+        response = await self.client.post(
+            "/graphql",
+            json={"query": query, "variables": variables or {}},
+        )
+        result: dict[str, Any] = response.json()
+        return result
+
+
 @pytest.fixture()
-async def graphql_client(async_client: AsyncClient):
+async def graphql_client(async_client: AsyncClient) -> GraphQLClient:
     """Provide a GraphQL client wrapper for testing."""
-
-    class GraphQLClient:
-        """Simple GraphQL client for testing."""
-
-        def __init__(self, client: AsyncClient):
-            self.client = client
-
-        async def execute(self, query: str, variables: dict | None = None):
-            """Execute a GraphQL query."""
-            response = await self.client.post(
-                "/graphql",
-                json={"query": query, "variables": variables or {}},
-            )
-            return response.json()
-
     return GraphQLClient(async_client)
 
 
@@ -228,7 +238,7 @@ async def graphql_client(async_client: AsyncClient):
 
 
 @pytest.fixture()
-async def db_session():
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide an in-memory SQLite database session for testing.
 
@@ -257,7 +267,7 @@ async def db_session():
     # Convert JSONB columns to JSON for SQLite compatibility
     # This event listener replaces PostgreSQL JSONB with SQLite JSON during table creation
     @event.listens_for(Base.metadata, "before_create")
-    def receive_before_create(target, connection, **kw):
+    def receive_before_create(target: Table, connection: Connection, **kw: Any) -> None:
         """Replace JSONB columns with JSON for SQLite."""
         if connection.dialect.name == "sqlite":
             for table in Base.metadata.sorted_tables:
@@ -279,3 +289,103 @@ async def db_session():
 
     # Cleanup
     await engine.dispose()
+
+
+# --------------------------------------------------------------------------- #
+# SpiceDB Fixtures for Authorization Testing
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture()
+def test_resource_ids(request: pytest.FixtureRequest) -> Callable[[str], str]:
+    """Generate unique resource IDs scoped to this test (parallel-safe).
+
+    This fixture creates test-scoped resource IDs that prevent conflicts when
+    running tests in parallel with pytest-xdist. Each test gets unique IDs based
+    on the test name and a random suffix.
+
+    Usage:
+        def test_something(test_resource_ids):
+            org_id = test_resource_ids("org")  # "org-test_something-abc123"
+            user_id = test_resource_ids("user")  # "user-test_something-abc123"
+
+    The fixture automatically tracks created IDs for cleanup in the spicedb_service fixture.
+
+    Returns:
+        Callable that generates unique IDs with format: "{prefix}-{test_name}-{random}"
+    """
+    # Create unique test ID from test name and random suffix
+    test_id = f"{request.node.name}-{uuid4().hex[:8]}"
+
+    # Track created IDs for cleanup
+    created_ids: list[str] = []
+
+    def make_id(prefix: str = "test") -> str:
+        """Generate a test-scoped resource ID and track it for cleanup.
+
+        Args:
+            prefix: Prefix for the ID (e.g., "org", "user", "space")
+
+        Returns:
+            Unique ID in format: "{prefix}-{test_name}-{random}"
+        """
+        resource_id = f"{prefix}-{test_id}"
+        created_ids.append(resource_id)
+        return resource_id
+
+    # Attach created_ids list to the function for access in cleanup
+    make_id.created_ids = created_ids  # type: ignore[attr-defined]
+
+    return make_id
+
+
+@pytest.fixture()
+async def spicedb_service(
+    test_resource_ids: Callable[[str], str],
+) -> AsyncGenerator[SpiceDBService, None]:
+    """
+    Provide SpiceDBService configured for testing with parallel-safe cleanup.
+
+    Works in both local development and CI environments:
+    - **Local**: Uses Docker Compose SpiceDB (spicedb:50051 from .env)
+    - **CI**: Uses authzed/action-spicedb (localhost:50051 from GitHub Actions env)
+
+    Pydantic settings automatically reads SPICEDB_ENDPOINT and SPICEDB_TOKEN
+    from environment variables, so no manual override needed.
+
+    Uses real SpiceDB in-memory instance following TESTING.md principles:
+    - Tests actual permission resolution logic
+    - No mocking of authorization checks
+    - Fast in-memory datastore
+
+    **Parallel Test Execution:**
+    This fixture now supports parallel test execution (pytest-xdist) through the
+    test_resource_ids fixture. Tests should use test_resource_ids() to generate
+    unique IDs, and cleanup will only delete relationships for that test's IDs.
+
+    Usage:
+        async def test_permission(spicedb_service, test_resource_ids):
+            org_id = test_resource_ids("org")  # Unique ID for this test
+            await spicedb_service.write_relationship(...)
+            # Cleanup happens automatically for this test's IDs only
+    """
+    if not settings.spicedb_token or not settings.spicedb_endpoint:
+        pytest.skip(
+            "SpiceDB not configured. Set SPICEDB_TOKEN and SPICEDB_ENDPOINT environment variables."
+        )
+
+    # Use the global singleton instance (thread-safe within single process)
+    service = get_spicedb_service()
+    yield service
+
+    # Parallel-safe cleanup: Only delete relationships for this test's resource IDs
+    if hasattr(test_resource_ids, "created_ids") and test_resource_ids.created_ids:  # type: ignore[attr-defined]
+        try:
+            result = await delete_relationships_by_ids(
+                service,
+                test_resource_ids.created_ids,  # type: ignore[attr-defined]
+            )
+            if result["failed_ids"]:
+                pytest.fail(f"Cleanup failed for IDs: {result['failed_ids']}")
+        except Exception as e:
+            pytest.fail(f"Cleanup error: {e}")

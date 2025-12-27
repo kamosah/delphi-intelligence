@@ -141,35 +141,47 @@ docker compose exec -T api sh -c "poetry install --no-root"
 
 **Problem**: Tests related to authentication middleware fail with 401/403 errors
 
-**Cause**: Mocking `get_current_user` at route level doesn't bypass authentication middleware
-
 **Status**: Known issue, not blocking (pre-existing failures)
 
-**Solution** (TODO):
-
-- Mock at middleware level: `app.middleware.auth.AuthenticationMiddleware`
-- Or create test client with auth middleware disabled
-- Or use proper JWT tokens in test requests
-
-### Issue 4: Async mocking issues
-
-**Problem**: `TypeError: object TokenResponse can't be used in 'await' expression`
-
-**Cause**: Mocking async functions with regular `Mock()` instead of `AsyncMock()`
-
-**Solution**:
+**Recommended Solution**: Use real authentication with test users instead of mocking (per [TESTING.md](./TESTING.md))
 
 ```python
-from unittest.mock import AsyncMock
+# Create test user with valid credentials
+user = await create_user(db_session, email="test@example.com")
+org = await create_organization(db_session, "Test Org")
+await db_session.commit()
 
-# Wrong
-mock_service.method.return_value = result
+# Use actual auth flow in tests
+response = client.post("/auth/login", json={
+    "email": "test@example.com",
+    "password": "test_password"
+})
+token = response.json()["access_token"]
 
-# Right
-mock_service.method = AsyncMock(return_value=result)
+# Use token in subsequent requests
+response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
 ```
 
-**Fixed in**: commit fixing auth tests (Oct 14, 2025)
+### Issue 4: Async testing patterns
+
+**Problem**: Confusion about mocking async functions
+
+**Solution**: Per [TESTING.md](./TESTING.md), avoid mocking database operations entirely. Use real in-memory SQLite instead:
+
+```python
+@pytest.mark.asyncio()
+async def test_service_method(db_session: AsyncSession):
+    """Test with real in-memory database, no mocking needed."""
+    # Arrange: Create test data with real database
+    user = await create_user(db_session)
+    await db_session.commit()
+
+    # Act: Call service method with real session
+    result = await MyService.method(user.id, db_session)
+
+    # Assert: Verify actual database state
+    assert result is not None
+```
 
 ## Configuration Files
 

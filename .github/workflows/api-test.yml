@@ -48,11 +48,28 @@ jobs:
             - name: Install dependencies
               run: poetry install --no-interaction --no-root
 
+            - name: Start SpiceDB test server
+              uses: authzed/action-spicedb@v1
+              with:
+                  version: "v1.48.0"
+
+            - name: Load SpiceDB schema
+              run: |
+                  docker run --rm --network host \
+                    -v ${{ github.workspace }}/apps/api/app/policies:/policies \
+                    authzed/zed:latest \
+                    schema write /policies/olympus.zed \
+                    --endpoint localhost:50051 \
+                    --token testtoken \
+                    --insecure
+
             - name: Run pytest
               env:
-                  DATABASE_URL: "postgresql://test:test@localhost/test"
-                  REDIS_URL: "redis://localhost:6379"
-                  OPENAI_API_KEY: "test-key"
+                  SPICEDB_ENDPOINT: localhost:50051
+                  SPICEDB_TOKEN: testtoken
+                  DATABASE_URL: sqlite+aiosqlite:///test.db
+                  REDIS_URL: redis://localhost:6379/0
+                  OPENAI_API_KEY: test-openai-api-key
               run: |
                   poetry run pytest tests/ -v
 

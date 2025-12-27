@@ -83,7 +83,7 @@ class TestAPIDocumentation:
         assert "openapi" in data
         assert "info" in data
         # In test environment, APP_NAME includes "(Test)" suffix
-        assert data["info"]["title"] in ["Olympus API", "Olympus API (Test)"]
+        assert data["info"]["title"] in {"Olympus API", "Olympus API (Test)"}
 
     def test_docs_endpoint(self):
         """Test API documentation endpoint"""

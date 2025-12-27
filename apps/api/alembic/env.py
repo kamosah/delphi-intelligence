@@ -1,7 +1,9 @@
 import asyncio
 from logging.config import fileConfig
 
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import pool
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -81,14 +83,13 @@ def include_object(object, name, type_, reflected, compare_to):  # noqa: ARG001
             return False
 
     # Exclude Supabase internal tables in public schema
-    if type_ == "table" and name in ["schema_migrations", "supabase_migrations", "alembic_version"]:
-        return False
+    # Include everything except internal migration tables
+    return not (
+        type_ == "table" and name in {"schema_migrations", "supabase_migrations", "alembic_version"}
+    )
 
-    # Include everything else
-    return True
 
-
-def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):  # noqa: PLR0911, ARG001
+def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):  # noqa: ARG001
     """
     Custom type comparison for better enum and type detection.
 
@@ -97,9 +98,6 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
     - PostgreSQL-specific type differences
     - Supabase pooler type variations
     """
-    from sqlalchemy import Enum as SQLEnum
-    from sqlalchemy.dialects import postgresql
-
     # Handle PostgreSQL Enum types
     if isinstance(metadata_type, SQLEnum):
         # If both are enums, compare their values
@@ -107,26 +105,25 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
             # Compare enum values
             metadata_values = set(metadata_type.enums)
             inspected_values = set(inspected_type.enums)
-            if metadata_values != inspected_values:
-                return True  # Types differ
-            return False  # Types match
+            # Return True if types differ, False if they match
+            return metadata_values != inspected_values
 
         # If inspected is string but metadata is enum, they match if enum exists in DB
         # (Alembic sometimes reflects enums as strings)
         if isinstance(inspected_type, postgresql.VARCHAR | str):
             return False  # Assume match, migration will handle if needed
 
-    # Handle numeric types - compare precision
+    # Handle numeric types - compare precision and scale
     if (
         isinstance(metadata_type, postgresql.NUMERIC)
         and hasattr(inspected_type, "precision")
         and hasattr(metadata_type, "precision")
     ):
-        if inspected_type.precision != metadata_type.precision:
-            return True
-        if inspected_type.scale != metadata_type.scale:
-            return True
-        return False
+        # Return True if precision or scale differs
+        return (
+            inspected_type.precision != metadata_type.precision
+            or inspected_type.scale != metadata_type.scale
+        )
 
     # Handle timestamp with/without timezone
     if (
@@ -134,9 +131,8 @@ def compare_type(context, inspected_column, metadata_column, inspected_type, met
         and hasattr(inspected_type, "timezone")
         and hasattr(metadata_type, "timezone")
     ):
-        if inspected_type.timezone != metadata_type.timezone:
-            return True
-        return False
+        # Return True if timezone setting differs
+        return inspected_type.timezone != metadata_type.timezone
 
     # Default: let Alembic handle the comparison
     return None
@@ -149,8 +145,6 @@ def render_item(type_, obj, autogen_context):  # noqa: ARG001
     This ensures that when Alembic generates migrations, it uses create_type=False
     for existing enum types to prevent "type already exists" errors.
     """
-    from sqlalchemy import Enum as SQLEnum
-
     # Handle Enum types - use create_type=False to reference existing enums
     if isinstance(obj, SQLEnum):
         enum_values = ", ".join(repr(e) for e in obj.enums)

@@ -4,6 +4,7 @@ Integration tests for the complete document processing pipeline.
 Tests the full flow: Document upload → Extraction → Chunking → Embedding
 """
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -324,8 +325,6 @@ class TestDocumentProcessingPipeline:
         Verifies that the complete pipeline (extraction → chunking → embedding)
         completes within acceptable time limits for a large document.
         """
-        import time
-
         # Create large document (simulate 100-page document)
         large_content = sample_pdf_content * 50  # ~100k characters
         document = create_test_document()

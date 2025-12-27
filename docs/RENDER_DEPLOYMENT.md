@@ -258,7 +258,26 @@ openssl rand -hex 32
 
 **If missing**: Return to Step 3.2 to manually add the Redis connection string.
 
-### 4.7 LangSmith (Optional - for AI observability)
+### 4.7 SpiceDB Authorization (Optional)
+
+**Only needed if you're deploying SpiceDB for fine-grained authorization** (see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) Phase 5.5).
+
+| Key                | Value                                | Notes                                       |
+| ------------------ | ------------------------------------ | ------------------------------------------- |
+| `SPICEDB_TOKEN`    | `<random-base64-string>`             | Generate with `openssl rand -base64 32`     |
+| `SPICEDB_ENDPOINT` | `olympus-spicedb.onrender.com:50051` | Your SpiceDB service URL (without https://) |
+
+**Generate SPICEDB_TOKEN**:
+
+```bash
+openssl rand -base64 32
+```
+
+**Note**: `SPICEDB_ENDPOINT` should be the internal Render service URL (not HTTPS). If deploying SpiceDB as a separate Render service, use the service's internal hostname.
+
+**Skip this** unless you're implementing RBAC/ReBAC authorization features with SpiceDB.
+
+### 4.8 LangSmith (Optional - for AI observability)
 
 | Key                    | Value                | Notes                           |
 | ---------------------- | -------------------- | ------------------------------- |
@@ -268,9 +287,9 @@ openssl rand -hex 32
 
 **Skip this** unless you're using LangSmith for debugging AI agents.
 
-### 4.8 Review Environment Variables
+### 4.9 Review Environment Variables
 
-After adding all variables, you should have **~20 environment variables**. Double-check:
+After adding all variables, you should have **~20-22 environment variables** (depending on whether SpiceDB and LangSmith are enabled). Double-check:
 
 - ✅ No quotes around values (Render doesn't need them)
 - ✅ `DATABASE_URL` uses session pooler (`.pooler.supabase.com`)
