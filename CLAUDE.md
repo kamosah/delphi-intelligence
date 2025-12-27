@@ -397,6 +397,29 @@ apps/api/app/
 └── main.py         # FastAPI app factory
 ```
 
+### Type Safety Strategy
+
+Olympus uses a **defense-in-depth type safety approach** with 5 validation layers:
+
+1. **Mypy** (compile-time) - Static type checking with relaxed settings for SQLAlchemy ORM queries
+2. **Pydantic** (runtime) - Automatic validation at API boundaries
+3. **SQLAlchemy Mapped** - Type-safe ORM attributes
+4. **Database constraints** - PostgreSQL schema enforcement
+5. **StrEnum** - Type-safe constants for status/event types
+
+**Key rules:**
+
+- ✅ Always annotate function return types (even in modules with relaxed mypy)
+- ✅ Use Pydantic for all API inputs/outputs
+- ✅ Use StrEnum for constants (never raw strings)
+- ✅ Use `Mapped[T]` with `mapped_column()` for models (not old `Column()` syntax)
+- ❌ Never explicitly type returns as `Any`
+- ❌ Never skip return type annotations
+
+**Planned improvement:** LOG-253 implements SQLAlchemy mypy plugin for stricter ORM type checking.
+
+See [Type Safety Guide](./docs/guides/type-safety-guide.md) for complete documentation.
+
 ### Key Patterns
 
 **Configuration**: Environment-based settings via Pydantic
@@ -567,6 +590,7 @@ For in-depth information, refer to these topic-specific guides:
 
 - **[Frontend Guide](./docs/guides/frontend-guide.md)** - State management, data fetching, GraphQL, SSE streaming
 - **[Backend Guide](./docs/guides/backend-guide.md)** - FastAPI patterns, GraphQL, authentication, AI agents
+- **[Type Safety Guide](./docs/guides/type-safety-guide.md)** - Defense-in-depth type safety strategy, mypy configuration, Pydantic validation, SQLAlchemy patterns
 
 ### Project Documentation
 

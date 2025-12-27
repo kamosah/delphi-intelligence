@@ -18,6 +18,8 @@ from app.routes import health
 from app.routes.auth import router as auth_router
 from app.routes.documents import router as documents_router
 from app.routes.thread_stream import router as thread_stream_router
+from app.webhooks.admin import router as admin_outbox_router
+from app.webhooks.spicedb_sync import router as spicedb_sync_router
 
 
 def configure_logging() -> None:
@@ -96,6 +98,8 @@ def create_app() -> FastAPI:
     app.include_router(thread_stream_router)
     app.include_router(health.router)
     app.include_router(graphql_app, prefix="/graphql")
+    app.include_router(admin_outbox_router)  # Admin outbox endpoints
+    app.include_router(spicedb_sync_router)  # SpiceDB sync webhooks
 
     @app.get("/", tags=["root"])
     async def root() -> dict[str, str]:
