@@ -498,52 +498,126 @@ class Settings(BaseSettings):
 - [ ] Configuration settings added
 - [ ] Logging implemented
 
-#### Task 1.5: Write Unit Tests (0 points - included in 1.4)
+#### Task 1.5: Write Integration Tests (0 points - included in 1.4)
 
 **Create**: `apps/api/tests/test_spicedb_service.py`
 
+**Testing Philosophy** (per TESTING.md):
+
+- Use real SpiceDB service in tests (no mocking)
+- Tests run against Docker Compose SpiceDB instance
+- AAA pattern: Arrange → Act → Assert
+- Test isolation via unique UUIDs per test
+
 ```python
-"""Unit tests for SpiceDB authorization service."""
+"""Integration tests for SpiceDB authorization service.
+
+These tests use a real SpiceDB instance running in Docker Compose.
+No mocking - we test the actual authorization behavior.
+"""
 
 import pytest
-from unittest.mock import Mock, patch
+from uuid import uuid4
 
-from app.services.spicedb_service import SpiceDBService, get_spicedb_service
-
-
-@pytest.mark.asyncio
-async def test_spicedb_service_is_singleton():
-    """Test that SpiceDBService follows singleton pattern."""
-    service1 = get_spicedb_service()
-    service2 = get_spicedb_service()
-    assert service1 is service2
+from app.services.spicedb_service import SpiceDBService
 
 
-@pytest.mark.asyncio
-async def test_check_permission_allowed(mock_spicedb_client):
-    """Test permission check when user has permission."""
-    # Mock implementation
-    # ...
+class TestSpiceDBServiceIntegration:
+    """Integration tests using real SpiceDB instance."""
 
+    async def test_write_and_check_organization_owner_permission(
+        self, spicedb_service: SpiceDBService
+    ) -> None:
+        """Test writing organization owner relationship and checking permissions.
 
-@pytest.mark.asyncio
-async def test_check_permission_denied(mock_spicedb_client):
-    """Test permission check when user lacks permission."""
-    # Mock implementation
-    # ...
+        AAA Pattern:
+        - Arrange: Create relationships in SpiceDB
+        - Act: Check permissions
+        - Assert: Verify permission resolution is correct
+        """
+        user_id = str(uuid4())
+        org_id = str(uuid4())
 
+        # Arrange: Write relationship - user is owner of organization
+        success = await spicedb_service.write_relationship(
+            resource_type="organization",
+            resource_id=org_id,
+            relation="owner",
+            subject_type="user",
+            subject_id=user_id,
+        )
+        assert success is True
 
-@pytest.mark.asyncio
-async def test_write_relationship_success(mock_spicedb_client):
-    """Test successful relationship write."""
-    # Mock implementation
-    # ...
+        # Act: Check owner permission
+        has_permission = await spicedb_service.check_permission(
+            user_id=user_id,
+            permission="manage_settings",
+            resource_type="organization",
+            resource_id=org_id,
+        )
+
+        # Assert: Owner should have manage_settings permission
+        assert has_permission is True
+
+    async def test_hierarchical_permissions_organization_to_space(
+        self, spicedb_service: SpiceDBService
+    ) -> None:
+        """Test that org admins can manage spaces via relationship inheritance."""
+        user_id = str(uuid4())
+        org_id = str(uuid4())
+        space_id = str(uuid4())
+
+        # Arrange: user is admin of organization
+        await spicedb_service.write_relationship(
+            WriteRelationshipInput(
+                resource_type="organization",
+                resource_id=org_id,
+                relation="admin",
+                subject_type="user",
+                subject_id=user_id
+            )
+        )
+
+        # Arrange: space belongs to organization
+        await spicedb_service.write_relationship(
+            WriteRelationshipInput(
+                resource_type="space",
+                resource_id=space_id,
+                relation="organization",
+                subject_type="organization",
+                subject_id=org_id
+            )
+        )
+
+        # Act: Check if org admin can delete space
+        can_delete = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=user_id,
+                permission="delete",
+                resource_type="space",
+                resource_id=space_id
+            )
+        )
+
+        # Assert: Org admin should inherit space deletion permission
+        assert can_delete is True
+```
+
+**Fixture Setup** (`apps/api/tests/conftest.py`):
+
+```python
+@pytest.fixture
+async def spicedb_service() -> SpiceDBService:
+    """Provide SpiceDB service connected to test instance."""
+    from app.services.spicedb_service import get_spicedb_service
+    return get_spicedb_service()
 ```
 
 **Acceptance Criteria**:
 
-- [ ] Test suite covers all service methods
-- [ ] Mock SpiceDB client for tests
+- [ ] Test suite covers all service methods using real SpiceDB
+- [ ] No mocking of SpiceDB client (integration tests only)
+- [ ] Tests verify actual authorization behavior (RBAC, ReBAC)
 - [ ] 90%+ code coverage
 
 ---

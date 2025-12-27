@@ -99,7 +99,7 @@ class TestThreadStreamEndpoint:
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
             # Return the generator itself, not the result of calling it
-            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+            mock_process.side_effect = mock_stream
 
             # Make streaming request
             params = {
@@ -144,7 +144,7 @@ class TestThreadStreamEndpoint:
             ) as mock_process,
             patch("app.routes.thread_stream.THREAD_TIMEOUT_SECONDS", mock_timeout),
         ):
-            mock_process.side_effect = lambda *args, **kwargs: slow_stream(*args, **kwargs)
+            mock_process.side_effect = slow_stream
 
             params = {
                 "query": "Slow query",
@@ -178,7 +178,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: rate_limit_stream(*args, **kwargs)
+            mock_process.side_effect = rate_limit_stream
 
             params = {"query": "Test query"}
 
@@ -208,7 +208,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: api_error_stream(*args, **kwargs)
+            mock_process.side_effect = api_error_stream
 
             params = {"query": "Test query"}
 
@@ -238,7 +238,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: db_error_stream(*args, **kwargs)
+            mock_process.side_effect = db_error_stream
 
             params = {"query": "Test query"}
 
@@ -268,7 +268,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: unknown_error_stream(*args, **kwargs)
+            mock_process.side_effect = unknown_error_stream
 
             params = {"query": "Test query"}
 
@@ -327,7 +327,7 @@ class TestThreadStreamEndpoint:
                 side_effect=mock_get_current_org_id,
             ),
         ):
-            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+            mock_process.side_effect = mock_stream
 
             response = await async_client.get("/api/thread/stream", params=params)
 
@@ -349,7 +349,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+            mock_process.side_effect = mock_stream
 
             params = {"query": "Test"}
 
@@ -381,7 +381,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+            mock_process.side_effect = mock_stream
 
             params = {
                 "query": "Test",
@@ -423,7 +423,7 @@ class TestThreadStreamEndpoint:
                 side_effect=mock_get_current_org_id,
             ),
         ):
-            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+            mock_process.side_effect = mock_stream
 
             params = {
                 "query": "Test",
@@ -453,7 +453,7 @@ class TestThreadStreamEndpoint:
         with patch(
             "app.routes.thread_stream.ai_agent_service.process_thread_stream"
         ) as mock_process:
-            mock_process.side_effect = lambda *args, **kwargs: mock_stream(*args, **kwargs)
+            mock_process.side_effect = mock_stream
 
             params = {"query": "Test"}
 

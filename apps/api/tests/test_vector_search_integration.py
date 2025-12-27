@@ -9,6 +9,7 @@ This test requires:
 Run with: pytest tests/test_vector_search_integration.py -v -s
 """
 
+import httpx
 import pytest
 
 # Mark as integration test and skip by default (run manually when needed)
@@ -32,8 +33,6 @@ async def test_graphql_search_documents_integration():
     2. Verify results contain expected fields
     3. Verify similarity scores are calculated correctly
     """
-    import httpx
-
     graphql_url = "http://localhost:8000/graphql"
 
     # GraphQL query

@@ -341,12 +341,10 @@ class AIAgentService:
 
             # Build conversation history from existing messages
             for msg in thread_record.messages:
-                conversation_history.append(
-                    {
-                        "role": msg.message_role.value,
-                        "content": msg.content,
-                    }
-                )
+                conversation_history.append({
+                    "role": msg.message_role.value,
+                    "content": msg.content,
+                })
 
             # Create user message for new query
             if save_to_db:

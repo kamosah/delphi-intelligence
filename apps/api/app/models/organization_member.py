@@ -1,7 +1,7 @@
 """OrganizationMember model for organization membership and roles."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, ForeignKey, UniqueConstraint
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class OrganizationRole(str, Enum):
+class OrganizationRole(StrEnum):
     """Enum for organization member roles."""
 
     OWNER = "owner"

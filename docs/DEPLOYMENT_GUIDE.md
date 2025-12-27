@@ -26,6 +26,7 @@ This guide walks through deploying Olympus as a full-stack application with the 
 - **Backend**: FastAPI on Render (Docker container)
 - **Database**: Supabase PostgreSQL with connection pooling
 - **Cache/Sessions**: Render Redis
+- **Authorization**: SpiceDB (self-hosted on Render)
 - **AI/ML**: OpenAI (embeddings + GPT-4)
 
 **Deployment Time**: ~45 minutes (including account setup)
@@ -60,6 +61,7 @@ This guide walks through deploying Olympus as a full-stack application with the 
 │  - JWT authentication                                       │
 │  - OpenAI integration                                       │
 │  ├── Redis (Sessions)                                       │
+│  ├── SpiceDB (Authorization - self-hosted)                 │
 │  └── Supabase PostgreSQL (Data + RLS)                      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -219,6 +221,44 @@ Follow these phases in order. Each phase includes a detailed guide:
 **Backend URL**: `https://olympus-api.onrender.com` (or your chosen name)
 
 **Status**: 📋 Ready to execute
+
+---
+
+### Phase 5.5: SpiceDB Authorization (Optional) 📋
+
+**What**: Deploy SpiceDB as separate service on Render for fine-grained authorization
+
+**Note**: SpiceDB provides Google Zanzibar-style authorization (RBAC, ReBAC, ABAC). If you're not implementing advanced authorization features yet, you can skip this phase and deploy SpiceDB later.
+
+**Guide**: [apps/api/SPICEDB_SETUP.md](../apps/api/SPICEDB_SETUP.md)
+
+**Steps**:
+
+1. Create new Render web service for SpiceDB
+2. Use Docker image: `authzed/spicedb:v1.48.0`
+3. Configure environment variables (database connection, pre-shared key)
+4. Add SpiceDB environment variables to main backend service
+5. Load authorization schema
+
+**Time**: ~15 minutes
+
+**Environment Variables** (for main backend service):
+
+- `SPICEDB_TOKEN` - Generate with: `openssl rand -base64 32`
+- `SPICEDB_ENDPOINT` - SpiceDB service URL (e.g., `olympus-spicedb.onrender.com:50051`)
+
+**SpiceDB Service Configuration**:
+
+- **Command**: `serve`
+- **Ports**: 50051 (gRPC), 8443 (HTTP)
+- **Database**: Connects to same Supabase PostgreSQL (different schema)
+
+**When to Deploy**:
+
+- ✅ Now: If implementing role-based access control (RBAC) or advanced authorization
+- ⏭️ Later: If focusing on core features first; SpiceDB can be added anytime
+
+**Status**: 📋 Optional (can be added post-launch)
 
 ---
 
@@ -561,15 +601,18 @@ git push
 
 ### Free Tier Setup (For Demo/MVP)
 
-| Service      | Plan          | Cost        | Limitations                               |
-| ------------ | ------------- | ----------- | ----------------------------------------- |
-| Render       | Free          | $0/month    | Sleeps after 15 min, 750 hrs/month        |
-| Render Redis | Free          | $0/month    | 25MB, shared instance                     |
-| Vercel       | Hobby         | $0/month    | 100GB bandwidth, unlimited deployments    |
-| Supabase     | Free          | $0/month    | 500MB database, 50MB storage              |
-| OpenAI       | Pay-as-you-go | ~$0-5/month | Embedding: $0.02/1M tokens, GPT-4: varies |
+| Service          | Plan          | Cost        | Limitations                               |
+| ---------------- | ------------- | ----------- | ----------------------------------------- |
+| Render (Backend) | Free          | $0/month    | Sleeps after 15 min, 750 hrs/month        |
+| Render (SpiceDB) | Free          | $0/month    | Optional, shares 750 hrs/month limit      |
+| Render Redis     | Free          | $0/month    | 25MB, shared instance                     |
+| Vercel           | Hobby         | $0/month    | 100GB bandwidth, unlimited deployments    |
+| Supabase         | Free          | $0/month    | 500MB database, 50MB storage              |
+| OpenAI           | Pay-as-you-go | ~$0-5/month | Embedding: $0.02/1M tokens, GPT-4: varies |
 
 **Total: $0-5/month**
+
+**Note**: Running both backend + SpiceDB on free tier consumes more of the 750 hrs/month limit. Consider upgrading to Starter tier if both services are needed.
 
 **Best for**:
 
@@ -585,15 +628,16 @@ git push
 
 ### Recommended Production Setup
 
-| Service      | Plan          | Cost         | Features                                  |
-| ------------ | ------------- | ------------ | ----------------------------------------- |
-| Render       | Starter       | $7/month     | Always-on, 512MB RAM, no cold starts      |
-| Render Redis | Starter       | $10/month    | 1GB persistent, dedicated instance        |
-| Vercel       | Pro           | $20/month    | 1TB bandwidth, analytics, faster builds   |
-| Supabase     | Pro           | $25/month    | 8GB database, 100GB storage, PITR backups |
-| OpenAI       | Pay-as-you-go | $20-50/month | Depends on usage (moderate traffic)       |
+| Service          | Plan          | Cost         | Features                                  |
+| ---------------- | ------------- | ------------ | ----------------------------------------- |
+| Render (Backend) | Starter       | $7/month     | Always-on, 512MB RAM, no cold starts      |
+| Render (SpiceDB) | Starter       | $7/month     | Optional, for authorization features      |
+| Render Redis     | Starter       | $10/month    | 1GB persistent, dedicated instance        |
+| Vercel           | Pro           | $20/month    | 1TB bandwidth, analytics, faster builds   |
+| Supabase         | Pro           | $25/month    | 8GB database, 100GB storage, PITR backups |
+| OpenAI           | Pay-as-you-go | $20-50/month | Depends on usage (moderate traffic)       |
 
-**Total: $82-112/month**
+**Total: $89-119/month** (or $82-112/month without SpiceDB)
 
 **Best for**:
 

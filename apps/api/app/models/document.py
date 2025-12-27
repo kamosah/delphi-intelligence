@@ -1,7 +1,7 @@
 """Document model for storing uploaded documents for AI analysis."""
 
 from datetime import datetime
-from enum import Enum as PyEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 from uuid import UUID as PyUUID  # noqa: N811
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class DocumentStatus(str, PyEnum):
+class DocumentStatus(StrEnum):
     """Document processing status."""
 
     UPLOADED = "uploaded"

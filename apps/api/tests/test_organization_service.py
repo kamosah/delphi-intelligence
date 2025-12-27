@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.organization_service import OrganizationService
-from tests.utils import create_user, create_organization, create_membership
+from tests.factories import create_user, create_organization, create_membership
 
 
 # --------------------------------------------------------------------------- #

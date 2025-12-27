@@ -2,11 +2,13 @@
 Integration tests for authentication routes
 """
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
+from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 import pytest
 
+from app.auth.schemas import TokenResponse, UserProfile
 from app.main import app
 
 
@@ -29,9 +31,6 @@ class TestAuthRoutes:
     async def test_register_success(self, client, mock_auth_service):
         """Test successful user registration"""
         # Mock the service response
-        from app.auth.schemas import UserProfile
-        from unittest.mock import AsyncMock
-
         mock_auth_service.register_user = AsyncMock(
             return_value=UserProfile(
                 id="user123",
@@ -64,9 +63,6 @@ class TestAuthRoutes:
     async def test_login_success(self, client, mock_auth_service):
         """Test successful user login"""
         # Mock the service response
-        from app.auth.schemas import TokenResponse
-        from unittest.mock import AsyncMock
-
         mock_auth_service.login_user = AsyncMock(
             return_value=TokenResponse(
                 access_token="test.access.token",
@@ -88,8 +84,6 @@ class TestAuthRoutes:
 
     def test_login_invalid_credentials(self, client, mock_auth_service):
         """Test login with invalid credentials"""
-        from fastapi import HTTPException, status
-
         mock_auth_service.login_user.side_effect = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
@@ -102,9 +96,6 @@ class TestAuthRoutes:
 
     async def test_refresh_token_success(self, client, mock_auth_service):
         """Test successful token refresh"""
-        from app.auth.schemas import TokenResponse
-        from unittest.mock import AsyncMock
-
         mock_auth_service.refresh_token = AsyncMock(
             return_value=TokenResponse(
                 access_token="new.access.token", refresh_token="new.refresh.token", expires_in=3600
@@ -120,8 +111,6 @@ class TestAuthRoutes:
 
     def test_refresh_token_invalid(self, client, mock_auth_service):
         """Test token refresh with invalid token"""
-        from fastapi import HTTPException, status
-
         mock_auth_service.refresh_token.side_effect = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
@@ -136,8 +125,6 @@ class TestAuthRoutes:
         self, mock_get_user, mock_verify_token, client, mock_auth_service
     ):
         """Test successful logout"""
-        from unittest.mock import AsyncMock
-
         # Mock JWT verification to bypass middleware
         mock_verify_token.return_value = {"sub": "user123", "email": "test@example.com"}
 
@@ -157,9 +144,6 @@ class TestAuthRoutes:
         self, mock_get_user, mock_verify_token, client, mock_auth_service
     ):
         """Test getting current user profile"""
-        from app.auth.schemas import UserProfile
-        from unittest.mock import AsyncMock
-
         # Mock JWT verification to bypass middleware
         mock_verify_token.return_value = {"sub": "user123", "email": "test@example.com"}
 
@@ -208,8 +192,6 @@ class TestAuthRoutes:
 
     async def test_resend_verification(self, client, mock_auth_service):
         """Test resend verification endpoint - no auth required"""
-        from unittest.mock import AsyncMock
-
         mock_auth_service.resend_verification_email = AsyncMock(return_value=True)
 
         # This endpoint doesn't require authentication

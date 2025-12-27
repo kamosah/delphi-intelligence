@@ -9,7 +9,11 @@ import pytest
 
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
-from app.services.vector_search_service import SearchResult, VectorSearchService
+from app.services.vector_search_service import (
+    SearchResult,
+    VectorSearchService,
+    get_vector_search_service,
+)
 
 
 class TestVectorSearchService:
@@ -295,8 +299,6 @@ class TestVectorSearchService:
 
     def test_get_vector_search_service(self):
         """Test global service instance getter."""
-        from app.services.vector_search_service import get_vector_search_service
-
         # Mock the settings to provide an API key
         with patch("app.services.embedding_service.settings") as mock_settings:
             mock_settings.openai_api_key = "test-api-key"

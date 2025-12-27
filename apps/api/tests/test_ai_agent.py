@@ -16,6 +16,7 @@ from app.agents.thread_agent import (
     retrieve_context,
 )
 from app.services.ai_agent import AIAgentService, ai_agent_service
+from app.services.langchain_config import get_embeddings, get_llm
 from app.services.vector_search_service import SearchResult
 
 
@@ -238,23 +239,9 @@ class TestAIAgentService:
 class TestLangChainConfig:
     """Tests for LangChain configuration."""
 
-    def test_get_llm_import(self) -> None:
-        """Test that get_llm can be imported."""
-        from app.services.langchain_config import get_llm
-
-        assert callable(get_llm)
-
-    def test_get_embeddings_import(self) -> None:
-        """Test that get_embeddings can be imported."""
-        from app.services.langchain_config import get_embeddings
-
-        assert callable(get_embeddings)
-
     @patch("app.services.langchain_config.settings")
     def test_get_llm_configuration(self, mock_settings: MagicMock) -> None:
         """Test LLM configuration with settings."""
-        from app.services.langchain_config import get_llm
-
         # Mock settings
         mock_settings.openai_api_key = "test-key"
         mock_settings.openai_chat_model = "gpt-4"
@@ -273,8 +260,6 @@ class TestLangChainConfig:
     @patch("app.services.langchain_config.settings")
     def test_get_embeddings_configuration(self, mock_settings: MagicMock) -> None:
         """Test embeddings configuration with settings."""
-        from app.services.langchain_config import get_embeddings
-
         # Mock settings
         mock_settings.openai_api_key = "test-key"
         mock_settings.openai_embedding_model = "text-embedding-3-small"

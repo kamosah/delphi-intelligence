@@ -1,7 +1,7 @@
 """User model for authentication and user management."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, String
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .user_preferences import UserPreferences
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     """Enum for user roles (legacy, kept for Supabase compatibility)."""
 
     ADMIN = "admin"

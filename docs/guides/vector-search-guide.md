@@ -236,9 +236,9 @@ RATE_LIMIT_DELAY = 0.1                             # Seconds between batches
 
 **Testing:**
 
-- Unit tests: `tests/test_embedding_service.py`
-- Mocked API responses for CI/CD
-- Integration tests with real OpenAI API (manual)
+- Integration tests: `tests/test_embedding_service.py`
+- Uses real OpenAI API (with API key configured in CI/CD)
+- AAA pattern: Arrange → Act → Assert (no mocking per TESTING.md)
 
 ---
 

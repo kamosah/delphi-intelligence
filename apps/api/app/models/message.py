@@ -1,6 +1,6 @@
 """Message model for multi-turn conversations within threads."""
 
-from enum import Enum as PyEnum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SQLEnum, ForeignKey, Text
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .thread import Thread
 
 
-class MessageRole(str, PyEnum):
+class MessageRole(StrEnum):
     """Message role enum for conversation participants."""
 
     USER = "user"
