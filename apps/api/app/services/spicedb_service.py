@@ -327,6 +327,364 @@ class SpiceDBService:
             )
             return False
 
+    # ========================================================================
+    # Application-Level Relationship Sync Helpers
+    # ========================================================================
+    # These methods provide higher-level abstractions for syncing relationships
+    # after CRUD operations. Call these from GraphQL mutations/REST endpoints.
+
+    async def sync_organization_owner(self, organization_id: str, owner_id: str) -> bool:
+        """Sync organization owner relationship.
+
+        Call this after creating an organization or changing ownership.
+
+        Args:
+            organization_id: The organization ID
+            owner_id: The new owner's user ID
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            await spicedb.sync_organization_owner(org.id, user.id)
+        """
+        return await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="organization",
+                resource_id=organization_id,
+                relation="owner",
+                subject_type="user",
+                subject_id=owner_id,
+            )
+        )
+
+    async def sync_organization_member(self, organization_id: str, user_id: str, role: str) -> bool:
+        """Sync organization member relationship.
+
+        Call this after adding a member to an organization.
+
+        Args:
+            organization_id: The organization ID
+            user_id: The user ID
+            role: The organization role (owner, admin, member, viewer)
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            await spicedb.sync_organization_member(org.id, user.id, "member")
+        """
+        return await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="organization",
+                resource_id=organization_id,
+                relation=role.lower(),
+                subject_type="user",
+                subject_id=user_id,
+            )
+        )
+
+    async def remove_organization_member(
+        self, organization_id: str, user_id: str, role: str
+    ) -> bool:
+        """Remove organization member relationship.
+
+        Call this after removing a member from an organization.
+
+        Args:
+            organization_id: The organization ID
+            user_id: The user ID
+            role: The organization role being removed
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            await spicedb.remove_organization_member(org.id, user.id, "member")
+        """
+        return await self.delete_relationship(
+            DeleteRelationshipInput(
+                resource_type="organization",
+                resource_id=organization_id,
+                relation=role.lower(),
+                subject_type="user",
+                subject_id=user_id,
+            )
+        )
+
+    async def sync_space_relationships(
+        self, space_id: str, organization_id: str, owner_id: str
+    ) -> bool:
+        """Sync space relationships (organization + owner).
+
+        Call this after creating a space.
+
+        Args:
+            space_id: The space ID
+            organization_id: The parent organization ID
+            owner_id: The space owner's user ID
+
+        Returns:
+            True if both relationships succeeded, False otherwise
+
+        Example:
+            await spicedb.sync_space_relationships(space.id, org.id, user.id)
+        """
+        # Write both relationships
+        org_success = await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="space",
+                resource_id=space_id,
+                relation="organization",
+                subject_type="organization",
+                subject_id=organization_id,
+            )
+        )
+
+        owner_success = await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="space",
+                resource_id=space_id,
+                relation="owner",
+                subject_type="user",
+                subject_id=owner_id,
+            )
+        )
+
+        return org_success and owner_success
+
+    async def sync_space_member(self, space_id: str, user_id: str, role: str) -> bool:
+        """Sync space member relationship.
+
+        Call this after adding a member to a space.
+
+        Args:
+            space_id: The space ID
+            user_id: The user ID
+            role: The space role (owner, editor, viewer)
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            await spicedb.sync_space_member(space.id, user.id, "editor")
+        """
+        return await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="space",
+                resource_id=space_id,
+                relation=role.lower(),
+                subject_type="user",
+                subject_id=user_id,
+            )
+        )
+
+    async def remove_space_member(self, space_id: str, user_id: str, role: str) -> bool:
+        """Remove space member relationship.
+
+        Call this after removing a member from a space.
+
+        Args:
+            space_id: The space ID
+            user_id: The user ID
+            role: The space role being removed
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            await spicedb.remove_space_member(space.id, user.id, "editor")
+        """
+        return await self.delete_relationship(
+            DeleteRelationshipInput(
+                resource_type="space",
+                resource_id=space_id,
+                relation=role.lower(),
+                subject_type="user",
+                subject_id=user_id,
+            )
+        )
+
+    async def sync_document_relationships(
+        self, document_id: str, space_id: str, uploader_id: str
+    ) -> bool:
+        """Sync document relationships (space + uploader).
+
+        Call this after uploading a document.
+
+        Args:
+            document_id: The document ID
+            space_id: The parent space ID
+            uploader_id: The uploader's user ID
+
+        Returns:
+            True if both relationships succeeded, False otherwise
+
+        Example:
+            await spicedb.sync_document_relationships(doc.id, space.id, user.id)
+        """
+        # Write both relationships
+        space_success = await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="document",
+                resource_id=document_id,
+                relation="space",
+                subject_type="space",
+                subject_id=space_id,
+            )
+        )
+
+        uploader_success = await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="document",
+                resource_id=document_id,
+                relation="uploader",
+                subject_type="user",
+                subject_id=uploader_id,
+            )
+        )
+
+        return space_success and uploader_success
+
+    # ========================================================================
+    # Outbox Event Processing Methods
+    # ========================================================================
+    # These methods process events from the auth_sync_outbox table
+
+    async def process_outbox_event(self, event_type: str, event_data: dict) -> bool:
+        """Process a single outbox event and sync to SpiceDB.
+
+        Maps outbox event types to SpiceDB relationship operations.
+
+        Args:
+            event_type: The event type (e.g., "organization_created")
+            event_data: The event data from the outbox table
+
+        Returns:
+            True if successfully synced, False otherwise
+        """
+        # Event type to handler mapping
+        handlers = {
+            "organization_created": self._handle_organization_created,
+            "organization_deleted": self._handle_organization_deleted,
+            "organization_member_added": self._handle_organization_member_added,
+            "organization_member_removed": self._handle_organization_member_removed,
+            "organization_member_role_changed": self._handle_organization_member_role_changed,
+            "space_created": self._handle_space_created,
+            "space_deleted": self._handle_space_deleted,
+            "space_member_added": self._handle_space_member_added,
+            "space_member_removed": self._handle_space_member_removed,
+            "document_created": self._handle_document_created,
+            "document_deleted": self._handle_document_deleted,
+        }
+
+        try:
+            handler = handlers.get(event_type)
+            if not handler:
+                logger.warning(f"Unknown event type: {event_type}")
+                return False
+
+            return await handler(event_data)
+
+        except Exception as e:
+            logger.exception(f"Failed to process outbox event {event_type}: {e}")
+            return False
+
+    # Event handlers
+    async def _handle_organization_created(self, data: dict) -> bool:
+        """Handle organization_created event."""
+        return await self.sync_organization_owner(
+            organization_id=str(data["organization_id"]),
+            owner_id=str(data["owner_id"]),
+        )
+
+    async def _handle_organization_deleted(self, data: dict) -> bool:
+        """Handle organization_deleted event."""
+        return await self.delete_all_relationships_for_resource(
+            resource_type="organization",
+            resource_id=str(data["organization_id"]),
+        )
+
+    async def _handle_organization_member_added(self, data: dict) -> bool:
+        """Handle organization_member_added event."""
+        return await self.sync_organization_member(
+            organization_id=str(data["organization_id"]),
+            user_id=str(data["user_id"]),
+            role=str(data["role"]),
+        )
+
+    async def _handle_organization_member_removed(self, data: dict) -> bool:
+        """Handle organization_member_removed event."""
+        return await self.remove_organization_member(
+            organization_id=str(data["organization_id"]),
+            user_id=str(data["user_id"]),
+            role=str(data["role"]),
+        )
+
+    async def _handle_organization_member_role_changed(self, data: dict) -> bool:
+        """Handle organization_member_role_changed event."""
+        # Remove old role
+        remove_success = await self.remove_organization_member(
+            organization_id=str(data["organization_id"]),
+            user_id=str(data["user_id"]),
+            role=str(data["old_role"]),
+        )
+
+        # Add new role
+        add_success = await self.sync_organization_member(
+            organization_id=str(data["organization_id"]),
+            user_id=str(data["user_id"]),
+            role=str(data["new_role"]),
+        )
+
+        return remove_success and add_success
+
+    async def _handle_space_created(self, data: dict) -> bool:
+        """Handle space_created event."""
+        return await self.sync_space_relationships(
+            space_id=str(data["space_id"]),
+            organization_id=str(data["organization_id"]),
+            owner_id=str(data["owner_id"]),
+        )
+
+    async def _handle_space_deleted(self, data: dict) -> bool:
+        """Handle space_deleted event."""
+        return await self.delete_all_relationships_for_resource(
+            resource_type="space",
+            resource_id=str(data["space_id"]),
+        )
+
+    async def _handle_space_member_added(self, data: dict) -> bool:
+        """Handle space_member_added event."""
+        return await self.sync_space_member(
+            space_id=str(data["space_id"]),
+            user_id=str(data["user_id"]),
+            role=str(data["role"]),
+        )
+
+    async def _handle_space_member_removed(self, data: dict) -> bool:
+        """Handle space_member_removed event."""
+        return await self.remove_space_member(
+            space_id=str(data["space_id"]),
+            user_id=str(data["user_id"]),
+            role=str(data["role"]),
+        )
+
+    async def _handle_document_created(self, data: dict) -> bool:
+        """Handle document_created event."""
+        return await self.sync_document_relationships(
+            document_id=str(data["document_id"]),
+            space_id=str(data["space_id"]),
+            uploader_id=str(data["uploaded_by"]),
+        )
+
+    async def _handle_document_deleted(self, data: dict) -> bool:
+        """Handle document_deleted event."""
+        return await self.delete_all_relationships_for_resource(
+            resource_type="document",
+            resource_id=str(data["document_id"]),
+        )
+
 
 # Global singleton instance
 _spicedb_service: SpiceDBService | None = None

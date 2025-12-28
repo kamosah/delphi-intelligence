@@ -193,6 +193,138 @@ SELECT * FROM information_schema.tables WHERE table_schema = 'public';
 -- Should show tables: users, organizations, spaces, documents, etc.
 ```
 
+### Step 5: SpiceDB Synchronization Migrations (Optional)
+
+If deploying with SpiceDB authorization, run these additional migrations:
+
+**Migration 1: Create Outbox Table**
+```sql
+-- File: 5c4c7c20e2bc_create_auth_sync_outbox_table.py
+-- Creates auth_sync_outbox table for reliable SpiceDB synchronization
+-- Includes event tracking, retry logic, and dead letter queue
+```
+
+**Migration 2: Add ZedToken Columns**
+```sql
+-- File: 34d2490c6293_add_zedtoken_columns.py
+-- Adds zedtoken column to organizations and spaces tables
+-- Enables read-your-writes consistency for synchronous permission writes
+```
+
+**Migration 3: Create Sync Triggers**
+```sql
+-- File: 548de4f77dae_create_spicedb_sync_triggers.py
+-- Creates PostgreSQL triggers on:
+--   - organizations (INSERT, DELETE)
+--   - organization_members (INSERT, UPDATE, DELETE)
+--   - spaces (INSERT, DELETE)
+--   - space_members (INSERT, DELETE)
+--   - documents (INSERT, DELETE)
+-- Automatically populates auth_sync_outbox when authorization data changes
+```
+
+**Apply migrations**:
+```bash
+# Via Alembic (local to production Supabase)
+export DATABASE_URL="postgresql+asyncpg://postgres.xxxxx:password@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+poetry run alembic upgrade head
+
+# Or via Supabase SQL Editor
+# Copy SQL from migration files and execute in dashboard
+```
+
+**Verification**:
+```sql
+-- Check outbox table exists
+SELECT COUNT(*) FROM auth_sync_outbox;
+
+-- Check ZedToken columns exist
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'organizations' AND column_name = 'zedtoken';
+
+-- Check triggers exist
+SELECT trigger_name FROM information_schema.triggers
+WHERE event_object_table IN ('organizations', 'organization_members', 'spaces', 'space_members', 'documents');
+```
+
+### Step 6: Optional PostgreSQL Extensions for Async Sync
+
+**Note**: The following extensions enable **asynchronous** SpiceDB synchronization via webhooks. This is **optional** - synchronous sync works without these extensions.
+
+#### pg_net (Webhook Triggers)
+
+**Purpose**: Fires HTTP webhooks from PostgreSQL after data changes
+
+**Availability**:
+- ❌ **NOT available** on Supabase free tier
+- ✅ **Available** on Supabase Pro tier ($25/month)
+
+**Configuration** (if available):
+
+1. Enable pg_net extension in Supabase dashboard:
+   - Settings → Database → Extensions
+   - Search "pg_net" → Enable
+
+2. Configure webhook URL (Supabase SQL Editor):
+   ```sql
+   -- Set webhook URL (Render backend)
+   INSERT INTO public.pg_net_config (url)
+   VALUES ('https://olympus-api.onrender.com/webhooks/spicedb-sync');
+   ```
+
+3. Verify triggers fire:
+   ```sql
+   -- Check trigger status
+   SELECT * FROM information_schema.triggers
+   WHERE trigger_name LIKE '%spicedb_sync%';
+   ```
+
+#### pg_cron (Retry Processing)
+
+**Purpose**: Scheduled jobs to retry failed outbox items
+
+**Availability**:
+- ❌ **NOT available** on Supabase free tier
+- ✅ **Available** on Supabase Pro tier ($25/month)
+
+**Configuration** (if available):
+
+1. Enable pg_cron extension in Supabase dashboard:
+   - Settings → Database → Extensions
+   - Search "cron" → Enable
+
+2. Create retry job (Supabase SQL Editor):
+   ```sql
+   -- Schedule outbox processing every 5 minutes
+   SELECT cron.schedule(
+     'process-auth-sync-outbox',
+     '*/5 * * * *',  -- Every 5 minutes
+     $$
+     SELECT net.http_post(
+       'https://olympus-api.onrender.com/admin/outbox/process',
+       '{}',
+       '{"Content-Type": "application/json"}'
+     );
+     $$
+   );
+   ```
+
+3. Verify job scheduled:
+   ```sql
+   SELECT * FROM cron.job WHERE jobname = 'process-auth-sync-outbox';
+   ```
+
+#### Workaround Without Extensions
+
+If using **Supabase free tier** (no pg_net/pg_cron), use **synchronous sync only**:
+
+- All authorization changes write to SpiceDB immediately within the transaction
+- No webhook triggers or outbox processing needed
+- Slightly higher latency (~50-100ms) on write operations
+- Simpler deployment (no webhook configuration)
+
+**Configuration**: No changes needed - synchronous sync is the default in the codebase.
+
 ---
 
 ## Post-Deployment
@@ -243,6 +375,97 @@ curl -X POST https://olympus-api.onrender.com/graphql \
 
 - **Session pooler** handles up to 200 concurrent connections
 - **Transaction pooler** (alternative) for higher concurrency
+
+---
+
+## SpiceDB Synchronization Monitoring
+
+After deploying with SpiceDB synchronization, use these endpoints to monitor sync health:
+
+### Admin Endpoints
+
+#### Get Outbox Statistics
+
+```bash
+curl https://olympus-api.onrender.com/admin/outbox/stats
+```
+
+**Response**:
+```json
+{
+  "pending_count": 0,
+  "processing_count": 0,
+  "completed_count": 1234,
+  "failed_count": 2,
+  "dead_letter_count": 0,
+  "oldest_pending": null,
+  "newest_pending": null
+}
+```
+
+#### Manual Processing
+
+Trigger manual processing if automatic sync is disabled or delayed:
+
+```bash
+curl -X POST https://olympus-api.onrender.com/admin/outbox/process
+```
+
+**Response**:
+```json
+{
+  "processed_count": 10,
+  "success_count": 8,
+  "failed_count": 2,
+  "dead_letter_count": 0
+}
+```
+
+#### Reprocess Dead Letters
+
+Retry items that failed after max retries:
+
+```bash
+curl -X POST https://olympus-api.onrender.com/admin/outbox/reprocess-dead-letters \
+  -H "Content-Type: application/json" \
+  -d '{"item_ids": ["uuid1", "uuid2"]}'
+```
+
+**Or reprocess all dead letters**:
+```bash
+curl -X POST https://olympus-api.onrender.com/admin/outbox/reprocess-dead-letters \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Monitoring Guidelines
+
+**Key metrics to monitor**:
+
+1. **Pending Count** - Should remain low (<100)
+   - High count indicates webhook processing lag
+   - Action: Check FastAPI logs for errors
+
+2. **Failed Count** - Should be low (<5% of total)
+   - Items waiting for retry
+   - Action: Review `last_error` field in database
+
+3. **Dead Letter Count** - Should be near zero
+   - Items that exceeded 5 retry attempts
+   - Action: Manual investigation required (data issue or SpiceDB connectivity)
+
+4. **Processing Latency** - Target <1 second (p95)
+   - Time from DB commit to SpiceDB write
+   - Measure: Compare `created_at` vs `processed_at` for completed items
+
+**Alert thresholds** (recommended):
+
+| Metric             | Warning | Critical | Action                        |
+| ------------------ | ------- | -------- | ----------------------------- |
+| Pending count      | >500    | >1000    | Check webhook endpoint health |
+| Failed rate        | >5%     | >10%     | Investigate SpiceDB errors    |
+| Dead letter count  | >10     | >50      | Manual review required        |
+| Processing latency | >5s p95 | >10s p95 | Scale processor or check logs |
 
 ---
 
@@ -333,6 +556,73 @@ docker logs <container-id> 2>&1 | grep "Uvicorn running"
 # INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 # INFO:     Started parent process [1]
 ```
+
+### Issue: Outbox Processing Failures
+
+**Symptoms**: High failed_count or dead_letter_count in `/admin/outbox/stats`
+
+**Solution**:
+
+1. **Check SpiceDB connectivity**:
+   ```bash
+   # From Render shell
+   grpcurl -plaintext olympus-spicedb.onrender.com:50051 grpc.health.v1.Health/Check
+   ```
+
+2. **Review failed item errors**:
+   ```sql
+   -- In Supabase SQL Editor
+   SELECT id, event_type, last_error, retry_count
+   FROM auth_sync_outbox
+   WHERE status = 'failed'
+   ORDER BY updated_at DESC
+   LIMIT 10;
+   ```
+
+3. **Common error messages**:
+   - `"Missing organization_id in event_data"` - Data validation issue, check trigger logic
+   - `"SpiceDB connection refused"` - Verify SPICEDB_ENDPOINT and SPICEDB_TOKEN
+   - `"Permission denied"` - Token mismatch, regenerate and update both services
+   - `"Relationship already exists"` - Idempotency issue (safe to ignore)
+
+4. **Reprocess specific items**:
+   ```bash
+   curl -X POST https://olympus-api.onrender.com/admin/outbox/reprocess-dead-letters \
+     -H "Content-Type: application/json" \
+     -d '{"item_ids": ["<uuid-from-database>"]}'
+   ```
+
+### Issue: Webhook Authentication Failures
+
+**Symptoms**: 403 Forbidden errors in webhook endpoint logs
+
+**Solution**:
+
+1. Verify `SUPABASE_SERVICE_ROLE_KEY` environment variable is set correctly in Render
+2. Check webhook payload includes valid `Authorization: Bearer <service-role-key>` header
+3. Ensure service role key hasn't been rotated in Supabase dashboard
+
+### Issue: Missing ZedTokens
+
+**Symptoms**: Stale read warnings or inconsistent permission checks after writes
+
+**Solution**:
+
+1. Verify ZedToken migration applied:
+   ```sql
+   SELECT column_name FROM information_schema.columns
+   WHERE table_name = 'organizations' AND column_name = 'zedtoken';
+   ```
+
+2. Check ZedToken is being stored after synchronous writes:
+   ```sql
+   SELECT id, name, zedtoken FROM organizations WHERE zedtoken IS NOT NULL LIMIT 5;
+   ```
+
+3. If missing, re-run migration:
+   ```bash
+   poetry run alembic upgrade head
+   ```
 
 ---
 

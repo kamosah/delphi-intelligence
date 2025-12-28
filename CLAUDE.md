@@ -397,6 +397,29 @@ apps/api/app/
 └── main.py         # FastAPI app factory
 ```
 
+### Type Safety Strategy
+
+Olympus uses a **defense-in-depth type safety approach** with 5 validation layers:
+
+1. **Mypy** (compile-time) - Static type checking with relaxed settings for SQLAlchemy ORM queries
+2. **Pydantic** (runtime) - Automatic validation at API boundaries
+3. **SQLAlchemy Mapped** - Type-safe ORM attributes
+4. **Database constraints** - PostgreSQL schema enforcement
+5. **StrEnum** - Type-safe constants for status/event types
+
+**Key rules:**
+
+- ✅ Always annotate function return types (even in modules with relaxed mypy)
+- ✅ Use Pydantic for all API inputs/outputs
+- ✅ Use StrEnum for constants (never raw strings)
+- ✅ Use `Mapped[T]` with `mapped_column()` for models (not old `Column()` syntax)
+- ❌ Never explicitly type returns as `Any`
+- ❌ Never skip return type annotations
+
+**Planned improvement:** LOG-253 implements SQLAlchemy mypy plugin for stricter ORM type checking.
+
+See [Type Safety Guide](./docs/guides/type-safety-guide.md) for complete documentation.
+
 ### Key Patterns
 
 **Configuration**: Environment-based settings via Pydantic
@@ -567,6 +590,7 @@ For in-depth information, refer to these topic-specific guides:
 
 - **[Frontend Guide](./docs/guides/frontend-guide.md)** - State management, data fetching, GraphQL, SSE streaming
 - **[Backend Guide](./docs/guides/backend-guide.md)** - FastAPI patterns, GraphQL, authentication, AI agents
+- **[Type Safety Guide](./docs/guides/type-safety-guide.md)** - Defense-in-depth type safety strategy, mypy configuration, Pydantic validation, SQLAlchemy patterns
 
 ### Project Documentation
 
@@ -750,9 +774,50 @@ npm run graphql:generate    # Generate TypeScript types
 
 ### Database Migrations
 
-- **Always review** auto-generated migrations before applying
-- **Test migrations** on development data first
-- **Supabase migrations**: Use MCP server (see `apps/api/MIGRATION_AUTOMATION.md`)
+**CRITICAL: Alembic is the Source of Truth**
+
+Olympus uses **Alembic** for all database migrations. Always apply migrations via Alembic to ensure proper tracking.
+
+**Migration Workflow:**
+
+```bash
+# Create a new migration
+cd apps/api
+docker compose exec api poetry run alembic revision --autogenerate -m "description"
+
+# Review the generated migration file in alembic/versions/
+# Always verify SQL before applying!
+
+# Apply migrations to database
+docker compose exec api poetry run alembic upgrade head
+
+# Check current version
+docker compose exec api poetry run alembic current
+
+# View migration history
+docker compose exec api poetry run alembic history --verbose
+```
+
+**Important Rules:**
+
+- ✅ **Always use `alembic upgrade head`** to apply migrations (not Supabase MCP)
+- ✅ **Migrations are tracked** in `_internal.alembic_version` table (not `public` schema)
+- ✅ **Review auto-generated migrations** before applying - Alembic can miss things
+- ✅ **Test on development data first** before production
+- ❌ **Never apply migrations via Supabase SQL Editor** - breaks Alembic tracking
+- ❌ **Never manually edit `_internal.alembic_version`** - use `alembic stamp` if needed
+
+**Migration Tracking:**
+
+- Alembic version table: `_internal.alembic_version` (configured in `alembic/env.py`)
+- Current version must match latest migration revision
+- If out of sync, use: `docker compose exec api poetry run alembic stamp <revision>`
+
+**Supabase Integration:**
+
+- Supabase has a separate migration system (not used for Olympus)
+- Supabase MCP is for emergency fixes only, not regular migrations
+- See `apps/api/MIGRATION_AUTOMATION.md` for Supabase-specific operations
 
 ### Pre-Commit Checks
 

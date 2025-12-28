@@ -624,12 +624,12 @@ async def spicedb_service() -> SpiceDBService:
 
 ## Phase 2: Relationship Management (4 points, ~5-6 hours)
 
-### LOG-301: Sync Relationships Between PostgreSQL and SpiceDB
+### LOG-250: Sync Relationships Between PostgreSQL and SpiceDB
 
 **Epic**: LOG-218
 **Points**: 4
 **Priority**: High
-**Description**: Implement automatic relationship synchronization using Supabase database triggers
+**Description**: Implement automatic relationship synchronization using application-level sync pattern
 
 #### Task 2.1: Organization Relationship Sync (1 point)
 
@@ -947,7 +947,7 @@ Test that:
 
 ## Phase 3: Replace Inline Permission Checks (4 points, ~5-6 hours)
 
-### LOG-302: Migrate Permission Checks to SpiceDB
+### LOG-251: Migrate Permission Checks to SpiceDB
 
 **Epic**: LOG-218
 **Points**: 4
@@ -1097,7 +1097,7 @@ Remove or refactor:
 
 ## Phase 4: Advanced Features & Testing (2 points, ~2-4 hours)
 
-### LOG-303: Implement Advanced Authorization Features
+### LOG-252: Implement Advanced Authorization Features
 
 **Epic**: LOG-218
 **Points**: 2
@@ -1204,22 +1204,20 @@ async def test_authorization_latency():
 
 ## Linear Ticket Summary
 
-### New Tickets to Create
+### Tickets Created
 
-1. **LOG-246**: Integrate SpiceDB Authorization System (3 points)
+1. **LOG-246**: Integrate SpiceDB Authorization System (3 points) ✅ DONE
    - Replaces previous "Oso Implementation" ticket
    - Install SpiceDB, design schema, create service
 
-2. **LOG-301**: Sync Relationships Between PostgreSQL and SpiceDB (4 points)
-   - NEW ticket
-   - Database triggers, backfill script
+2. **LOG-250**: Sync Relationships Between PostgreSQL and SpiceDB (4 points) ✅ CREATED
+   - Application-level sync pattern
+   - Backfill script
 
-3. **LOG-302**: Migrate Permission Checks to SpiceDB (4 points)
-   - NEW ticket
+3. **LOG-251**: Migrate Permission Checks to SpiceDB (4 points) ✅ CREATED
    - Replace all inline checks
 
-4. **LOG-303**: Implement Advanced Authorization Features (2 points)
-   - NEW ticket
+4. **LOG-252**: Implement Advanced Authorization Features (2 points) ✅ CREATED
    - Subscription tiers, time-based access
 
 5. **LOG-245**: Organization Invitations (UPDATED - 6 points)

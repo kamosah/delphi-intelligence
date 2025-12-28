@@ -1,5 +1,6 @@
 """Database models for the Olympus API."""
 
+from .auth_sync_outbox import AuthSyncOutbox
 from .base import Base
 from .document import Document, DocumentStatus
 from .document_chunk import DocumentChunk
@@ -13,6 +14,7 @@ from .user import User, UserRole
 from .user_preferences import UserPreferences
 
 __all__ = [
+    "AuthSyncOutbox",
     "Base",
     "Document",
     "DocumentChunk",
