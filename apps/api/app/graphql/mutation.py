@@ -18,8 +18,10 @@ from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as Spa
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
+from app.schemas.spicedb import CheckPermissionInput
 from app.services.organization_service import OrganizationService
 from app.services.permissions import permission_service
+from app.services.spicedb_service import get_spicedb_service
 from app.services.storage_service import get_storage_service
 from app.utils.slug import generate_unique_slug
 
@@ -250,24 +252,18 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Check authorization: owner or admin
-                is_owner = org_model.owner_id == user_id
-
-                # Check if user is an admin member
-                member_stmt = select(OrganizationMemberModel).where(
-                    (OrganizationMemberModel.organization_id == org_id)
-                    & (OrganizationMemberModel.user_id == user_id)
-                    & (
-                        OrganizationMemberModel.organization_role.in_([
-                            OrganizationRole.ADMIN,
-                            OrganizationRole.OWNER,
-                        ])
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="manage_settings",
+                        resource_type="organization",
+                        resource_id=str(org_id),
                     )
                 )
-                member_result = await session.execute(member_stmt)
-                is_admin = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_admin:
+                if not has_permission:
                     msg = "Insufficient permissions to update this organization"
                     raise ValueError(msg)
 
@@ -324,9 +320,19 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Check authorization: only owner can delete
-                if org_model.owner_id != user_id:
-                    msg = "Only the owner can delete this organization"
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="delete",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to delete this organization"
                     raise ValueError(msg)
 
                 await session.delete(org_model)
@@ -379,23 +385,18 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Check authorization: owner or admin
-                is_owner = org_model.owner_id == current_user_id
-
-                member_stmt = select(OrganizationMemberModel).where(
-                    (OrganizationMemberModel.organization_id == org_id)
-                    & (OrganizationMemberModel.user_id == current_user_id)
-                    & (
-                        OrganizationMemberModel.organization_role.in_([
-                            OrganizationRole.ADMIN,
-                            OrganizationRole.OWNER,
-                        ])
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(current_user_id),
+                        permission="invite_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
                     )
                 )
-                member_result = await session.execute(member_stmt)
-                is_admin = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_admin:
+                if not has_permission:
                     msg = "Insufficient permissions to add members to this organization"
                     raise ValueError(msg)
 
@@ -482,23 +483,18 @@ class Mutation:
                     msg = "Cannot remove the organization owner"
                     raise ValueError(msg)
 
-                # Check authorization: owner or admin
-                is_owner = org_model.owner_id == current_user_id
-
-                member_stmt = select(OrganizationMemberModel).where(
-                    (OrganizationMemberModel.organization_id == org_id)
-                    & (OrganizationMemberModel.user_id == current_user_id)
-                    & (
-                        OrganizationMemberModel.organization_role.in_([
-                            OrganizationRole.ADMIN,
-                            OrganizationRole.OWNER,
-                        ])
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(current_user_id),
+                        permission="remove_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
                     )
                 )
-                member_result = await session.execute(member_stmt)
-                is_admin = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_admin:
+                if not has_permission:
                     msg = "Insufficient permissions to remove members from this organization"
                     raise ValueError(msg)
 
@@ -634,9 +630,19 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Only owner can update roles
-                if org_model.owner_id != current_user_id:
-                    msg = "Only the owner can update member roles"
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(current_user_id),
+                        permission="manage_settings",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to update member roles"
                     raise ValueError(msg)
 
                 # Cannot change owner's role
