@@ -1,0 +1,18 @@
+# Docker Compose override for Dev Containers
+# This file extends the base docker-compose.yml to provide full workspace access
+# when using VSCode Dev Containers, while keeping the runtime mount unchanged.
+
+services:
+  api:
+    volumes:
+      # Keep the original runtime mount
+      # Paths are relative to project root (where base docker-compose.yml is)
+      - ./apps/api:/app
+      # Add full workspace mount for IDE access (Git, monorepo files, etc.)
+      - .:/workspace:cached
+
+    # Override working directory to workspace for IDE
+    working_dir: /workspace/apps/api
+
+    # Keep container running for dev container attachment
+    command: sleep infinity

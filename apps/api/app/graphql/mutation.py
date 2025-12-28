@@ -18,8 +18,9 @@ from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as Spa
 from app.models.thread import Thread as ThreadModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
+from app.schemas.spicedb import CheckPermissionInput
 from app.services.organization_service import OrganizationService
-from app.services.permissions import permission_service
+from app.services.spicedb_service import get_spicedb_service
 from app.services.storage_service import get_storage_service
 from app.utils.slug import generate_unique_slug
 
@@ -250,24 +251,18 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Check authorization: owner or admin
-                is_owner = org_model.owner_id == user_id
-
-                # Check if user is an admin member
-                member_stmt = select(OrganizationMemberModel).where(
-                    (OrganizationMemberModel.organization_id == org_id)
-                    & (OrganizationMemberModel.user_id == user_id)
-                    & (
-                        OrganizationMemberModel.organization_role.in_([
-                            OrganizationRole.ADMIN,
-                            OrganizationRole.OWNER,
-                        ])
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="manage_settings",
+                        resource_type="organization",
+                        resource_id=str(org_id),
                     )
                 )
-                member_result = await session.execute(member_stmt)
-                is_admin = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_admin:
+                if not has_permission:
                     msg = "Insufficient permissions to update this organization"
                     raise ValueError(msg)
 
@@ -324,9 +319,19 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Check authorization: only owner can delete
-                if org_model.owner_id != user_id:
-                    msg = "Only the owner can delete this organization"
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="delete",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to delete this organization"
                     raise ValueError(msg)
 
                 await session.delete(org_model)
@@ -379,23 +384,18 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Check authorization: owner or admin
-                is_owner = org_model.owner_id == current_user_id
-
-                member_stmt = select(OrganizationMemberModel).where(
-                    (OrganizationMemberModel.organization_id == org_id)
-                    & (OrganizationMemberModel.user_id == current_user_id)
-                    & (
-                        OrganizationMemberModel.organization_role.in_([
-                            OrganizationRole.ADMIN,
-                            OrganizationRole.OWNER,
-                        ])
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(current_user_id),
+                        permission="invite_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
                     )
                 )
-                member_result = await session.execute(member_stmt)
-                is_admin = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_admin:
+                if not has_permission:
                     msg = "Insufficient permissions to add members to this organization"
                     raise ValueError(msg)
 
@@ -482,23 +482,18 @@ class Mutation:
                     msg = "Cannot remove the organization owner"
                     raise ValueError(msg)
 
-                # Check authorization: owner or admin
-                is_owner = org_model.owner_id == current_user_id
-
-                member_stmt = select(OrganizationMemberModel).where(
-                    (OrganizationMemberModel.organization_id == org_id)
-                    & (OrganizationMemberModel.user_id == current_user_id)
-                    & (
-                        OrganizationMemberModel.organization_role.in_([
-                            OrganizationRole.ADMIN,
-                            OrganizationRole.OWNER,
-                        ])
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(current_user_id),
+                        permission="remove_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
                     )
                 )
-                member_result = await session.execute(member_stmt)
-                is_admin = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_admin:
+                if not has_permission:
                     msg = "Insufficient permissions to remove members from this organization"
                     raise ValueError(msg)
 
@@ -634,9 +629,19 @@ class Mutation:
                     msg = "Organization not found"
                     raise ValueError(msg)
 
-                # Only owner can update roles
-                if org_model.owner_id != current_user_id:
-                    msg = "Only the owner can update member roles"
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(current_user_id),
+                        permission="manage_settings",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to update member roles"
                     raise ValueError(msg)
 
                 # Cannot change owner's role
@@ -793,19 +798,18 @@ class Mutation:
                 if not space_model:
                     return None
 
-                # Check authorization: owner or editor
-                is_owner = space_model.owner_id == user_id
-
-                # Check if user is an editor member
-                member_stmt = select(SpaceMemberModel).where(
-                    (SpaceMemberModel.space_id == space_id)
-                    & (SpaceMemberModel.user_id == user_id)
-                    & (SpaceMemberModel.member_role == MemberRole.EDITOR)
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="update",
+                        resource_type="space",
+                        resource_id=str(space_id),
+                    )
                 )
-                member_result = await session.execute(member_stmt)
-                is_editor = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_editor:
+                if not has_permission:
                     msg = "Insufficient permissions to update this space"
                     raise ValueError(msg)
 
@@ -868,13 +872,30 @@ class Mutation:
                 if not space_model:
                     return False
 
-                # Check authorization: only owner can delete
-                if space_model.owner_id != user_id:
-                    msg = "Only the owner can delete this space"
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="delete",
+                        resource_type="space",
+                        resource_id=str(space_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to delete this space"
                     raise ValueError(msg)
 
                 await session.delete(space_model)
                 await session.commit()
+
+                # Cleanup SpiceDB relationships
+                if not await spicedb.delete_all_relationships_for_resource("space", str(space_id)):
+                    logger.warning(
+                        "Failed to delete SpiceDB relationships for space",
+                        extra={"space_id": str(space_id)},
+                    )
 
                 return True
 
@@ -889,7 +910,7 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:  # noqa: PLR0915
+    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:
         """
         Delete a thread by ID.
 
@@ -931,53 +952,30 @@ class Mutation:
                     msg = "Thread not found"
                     raise ValueError(msg)
 
-                # Check authorization based on thread type
-                is_creator = thread_model.created_by == user_id
-
-                if thread_model.space_id:
-                    # Space thread - check space permissions
-                    space_stmt = select(SpaceModel).where(SpaceModel.id == thread_model.space_id)
-                    space_result = await session.execute(space_stmt)
-                    space_model = space_result.scalar_one_or_none()
-
-                    if not space_model:
-                        msg = "Space not found"
-                        raise ValueError(msg)
-
-                    is_owner = space_model.owner_id == user_id
-
-                    # Check if user is a member of the space
-                    member_stmt = select(SpaceMemberModel).where(
-                        (SpaceMemberModel.space_id == thread_model.space_id)
-                        & (SpaceMemberModel.user_id == user_id)
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="delete",
+                        resource_type="thread",
+                        resource_id=str(thread_id),
                     )
-                    member_result = await session.execute(member_stmt)
-                    is_member = member_result.scalar_one_or_none() is not None
+                )
 
-                    if not is_creator and not is_owner and not is_member:
-                        msg = "Insufficient permissions to delete this thread"
-                        raise ValueError(msg)
-                elif not is_creator:
-                    # Check if user is organization admin or owner
-                    org_member_stmt = select(OrganizationMemberModel).where(
-                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
-                        & (OrganizationMemberModel.user_id == user_id)
-                        & (
-                            OrganizationMemberModel.organization_role.in_([
-                                OrganizationRole.ADMIN,
-                                OrganizationRole.OWNER,
-                            ])
-                        )
-                    )
-                    org_member_result = await session.execute(org_member_stmt)
-                    is_org_admin = org_member_result.scalar_one_or_none() is not None
-
-                    if not is_org_admin:
-                        msg = "Only the creator or organization admin can delete org-wide threads"
-                        raise ValueError(msg)
+                if not has_permission:
+                    msg = "Insufficient permissions to delete this thread"
+                    raise ValueError(msg)
 
                 await session.delete(thread_model)
                 await session.commit()
+
+                # Cleanup SpiceDB relationships
+                if not await spicedb.remove_thread_relationships(str(thread_id)):
+                    logger.warning(
+                        "Failed to delete thread relationships from SpiceDB",
+                        extra={"thread_id": str(thread_id)},
+                    )
 
                 return True
 
@@ -1009,7 +1007,7 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def create_thread(
+    async def create_thread(  # noqa: PLR0915
         self, info: strawberry.types.Info, input: CreateThreadInput
     ) -> Thread | None:
         """
@@ -1054,11 +1052,21 @@ class Mutation:
                 org_id = UUID(str(input.organization_id))
                 space_id = UUID(str(input.space_id)) if input.space_id else None
 
-                # TODO: Verify user has access to the organization (via organization_members)
-                # For now, we just check space access if space_id is provided
+                # ALWAYS verify user is a member of the organization (for both thread types)
+                org_member_stmt = select(OrganizationMemberModel).where(
+                    OrganizationMemberModel.organization_id == org_id,
+                    OrganizationMemberModel.user_id == user_id,
+                )
+                org_member_result = await session.execute(org_member_stmt)
+                org_member = org_member_result.scalar_one_or_none()
 
+                if not org_member:
+                    msg = "User is not a member of this organization"
+                    raise ValueError(msg)
+
+                # If space_id is provided (space thread), verify space access
                 if space_id:
-                    # Verify user has access to the space
+                    # Verify space exists and belongs to the organization
                     stmt = select(SpaceModel).where(SpaceModel.id == space_id)
                     result = await session.execute(stmt)
                     space_model = result.scalar_one_or_none()
@@ -1067,21 +1075,22 @@ class Mutation:
                         msg = "Space not found"
                         raise ValueError(msg)
 
-                    # Verify space belongs to the organization
                     if space_model.organization_id != org_id:
                         msg = "Space does not belong to the specified organization"
                         raise ValueError(msg)
 
-                    # Check if user is owner or member
-                    is_owner = space_model.owner_id == user_id
-                    member_stmt = select(SpaceMemberModel).where(
-                        (SpaceMemberModel.space_id == space_id)
-                        & (SpaceMemberModel.user_id == user_id)
+                    # Check authorization via SpiceDB
+                    spicedb = get_spicedb_service()
+                    has_permission = await spicedb.check_permission(
+                        CheckPermissionInput(
+                            user_id=str(user_id),
+                            permission="read",
+                            resource_type="space",
+                            resource_id=str(space_id),
+                        )
                     )
-                    member_result = await session.execute(member_stmt)
-                    is_member = member_result.scalar_one_or_none() is not None
 
-                    if not is_owner and not is_member:
+                    if not has_permission:
                         msg = "Insufficient permissions to create thread in this space"
                         raise ValueError(msg)
 
@@ -1099,6 +1108,21 @@ class Mutation:
                 session.add(thread_model)
                 await session.commit()
                 await session.refresh(thread_model)
+
+                # Sync thread relationships to SpiceDB
+                spicedb = get_spicedb_service()
+                sync_success = await spicedb.sync_thread_relationships(
+                    thread_id=str(thread_model.id),
+                    organization_id=str(org_id),
+                    creator_id=str(user_id),
+                    space_id=str(space_id) if space_id else None,
+                )
+
+                if not sync_success:
+                    logger.warning(
+                        "Failed to sync thread relationships to SpiceDB",
+                        extra={"thread_id": str(thread_model.id)},
+                    )
 
                 return Thread.from_model(thread_model)
 
@@ -1189,7 +1213,7 @@ class Mutation:
         raise ValueError(msg)
 
     @strawberry.mutation
-    async def update_thread(  # noqa: PLR0915
+    async def update_thread(
         self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateThreadInput
     ) -> Thread | None:
         """
@@ -1243,42 +1267,20 @@ class Mutation:
                     msg = "Thread not found"
                     raise ValueError(msg)
 
-                # Check authorization based on thread type
-                is_creator = thread_model.created_by == user_id
-
-                if thread_model.space_id:
-                    # Space thread - check space permissions
-                    space_stmt = select(SpaceModel).where(SpaceModel.id == thread_model.space_id)
-                    space_result = await session.execute(space_stmt)
-                    space_model = space_result.scalar_one_or_none()
-
-                    if not space_model:
-                        msg = "Space not found"
-                        raise ValueError(msg)
-
-                    is_owner = space_model.owner_id == user_id
-
-                    if not is_creator and not is_owner:
-                        msg = "Insufficient permissions to update this thread"
-                        raise ValueError(msg)
-                elif not is_creator:
-                    # Check if user is organization admin or owner
-                    org_member_stmt = select(OrganizationMemberModel).where(
-                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
-                        & (OrganizationMemberModel.user_id == user_id)
-                        & (
-                            OrganizationMemberModel.organization_role.in_([
-                                OrganizationRole.ADMIN,
-                                OrganizationRole.OWNER,
-                            ])
-                        )
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="update",
+                        resource_type="thread",
+                        resource_id=str(thread_id),
                     )
-                    org_member_result = await session.execute(org_member_stmt)
-                    is_org_admin = org_member_result.scalar_one_or_none() is not None
+                )
 
-                    if not is_org_admin:
-                        msg = "Only the creator or organization admin can update org-wide threads"
-                        raise ValueError(msg)
+                if not has_permission:
+                    msg = "Insufficient permissions to update this thread"
+                    raise ValueError(msg)
 
                 # Update fields if provided
                 if input.title is not None:
@@ -1363,8 +1365,18 @@ class Mutation:
                     msg = "Document does not belong to the specified space"
                     raise ValueError(msg)
 
-                # Check authorization
-                if not await permission_service.can_delete_from_space(user, space_id, session):
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="upload_document",
+                        resource_type="space",
+                        resource_id=str(space_id),
+                    )
+                )
+
+                if not has_permission:
                     msg = "Insufficient permissions to delete this document"
                     raise ValueError(msg)
 
@@ -1434,13 +1446,24 @@ class Mutation:
                 if not documents:
                     return BulkDeleteResult(deleted_count=0, failed_ids=input.document_ids)
 
-                # Batch permission checks (optimized: 2 queries instead of N queries)
+                # Check permissions via SpiceDB for each unique space
+                spicedb = get_spicedb_service()
                 unique_space_ids = list({doc.space_id for doc in documents})
-                space_permissions = await permission_service.can_delete_from_spaces_batch(
-                    user, unique_space_ids, session
-                )
 
-                # Filter documents based on batch permission results
+                # Check permissions for each unique space
+                space_permissions = {}
+                for space_id in unique_space_ids:
+                    has_permission = await spicedb.check_permission(
+                        CheckPermissionInput(
+                            user_id=str(user.id),
+                            permission="upload_document",
+                            resource_type="space",
+                            resource_id=str(space_id),
+                        )
+                    )
+                    space_permissions[space_id] = has_permission
+
+                # Filter documents based on permission results
                 failed_ids = []
                 documents_to_delete = []
 
