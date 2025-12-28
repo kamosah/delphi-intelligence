@@ -144,9 +144,10 @@ class TestThreadMutations:
         )
 
         # Mock SpiceDB check to return False (no permission)
-        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session), patch(
-            "app.graphql.mutation.get_spicedb_service"
-        ) as mock_spicedb:
+        with (
+            patch("app.graphql.mutation.get_session", side_effect=mock_get_session),
+            patch("app.graphql.mutation.get_spicedb_service") as mock_spicedb,
+        ):
             mock_spicedb_instance = MagicMock()
             mock_spicedb_instance.check_permission = AsyncMock(return_value=False)
             mock_spicedb.return_value = mock_spicedb_instance
