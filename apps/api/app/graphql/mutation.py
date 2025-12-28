@@ -20,7 +20,6 @@ from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.schemas.spicedb import CheckPermissionInput
 from app.services.organization_service import OrganizationService
-from app.services.permissions import permission_service
 from app.services.spicedb_service import get_spicedb_service
 from app.services.storage_service import get_storage_service
 from app.utils.slug import generate_unique_slug
@@ -799,19 +798,18 @@ class Mutation:
                 if not space_model:
                     return None
 
-                # Check authorization: owner or editor
-                is_owner = space_model.owner_id == user_id
-
-                # Check if user is an editor member
-                member_stmt = select(SpaceMemberModel).where(
-                    (SpaceMemberModel.space_id == space_id)
-                    & (SpaceMemberModel.user_id == user_id)
-                    & (SpaceMemberModel.member_role == MemberRole.EDITOR)
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="update",
+                        resource_type="space",
+                        resource_id=str(space_id),
+                    )
                 )
-                member_result = await session.execute(member_stmt)
-                is_editor = member_result.scalar_one_or_none() is not None
 
-                if not is_owner and not is_editor:
+                if not has_permission:
                     msg = "Insufficient permissions to update this space"
                     raise ValueError(msg)
 
@@ -874,13 +872,30 @@ class Mutation:
                 if not space_model:
                     return False
 
-                # Check authorization: only owner can delete
-                if space_model.owner_id != user_id:
-                    msg = "Only the owner can delete this space"
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="delete",
+                        resource_type="space",
+                        resource_id=str(space_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to delete this space"
                     raise ValueError(msg)
 
                 await session.delete(space_model)
                 await session.commit()
+
+                # Cleanup SpiceDB relationships
+                if not await spicedb.delete_all_relationships_for_resource("space", str(space_id)):
+                    logger.warning(
+                        "Failed to delete SpiceDB relationships for space",
+                        extra={"space_id": str(space_id)},
+                    )
 
                 return True
 
@@ -1369,8 +1384,18 @@ class Mutation:
                     msg = "Document does not belong to the specified space"
                     raise ValueError(msg)
 
-                # Check authorization
-                if not await permission_service.can_delete_from_space(user, space_id, session):
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="upload_document",
+                        resource_type="space",
+                        resource_id=str(space_id),
+                    )
+                )
+
+                if not has_permission:
                     msg = "Insufficient permissions to delete this document"
                     raise ValueError(msg)
 
@@ -1440,13 +1465,24 @@ class Mutation:
                 if not documents:
                     return BulkDeleteResult(deleted_count=0, failed_ids=input.document_ids)
 
-                # Batch permission checks (optimized: 2 queries instead of N queries)
+                # Check permissions via SpiceDB for each unique space
+                spicedb = get_spicedb_service()
                 unique_space_ids = list({doc.space_id for doc in documents})
-                space_permissions = await permission_service.can_delete_from_spaces_batch(
-                    user, unique_space_ids, session
-                )
 
-                # Filter documents based on batch permission results
+                # Check permissions for each unique space
+                space_permissions = {}
+                for space_id in unique_space_ids:
+                    has_permission = await spicedb.check_permission(
+                        CheckPermissionInput(
+                            user_id=str(user.id),
+                            permission="upload_document",
+                            resource_type="space",
+                            resource_id=str(space_id),
+                        )
+                    )
+                    space_permissions[space_id] = has_permission
+
+                # Filter documents based on permission results
                 failed_ids = []
                 documents_to_delete = []
 
