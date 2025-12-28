@@ -224,8 +224,8 @@ class TestOutboxProcessor:
         final_item = result.scalar_one()
 
         assert final_item.status == AuthSyncStatus.DEAD_LETTER
-        # retry_count is incremented before dead letter check, so it's 6 not 5
-        assert final_item.retry_count == 6
+        # retry_count is checked before incrementing, so it's 5 (matches max_retries)
+        assert final_item.retry_count == 5
 
     async def test_process_batch_with_event_type_filter(
         self, outbox_processor, db_session, test_resource_ids, spicedb_service
