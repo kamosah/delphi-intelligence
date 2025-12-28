@@ -186,7 +186,9 @@ class TestSpiceDBPermissionsIntegration:
         # Sync relationships
         await spicedb_service.sync_organization_owner(org_id, creator_id)
         await spicedb_service.sync_space_relationships(space_id, org_id, creator_id)
-        await spicedb_service.sync_thread_relationships(thread_id, org_id, creator_id, space_id)
+        await spicedb_service.sync_thread_relationships(
+            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=space_id
+        )
 
         # Act & Assert
         permissions_to_test = ["update", "delete", "read"]
@@ -218,7 +220,9 @@ class TestSpiceDBPermissionsIntegration:
         # Sync relationships
         await spicedb_service.sync_organization_owner(org_id, creator_id)
         await spicedb_service.sync_space_relationships(space_id, org_id, creator_id)
-        await spicedb_service.sync_thread_relationships(thread_id, org_id, creator_id, space_id)
+        await spicedb_service.sync_thread_relationships(
+            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=space_id
+        )
         await spicedb_service.sync_space_member(space_id, viewer_id, "viewer")
 
         # Act & Assert: Viewer can read but not update/delete
@@ -270,7 +274,9 @@ class TestSpiceDBPermissionsIntegration:
         await spicedb_service.sync_organization_owner(org_id, creator_id)
         await spicedb_service.sync_organization_member(org_id, admin_id, "admin")
         await spicedb_service.sync_space_relationships(space_id, org_id, creator_id)
-        await spicedb_service.sync_thread_relationships(thread_id, org_id, creator_id, space_id)
+        await spicedb_service.sync_thread_relationships(
+            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=space_id
+        )
 
         # Act & Assert: Org admin can update and delete even though not creator
         can_update = await spicedb_service.check_permission(
@@ -341,7 +347,11 @@ class TestSpiceDBPermissionsIntegration:
     async def test_org_wide_thread_permissions(
         self, spicedb_service: SpiceDBService, test_resource_ids: Callable[[str], str]
     ):
-        """Test permissions for org-wide threads (no space)."""
+        """Test permissions for personal threads (no space).
+
+        Note: Personal threads are private to the creator. Org members and admins
+        can moderate (update/delete) but cannot read the content (privacy protection).
+        """
         # Arrange
         org_id = test_resource_ids("org")
         thread_id = test_resource_ids("thread")
@@ -354,10 +364,20 @@ class TestSpiceDBPermissionsIntegration:
         await spicedb_service.sync_organization_member(org_id, admin_id, "admin")
         await spicedb_service.sync_organization_member(org_id, member_id, "member")
         await spicedb_service.sync_thread_relationships(
-            thread_id, org_id, creator_id, None
-        )  # No space
+            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=None
+        )  # No space - personal thread
 
-        # Act & Assert: Creator can update/delete
+        # Act & Assert: Creator can read, update, and delete
+        creator_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=creator_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert creator_can_read is True
+
         creator_can_delete = await spicedb_service.check_permission(
             CheckPermissionInput(
                 user_id=creator_id,
@@ -368,7 +388,7 @@ class TestSpiceDBPermissionsIntegration:
         )
         assert creator_can_delete is True
 
-        # Org admin can update/delete
+        # Org admin can update/delete but NOT read (privacy protection)
         admin_can_delete = await spicedb_service.check_permission(
             CheckPermissionInput(
                 user_id=admin_id,
@@ -379,7 +399,17 @@ class TestSpiceDBPermissionsIntegration:
         )
         assert admin_can_delete is True
 
-        # Regular member can view but not delete
+        admin_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=admin_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert admin_can_read is False, "Org admin cannot read personal threads (privacy)"
+
+        # Regular member CANNOT read or delete
         member_can_read = await spicedb_service.check_permission(
             CheckPermissionInput(
                 user_id=member_id,
@@ -388,7 +418,7 @@ class TestSpiceDBPermissionsIntegration:
                 resource_id=thread_id,
             )
         )
-        assert member_can_read is True
+        assert member_can_read is False, "Org member cannot read personal threads"
 
         member_can_delete = await spicedb_service.check_permission(
             CheckPermissionInput(
@@ -399,5 +429,131 @@ class TestSpiceDBPermissionsIntegration:
             )
         )
         assert member_can_delete is False
+
+        # Cleanup handled automatically
+
+    @pytest.mark.asyncio
+    async def test_space_thread_read_permission_respects_space_boundaries(
+        self, spicedb_service: SpiceDBService, test_resource_ids: Callable[[str], str]
+    ):
+        """Test that org members cannot read threads from private spaces they don't have access to."""
+        # Arrange: Org with two users and one private space
+        org_id = test_resource_ids("org")
+        space_id = test_resource_ids("space")
+        thread_id = test_resource_ids("thread")
+        owner_id = test_resource_ids("owner")
+        user_a_id = test_resource_ids("user_a")  # Has space access
+        user_b_id = test_resource_ids("user_b")  # Org member but NO space access
+
+        # Sync relationships
+        await spicedb_service.sync_organization_owner(org_id, owner_id)
+        await spicedb_service.sync_organization_member(org_id, user_a_id, "member")
+        await spicedb_service.sync_organization_member(org_id, user_b_id, "member")
+        await spicedb_service.sync_space_relationships(space_id, org_id, owner_id)
+        await spicedb_service.sync_space_member(space_id, user_a_id, "viewer")
+        # Note: user_b NOT added to space
+
+        # Create space thread
+        await spicedb_service.sync_thread_relationships(
+            thread_id=thread_id, organization_id=org_id, creator_id=user_a_id, space_id=space_id
+        )
+
+        # Act & Assert: User A can read (has space access)
+        user_a_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=user_a_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert user_a_can_read is True, "User with space access should be able to read thread"
+
+        # User B CANNOT read (org member but no space access)
+        user_b_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=user_b_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert (
+            user_b_can_read is False
+        ), "Org member without space access should NOT be able to read thread"
+
+        # Cleanup handled automatically
+
+    @pytest.mark.asyncio
+    async def test_personal_thread_read_permission_creator_only(
+        self, spicedb_service: SpiceDBService, test_resource_ids: Callable[[str], str]
+    ):
+        """Test that only the creator can read personal threads (no space access needed)."""
+        # Arrange: Two users in same org
+        org_id = test_resource_ids("org")
+        thread_id = test_resource_ids("thread")
+        creator_id = test_resource_ids("creator")
+        other_user_id = test_resource_ids("other_user")
+        admin_id = test_resource_ids("admin")
+
+        # Sync relationships
+        await spicedb_service.sync_organization_owner(org_id, creator_id)
+        await spicedb_service.sync_organization_member(org_id, other_user_id, "member")
+        await spicedb_service.sync_organization_member(org_id, admin_id, "admin")
+
+        # Create personal thread (no space_id)
+        await spicedb_service.sync_thread_relationships(
+            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=None
+        )
+
+        # Act & Assert: Creator can read
+        creator_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=creator_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert creator_can_read is True, "Creator should be able to read their personal thread"
+
+        # Other user (not creator) CANNOT read
+        other_user_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=other_user_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert (
+            other_user_can_read is False
+        ), "Non-creator should NOT be able to read personal thread"
+
+        # Org admin CAN update/delete but CANNOT read (privacy protection)
+        admin_can_read = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=admin_id,
+                permission="read",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert (
+            admin_can_read is False
+        ), "Org admin should NOT be able to read personal threads (privacy)"
+
+        # But admin CAN delete (for moderation)
+        admin_can_delete = await spicedb_service.check_permission(
+            CheckPermissionInput(
+                user_id=admin_id,
+                permission="delete",
+                resource_type="thread",
+                resource_id=thread_id,
+            )
+        )
+        assert (
+            admin_can_delete is True
+        ), "Org admin should be able to delete personal threads (moderation)"
 
         # Cleanup handled automatically

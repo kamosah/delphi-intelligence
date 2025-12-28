@@ -51,7 +51,7 @@ definition space {
   permission manage_members = owner + organization->admin
   permission upload_document = owner + editor + organization->admin
   permission update = owner + editor + organization->admin
-  permission read = viewer + editor + owner + organization->member
+  permission read = viewer + editor + owner
 }
 
 // ============================================================================
@@ -76,13 +76,13 @@ definition document {
 definition thread {
   // Relationships
   relation organization: organization
-  relation space: space                  // Optional - only for space-scoped threads
+  relation space: space                  // Optional: not set for personal threads
   relation creator: user
 
   // Permissions
   permission delete = creator + space->manage_members + organization->admin
   permission update = creator + space->owner + organization->admin
-  permission read = space->read + organization->view
+  permission read = space->read + creator
 }
 
 // ============================================================================

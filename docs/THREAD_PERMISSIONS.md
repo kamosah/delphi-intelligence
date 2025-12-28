@@ -4,15 +4,15 @@ This document explains the authorization model for threads in Olympus, powered b
 
 ## Overview
 
-Threads in Olympus have a hierarchical permission model that supports both **space-scoped threads** (threads within a specific space) and **org-wide threads** (threads that belong to an organization but not a specific space).
+Threads in Olympus have a hierarchical permission model that supports both **space threads** (threads within a specific space) and **personal threads** (threads that belong to a user only, without space or org affiliation).
 
 ## Schema
 
 Threads have three primary authorization relationships:
 
 1. **Creator**: The user who created the thread
-2. **Space**: The space the thread belongs to (optional - org-wide threads have no space)
-3. **Organization**: The organization the thread belongs to (required)
+2. **Space**: The space the thread belongs to (optional - personal threads have no space)
+3. **Organization**: The organization the thread belongs to (optional - personal threads have no organization)
 
 ### SpiceDB Schema Definition
 
@@ -20,13 +20,13 @@ Threads have three primary authorization relationships:
 definition thread {
     // Relationships
     relation organization: organization
-    relation space: space | nil           // Optional (org-wide threads have nil)
+    relation space: space                 // Optional: not set for personal threads
     relation creator: user
 
     // Permissions
     permission delete = creator + space->manage_members + organization->admin
     permission update = creator + space->owner + organization->admin
-    permission read = space->read + organization->view
+    permission read = space->read + creator
 }
 ```
 
@@ -63,16 +63,36 @@ A user can **update** a thread if they are:
 
 ### Read Permission
 
-A user can **read** a thread if they have:
+A user can **read** a thread if:
 
-- **Space read access** (for space-scoped threads via `space->read`), OR
-- **Organization view access** (for org-wide threads or as org member)
+- They have **read access to the thread's space** (for space threads), OR
+- They are the **creator** of the thread (for personal threads)
+
+**Permission definition:**
+
+```zed
+permission read = space->read + creator
+```
+
+This ensures proper access control for both thread types:
+
+**Space threads:**
+
+- Visibility controlled by space membership
+- Only users with space access can read threads in that space
+- Org members CANNOT read threads from private spaces they don't have access to
+
+**Personal threads:**
+
+- Only the creator can read their personal threads
+- No space membership required
 
 **Examples:**
 
-- ✅ User A is a space viewer → User A can read all threads in that space
-- ✅ User B is an organization member → User B can read all org-wide threads
-- ❌ User C is in a different organization → User C cannot read any threads
+- ✅ User A has `read` access to Space X → User A can read all threads in Space X
+- ❌ User B is org member but lacks space access → User B CANNOT read threads in Space X
+- ✅ User C creates a personal thread → User C can read their personal thread
+- ❌ User D tries to read User C's personal thread → User D CANNOT access it
 
 ## Thread Types
 
@@ -100,44 +120,45 @@ thread.creator -> user_id
 - Team collaboration threads
 - Department-scoped threads
 
-### 2. Org-Wide Threads
+### 2. Personal Threads
 
-Threads that belong to the organization but not a specific space. Accessible to all organization members.
+Threads that belong to a user only, without space or organization affiliation. Only accessible to the creator.
 
 **Relationships:**
 
 ```python
 thread.organization -> organization_id
-thread.space -> nil
+thread.space -> None  # No space for personal threads
 thread.creator -> user_id
 ```
 
 **Permission Inheritance:**
 
-- Read access: All organization members (`organization->view`)
-- Update access: creator or org admin only
-- Delete access: creator or org admin only
+- Read access: Creator only (via `creator`)
+- Update access: Creator or org admin only
+- Delete access: Creator or org admin only
 
 **Example Use Cases:**
 
-- Company-wide announcements
-- General discussion threads
-- Organization-level insights
+- Personal analysis threads
+- Private notes and research
+- Individual user drafts
 
 ## Permission Matrix
 
-| Role               | Space Thread Read | Space Thread Update | Space Thread Delete | Org Thread Read | Org Thread Update | Org Thread Delete |
-| ------------------ | ----------------- | ------------------- | ------------------- | --------------- | ----------------- | ----------------- |
-| Thread Creator     | ✅                | ✅                  | ✅                  | ✅              | ✅                | ✅                |
-| Space Owner        | ✅                | ✅                  | ✅                  | ✅              | ❌                | ❌                |
-| Space Admin        | ✅                | ❌                  | ✅                  | ✅              | ❌                | ❌                |
-| Space Editor       | ✅                | ❌                  | ❌                  | ✅              | ❌                | ❌                |
-| Space Viewer       | ✅                | ❌                  | ❌                  | ✅              | ❌                | ❌                |
-| Org Admin          | ✅                | ✅                  | ✅                  | ✅              | ✅                | ✅                |
-| Org Member         | ❌\*              | ❌                  | ❌                  | ✅              | ❌                | ❌                |
-| Different Org User | ❌                | ❌                  | ❌                  | ❌              | ❌                | ❌                |
+| Role               | Space Thread Read | Space Thread Update | Space Thread Delete | Personal Thread Read | Personal Thread Update | Personal Thread Delete |
+| ------------------ | ----------------- | ------------------- | ------------------- | -------------------- | ---------------------- | ---------------------- |
+| Thread Creator     | ✅                | ✅                  | ✅                  | ✅                   | ✅                     | ✅                     |
+| Space Owner        | ✅                | ✅                  | ✅                  | ❌                   | ❌                     | ❌                     |
+| Space Admin        | ✅                | ❌                  | ✅                  | ❌                   | ❌                     | ❌                     |
+| Space Editor       | ✅                | ❌                  | ❌                  | ❌                   | ❌                     | ❌                     |
+| Space Viewer       | ✅                | ❌                  | ❌                  | ❌                   | ❌                     | ❌                     |
+| Org Admin          | ✅                | ✅                  | ✅                  | ❌\*\*               | ✅                     | ✅                     |
+| Org Member         | ❌\*              | ❌                  | ❌                  | ❌                   | ❌                     | ❌                     |
+| Different Org User | ❌                | ❌                  | ❌                  | ❌                   | ❌                     | ❌                     |
 
 \* Org members can only read space threads if they also have space access.
+\*\* Org admins can update/delete personal threads for moderation purposes, but cannot read the content (privacy protection).
 
 ## Implementation Examples
 
@@ -162,15 +183,46 @@ if not has_permission:
     raise ValueError("Insufficient permissions to update this thread")
 ```
 
-### Sync Thread Relationships on Creation
+### Thread Creation Authorization Flow
+
+**Before creating a thread, verify:**
+
+1. **Organization Membership (ALWAYS)**: User must be a member of the organization
+2. **Space Access (if space thread)**: User must have `read` access to the space
 
 ```python
-# For space-scoped threads
+# Step 1: ALWAYS verify org membership (for both thread types)
+org_member_stmt = select(OrganizationMemberModel).where(
+    OrganizationMemberModel.organization_id == org_id,
+    OrganizationMemberModel.user_id == user_id,
+)
+org_member_result = await session.execute(org_member_stmt)
+org_member = org_member_result.scalar_one_or_none()
+
+if not org_member:
+    raise ValueError("User is not a member of this organization")
+
+# Step 2: If space thread, verify space access (additional check)
+if space_id:
+    spicedb = get_spicedb_service()
+    has_permission = await spicedb.check_permission(
+        CheckPermissionInput(
+            user_id=str(user_id),
+            permission="read",
+            resource_type="space",
+            resource_id=str(space_id),
+        )
+    )
+
+    if not has_permission:
+        raise ValueError("Insufficient permissions to create thread in this space")
+
+# After authorization checks pass, sync relationships
 await spicedb.sync_thread_relationships(
     thread_id=str(thread.id),
-    space_id=str(space.id),  # Optional: None for org-wide threads
     organization_id=str(organization.id),
-    creator_id=str(user.id)
+    creator_id=str(user.id),
+    space_id=str(space.id) if space_id else None,
 )
 ```
 

@@ -1052,11 +1052,21 @@ class Mutation:
                 org_id = UUID(str(input.organization_id))
                 space_id = UUID(str(input.space_id)) if input.space_id else None
 
-                # TODO: Verify user has access to the organization (via organization_members)
-                # For now, we just check space access if space_id is provided
+                # ALWAYS verify user is a member of the organization (for both thread types)
+                org_member_stmt = select(OrganizationMemberModel).where(
+                    OrganizationMemberModel.organization_id == org_id,
+                    OrganizationMemberModel.user_id == user_id,
+                )
+                org_member_result = await session.execute(org_member_stmt)
+                org_member = org_member_result.scalar_one_or_none()
 
+                if not org_member:
+                    msg = "User is not a member of this organization"
+                    raise ValueError(msg)
+
+                # If space_id is provided (space thread), verify space access
                 if space_id:
-                    # Verify space exists and belongs to organization
+                    # Verify space exists and belongs to the organization
                     stmt = select(SpaceModel).where(SpaceModel.id == space_id)
                     result = await session.execute(stmt)
                     space_model = result.scalar_one_or_none()

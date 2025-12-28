@@ -547,7 +547,12 @@ class SpiceDBService:
         return space_success and uploader_success
 
     async def sync_thread_relationships(
-        self, thread_id: str, organization_id: str, creator_id: str, space_id: str | None = None
+        self,
+        *,
+        thread_id: str,
+        organization_id: str,
+        creator_id: str,
+        space_id: str | None = None,
     ) -> bool:
         """Sync thread relationships (organization + creator + optional space).
 
@@ -557,17 +562,27 @@ class SpiceDBService:
             thread_id: The thread ID
             organization_id: The parent organization ID
             creator_id: The thread creator's user ID
-            space_id: The parent space ID (None for org-wide threads)
+            space_id: The parent space ID (None for personal threads)
 
         Returns:
             True if all relationships succeeded, False otherwise
 
         Example:
-            # Space-scoped thread
-            await spicedb.sync_thread_relationships(thread.id, org.id, user.id, space.id)
+            # Space thread
+            await spicedb.sync_thread_relationships(
+                thread_id=thread.id,
+                organization_id=org.id,
+                creator_id=user.id,
+                space_id=space.id,
+            )
 
-            # Org-wide thread
-            await spicedb.sync_thread_relationships(thread.id, org.id, user.id, None)
+            # Personal thread
+            await spicedb.sync_thread_relationships(
+                thread_id=thread.id,
+                organization_id=org.id,
+                creator_id=user.id,
+                space_id=None,
+            )
         """
         # Write organization relationship
         org_success = await self.write_relationship(

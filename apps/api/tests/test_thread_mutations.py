@@ -93,10 +93,17 @@ class TestThreadMutations:
         self, mock_info, mock_db_session, mock_user, mock_organization, mock_get_session
     ):
         """Test creating a thread fails with 'Space not found' when space doesn't exist."""
+        # Mock org membership check (user is a member)
+        mock_org_member = MagicMock()
+        mock_org_member_result = MagicMock()
+        mock_org_member_result.scalar_one_or_none = MagicMock(return_value=mock_org_member)
+
         # Mock space not found
         mock_space_result = MagicMock()
         mock_space_result.scalar_one_or_none = MagicMock(return_value=None)
-        mock_db_session.execute.return_value = mock_space_result
+
+        # Order: org_member check THEN space check
+        mock_db_session.execute.side_effect = [mock_org_member_result, mock_space_result]
 
         nonexistent_space_id = str(uuid4())
         input_data = CreateThreadInput(
@@ -117,17 +124,18 @@ class TestThreadMutations:
         self, mock_info, mock_db_session, mock_user, mock_organization, mock_space, mock_get_session
     ):
         """Test creating a thread fails with 'Insufficient permissions' when user is not owner/member."""
+        # Mock org membership check (user is a member)
+        mock_org_member = MagicMock()
+        mock_org_member_result = MagicMock()
+        mock_org_member_result.scalar_one_or_none = MagicMock(return_value=mock_org_member)
+
         # Mock space exists but user is not owner/member
         mock_space.owner_id = uuid4()  # Different user
-
         mock_space_result = MagicMock()
         mock_space_result.scalar_one_or_none = MagicMock(return_value=mock_space)
 
-        # Mock member check - user is not a member
-        mock_member_result = MagicMock()
-        mock_member_result.scalar_one_or_none = MagicMock(return_value=None)
-
-        mock_db_session.execute.side_effect = [mock_space_result, mock_member_result]
+        # Order: org_member check THEN space check THEN SpiceDB permission check
+        mock_db_session.execute.side_effect = [mock_org_member_result, mock_space_result]
 
         input_data = CreateThreadInput(
             organization_id=str(mock_organization.id),
@@ -135,7 +143,14 @@ class TestThreadMutations:
             query_text="Unauthorized query",
         )
 
-        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
+        # Mock SpiceDB check to return False (no permission)
+        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session), patch(
+            "app.graphql.mutation.get_spicedb_service"
+        ) as mock_spicedb:
+            mock_spicedb_instance = MagicMock()
+            mock_spicedb_instance.check_permission = AsyncMock(return_value=False)
+            mock_spicedb.return_value = mock_spicedb_instance
+
             mutation = Mutation()
             with pytest.raises(
                 ValueError, match="Insufficient permissions to create thread in this space"
