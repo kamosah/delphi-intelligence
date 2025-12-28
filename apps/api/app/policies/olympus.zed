@@ -70,6 +70,22 @@ definition document {
 }
 
 // ============================================================================
+// Thread - Creator-Based Permissions with Space/Org Inheritance
+// ============================================================================
+
+definition thread {
+  // Relationships
+  relation organization: organization
+  relation space: space                  // Optional - only for space-scoped threads
+  relation creator: user
+
+  // Permissions
+  permission delete = creator + space->manage_members + organization->admin
+  permission update = creator + space->owner + organization->admin
+  permission read = space->read + organization->view
+}
+
+// ============================================================================
 // Organization Invitation - Pre-Authorization
 // ============================================================================
 
