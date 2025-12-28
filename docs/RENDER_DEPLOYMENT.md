@@ -275,6 +275,14 @@ openssl rand -base64 32
 
 **Note**: `SPICEDB_ENDPOINT` should be the internal Render service URL (not HTTPS). If deploying SpiceDB as a separate Render service, use the service's internal hostname.
 
+**SpiceDB Synchronization Notes**:
+
+- **Webhook authentication**: The `/webhooks/spicedb-sync` endpoint uses `SUPABASE_SERVICE_ROLE_KEY` (already configured above) for authentication
+- **Supabase extensions** (pg_net, pg_cron): Optional for async synchronization, **NOT available on free tier**
+  - Free tier: Use synchronous sync (default, no extra config needed)
+  - Pro tier ($25/month): Can enable pg_net webhook triggers for async processing
+  - See [`apps/api/DEPLOYMENT.md`](../apps/api/DEPLOYMENT.md) Step 6 for extension setup details
+
 **Skip this** unless you're implementing RBAC/ReBAC authorization features with SpiceDB.
 
 ### 4.8 LangSmith (Optional - for AI observability)
@@ -845,6 +853,13 @@ If you see: `unable to find migration for revision: b1dca76ce116` or similar Ale
 - Use same Supabase connection string as main app
 - Verify `?sslmode=require` is in connection string
 - Test database connection from main app first
+
+**For SpiceDB Sync Monitoring and Outbox Troubleshooting**:
+
+See [`apps/api/DEPLOYMENT.md`](../apps/api/DEPLOYMENT.md) for:
+
+- **SpiceDB Synchronization Monitoring** section - Admin endpoints (`/admin/outbox/stats`, `/admin/outbox/process`)
+- **Troubleshooting** subsections - Outbox processing failures, webhook authentication, missing ZedTokens
 
 ---
 
