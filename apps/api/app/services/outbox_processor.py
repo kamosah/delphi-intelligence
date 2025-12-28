@@ -208,7 +208,8 @@ class OutboxProcessor:
             item: Outbox item to schedule retry for
         """
         backoff_minutes = [1, 5, 15, 60, 240]  # Exponential backoff schedule
-        retry_index = min(item.retry_count, len(backoff_minutes) - 1)
+        # retry_count is 1-indexed (1 after first failure), array is 0-indexed
+        retry_index = min(item.retry_count - 1, len(backoff_minutes) - 1)
         delay_minutes = backoff_minutes[retry_index]
 
         next_retry_at = datetime.now(UTC) + timedelta(minutes=delay_minutes)
