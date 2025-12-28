@@ -89,22 +89,20 @@ async def process_single_item(
     processor = OutboxProcessor(db)
 
     # Fetch the specific item
-    result = await db.execute(
-        select(AuthSyncOutbox).where(AuthSyncOutbox.id == input_data.event_id)
-    )
+    result = await db.execute(select(AuthSyncOutbox).where(AuthSyncOutbox.id == input_data.item_id))
     item = result.scalar_one_or_none()
 
     if not item:
-        raise HTTPException(status_code=404, detail=f"Outbox item {input_data.event_id} not found")
+        raise HTTPException(status_code=404, detail=f"Outbox item {input_data.item_id} not found")
 
     # Process the item
     success = await processor.process_item(item)
 
     if success:
-        return {"status": "success", "message": f"Processed outbox item {input_data.event_id}"}
+        return {"status": "success", "message": f"Processed outbox item {input_data.item_id}"}
     raise HTTPException(
         status_code=500,
-        detail=f"Failed to process outbox item {input_data.event_id}. Check logs for details.",
+        detail=f"Failed to process outbox item {input_data.item_id}. Check logs for details.",
     )
 
 

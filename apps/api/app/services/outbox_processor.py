@@ -75,11 +75,12 @@ class OutboxProcessor:
 
             if success:
                 stats["success_count"] += 1
+            # Check BEFORE incrementing - clearer logic
             elif item.retry_count >= item.max_retries:
                 await self._move_to_dead_letter(item)
                 stats["dead_letter_count"] += 1
             else:
-                await self._schedule_retry(item)
+                await self._increment_and_schedule_retry(item)
                 stats["failed_count"] += 1
 
         logger.info(f"Batch processing complete: {stats}")
@@ -176,7 +177,10 @@ class OutboxProcessor:
             return False
 
     async def _record_failure(self, item: AuthSyncOutbox, error_msg: str) -> None:
-        """Record a processing failure and increment retry count.
+        """Record a processing failure without incrementing retry count.
+
+        The retry count is incremented separately when scheduling the retry,
+        allowing us to check retry limits before incrementing.
 
         Args:
             item: Outbox item that failed
@@ -187,15 +191,14 @@ class OutboxProcessor:
             .where(AuthSyncOutbox.id == item.id)
             .values(
                 status=AuthSyncStatus.FAILED,
-                retry_count=item.retry_count + 1,
                 last_error=error_msg,
                 updated_at=datetime.now(UTC),
             )
         )
         await self.db.commit()
 
-    async def _schedule_retry(self, item: AuthSyncOutbox) -> None:
-        """Schedule next retry with exponential backoff.
+    async def _increment_and_schedule_retry(self, item: AuthSyncOutbox) -> None:
+        """Increment retry count and schedule next retry with exponential backoff.
 
         Retry schedule:
         - Retry 1: 1 minute
@@ -208,22 +211,30 @@ class OutboxProcessor:
             item: Outbox item to schedule retry for
         """
         backoff_minutes = [1, 5, 15, 60, 240]  # Exponential backoff schedule
-        # retry_count is 1-indexed (1 after first failure), array is 0-indexed
-        retry_index = min(item.retry_count - 1, len(backoff_minutes) - 1)
+        # retry_count is 0-indexed (0 for first retry), array is 0-indexed
+        retry_index = min(item.retry_count, len(backoff_minutes) - 1)
         delay_minutes = backoff_minutes[retry_index]
-
         next_retry_at = datetime.now(UTC) + timedelta(minutes=delay_minutes)
+
+        new_retry_count = item.retry_count + 1
 
         await self.db.execute(
             update(AuthSyncOutbox)
             .where(AuthSyncOutbox.id == item.id)
-            .values(next_retry_at=next_retry_at, updated_at=datetime.now(UTC))
+            .values(
+                retry_count=new_retry_count,
+                next_retry_at=next_retry_at,
+                updated_at=datetime.now(UTC),
+            )
         )
         await self.db.commit()
 
+        # Update in-memory object to stay in sync with database
+        item.retry_count = new_retry_count
+
         logger.info(
             f"Scheduled retry for outbox item {item.id} at {next_retry_at} "
-            f"(retry {item.retry_count + 1}/{item.max_retries})"
+            f"(attempt {new_retry_count}/{item.max_retries})"
         )
 
     async def _move_to_dead_letter(self, item: AuthSyncOutbox) -> None:
@@ -241,7 +252,7 @@ class OutboxProcessor:
 
         logger.warning(
             f"Moved outbox item {item.id} to dead letter queue after "
-            f"{item.retry_count} failed attempts"
+            f"{item.retry_count} failed attempts (max_retries={item.max_retries})"
         )
 
     async def get_stats(self) -> OutboxStatsResponse:
