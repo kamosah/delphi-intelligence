@@ -35,6 +35,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/auth/resend-verification",
         "/auth/reset-password",
         "/auth/client-token",  # Client-side Supabase token exchange (Client Components)
+        "/webhooks/spicedb-sync",  # pg_net webhook for SpiceDB synchronization
     }
 
     async def dispatch(  # noqa: PLR0911
