@@ -63,7 +63,7 @@ class OutboxEvent(BaseModel):
 class ProcessOutboxItemInput(BaseModel):
     """Input for processing a single outbox item."""
 
-    event_id: UUID = Field(description="The outbox event ID to process")
+    item_id: UUID = Field(description="The outbox item ID to process")
 
 
 class OutboxStatsResponse(BaseModel):
