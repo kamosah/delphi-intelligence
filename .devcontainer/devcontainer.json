@@ -1,0 +1,105 @@
+{
+  "name": "Olympus API",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.devcontainer.yml"
+  ],
+  "service": "api",
+  "workspaceFolder": "/workspace",
+
+  // Start dependent services (redis, spicedb)
+  "runServices": ["api", "redis", "spicedb"],
+
+  // Override command to keep container running
+  "overrideCommand": true,
+
+  // Install additional development tools
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    }
+  },
+
+  // Configure which ports to forward from the container
+  "forwardPorts": [8000],
+
+  // VSCode extensions to install in the container
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python development
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+
+        // Error visualization
+        "usernamehw.errorlens",
+
+        // Git & Version Control
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+
+        // Database & API Testing
+        "mtxr.sqltools",
+        "ckolkman.vscode-postgres",
+        "rangav.vscode-thunder-client",
+
+        // Documentation & Productivity
+        "yzhang.markdown-all-in-one",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "wayou.vscode-todo-highlight",
+
+        // Additional helpful extensions
+        "tamasfe.even-better-toml",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        // Python interpreter (container's system Python)
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.diagnosticMode": "workspace",
+        "python.analysis.extraPaths": ["/workspace/apps/api", "/app"],
+
+        // Ruff configuration
+        "ruff.configurationPreference": "filesystemFirst",
+        "ruff.importStrategy": "fromEnvironment",
+        "ruff.path": ["/usr/local/bin/ruff"],
+
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          },
+          "editor.rulers": [100]
+        },
+
+        // General editor settings
+        "editor.formatOnSave": true,
+        "editor.tabSize": 4,
+        "editor.rulers": [100],
+
+        // Files to exclude
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/.pytest_cache": true,
+          "**/.ruff_cache": true,
+          "**/.mypy_cache": true,
+          "**/*.pyc": true
+        },
+
+        // Terminal
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  // Run commands after the container is created
+  "postCreateCommand": "echo '=== Dev Container Setup Complete ===' && echo 'Workspace: /workspace' && ls /workspace | head -5 && echo '\nPython: /app' && ls /app/app | head -5 && echo '\nGit:' && git --version && git branch 2>/dev/null || echo 'Git repo not initialized' && echo '\nTools:' && python --version && ruff --version",
+
+  // User to use inside the container (root by default in the Dockerfile)
+  "remoteUser": "root"
+}

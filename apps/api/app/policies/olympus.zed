@@ -51,7 +51,7 @@ definition space {
   permission manage_members = owner + organization->admin
   permission upload_document = owner + editor + organization->admin
   permission update = owner + editor + organization->admin
-  permission read = viewer + editor + owner + organization->member
+  permission read = viewer + editor + owner
 }
 
 // ============================================================================
@@ -67,6 +67,22 @@ definition document {
   permission delete = uploader + space->manage_members
   permission update = uploader + space->upload_document
   permission read = space->read
+}
+
+// ============================================================================
+// Thread - Creator-Based Permissions with Space/Org Inheritance
+// ============================================================================
+
+definition thread {
+  // Relationships
+  relation organization: organization
+  relation space: space                  // Optional: not set for personal threads
+  relation creator: user
+
+  // Permissions
+  permission delete = creator + space->manage_members + organization->admin
+  permission update = creator + space->owner + organization->admin
+  permission read = space->read + creator
 }
 
 // ============================================================================

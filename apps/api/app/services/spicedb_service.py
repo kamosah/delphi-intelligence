@@ -546,6 +546,97 @@ class SpiceDBService:
 
         return space_success and uploader_success
 
+    async def sync_thread_relationships(
+        self,
+        *,
+        thread_id: str,
+        organization_id: str,
+        creator_id: str,
+        space_id: str | None = None,
+    ) -> bool:
+        """Sync thread relationships (organization + creator + optional space).
+
+        Call this after creating a thread.
+
+        Args:
+            thread_id: The thread ID
+            organization_id: The parent organization ID
+            creator_id: The thread creator's user ID
+            space_id: The parent space ID (None for personal threads)
+
+        Returns:
+            True if all relationships succeeded, False otherwise
+
+        Example:
+            # Space thread
+            await spicedb.sync_thread_relationships(
+                thread_id=thread.id,
+                organization_id=org.id,
+                creator_id=user.id,
+                space_id=space.id,
+            )
+
+            # Personal thread
+            await spicedb.sync_thread_relationships(
+                thread_id=thread.id,
+                organization_id=org.id,
+                creator_id=user.id,
+                space_id=None,
+            )
+        """
+        # Write organization relationship
+        org_success = await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="thread",
+                resource_id=thread_id,
+                relation="organization",
+                subject_type="organization",
+                subject_id=organization_id,
+            )
+        )
+
+        # Write creator relationship
+        creator_success = await self.write_relationship(
+            WriteRelationshipInput(
+                resource_type="thread",
+                resource_id=thread_id,
+                relation="creator",
+                subject_type="user",
+                subject_id=creator_id,
+            )
+        )
+
+        # Write space relationship (only for space-scoped threads)
+        space_success = True
+        if space_id:
+            space_success = await self.write_relationship(
+                WriteRelationshipInput(
+                    resource_type="thread",
+                    resource_id=thread_id,
+                    relation="space",
+                    subject_type="space",
+                    subject_id=space_id,
+                )
+            )
+
+        return org_success and creator_success and space_success
+
+    async def remove_thread_relationships(self, thread_id: str) -> bool:
+        """Remove all thread relationships.
+
+        Call this after deleting a thread.
+
+        Args:
+            thread_id: The thread ID
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            await spicedb.remove_thread_relationships(thread.id)
+        """
+        return await self.delete_all_relationships_for_resource("thread", thread_id)
+
     # ========================================================================
     # Outbox Event Processing Methods
     # ========================================================================
@@ -576,6 +667,8 @@ class SpiceDBService:
             "space_member_removed": self._handle_space_member_removed,
             "document_created": self._handle_document_created,
             "document_deleted": self._handle_document_deleted,
+            "thread_created": self._handle_thread_created,
+            "thread_deleted": self._handle_thread_deleted,
         }
 
         try:
@@ -683,6 +776,22 @@ class SpiceDBService:
         return await self.delete_all_relationships_for_resource(
             resource_type="document",
             resource_id=str(data["document_id"]),
+        )
+
+    async def _handle_thread_created(self, data: dict) -> bool:
+        """Handle thread_created event."""
+        return await self.sync_thread_relationships(
+            thread_id=str(data["thread_id"]),
+            organization_id=str(data["organization_id"]),
+            creator_id=str(data["creator_id"]),
+            space_id=str(data["space_id"]) if data.get("space_id") else None,
+        )
+
+    async def _handle_thread_deleted(self, data: dict) -> bool:
+        """Handle thread_deleted event."""
+        return await self.delete_all_relationships_for_resource(
+            resource_type="thread",
+            resource_id=str(data["thread_id"]),
         )
 
 

@@ -374,12 +374,6 @@ class TestChunkingServiceDatabase:
         document.doc_metadata = {"page_count": 10}
         return document
 
-    async def test_create_chunks_for_document_success(self, mock_document_async):
-        """Test successful chunk creation with database persistence"""
-        # This test would require database setup
-        # For now, we're testing the logic without actual DB
-        pytest.skip("Requires database setup - integration test")
-
     async def test_create_chunks_for_document_no_text(self, mock_document_async):
         """Test error handling when document has no extracted text"""
         mock_document_async.extracted_text = None
