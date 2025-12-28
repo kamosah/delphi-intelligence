@@ -10,7 +10,6 @@ import pytest
 from openai import RateLimitError
 
 from app.models.document import Document
-from app.models.document_chunk import DocumentChunk
 from app.services.embedding_service import EmbeddingService, get_embedding_service
 
 
@@ -286,4 +285,3 @@ class TestEmbeddingService:
 
             # Should be same instance
             assert service1 is service2
-
