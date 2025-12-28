@@ -910,7 +910,7 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:  # noqa: PLR0915
+    async def delete_thread(self, info: strawberry.types.Info, id: strawberry.ID) -> bool:
         """
         Delete a thread by ID.
 
@@ -952,53 +952,30 @@ class Mutation:
                     msg = "Thread not found"
                     raise ValueError(msg)
 
-                # Check authorization based on thread type
-                is_creator = thread_model.created_by == user_id
-
-                if thread_model.space_id:
-                    # Space thread - check space permissions
-                    space_stmt = select(SpaceModel).where(SpaceModel.id == thread_model.space_id)
-                    space_result = await session.execute(space_stmt)
-                    space_model = space_result.scalar_one_or_none()
-
-                    if not space_model:
-                        msg = "Space not found"
-                        raise ValueError(msg)
-
-                    is_owner = space_model.owner_id == user_id
-
-                    # Check if user is a member of the space
-                    member_stmt = select(SpaceMemberModel).where(
-                        (SpaceMemberModel.space_id == thread_model.space_id)
-                        & (SpaceMemberModel.user_id == user_id)
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="delete",
+                        resource_type="thread",
+                        resource_id=str(thread_id),
                     )
-                    member_result = await session.execute(member_stmt)
-                    is_member = member_result.scalar_one_or_none() is not None
+                )
 
-                    if not is_creator and not is_owner and not is_member:
-                        msg = "Insufficient permissions to delete this thread"
-                        raise ValueError(msg)
-                elif not is_creator:
-                    # Check if user is organization admin or owner
-                    org_member_stmt = select(OrganizationMemberModel).where(
-                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
-                        & (OrganizationMemberModel.user_id == user_id)
-                        & (
-                            OrganizationMemberModel.organization_role.in_([
-                                OrganizationRole.ADMIN,
-                                OrganizationRole.OWNER,
-                            ])
-                        )
-                    )
-                    org_member_result = await session.execute(org_member_stmt)
-                    is_org_admin = org_member_result.scalar_one_or_none() is not None
-
-                    if not is_org_admin:
-                        msg = "Only the creator or organization admin can delete org-wide threads"
-                        raise ValueError(msg)
+                if not has_permission:
+                    msg = "Insufficient permissions to delete this thread"
+                    raise ValueError(msg)
 
                 await session.delete(thread_model)
                 await session.commit()
+
+                # Cleanup SpiceDB relationships
+                if not await spicedb.remove_thread_relationships(str(thread_id)):
+                    logger.warning(
+                        "Failed to delete thread relationships from SpiceDB",
+                        extra={"thread_id": str(thread_id)},
+                    )
 
                 return True
 
@@ -1030,7 +1007,7 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def create_thread(
+    async def create_thread(  # noqa: PLR0915
         self, info: strawberry.types.Info, input: CreateThreadInput
     ) -> Thread | None:
         """
@@ -1079,7 +1056,7 @@ class Mutation:
                 # For now, we just check space access if space_id is provided
 
                 if space_id:
-                    # Verify user has access to the space
+                    # Verify space exists and belongs to organization
                     stmt = select(SpaceModel).where(SpaceModel.id == space_id)
                     result = await session.execute(stmt)
                     space_model = result.scalar_one_or_none()
@@ -1088,21 +1065,22 @@ class Mutation:
                         msg = "Space not found"
                         raise ValueError(msg)
 
-                    # Verify space belongs to the organization
                     if space_model.organization_id != org_id:
                         msg = "Space does not belong to the specified organization"
                         raise ValueError(msg)
 
-                    # Check if user is owner or member
-                    is_owner = space_model.owner_id == user_id
-                    member_stmt = select(SpaceMemberModel).where(
-                        (SpaceMemberModel.space_id == space_id)
-                        & (SpaceMemberModel.user_id == user_id)
+                    # Check authorization via SpiceDB
+                    spicedb = get_spicedb_service()
+                    has_permission = await spicedb.check_permission(
+                        CheckPermissionInput(
+                            user_id=str(user_id),
+                            permission="read",
+                            resource_type="space",
+                            resource_id=str(space_id),
+                        )
                     )
-                    member_result = await session.execute(member_stmt)
-                    is_member = member_result.scalar_one_or_none() is not None
 
-                    if not is_owner and not is_member:
+                    if not has_permission:
                         msg = "Insufficient permissions to create thread in this space"
                         raise ValueError(msg)
 
@@ -1120,6 +1098,21 @@ class Mutation:
                 session.add(thread_model)
                 await session.commit()
                 await session.refresh(thread_model)
+
+                # Sync thread relationships to SpiceDB
+                spicedb = get_spicedb_service()
+                sync_success = await spicedb.sync_thread_relationships(
+                    thread_id=str(thread_model.id),
+                    organization_id=str(org_id),
+                    creator_id=str(user_id),
+                    space_id=str(space_id) if space_id else None,
+                )
+
+                if not sync_success:
+                    logger.warning(
+                        "Failed to sync thread relationships to SpiceDB",
+                        extra={"thread_id": str(thread_model.id)},
+                    )
 
                 return Thread.from_model(thread_model)
 
@@ -1210,7 +1203,7 @@ class Mutation:
         raise ValueError(msg)
 
     @strawberry.mutation
-    async def update_thread(  # noqa: PLR0915
+    async def update_thread(
         self, info: strawberry.types.Info, id: strawberry.ID, input: UpdateThreadInput
     ) -> Thread | None:
         """
@@ -1264,42 +1257,20 @@ class Mutation:
                     msg = "Thread not found"
                     raise ValueError(msg)
 
-                # Check authorization based on thread type
-                is_creator = thread_model.created_by == user_id
-
-                if thread_model.space_id:
-                    # Space thread - check space permissions
-                    space_stmt = select(SpaceModel).where(SpaceModel.id == thread_model.space_id)
-                    space_result = await session.execute(space_stmt)
-                    space_model = space_result.scalar_one_or_none()
-
-                    if not space_model:
-                        msg = "Space not found"
-                        raise ValueError(msg)
-
-                    is_owner = space_model.owner_id == user_id
-
-                    if not is_creator and not is_owner:
-                        msg = "Insufficient permissions to update this thread"
-                        raise ValueError(msg)
-                elif not is_creator:
-                    # Check if user is organization admin or owner
-                    org_member_stmt = select(OrganizationMemberModel).where(
-                        (OrganizationMemberModel.organization_id == thread_model.organization_id)
-                        & (OrganizationMemberModel.user_id == user_id)
-                        & (
-                            OrganizationMemberModel.organization_role.in_([
-                                OrganizationRole.ADMIN,
-                                OrganizationRole.OWNER,
-                            ])
-                        )
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="update",
+                        resource_type="thread",
+                        resource_id=str(thread_id),
                     )
-                    org_member_result = await session.execute(org_member_stmt)
-                    is_org_admin = org_member_result.scalar_one_or_none() is not None
+                )
 
-                    if not is_org_admin:
-                        msg = "Only the creator or organization admin can update org-wide threads"
-                        raise ValueError(msg)
+                if not has_permission:
+                    msg = "Insufficient permissions to update this thread"
+                    raise ValueError(msg)
 
                 # Update fields if provided
                 if input.title is not None:
