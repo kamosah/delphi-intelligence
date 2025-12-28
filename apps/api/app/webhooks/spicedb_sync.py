@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db.session import get_session
 from app.models import AuthSyncOutbox
+from app.schemas.outbox import AuthSyncStatus
 from app.services.outbox_processor import OutboxProcessor
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ async def spicedb_sync_webhook(
         raise HTTPException(status_code=404, detail=f"Outbox item {payload.event_id} not found")
 
     # Idempotency: Skip if already completed
-    if item.status == "completed":
+    if item.status == AuthSyncStatus.COMPLETED:
         logger.info(f"Outbox item {payload.event_id} already processed, skipping")
         return {
             "status": "already_processed",
@@ -85,7 +86,7 @@ async def spicedb_sync_webhook(
 
     # Process the event
     processor = OutboxProcessor(db)
-    success = await processor._process_item(item)
+    success = await processor.process_item(item)
 
     if success:
         logger.info(f"Successfully processed webhook event {payload.event_id}")

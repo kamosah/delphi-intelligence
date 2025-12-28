@@ -71,7 +71,7 @@ class OutboxProcessor:
         logger.info(f"Processing {len(items)} outbox items")
 
         for item in items:
-            success = await self._process_item(item)
+            success = await self.process_item(item)
 
             if success:
                 stats["success_count"] += 1
@@ -105,12 +105,12 @@ class OutboxProcessor:
         """
         query = select(AuthSyncOutbox).where(
             and_(
-                AuthSyncOutbox.status.in_(["pending", "failed"]),
+                AuthSyncOutbox.status.in_([AuthSyncStatus.PENDING, AuthSyncStatus.FAILED]),
                 # Include failed items that are ready for retry
                 (
-                    (AuthSyncOutbox.status == "pending")
+                    (AuthSyncOutbox.status == AuthSyncStatus.PENDING)
                     | (
-                        (AuthSyncOutbox.status == "failed")
+                        (AuthSyncOutbox.status == AuthSyncStatus.FAILED)
                         & (AuthSyncOutbox.next_retry_at <= datetime.now(UTC))
                     )
                 ),
@@ -125,7 +125,7 @@ class OutboxProcessor:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def _process_item(self, item: AuthSyncOutbox) -> bool:
+    async def process_item(self, item: AuthSyncOutbox) -> bool:
         """Process a single outbox item.
 
         Args:

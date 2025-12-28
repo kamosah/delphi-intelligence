@@ -98,7 +98,7 @@ async def process_single_item(
         raise HTTPException(status_code=404, detail=f"Outbox item {input_data.event_id} not found")
 
     # Process the item
-    success = await processor._process_item(item)
+    success = await processor.process_item(item)
 
     if success:
         return {"status": "success", "message": f"Processed outbox item {input_data.event_id}"}
