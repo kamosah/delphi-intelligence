@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, String
+from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,6 +12,7 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .document import Document
+    from .message import Message
     from .organization import Organization
     from .organization_member import OrganizationMember
     from .space import Space, SpaceMember
@@ -45,6 +46,13 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Default organization for UI (nullable)
+    default_organization_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # User role (legacy field from Supabase, using user_role enum)
     # Note: This is a legacy field not currently used in the application
@@ -85,8 +93,27 @@ class User(Base):
         "Document", back_populates="uploader", cascade="all, delete-orphan"
     )
 
+    # Owned threads (new ownership model)
+    owned_threads: Mapped[list["Thread"]] = relationship(
+        "Thread",
+        foreign_keys="[Thread.owner_user_id]",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+    )
+
+    # Created threads (legacy, kept for backwards compatibility)
     created_threads: Mapped[list["Thread"]] = relationship(
-        "Thread", back_populates="creator", cascade="all, delete-orphan"
+        "Thread",
+        foreign_keys="[Thread.created_by]",
+        back_populates="creator",
+        cascade="all, delete-orphan",
+    )
+
+    # Authored messages (new authorship tracking)
+    authored_messages: Mapped[list["Message"]] = relationship(
+        "Message",
+        foreign_keys="[Message.author_user_id]",
+        back_populates="author",
     )
 
     preferences: Mapped["UserPreferences | None"] = relationship(

@@ -37,6 +37,14 @@ class ThreadStatus(StrEnum):
     FAILED = "failed"
 
 
+class ThreadVisibility(StrEnum):
+    """Thread visibility scope for access control."""
+
+    PERSONAL = "personal"  # Only owner can access
+    SPACE = "space"  # Space members can access
+    ORGANIZATION = "org"  # All org members can access
+
+
 class Thread(Base):
     """
     Thread model for storing AI agent conversations and their results.
@@ -51,21 +59,43 @@ class Thread(Base):
 
     __tablename__ = "threads"
 
-    # Organization-level scoping (required)
-    organization_id: Mapped[UUID] = mapped_column(
+    # Owner (REQUIRED) - threads always belong to a user
+    owner_user_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    # Space-level scoping (optional - for backwards compat and space-specific threads)
+    # Organization context (NULLABLE) - personal threads have no org
+    organization_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
+    # Space context (NULLABLE) - for space-scoped threads
     space_id: Mapped[UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=True, index=True
     )
 
+    # Creator (kept for backwards compatibility, will be deprecated)
     created_by: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+
+    # Visibility level (determines access rules)
+    visibility: Mapped[ThreadVisibility] = mapped_column(
+        SQLEnum(
+            ThreadVisibility,
+            name="thread_visibility",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=ThreadVisibility.PERSONAL,
+        server_default="personal",
+        index=True,
     )
 
     # Core thread fields
@@ -115,11 +145,24 @@ class Thread(Base):
 
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Table constraints
+    # Note: Check constraints are defined in the migration (60e29a1ed846_add_thread_ownership_model.py)
+    # to ensure proper data backfill before constraint enforcement
+    __table_args__ = ()
+
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="threads")
+    organization: Mapped["Organization | None"] = relationship(
+        "Organization", back_populates="threads"
+    )
 
     space: Mapped["Space | None"] = relationship("Space", back_populates="threads")
 
+    # Owner relationship (new ownership model)
+    owner: Mapped["User"] = relationship(
+        "User", foreign_keys=[owner_user_id], back_populates="owned_threads"
+    )
+
+    # Creator relationship (legacy, kept for backwards compatibility)
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
     thread_documents: Mapped[list["ThreadDocument"]] = relationship(
