@@ -47,13 +47,6 @@ class User(Base):
 
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    # Default organization for UI (nullable)
-    default_organization_id: Mapped[UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
     # User role (legacy field from Supabase, using user_role enum)
     # Note: This is a legacy field not currently used in the application
     role: Mapped[UserRole | None] = mapped_column(
