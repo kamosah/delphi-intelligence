@@ -152,6 +152,20 @@ See [Environment Setup Guide](./docs/guides/environment-setup.md) for configurat
 **Implementation**: `apps/api/app/services/spicedb_service.py`
 **Schema**: `apps/api/app/policies/olympus.zed`
 
+**Thread Ownership Model**: User-centric ownership with visibility scoping
+
+Threads use a dual authorization strategy:
+
+- **Owner-based access**: All threads have an `owner_user_id` (primary ownership)
+- **Visibility scoping**: Determines access rules via `ThreadVisibility` enum:
+  - `PERSONAL`: Private to owner only (PostgreSQL RLS - TODO: LOG-259)
+  - `SPACE`: Shared within team workspace (SpiceDB + space membership)
+  - `ORGANIZATION`: Company-wide access (SpiceDB + org membership)
+- **Optional context**: `organization_id` and `space_id` are nullable
+- **Migration**: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+
+Messages use `AuthorType` enum (`user`, `agent`, `system`) to distinguish creators.
+
 **Available MCP Servers**:
 
 - **AuthZed MCP** (`authzed`): Provides searchable documentation and API references for SpiceDB/AuthZed

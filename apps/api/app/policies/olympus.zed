@@ -70,19 +70,24 @@ definition document {
 }
 
 // ============================================================================
-// Thread - Creator-Based Permissions with Space/Org Inheritance
+// Thread - Owner-Based Permissions with Visibility Scoping
 // ============================================================================
 
 definition thread {
   // Relationships
-  relation organization: organization
-  relation space: space                  // Optional: not set for personal threads
-  relation creator: user
+  relation owner: user                   // Primary ownership: user who owns the thread
+  relation organization: organization    // Optional: organization context (nullable for personal threads)
+  relation space: space                  // Optional: space context (nullable for personal/org threads)
 
   // Permissions
-  permission delete = creator + space->manage_members + organization->admin
-  permission update = creator + space->owner + organization->admin
-  permission read = space->read + creator
+  permission delete = owner + space->manage_members + organization->admin
+  permission update = owner + space->owner + organization->admin
+
+  // Read permission for space/personal threads (does NOT include org->view to prevent leaks)
+  permission read = owner + space->read
+
+  // Read permission for org-wide threads (requires organization membership)
+  permission read_org = owner + organization->view
 }
 
 // ============================================================================

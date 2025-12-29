@@ -551,18 +551,22 @@ class SpiceDBService:
         *,
         thread_id: str,
         organization_id: str,
-        creator_id: str,
+        owner_id: str,
         space_id: str | None = None,
     ) -> bool:
-        """Sync thread relationships (organization + creator + optional space).
+        """Sync thread relationships (organization + owner + optional space).
 
-        Call this after creating a thread.
+        Call this after creating organization or space threads.
+
+        **Authorization Strategy:**
+        - **Org/Space threads**: Use SpiceDB for fine-grained access control
+        - **Personal threads**: Use PostgreSQL RLS (to be implemented in future PR)
 
         Args:
             thread_id: The thread ID
-            organization_id: The parent organization ID
-            creator_id: The thread creator's user ID
-            space_id: The parent space ID (None for personal threads)
+            organization_id: The parent organization ID (REQUIRED - for org/space threads only)
+            owner_id: The thread owner's user ID
+            space_id: The parent space ID (None for org-wide threads)
 
         Returns:
             True if all relationships succeeded, False otherwise
@@ -572,17 +576,22 @@ class SpiceDBService:
             await spicedb.sync_thread_relationships(
                 thread_id=thread.id,
                 organization_id=org.id,
-                creator_id=user.id,
+                owner_id=user.id,
                 space_id=space.id,
             )
 
-            # Personal thread
+            # Org-wide thread
             await spicedb.sync_thread_relationships(
                 thread_id=thread.id,
                 organization_id=org.id,
-                creator_id=user.id,
+                owner_id=user.id,
                 space_id=None,
             )
+
+            # Personal thread (no SpiceDB sync - use PostgreSQL RLS instead)
+            # TODO(LOG-259): Implement RLS policies for personal threads
+            if visibility != ThreadVisibility.PERSONAL:
+                await spicedb.sync_thread_relationships(...)
         """
         # Write organization relationship
         org_success = await self.write_relationship(
@@ -595,14 +604,14 @@ class SpiceDBService:
             )
         )
 
-        # Write creator relationship
-        creator_success = await self.write_relationship(
+        # Write owner relationship (replaces creator)
+        owner_success = await self.write_relationship(
             WriteRelationshipInput(
                 resource_type="thread",
                 resource_id=thread_id,
-                relation="creator",
+                relation="owner",
                 subject_type="user",
-                subject_id=creator_id,
+                subject_id=owner_id,
             )
         )
 
@@ -619,7 +628,7 @@ class SpiceDBService:
                 )
             )
 
-        return org_success and creator_success and space_success
+        return org_success and owner_success and space_success
 
     async def remove_thread_relationships(self, thread_id: str) -> bool:
         """Remove all thread relationships.
@@ -783,7 +792,7 @@ class SpiceDBService:
         return await self.sync_thread_relationships(
             thread_id=str(data["thread_id"]),
             organization_id=str(data["organization_id"]),
-            creator_id=str(data["creator_id"]),
+            owner_id=str(data["owner_id"]),
             space_id=str(data["space_id"]) if data.get("space_id") else None,
         )
 

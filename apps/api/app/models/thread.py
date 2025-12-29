@@ -38,11 +38,26 @@ class ThreadStatus(StrEnum):
 
 
 class ThreadVisibility(StrEnum):
-    """Thread visibility scope for access control."""
+    """Thread visibility scope for access control.
+
+    Visibility levels determine who can access a thread:
+
+    - PERSONAL: Private threads owned by a single user. No organization or space context.
+      Use for: User's personal analysis, drafts, private notes.
+      Access: Only the owner can read/write.
+
+    - SPACE: Threads shared within a specific space (team workspace).
+      Use for: Team collaboration, project-specific threads, shared analysis.
+      Access: All space members can read; permissions controlled by space membership.
+
+    - ORGANIZATION: Threads shared across the entire organization.
+      Use for: Company-wide announcements, shared resources, cross-team collaboration.
+      Access: All organization members can read; no space restriction.
+    """
 
     PERSONAL = "personal"  # Only owner can access
     SPACE = "space"  # Space members can access
-    ORGANIZATION = "org"  # All org members can access
+    ORGANIZATION = "organization"  # All org members can access
 
 
 class Thread(Base):
@@ -163,7 +178,9 @@ class Thread(Base):
     )
 
     # Creator relationship (legacy, kept for backwards compatibility)
-    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+    creator: Mapped["User"] = relationship(
+        "User", foreign_keys=[created_by], back_populates="created_threads"
+    )
 
     thread_documents: Mapped[list["ThreadDocument"]] = relationship(
         "ThreadDocument",

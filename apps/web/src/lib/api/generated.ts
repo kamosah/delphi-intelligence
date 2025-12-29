@@ -35,6 +35,12 @@ export type AddOrganizationMemberInput = {
   userId: Scalars['ID']['input'];
 };
 
+export enum AuthorTypeEnum {
+  Agent = 'AGENT',
+  System = 'SYSTEM',
+  User = 'USER',
+}
+
 export type BulkDeleteDocumentsInput = {
   documentIds: Array<Scalars['ID']['input']>;
 };
@@ -61,11 +67,12 @@ export type CreateSpaceInput = {
 
 export type CreateThreadInput = {
   confidenceScore?: InputMaybe<Scalars['Float']['input']>;
-  organizationId: Scalars['ID']['input'];
+  organizationId?: InputMaybe<Scalars['ID']['input']>;
   queryText: Scalars['String']['input'];
   result?: InputMaybe<Scalars['String']['input']>;
   spaceId?: InputMaybe<Scalars['ID']['input']>;
   title?: InputMaybe<Scalars['String']['input']>;
+  visibility?: InputMaybe<ThreadVisibilityEnum>;
 };
 
 export type CreateUserInput = {
@@ -144,6 +151,8 @@ export type DocumentSortInput = {
 
 export type Message = {
   __typename?: 'Message';
+  authorType: AuthorTypeEnum;
+  authorUserId?: Maybe<Scalars['ID']['output']>;
   content: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
@@ -441,7 +450,8 @@ export type Thread = {
   isStarred: Scalars['Boolean']['output'];
   messages: Array<Message>;
   modelUsed?: Maybe<Scalars['String']['output']>;
-  organizationId: Scalars['ID']['output'];
+  organizationId?: Maybe<Scalars['ID']['output']>;
+  ownerUserId: Scalars['ID']['output'];
   processingTimeMs?: Maybe<Scalars['Int']['output']>;
   queryText: Scalars['String']['output'];
   result?: Maybe<Scalars['String']['output']>;
@@ -451,6 +461,7 @@ export type Thread = {
   title?: Maybe<Scalars['String']['output']>;
   tokensUsed?: Maybe<Scalars['Int']['output']>;
   updatedAt: Scalars['DateTime']['output'];
+  visibility: ThreadVisibilityEnum;
 };
 
 export enum ThreadStatusEnum {
@@ -458,6 +469,12 @@ export enum ThreadStatusEnum {
   Failed = 'FAILED',
   Pending = 'PENDING',
   Processing = 'PROCESSING',
+}
+
+export enum ThreadVisibilityEnum {
+  Organization = 'ORGANIZATION',
+  Personal = 'PERSONAL',
+  Space = 'SPACE',
 }
 
 export type UpdateOrganizationInput = {
@@ -731,7 +748,7 @@ export type CreateThreadMutation = {
   createThread?: {
     __typename?: 'Thread';
     id: string;
-    organizationId: string;
+    organizationId?: string | null;
     spaceId?: string | null;
     createdBy: string;
     queryText: string;
@@ -764,7 +781,7 @@ export type UpdateThreadMutation = {
   updateThread?: {
     __typename?: 'Thread';
     id: string;
-    organizationId: string;
+    organizationId?: string | null;
     spaceId?: string | null;
     createdBy: string;
     queryText: string;
@@ -1038,7 +1055,9 @@ export type GetThreadsQuery = {
   threads: Array<{
     __typename?: 'Thread';
     id: string;
-    organizationId: string;
+    ownerUserId: string;
+    visibility: ThreadVisibilityEnum;
+    organizationId?: string | null;
     spaceId?: string | null;
     createdBy: string;
     queryText: string;
@@ -1063,6 +1082,8 @@ export type GetThreadsQuery = {
       id: string;
       threadId: string;
       messageRole: MessageRole;
+      authorUserId?: string | null;
+      authorType: AuthorTypeEnum;
       content: string;
       messageMetadata: any;
       createdAt: string;
@@ -1080,7 +1101,9 @@ export type GetThreadQuery = {
   thread?: {
     __typename?: 'Thread';
     id: string;
-    organizationId: string;
+    ownerUserId: string;
+    visibility: ThreadVisibilityEnum;
+    organizationId?: string | null;
     spaceId?: string | null;
     createdBy: string;
     queryText: string;
@@ -1105,6 +1128,8 @@ export type GetThreadQuery = {
       id: string;
       threadId: string;
       messageRole: MessageRole;
+      authorUserId?: string | null;
+      authorType: AuthorTypeEnum;
       content: string;
       messageMetadata: any;
       createdAt: string;

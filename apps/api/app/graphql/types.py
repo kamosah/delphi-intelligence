@@ -460,12 +460,31 @@ class Citation:
     page_number: int | None = None
 
 
+@strawberry.enum
+class ThreadVisibilityEnum(StrEnum):
+    """Thread visibility scope for access control."""
+
+    PERSONAL = "personal"
+    SPACE = "space"
+    ORGANIZATION = "organization"
+
+
+@strawberry.enum
+class AuthorTypeEnum(StrEnum):
+    """Message author type for distinguishing message creators."""
+
+    USER = "user"
+    AGENT = "agent"
+    SYSTEM = "system"
+
+
 @strawberry.input
 class CreateThreadInput:
     """Input type for creating a new thread (manual creation, not via streaming)."""
 
-    organization_id: strawberry.ID
+    organization_id: strawberry.ID | None = None  # Optional: for org/space threads
     space_id: strawberry.ID | None = None  # Optional: threads can be org-wide
+    visibility: ThreadVisibilityEnum | None = None  # Optional: defaults to PERSONAL
     query_text: str
     result: str | None = None
     title: str | None = None
@@ -486,7 +505,9 @@ class Thread:
     """GraphQL Thread type for AI agent conversation threads."""
 
     id: strawberry.ID
-    organization_id: strawberry.ID
+    owner_user_id: strawberry.ID  # NEW: User who owns the thread
+    visibility: ThreadVisibilityEnum  # NEW: Visibility scope
+    organization_id: strawberry.ID | None  # Changed to optional for personal threads
     space_id: strawberry.ID | None  # Optional: threads can be org-wide
     created_by: strawberry.ID
     query_text: str
@@ -516,12 +537,19 @@ class Thread:
         if thread.status:
             status = ThreadStatusEnum[thread.status.name]
 
+        # Convert ThreadVisibility enum
+        visibility = ThreadVisibilityEnum[thread.visibility.name]
+
         # Convert messages
         messages = [Message.from_model(msg) for msg in thread.messages] if thread.messages else []
 
         return cls(
             id=strawberry.ID(str(thread.id)),
-            organization_id=strawberry.ID(str(thread.organization_id)),
+            owner_user_id=strawberry.ID(str(thread.owner_user_id)),
+            visibility=visibility,
+            organization_id=strawberry.ID(str(thread.organization_id))
+            if thread.organization_id
+            else None,
             space_id=strawberry.ID(str(thread.space_id)) if thread.space_id else None,
             created_by=strawberry.ID(str(thread.created_by)),
             query_text=thread.query_text,
@@ -561,6 +589,10 @@ class Message:
     id: strawberry.ID
     thread_id: strawberry.ID
     message_role: MessageRole
+    author_user_id: (
+        strawberry.ID | None
+    )  # NEW: User who authored the message (null for agent/system)
+    author_type: AuthorTypeEnum  # NEW: Type of author (user, agent, system)
     content: str
     message_metadata: strawberry.scalars.JSON  # type: ignore[valid-type]
     created_at: datetime
@@ -569,10 +601,17 @@ class Message:
     @classmethod
     def from_model(cls, message: MessageModel) -> "Message":
         """Convert SQLAlchemy Message model to GraphQL Message type."""
+        # Convert AuthorType enum
+        author_type = AuthorTypeEnum[message.author_type.name]
+
         return cls(
             id=strawberry.ID(str(message.id)),
             thread_id=strawberry.ID(str(message.thread_id)),
             message_role=MessageRole[message.message_role.name],
+            author_user_id=strawberry.ID(str(message.author_user_id))
+            if message.author_user_id
+            else None,
+            author_type=author_type,
             content=message.content,
             message_metadata=message.message_metadata,
             created_at=message.created_at,

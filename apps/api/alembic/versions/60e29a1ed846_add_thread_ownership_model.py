@@ -1,7 +1,7 @@
 """add_thread_ownership_model
 
 Revision ID: 60e29a1ed846
-Revises: 8b9316dee492
+Revises: 548de4f77dae
 Create Date: 2025-12-29 01:43:42.589626
 
 """
