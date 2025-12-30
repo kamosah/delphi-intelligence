@@ -9,6 +9,7 @@ Fixes identified in PR #65 review:
 - Add personal visibility constraint
 - Add compound indexes for query performance
 
+Related: LOG-254
 Revision ID: a3c105090510
 Revises: 60e29a1ed846
 Create Date: 2025-12-29 09:46:03.985603

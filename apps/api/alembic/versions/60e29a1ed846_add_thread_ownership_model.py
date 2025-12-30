@@ -1,5 +1,10 @@
-"""add_thread_ownership_model
+"""add thread ownership model
 
+Implements user-centric ownership model for threads with visibility scoping.
+Adds owner_user_id (mutable ownership), visibility enum (access control),
+and refactors organization/space relationships for flexible thread contexts.
+
+Related: LOG-254
 Revision ID: 60e29a1ed846
 Revises: 548de4f77dae
 Create Date: 2025-12-29 01:43:42.589626
