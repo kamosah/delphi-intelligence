@@ -7,6 +7,7 @@ import pytest
 
 from app.graphql.mutation import Mutation
 from app.graphql.types import CreateThreadInput, UpdateThreadInput, ThreadVisibilityEnum
+from app.models.thread import Thread, ThreadVisibility
 
 
 class TestThreadMutations:
@@ -455,3 +456,103 @@ class TestThreadMutations:
 
             # Verify rollback was called
             assert mock_db_session.rollback.called
+
+    @pytest.mark.asyncio
+    async def test_create_personal_thread_success(
+        self, mock_info, mock_user, mock_db_session, mock_get_session
+    ):
+        """Test successfully creating a personal thread with no org/space."""
+        input_data = CreateThreadInput(
+            organization_id=None,
+            space_id=None,
+            visibility=ThreadVisibilityEnum.PERSONAL,
+            query_text="Personal query",
+        )
+
+        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
+            mutation = Mutation()
+            result = await mutation.create_thread(mock_info, input_data)
+
+            assert result is not None
+            assert result.visibility == "personal"
+            assert result.organization_id is None
+            assert result.space_id is None
+            assert result.owner_user_id == str(mock_user.id)
+            assert result.created_by == str(mock_user.id)
+            assert mock_db_session.commit.called
+
+    @pytest.mark.asyncio
+    async def test_update_personal_thread_success(
+        self, mock_info, mock_user, mock_db_session, mock_get_session
+    ):
+        """Test successfully updating a personal thread."""
+        # Create a mock personal thread
+        thread_id = uuid4()
+        mock_thread = Thread(
+            id=thread_id,
+            organization_id=None,
+            space_id=None,
+            visibility=ThreadVisibility.PERSONAL,
+            owner_user_id=mock_user.id,
+            created_by=mock_user.id,
+        )
+
+        # Mock database query
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none = MagicMock(return_value=mock_thread)
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        # Mock SpiceDB permission check
+        mock_spicedb = MagicMock()
+        mock_spicedb.check_permission = AsyncMock(return_value=True)
+
+        input_data = UpdateThreadInput(title="Updated Title")
+
+        with (
+            patch("app.graphql.mutation.get_session", side_effect=mock_get_session),
+            patch("app.graphql.mutation.get_spicedb_service", return_value=mock_spicedb),
+        ):
+            mutation = Mutation()
+            result = await mutation.update_thread(mock_info, str(thread_id), input_data)
+
+            assert result is not None
+            assert result.id == str(thread_id)
+            assert mock_db_session.commit.called
+
+    @pytest.mark.asyncio
+    async def test_delete_personal_thread_success(
+        self, mock_info, mock_user, mock_db_session, mock_get_session
+    ):
+        """Test successfully deleting a personal thread."""
+        # Create a mock personal thread
+        thread_id = uuid4()
+        mock_thread = Thread(
+            id=thread_id,
+            organization_id=None,
+            space_id=None,
+            visibility=ThreadVisibility.PERSONAL,
+            owner_user_id=mock_user.id,
+            created_by=mock_user.id,
+        )
+
+        # Mock database query
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none = MagicMock(return_value=mock_thread)
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+        mock_db_session.delete = AsyncMock()
+
+        # Mock SpiceDB permission check and cleanup
+        mock_spicedb = MagicMock()
+        mock_spicedb.check_permission = AsyncMock(return_value=True)
+        mock_spicedb.remove_thread_relationships = AsyncMock(return_value=True)
+
+        with (
+            patch("app.graphql.mutation.get_session", side_effect=mock_get_session),
+            patch("app.graphql.mutation.get_spicedb_service", return_value=mock_spicedb),
+        ):
+            mutation = Mutation()
+            result = await mutation.delete_thread(mock_info, str(thread_id))
+
+            assert result is True
+            assert mock_db_session.delete.called
+            assert mock_db_session.commit.called
