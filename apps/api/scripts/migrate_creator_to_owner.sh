@@ -6,12 +6,18 @@
 # allowing us to safely deprecate the creator relation.
 #
 # Related: LOG-254
-# Usage: ./scripts/migrate_creator_to_owner.sh
+# Usage: SPICEDB_TOKEN=<token> ./scripts/migrate_creator_to_owner.sh
 
 set -e
 
 SPICEDB_ENDPOINT="localhost:50051"
-SPICEDB_TOKEN="G6dfhQVrBnsFojxwHRiiyZslt9ZRo/Jg0YxFfHVcNXI="
+
+# Check if SPICEDB_TOKEN is set
+if [ -z "$SPICEDB_TOKEN" ]; then
+  echo "❌ Error: SPICEDB_TOKEN environment variable not set"
+  echo "Usage: SPICEDB_TOKEN=<token> ./scripts/migrate_creator_to_owner.sh"
+  exit 1
+fi
 
 echo "🔍 Fetching all thread#creator relationships..."
 

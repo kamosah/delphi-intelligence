@@ -484,29 +484,22 @@ class CreateThreadInput:
 
     organization_id: strawberry.ID | None = strawberry.field(
         default=None,
-        description="Organization context (required for SPACE/ORGANIZATION threads, null for PERSONAL)"
+        description="Organization context (required for SPACE/ORGANIZATION threads, null for PERSONAL)",
     )
     space_id: strawberry.ID | None = strawberry.field(
         default=None,
-        description="Space context (required for SPACE threads, null for PERSONAL/ORGANIZATION)"
+        description="Space context (required for SPACE threads, null for PERSONAL/ORGANIZATION)",
     )
     visibility: ThreadVisibilityEnum = strawberry.field(
         description="Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members)"
     )
-    query_text: str = strawberry.field(
-        description="User's question or query text"
-    )
+    query_text: str = strawberry.field(description="User's question or query text")
     result: str | None = strawberry.field(
-        default=None,
-        description="Optional pre-computed result (for manual thread creation)"
+        default=None, description="Optional pre-computed result (for manual thread creation)"
     )
-    title: str | None = strawberry.field(
-        default=None,
-        description="Optional thread title"
-    )
+    title: str | None = strawberry.field(default=None, description="Optional thread title")
     confidence_score: float | None = strawberry.field(
-        default=None,
-        description="Optional confidence score (0.0-1.0)"
+        default=None, description="Optional confidence score (0.0-1.0)"
     )
 
 
@@ -582,9 +575,7 @@ class Thread:
             if thread.organization_id
             else None,
             space_id=strawberry.ID(str(thread.space_id)) if thread.space_id else None,
-            created_by=strawberry.ID(str(thread.created_by))
-            if thread.created_by
-            else None,
+            created_by=strawberry.ID(str(thread.created_by)) if thread.created_by else None,
             query_text=thread.query_text,
             result=thread.result,
             title=thread.title,

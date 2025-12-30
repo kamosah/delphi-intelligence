@@ -341,3 +341,117 @@ class TestThreadMutations:
                 await mutation.delete_thread(mock_info, str(mock_org_thread.id))
 
             assert mock_db_session.rollback.called
+
+    @pytest.mark.asyncio
+    async def test_create_personal_thread_with_org_should_fail(
+        self, mock_info, mock_organization, mock_get_session
+    ):
+        """Test creating a personal thread with organization_id fails validation."""
+        input_data = CreateThreadInput(
+            organization_id=str(mock_organization.id),  # Invalid for PERSONAL
+            space_id=None,
+            visibility=ThreadVisibilityEnum.PERSONAL,
+            query_text="Personal query with org",
+        )
+
+        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
+            mutation = Mutation()
+            with pytest.raises(
+                ValueError,
+                match="Personal threads cannot have organization or space",
+            ):
+                await mutation.create_thread(mock_info, input_data)
+
+    @pytest.mark.asyncio
+    async def test_create_personal_thread_with_space_should_fail(
+        self, mock_info, mock_space, mock_get_session
+    ):
+        """Test creating a personal thread with space_id fails validation."""
+        input_data = CreateThreadInput(
+            organization_id=None,
+            space_id=str(mock_space.id),  # Invalid for PERSONAL
+            visibility=ThreadVisibilityEnum.PERSONAL,
+            query_text="Personal query with space",
+        )
+
+        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
+            mutation = Mutation()
+            with pytest.raises(
+                ValueError,
+                match="Personal threads cannot have organization or space",
+            ):
+                await mutation.create_thread(mock_info, input_data)
+
+    @pytest.mark.asyncio
+    async def test_create_space_thread_without_space_should_fail(
+        self, mock_info, mock_organization, mock_get_session
+    ):
+        """Test creating a space thread without space_id fails validation."""
+        input_data = CreateThreadInput(
+            organization_id=str(mock_organization.id),
+            space_id=None,  # Required for SPACE visibility
+            visibility=ThreadVisibilityEnum.SPACE,
+            query_text="Space query without space",
+        )
+
+        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
+            mutation = Mutation()
+            with pytest.raises(
+                ValueError,
+                match="Space threads must have space_id",
+            ):
+                await mutation.create_thread(mock_info, input_data)
+
+    @pytest.mark.asyncio
+    async def test_create_org_thread_without_org_should_fail(self, mock_info, mock_get_session):
+        """Test creating an organization thread without organization_id fails validation."""
+        input_data = CreateThreadInput(
+            organization_id=None,  # Required for ORGANIZATION visibility
+            space_id=None,
+            visibility=ThreadVisibilityEnum.ORGANIZATION,
+            query_text="Org query without org",
+        )
+
+        with patch("app.graphql.mutation.get_session", side_effect=mock_get_session):
+            mutation = Mutation()
+            with pytest.raises(
+                ValueError,
+                match="Organization threads must have organization_id",
+            ):
+                await mutation.create_thread(mock_info, input_data)
+
+    @pytest.mark.asyncio
+    async def test_create_thread_spicedb_sync_failure_rollback(
+        self, mock_info, mock_db_session, mock_user, mock_organization, mock_space, mock_get_session
+    ):
+        """Test that SpiceDB sync failure causes transaction rollback."""
+        # Mock space query result
+        mock_space_result = MagicMock()
+        mock_space_result.scalar_one_or_none = MagicMock(return_value=mock_space)
+        mock_db_session.execute.return_value = mock_space_result
+
+        # Mock SpiceDB permission check succeeds but sync fails
+        mock_spicedb = MagicMock()
+        mock_spicedb.check_permission = AsyncMock(return_value=True)
+        mock_spicedb.sync_thread_relationships = AsyncMock(return_value=False)  # Sync fails
+
+        input_data = CreateThreadInput(
+            organization_id=str(mock_organization.id),
+            space_id=str(mock_space.id),
+            visibility=ThreadVisibilityEnum.SPACE,
+            query_text="Thread with sync failure",
+        )
+
+        with (
+            patch("app.graphql.mutation.get_session", side_effect=mock_get_session),
+            patch("app.graphql.mutation.get_spicedb_service", return_value=mock_spicedb),
+        ):
+            mutation = Mutation()
+            with pytest.raises(
+                ValueError,
+                match="Failed to configure thread permissions",
+            ):
+                await mutation.create_thread(mock_info, input_data)
+
+            # Verify rollback was called
+            assert mock_db_session.rollback.called

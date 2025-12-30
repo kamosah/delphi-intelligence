@@ -1145,10 +1145,15 @@ class Mutation:
                     )
 
                     if not sync_success:
-                        logger.warning(
-                            "Failed to sync thread relationships to SpiceDB",
+                        # CRITICAL: Rollback thread creation if authorization sync fails
+                        # We cannot allow threads to exist without proper access control
+                        await session.rollback()
+                        logger.error(
+                            "Failed to sync thread relationships to SpiceDB - rolling back transaction",
                             extra={"thread_id": str(thread_model.id)},
                         )
+                        msg = "Failed to configure thread permissions. Please try again."
+                        raise ValueError(msg)
 
                 return Thread.from_model(thread_model)
 

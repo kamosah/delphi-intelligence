@@ -5,23 +5,29 @@ This script copies all existing thread#creator relationships to thread#owner rel
 allowing us to safely deprecate the creator relation.
 
 Related: LOG-254
-Usage: python scripts/migrate_creator_to_owner.py
+Usage: SPICEDB_TOKEN=<token> python scripts/migrate_creator_to_owner.py
 """
 
 import json
-import subprocess
+import os
+import subprocess  # noqa: S404
 import sys
 
 
 def run_zed_command(args: list[str]) -> str:
     """Run a zed CLI command and return the output."""
+    token = os.getenv("SPICEDB_TOKEN")
+    if not token:
+        msg = "SPICEDB_TOKEN environment variable not set"
+        raise ValueError(msg)
+
     cmd = [
         "zed",
         *args,
         "--endpoint",
         "localhost:50051",
         "--token",
-        "G6dfhQVrBnsFojxwHRiiyZslt9ZRo/Jg0YxFfHVcNXI=",
+        token,
         "--insecure",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
