@@ -600,6 +600,57 @@ input CreateThreadInput {
 
 See [SpiceDB Setup](./SPICEDB_SETUP.md) for authorization schema details.
 
+## SpiceDB Operations
+
+### M1/ARM64 Mac Workaround
+
+**Issue**: Docker Rosetta on M1/ARM64 Macs causes `rosetta error: failed to open elf` when using `docker compose exec` with zed commands.
+
+**Solution**: Use local zed CLI directly instead of going through Docker:
+
+```bash
+# Install zed CLI (if not already installed)
+brew install authzed/tap/zed
+
+# Load schema using local zed (bypasses Docker/Rosetta)
+zed schema write \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure \
+  app/policies/olympus.zed
+
+# Read schema to verify
+zed schema read \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure
+
+# Manage relationships
+zed relationship create thread:THREAD_ID owner user:USER_ID \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure
+
+# Query relationships
+zed relationship read thread owner \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure \
+  --json
+```
+
+**Key Points**:
+- `localhost:50051` connects to SpiceDB container's exposed port
+- Bypasses Docker exec layer (avoids Rosetta issues)
+- Uses same token from `.env` for authentication
+- `--insecure` flag required for local dev (no TLS)
+
+**When to Use**:
+- ✅ Always on M1/ARM64 Macs
+- ✅ Bulk operations (schema updates, migrations)
+- ✅ Scripting and automation
+- ❌ Not needed on Intel/Linux (Docker exec works)
+
 ## Best Practices
 
 ### General Development

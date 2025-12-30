@@ -179,6 +179,59 @@ Messages use `AuthorType` enum (`user`, `agent`, `system`) to distinguish creato
 
 See [Environment Setup Guide](./docs/guides/environment-setup.md) for MCP server configuration.
 
+#### SpiceDB Operations (M1/ARM64 Macs)
+
+**Issue**: Docker Rosetta on M1/ARM64 Macs causes `rosetta error: failed to open elf` when using `docker compose exec` with zed commands.
+
+**Solution**: Use local zed CLI directly instead of going through Docker:
+
+```bash
+# Install zed CLI (if not already installed)
+brew install authzed/tap/zed
+
+# Load schema using local zed (bypasses Docker/Rosetta)
+zed schema write \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  apps/api/app/policies/olympus.zed
+
+# Read schema
+zed schema read \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure
+
+# Create relationships
+zed relationship create thread:THREAD_ID owner user:USER_ID \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure
+
+# Read relationships
+zed relationship read thread owner \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  --json
+```
+
+**Why This Works**:
+
+- `localhost:50051` connects directly to SpiceDB Docker container's exposed port
+- Bypasses Docker exec layer that causes Rosetta compatibility issues
+- Uses same token from `.env` file for authentication
+- `--insecure` flag required for local development (no TLS)
+
+**When to Use**:
+
+- ✅ **Always use local zed on M1/ARM64 Macs** to avoid Rosetta errors
+- ✅ For bulk operations (schema updates, relationship migrations)
+- ✅ For scripting and automation
+- ❌ Not needed on x86_64/Intel Macs or Linux (Docker exec works fine)
+
+See [SPICEDB_SETUP.md](./apps/api/SPICEDB_SETUP.md) for complete SpiceDB configuration.
+
 ### Vector Search & RAG Pipeline
 
 **Semantic Search Infrastructure** (pgvector + OpenAI Embeddings):

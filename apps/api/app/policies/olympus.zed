@@ -76,18 +76,19 @@ definition document {
 definition thread {
   // Relationships
   relation owner: user                   // Primary ownership: user who owns the thread
+  relation creator: user                 // MIGRATION: Legacy relation, being phased out (LOG-254)
   relation organization: organization    // Optional: organization context (nullable for personal threads)
   relation space: space                  // Optional: space context (nullable for personal/org threads)
 
-  // Permissions
-  permission delete = owner + space->manage_members + organization->admin
-  permission update = owner + space->owner + organization->admin
+  // Permissions (include both owner and creator during migration)
+  permission delete = owner + creator + space->manage_members + organization->admin
+  permission update = owner + creator + space->owner + organization->admin
 
   // Read permission for space/personal threads (does NOT include org->view to prevent leaks)
-  permission read = owner + space->read
+  permission read = owner + creator + space->read
 
   // Read permission for org-wide threads (requires organization membership)
-  permission read_org = owner + organization->view
+  permission read_org = owner + creator + organization->view
 }
 
 // ============================================================================

@@ -22,11 +22,11 @@ from sqlalchemy.schema import Table
 from app.config import settings
 from app.main import app
 from app.models.base import Base
-from app.models.message import Message, MessageRole
+from app.models.message import Message, MessageRole, AuthorType
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
-from app.models.thread import Thread, ThreadStatus
+from app.models.thread import Thread, ThreadStatus, ThreadVisibility
 from app.models.user import User
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
@@ -94,6 +94,8 @@ def mock_thread(
     thread.organization_id = mock_organization.id
     thread.space_id = mock_space.id
     thread.created_by = mock_user.id
+    thread.owner_user_id = mock_user.id  # Thread ownership model
+    thread.visibility = ThreadVisibility.SPACE  # Default to SPACE visibility
     thread.status = ThreadStatus.PENDING
     thread.result = None
     thread.confidence_score = None
@@ -101,12 +103,15 @@ def mock_thread(
     thread.organization = mock_organization
     thread.space = mock_space
     thread.creator = mock_user
+    thread.owner = mock_user  # Thread ownership model
 
     # Add mock messages for multi-turn conversation support
     user_msg = MagicMock(spec=Message)
     user_msg.id = uuid4()
     user_msg.thread_id = thread.id
     user_msg.message_role = MessageRole.USER
+    user_msg.author_type = AuthorType.USER  # Message authorship model
+    user_msg.author_user_id = mock_user.id  # Message authorship model
     user_msg.content = "What are the key findings?"
     user_msg.message_metadata = {}
 
@@ -114,6 +119,8 @@ def mock_thread(
     assistant_msg.id = uuid4()
     assistant_msg.thread_id = thread.id
     assistant_msg.message_role = MessageRole.ASSISTANT
+    assistant_msg.author_type = AuthorType.AGENT  # Message authorship model
+    assistant_msg.author_user_id = None  # Agent messages have no user author
     assistant_msg.content = "Based on the analysis, here are the key findings..."
     assistant_msg.message_metadata = {"confidence_score": 0.85}
 
