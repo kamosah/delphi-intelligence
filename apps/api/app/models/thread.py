@@ -64,6 +64,18 @@ class Thread(Base):
     """
     Thread model for storing AI agent conversations and their results.
 
+    **Thread Ownership Model** (LOG-254):
+    - owner_user_id: Current owner (mutable, nullable, SET NULL on user delete)
+    - created_by: Original creator (immutable, historical provenance, SET NULL on user delete)
+    - visibility: Access scope (PERSONAL, SPACE, ORGANIZATION)
+
+    **Deletion Behavior**: Threads are preserved when users deleted (collaborative content).
+    When user deleted, ownership set to NULL → triggers reassignment (future: LOG-260).
+
+    **Authorization**:
+    - Personal threads: PostgreSQL RLS (owner-only access) - future: LOG-259
+    - Space/Org threads: SpiceDB fine-grained permissions
+
     Stores the complete RAG pipeline output including:
     - User query text
     - Generated response
@@ -74,12 +86,15 @@ class Thread(Base):
 
     __tablename__ = "threads"
 
-    # Owner (REQUIRED) - threads always belong to a user
-    owner_user_id: Mapped[UUID] = mapped_column(
+    # Owner (NULLABLE) - current owner, mutable, can be reassigned
+    # SET NULL on user delete to preserve threads (collaborative content)
+    # NULL triggers reassignment to space/org default owner (future: LOG-260)
+    owner_user_id: Mapped[UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
+        comment="Current owner (mutable). NULL triggers reassignment to space/org default owner.",
     )
 
     # Organization context (NULLABLE) - personal threads have no org
@@ -95,9 +110,15 @@ class Thread(Base):
         UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=True, index=True
     )
 
-    # Creator (kept for backwards compatibility, will be deprecated)
-    created_by: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    # Creator (NULLABLE) - original creator, immutable, historical provenance
+    # SET NULL on user delete to preserve thread history
+    # Consider denormalizing creator_name/email for audit trail (future: LOG-261)
+    created_by: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Original creator (immutable). Denormalize creator_name at creation for audit trail.",
     )
 
     # Visibility level (determines access rules)
@@ -172,13 +193,13 @@ class Thread(Base):
 
     space: Mapped["Space | None"] = relationship("Space", back_populates="threads")
 
-    # Owner relationship (new ownership model)
-    owner: Mapped["User"] = relationship(
+    # Owner relationship (new ownership model) - nullable when user deleted
+    owner: Mapped["User | None"] = relationship(
         "User", foreign_keys=[owner_user_id], back_populates="owned_threads"
     )
 
-    # Creator relationship (legacy, kept for backwards compatibility)
-    creator: Mapped["User"] = relationship(
+    # Creator relationship (historical provenance) - nullable when user deleted
+    creator: Mapped["User | None"] = relationship(
         "User", foreign_keys=[created_by], back_populates="created_threads"
     )
 
