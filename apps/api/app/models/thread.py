@@ -37,9 +37,44 @@ class ThreadStatus(StrEnum):
     FAILED = "failed"
 
 
+class ThreadVisibility(StrEnum):
+    """Thread visibility scope for access control.
+
+    Visibility levels determine who can access a thread:
+
+    - PERSONAL: Private threads owned by a single user. No organization or space context.
+      Use for: User's personal analysis, drafts, private notes.
+      Access: Only the owner can read/write.
+
+    - SPACE: Threads shared within a specific space (team workspace).
+      Use for: Team collaboration, project-specific threads, shared analysis.
+      Access: All space members can read; permissions controlled by space membership.
+
+    - ORGANIZATION: Threads shared across the entire organization.
+      Use for: Company-wide announcements, shared resources, cross-team collaboration.
+      Access: All organization members can read; no space restriction.
+    """
+
+    PERSONAL = "personal"  # Only owner can access
+    SPACE = "space"  # Space members can access
+    ORGANIZATION = "organization"  # All org members can access
+
+
 class Thread(Base):
     """
     Thread model for storing AI agent conversations and their results.
+
+    **Thread Ownership Model** (LOG-254):
+    - owner_user_id: Current owner (mutable, nullable, SET NULL on user delete)
+    - created_by: Original creator (immutable, historical provenance, SET NULL on user delete)
+    - visibility: Access scope (PERSONAL, SPACE, ORGANIZATION)
+
+    **Deletion Behavior**: Threads are preserved when users deleted (collaborative content).
+    When user deleted, ownership set to NULL → triggers reassignment (future: LOG-260).
+
+    **Authorization**:
+    - Personal threads: PostgreSQL RLS (owner-only access) - future: LOG-259
+    - Space/Org threads: SpiceDB fine-grained permissions
 
     Stores the complete RAG pipeline output including:
     - User query text
@@ -51,21 +86,52 @@ class Thread(Base):
 
     __tablename__ = "threads"
 
-    # Organization-level scoping (required)
-    organization_id: Mapped[UUID] = mapped_column(
+    # Owner (NULLABLE) - current owner, mutable, can be reassigned
+    # SET NULL on user delete to preserve threads (collaborative content)
+    # NULL triggers reassignment to space/org default owner (future: LOG-260)
+    owner_user_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Current owner (mutable). NULL triggers reassignment to space/org default owner.",
+    )
+
+    # Organization context (NULLABLE) - personal threads have no org
+    organization_id: Mapped[UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
 
-    # Space-level scoping (optional - for backwards compat and space-specific threads)
+    # Space context (NULLABLE) - for space-scoped threads
     space_id: Mapped[UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=True, index=True
     )
 
-    created_by: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    # Creator (NULLABLE) - original creator, immutable, historical provenance
+    # SET NULL on user delete to preserve thread history
+    # Consider denormalizing creator_name/email for audit trail (future: LOG-261)
+    created_by: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Original creator (immutable). Denormalize creator_name at creation for audit trail.",
+    )
+
+    # Visibility level (determines access rules)
+    visibility: Mapped[ThreadVisibility] = mapped_column(
+        SQLEnum(
+            ThreadVisibility,
+            name="thread_visibility",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=ThreadVisibility.PERSONAL,
+        server_default="personal",
+        index=True,
     )
 
     # Core thread fields
@@ -115,12 +181,27 @@ class Thread(Base):
 
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Table constraints
+    # Note: Check constraints are defined in the migration (60e29a1ed846_add_thread_ownership_model.py)
+    # to ensure proper data backfill before constraint enforcement
+    __table_args__ = ()
+
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="threads")
+    organization: Mapped["Organization | None"] = relationship(
+        "Organization", back_populates="threads"
+    )
 
     space: Mapped["Space | None"] = relationship("Space", back_populates="threads")
 
-    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+    # Owner relationship (new ownership model) - nullable when user deleted
+    owner: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[owner_user_id], back_populates="owned_threads"
+    )
+
+    # Creator relationship (historical provenance) - nullable when user deleted
+    creator: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[created_by], back_populates="created_threads"
+    )
 
     thread_documents: Mapped[list["ThreadDocument"]] = relationship(
         "ThreadDocument",

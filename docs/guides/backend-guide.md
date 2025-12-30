@@ -147,6 +147,232 @@ See [Environment Setup Guide](./environment-setup.md) for detailed configuration
    ```
 5. **Add GraphQL types and resolvers** if needed
 
+## Thread Ownership Model
+
+### Overview
+
+The Thread Ownership Model implements user-centric ownership with visibility scoping for thread access control. Threads use a dual authorization strategy combining owner-based access with visibility-scoped permissions.
+
+### ThreadVisibility Enum
+
+PostgreSQL ENUM type that determines thread access rules:
+
+```python
+from enum import StrEnum
+
+class ThreadVisibility(StrEnum):
+    """Thread visibility scope for access control.
+
+    Visibility levels determine who can access a thread:
+
+    - PERSONAL: Private threads owned by a single user. No organization or space context.
+      Use for: User's personal analysis, drafts, private notes.
+      Access: Only the owner can read/write.
+
+    - SPACE: Threads shared within a specific space (team workspace).
+      Use for: Team collaboration, project-specific threads, shared analysis.
+      Access: All space members can read; permissions controlled by space membership.
+
+    - ORGANIZATION: Threads shared across the entire organization.
+      Use for: Company-wide announcements, shared resources, cross-team collaboration.
+      Access: All organization members can read; no space restriction.
+    """
+
+    PERSONAL = "personal"       # Private to owner only
+    SPACE = "space"            # Shared within team workspace
+    ORGANIZATION = "organization"  # Company-wide access
+```
+
+**Usage in Models:**
+
+```python
+from app.models.thread import Thread, ThreadVisibility
+
+# Create personal thread
+personal_thread = Thread(
+    owner_user_id=user.id,
+    visibility=ThreadVisibility.PERSONAL,
+    organization_id=None,  # No org for personal threads
+    space_id=None,         # No space for personal threads
+    query_text="My private analysis",
+)
+
+# Create space thread
+space_thread = Thread(
+    owner_user_id=user.id,
+    visibility=ThreadVisibility.SPACE,
+    organization_id=org.id,
+    space_id=space.id,
+    query_text="Team collaboration thread",
+)
+
+# Create organization thread
+org_thread = Thread(
+    owner_user_id=user.id,
+    visibility=ThreadVisibility.ORGANIZATION,
+    organization_id=org.id,
+    space_id=None,  # No space for org-wide threads
+    query_text="Company-wide announcement",
+)
+```
+
+**Validation Rules:**
+
+```python
+# Database constraint: Personal threads cannot have org/space
+CREATE CONSTRAINT personal_visibility_no_org_space
+CHECK (
+    (visibility != 'personal') OR
+    (organization_id IS NULL AND space_id IS NULL)
+)
+```
+
+### AuthorType Enum
+
+PostgreSQL ENUM type that distinguishes message creators:
+
+```python
+from enum import StrEnum
+
+class AuthorType(StrEnum):
+    """Message author type for distinguishing message creators.
+
+    - USER: Human user who created the message
+    - AGENT: AI agent (LangGraph, CrewAI) that generated the message
+    - SYSTEM: System-generated messages (notifications, status updates)
+    """
+
+    USER = "user"      # Human user
+    AGENT = "agent"    # AI agent (LangGraph, CrewAI)
+    SYSTEM = "system"  # System-generated messages
+```
+
+**Usage in Messages:**
+
+```python
+from app.models.message import Message, MessageRole, AuthorType
+
+# User message
+user_message = Message(
+    thread_id=thread.id,
+    message_role=MessageRole.USER,
+    author_user_id=user.id,      # User who sent the message
+    author_type=AuthorType.USER,
+    content="What are the sales figures for Q4?",
+)
+
+# AI agent response
+agent_message = Message(
+    thread_id=thread.id,
+    message_role=MessageRole.ASSISTANT,
+    author_user_id=None,          # No user for agent messages
+    author_type=AuthorType.AGENT,
+    content="Based on the data, Q4 sales were $2.5M...",
+)
+
+# System notification
+system_message = Message(
+    thread_id=thread.id,
+    message_role=MessageRole.ASSISTANT,
+    author_user_id=None,
+    author_type=AuthorType.SYSTEM,
+    content="Document processing completed.",
+)
+```
+
+### Authorization Strategy
+
+**Org/Space Threads:**
+
+- Use SpiceDB for fine-grained access control
+- Permissions based on organization roles and space membership
+- Relationships synced via `spicedb_service.sync_thread_relationships()`
+
+```python
+from app.services.spicedb_service import get_spicedb_service
+
+# Sync organization thread to SpiceDB
+spicedb = get_spicedb_service()
+await spicedb.sync_thread_relationships(
+    thread_id=str(thread.id),
+    owner_id=str(user.id),
+    organization_id=str(org.id),
+    space_id=None,  # Org-wide thread
+)
+
+# Sync space thread to SpiceDB
+await spicedb.sync_thread_relationships(
+    thread_id=str(thread.id),
+    owner_id=str(user.id),
+    organization_id=str(org.id),
+    space_id=str(space.id),
+)
+```
+
+**Personal Threads:**
+
+- Use PostgreSQL RLS for owner-based isolation
+- Database-level filtering on `owner_user_id`
+- TODO(LOG-259): RLS policies to be implemented
+
+```python
+# Personal threads skip SpiceDB sync
+if visibility != ThreadVisibility.PERSONAL:
+    await spicedb.sync_thread_relationships(...)
+```
+
+### GraphQL Integration
+
+```graphql
+enum ThreadVisibilityEnum {
+  PERSONAL
+  SPACE
+  ORGANIZATION
+}
+
+enum AuthorTypeEnum {
+  USER
+  AGENT
+  SYSTEM
+}
+
+type Thread {
+  id: ID!
+  ownerUserId: ID!
+  visibility: ThreadVisibilityEnum!
+  organizationId: ID # NULLABLE for personal threads
+  spaceId: ID # NULLABLE for personal/org threads
+  createdBy: ID! # Historical record (legacy)
+  queryText: String!
+  # ... other fields
+}
+
+type Message {
+  id: ID!
+  threadId: ID!
+  messageRole: MessageRole!
+  authorUserId: ID # NULLABLE for agent/system messages
+  authorType: AuthorTypeEnum!
+  content: String!
+  # ... other fields
+}
+
+input CreateThreadInput {
+  organizationId: ID # OPTIONAL
+  spaceId: ID # OPTIONAL
+  visibility: ThreadVisibilityEnum # OPTIONAL (auto-determined if not provided)
+  queryText: String!
+}
+```
+
+### Migration Reference
+
+- **Initial model**: `60e29a1ed846_add_thread_ownership_model.py`
+- **ENUM conversion & indexes**: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+- **Future RLS**: LOG-259 (PostgreSQL RLS policies for personal threads)
+
+See [SPICEDB_SETUP.md](../../apps/api/SPICEDB_SETUP.md) for complete authorization schema.
+
 ## AI Agent Architecture
 
 ### Choosing Between LangGraph and CrewAI

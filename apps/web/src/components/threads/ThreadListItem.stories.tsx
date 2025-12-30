@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { List } from '@olympus/ui';
 import { SpaceProvider } from '@/contexts/SpaceContext';
-import { ThreadStatusEnum } from '@/lib/api/generated';
+import { ThreadStatusEnum, ThreadVisibilityEnum } from '@/lib/api/generated';
 import { ThreadListItem } from './ThreadListItem';
 
 const meta = {
@@ -31,6 +31,8 @@ export const Default: Story = {
   args: {
     thread: {
       id: '1',
+      ownerUserId: 'user-1',
+      visibility: ThreadVisibilityEnum.Space,
       organizationId: 'test-org-id',
       isStarred: false,
       queryText: 'What are the top performing products this quarter?',
@@ -60,6 +62,8 @@ export const LongQuery: Story = {
   args: {
     thread: {
       id: '2',
+      ownerUserId: 'user-1',
+      visibility: ThreadVisibilityEnum.Space,
       organizationId: 'test-org-id',
       isStarred: false,
       queryText:
@@ -90,6 +94,8 @@ export const RecentThread: Story = {
   args: {
     thread: {
       id: '3',
+      ownerUserId: 'user-1',
+      visibility: ThreadVisibilityEnum.Space,
       organizationId: 'test-org-id',
       isStarred: false,
       queryText: 'Show me the revenue breakdown by category',
@@ -119,6 +125,8 @@ export const MultipleItems: Story = {
   args: {
     thread: {
       id: '1',
+      ownerUserId: 'user-1',
+      visibility: ThreadVisibilityEnum.Space,
       organizationId: 'test-org-id',
       isStarred: false,
       queryText: 'What are the top performing products?',
@@ -147,6 +155,8 @@ export const MultipleItems: Story = {
       <ThreadListItem
         thread={{
           id: '1',
+          ownerUserId: 'user-1',
+          visibility: ThreadVisibilityEnum.Space,
           organizationId: 'test-org-id',
           isStarred: false,
           queryText: 'What are the top performing products?',
@@ -173,6 +183,8 @@ export const MultipleItems: Story = {
       <ThreadListItem
         thread={{
           id: '2',
+          ownerUserId: 'user-1',
+          visibility: ThreadVisibilityEnum.Space,
           organizationId: 'test-org-id',
           isStarred: false,
           queryText: 'Analyze customer retention rates',
@@ -199,6 +211,8 @@ export const MultipleItems: Story = {
       <ThreadListItem
         thread={{
           id: '3',
+          ownerUserId: 'user-1',
+          visibility: ThreadVisibilityEnum.Space,
           organizationId: 'test-org-id',
           isStarred: false,
           queryText: 'Revenue breakdown by category',

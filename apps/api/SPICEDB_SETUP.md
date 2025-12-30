@@ -73,6 +73,55 @@ docker compose exec -T spicedb zed schema write < apps/api/app/policies/olympus.
 docker compose exec spicedb zed schema read
 ```
 
+#### 4a. Using zed CLI Locally (M1/ARM64 Macs - Recommended)
+
+**Issue**: Docker Rosetta on M1/ARM64 Macs causes `rosetta error: failed to open elf` when using `docker compose exec` with zed commands.
+
+**Solution**: Use local zed CLI directly instead of going through Docker:
+
+```bash
+# Install zed CLI (if not already installed)
+brew install authzed/tap/zed
+
+# Load schema using local zed (bypasses Docker/Rosetta)
+zed schema write \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  app/policies/olympus.zed
+
+# Read schema
+zed schema read \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure
+
+# Create relationships
+zed relationship create thread:THREAD_ID owner user:USER_ID \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure
+
+# Read relationships
+zed relationship read thread creator \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  --json
+```
+
+**Why This Works**:
+- `localhost:50051` connects directly to the SpiceDB Docker container's exposed port
+- Bypasses Docker exec layer that causes Rosetta compatibility issues
+- Uses same token from `.env` file for authentication
+- `--insecure` flag required for local development (no TLS)
+
+**When to Use**:
+- ✅ **Always use local zed on M1/ARM64 Macs** to avoid Rosetta errors
+- ✅ For bulk operations (schema updates, relationship migrations)
+- ✅ For scripting and automation
+- ❌ Not needed on x86_64/Intel Macs or Linux (Docker exec works fine)
+
 ### 5. Run Integration Tests
 
 ```bash

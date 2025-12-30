@@ -439,6 +439,218 @@ poetry install --sync
 docker compose build --no-cache
 ```
 
+## Thread Ownership Model
+
+### Overview
+
+The Thread Ownership Model implements user-centric ownership with visibility scoping for thread access control. Threads use a dual authorization strategy combining owner-based access with visibility-scoped permissions.
+
+### ThreadVisibility Enum
+
+PostgreSQL ENUM type that determines thread access rules:
+
+```python
+class ThreadVisibility(StrEnum):
+    """Thread visibility scope for access control."""
+
+    PERSONAL = "personal"       # Private to owner only
+    SPACE = "space"            # Shared within team workspace
+    ORGANIZATION = "organization"  # Company-wide access
+```
+
+**Usage Guidelines:**
+
+- **PERSONAL**: Private threads owned by a single user
+  - No organization or space context
+  - Use for: Personal analysis, drafts, private notes
+  - Access: Owner only (PostgreSQL RLS - TODO: LOG-259)
+
+- **SPACE**: Threads shared within a specific team workspace
+  - Requires `space_id` and `organization_id`
+  - Use for: Team collaboration, project-specific threads
+  - Access: All space members (SpiceDB authorization)
+
+- **ORGANIZATION**: Threads shared across entire organization
+  - Requires `organization_id`, no `space_id`
+  - Use for: Company-wide announcements, shared resources
+  - Access: All org members (SpiceDB authorization)
+
+### AuthorType Enum
+
+PostgreSQL ENUM type that distinguishes message creators:
+
+```python
+class AuthorType(StrEnum):
+    """Message author type for distinguishing message creators."""
+
+    USER = "user"      # Human user
+    AGENT = "agent"    # AI agent (LangGraph, CrewAI)
+    SYSTEM = "system"  # System-generated messages
+```
+
+**Usage in Messages:**
+
+```python
+# User message
+message = Message(
+    thread_id=thread.id,
+    author_user_id=user.id,
+    author_type=AuthorType.USER,
+    content="What are the sales figures?"
+)
+
+# AI agent response
+agent_message = Message(
+    thread_id=thread.id,
+    author_user_id=None,  # No user for agent messages
+    author_type=AuthorType.AGENT,
+    content="Based on the data..."
+)
+```
+
+### Authorization Strategy
+
+**Org/Space Threads:**
+- Use SpiceDB for fine-grained access control
+- Permissions based on organization roles and space membership
+- Relationships synced via `spicedb_service.sync_thread_relationships()`
+
+**Personal Threads:**
+- Use PostgreSQL RLS for owner-based isolation
+- Database-level filtering on `owner_user_id`
+- TODO(LOG-259): RLS policies to be implemented
+
+### Database Schema
+
+```sql
+-- Thread visibility ENUM
+CREATE TYPE thread_visibility AS ENUM ('personal', 'space', 'organization');
+
+-- Author type ENUM
+CREATE TYPE author_type AS ENUM ('user', 'agent', 'system');
+
+-- Threads table
+CREATE TABLE threads (
+    id UUID PRIMARY KEY,
+    owner_user_id UUID NOT NULL REFERENCES users(id),  -- Primary ownership
+    organization_id UUID REFERENCES organizations(id), -- Nullable for personal
+    space_id UUID REFERENCES spaces(id),               -- Nullable for personal/org
+    visibility thread_visibility NOT NULL DEFAULT 'personal',
+    created_by UUID NOT NULL REFERENCES users(id),     -- Historical record
+    -- ... other fields
+
+    -- Constraint: Personal threads cannot have org/space
+    CONSTRAINT personal_visibility_no_org_space
+    CHECK (
+        (visibility != 'personal') OR
+        (organization_id IS NULL AND space_id IS NULL)
+    )
+);
+
+-- Performance indexes
+CREATE INDEX idx_threads_owner_visibility ON threads(owner_user_id, visibility);
+CREATE INDEX idx_threads_personal ON threads(owner_user_id) WHERE visibility = 'personal';
+CREATE INDEX idx_threads_org_visibility ON threads(organization_id, visibility) WHERE organization_id IS NOT NULL;
+```
+
+### GraphQL Schema
+
+```graphql
+enum ThreadVisibilityEnum {
+  PERSONAL
+  SPACE
+  ORGANIZATION
+}
+
+enum AuthorTypeEnum {
+  USER
+  AGENT
+  SYSTEM
+}
+
+type Thread {
+  id: ID!
+  ownerUserId: ID!           # NEW: Primary ownership
+  visibility: ThreadVisibilityEnum!  # NEW: Access scope
+  organizationId: ID         # NULLABLE for personal threads
+  spaceId: ID                # NULLABLE for personal/org threads
+  # ... other fields
+}
+
+type Message {
+  id: ID!
+  threadId: ID!
+  authorUserId: ID           # NULLABLE for agent/system messages
+  authorType: AuthorTypeEnum!  # NEW: Distinguish creators
+  # ... other fields
+}
+
+input CreateThreadInput {
+  organizationId: ID         # OPTIONAL
+  spaceId: ID                # OPTIONAL
+  visibility: ThreadVisibilityEnum  # OPTIONAL (auto-determined if not provided)
+  queryText: String!
+}
+```
+
+### Migration Reference
+
+- **Initial model**: `60e29a1ed846_add_thread_ownership_model.py`
+- **ENUM conversion & indexes**: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+
+See [SpiceDB Setup](./SPICEDB_SETUP.md) for authorization schema details.
+
+## SpiceDB Operations
+
+### M1/ARM64 Mac Workaround
+
+**Issue**: Docker Rosetta on M1/ARM64 Macs causes `rosetta error: failed to open elf` when using `docker compose exec` with zed commands.
+
+**Solution**: Use local zed CLI directly instead of going through Docker:
+
+```bash
+# Install zed CLI (if not already installed)
+brew install authzed/tap/zed
+
+# Load schema using local zed (bypasses Docker/Rosetta)
+zed schema write \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure \
+  app/policies/olympus.zed
+
+# Read schema to verify
+zed schema read \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure
+
+# Manage relationships
+zed relationship create thread:THREAD_ID owner user:USER_ID \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure
+
+# Query relationships
+zed relationship read thread owner \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" \
+  --insecure \
+  --json
+```
+
+**Key Points**:
+- `localhost:50051` connects to SpiceDB container's exposed port
+- Bypasses Docker exec layer (avoids Rosetta issues)
+- Uses same token from `.env` for authentication
+- `--insecure` flag required for local dev (no TLS)
+
+**When to Use**:
+- ✅ Always on M1/ARM64 Macs
+- ✅ Bulk operations (schema updates, migrations)
+- ✅ Scripting and automation
+- ❌ Not needed on Intel/Linux (Docker exec works)
+
 ## Best Practices
 
 ### General Development

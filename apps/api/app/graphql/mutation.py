@@ -15,7 +15,7 @@ from app.models.organization_member import (
     OrganizationRole,
 )
 from app.models.space import MemberRole, Space as SpaceModel, SpaceMember as SpaceMemberModel
-from app.models.thread import Thread as ThreadModel
+from app.models.thread import Thread as ThreadModel, ThreadVisibility
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.schemas.spicedb import CheckPermissionInput
@@ -1049,20 +1049,41 @@ class Mutation:
                     raise ValueError(msg)
 
                 user_id = user.id
-                org_id = UUID(str(input.organization_id))
+                org_id = UUID(str(input.organization_id)) if input.organization_id else None
                 space_id = UUID(str(input.space_id)) if input.space_id else None
 
-                # ALWAYS verify user is a member of the organization (for both thread types)
-                org_member_stmt = select(OrganizationMemberModel).where(
-                    OrganizationMemberModel.organization_id == org_id,
-                    OrganizationMemberModel.user_id == user_id,
-                )
-                org_member_result = await session.execute(org_member_stmt)
-                org_member = org_member_result.scalar_one_or_none()
+                # Convert visibility (REQUIRED field)
+                visibility = ThreadVisibility(input.visibility.value)
 
-                if not org_member:
-                    msg = "User is not a member of this organization"
-                    raise ValueError(msg)
+                # Validate visibility rules
+                if visibility == ThreadVisibility.PERSONAL:
+                    if org_id or space_id:
+                        msg = "Personal threads cannot have organization or space"
+                        raise ValueError(msg)
+                elif visibility == ThreadVisibility.SPACE:
+                    if not space_id:
+                        msg = "Space threads must have space_id"
+                        raise ValueError(msg)
+                elif visibility == ThreadVisibility.ORGANIZATION:
+                    if not org_id:
+                        msg = "Organization threads must have organization_id"
+                        raise ValueError(msg)
+                    if space_id:
+                        msg = "Organization threads cannot have space_id"
+                        raise ValueError(msg)
+
+                # ONLY verify org membership if org_id provided
+                if org_id:
+                    org_member_stmt = select(OrganizationMemberModel).where(
+                        OrganizationMemberModel.organization_id == org_id,
+                        OrganizationMemberModel.user_id == user_id,
+                    )
+                    org_member_result = await session.execute(org_member_stmt)
+                    org_member = org_member_result.scalar_one_or_none()
+
+                    if not org_member:
+                        msg = "User is not a member of this organization"
+                        raise ValueError(msg)
 
                 # If space_id is provided (space thread), verify space access
                 if space_id:
@@ -1094,9 +1115,11 @@ class Mutation:
                         msg = "Insufficient permissions to create thread in this space"
                         raise ValueError(msg)
 
-                # Create new thread
+                # Create new thread with ownership fields
                 thread_model = ThreadModel(
-                    organization_id=org_id,
+                    owner_user_id=user_id,  # NEW: Set owner explicitly
+                    visibility=visibility,  # NEW: Set visibility explicitly
+                    organization_id=org_id,  # Can be None for personal threads
                     space_id=space_id,
                     created_by=user_id,
                     query_text=input.query_text,
@@ -1109,20 +1132,28 @@ class Mutation:
                 await session.commit()
                 await session.refresh(thread_model)
 
-                # Sync thread relationships to SpiceDB
-                spicedb = get_spicedb_service()
-                sync_success = await spicedb.sync_thread_relationships(
-                    thread_id=str(thread_model.id),
-                    organization_id=str(org_id),
-                    creator_id=str(user_id),
-                    space_id=str(space_id) if space_id else None,
-                )
-
-                if not sync_success:
-                    logger.warning(
-                        "Failed to sync thread relationships to SpiceDB",
-                        extra={"thread_id": str(thread_model.id)},
+                # Sync to SpiceDB ONLY for org/space threads
+                # Personal threads use PostgreSQL RLS (to be implemented in future PR)
+                # TODO(LOG-259): Implement RLS policies for personal threads
+                if org_id:
+                    spicedb = get_spicedb_service()
+                    sync_success = await spicedb.sync_thread_relationships(
+                        thread_id=str(thread_model.id),
+                        organization_id=str(org_id),
+                        owner_id=str(user_id),
+                        space_id=str(space_id) if space_id else None,
                     )
+
+                    if not sync_success:
+                        # CRITICAL: Rollback thread creation if authorization sync fails
+                        # We cannot allow threads to exist without proper access control
+                        await session.rollback()
+                        logger.error(
+                            "Failed to sync thread relationships to SpiceDB - rolling back transaction",
+                            extra={"thread_id": str(thread_model.id)},
+                        )
+                        msg = "Failed to configure thread permissions. Please try again."
+                        raise ValueError(msg)
 
                 return Thread.from_model(thread_model)
 
