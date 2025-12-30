@@ -87,19 +87,20 @@ class User(Base):
     )
 
     # Owned threads (new ownership model)
+    # NO CASCADE: Threads persist when user deleted (SET NULL at DB level)
+    # Allows ownership reassignment to space/org default owner (LOG-260)
     owned_threads: Mapped[list["Thread"]] = relationship(
         "Thread",
         foreign_keys="[Thread.owner_user_id]",
         back_populates="owner",
-        cascade="all, delete-orphan",
     )
 
-    # Created threads (legacy, kept for backwards compatibility)
+    # Created threads (immutable provenance tracking)
+    # NO CASCADE: Preserve thread history when user deleted (SET NULL at DB level)
     created_threads: Mapped[list["Thread"]] = relationship(
         "Thread",
         foreign_keys="[Thread.created_by]",
         back_populates="creator",
-        cascade="all, delete-orphan",
     )
 
     # Authored messages (new authorship tracking)
