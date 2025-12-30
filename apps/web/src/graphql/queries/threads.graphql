@@ -5,6 +5,8 @@
 query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
   threads(spaceId: $spaceId, organizationId: $organizationId, limit: $limit, offset: $offset) {
     id
+    ownerUserId
+    visibility
     organizationId
     spaceId
     createdBy
@@ -29,6 +31,8 @@ query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
       id
       threadId
       messageRole
+      authorUserId
+      authorType
       content
       messageMetadata
       createdAt
@@ -40,6 +44,8 @@ query GetThreads($spaceId: ID, $organizationId: ID, $limit: Int, $offset: Int) {
 query GetThread($id: ID!) {
   thread(id: $id) {
     id
+    ownerUserId
+    visibility
     organizationId
     spaceId
     createdBy
@@ -64,6 +70,8 @@ query GetThread($id: ID!) {
       id
       threadId
       messageRole
+      authorUserId
+      authorType
       content
       messageMetadata
       createdAt

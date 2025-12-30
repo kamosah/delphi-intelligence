@@ -4,17 +4,18 @@ from .auth_sync_outbox import AuthSyncOutbox
 from .base import Base
 from .document import Document, DocumentStatus
 from .document_chunk import DocumentChunk
-from .message import Message, MessageRole
+from .message import AuthorType, Message, MessageRole
 from .organization import Organization
 from .organization_member import OrganizationMember, OrganizationRole
 from .space import MemberRole, Space, SpaceMember
-from .thread import Thread, ThreadStatus
+from .thread import Thread, ThreadStatus, ThreadVisibility
 from .thread_document import ThreadDocument
 from .user import User, UserRole
 from .user_preferences import UserPreferences
 
 __all__ = [
     "AuthSyncOutbox",
+    "AuthorType",
     "Base",
     "Document",
     "DocumentChunk",
@@ -30,6 +31,7 @@ __all__ = [
     "Thread",
     "ThreadDocument",
     "ThreadStatus",
+    "ThreadVisibility",
     "User",
     "UserPreferences",
     "UserRole",

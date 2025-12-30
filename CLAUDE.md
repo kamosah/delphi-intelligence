@@ -152,6 +152,20 @@ See [Environment Setup Guide](./docs/guides/environment-setup.md) for configurat
 **Implementation**: `apps/api/app/services/spicedb_service.py`
 **Schema**: `apps/api/app/policies/olympus.zed`
 
+**Thread Ownership Model**: User-centric ownership with visibility scoping
+
+Threads use a dual authorization strategy:
+
+- **Owner-based access**: All threads have an `owner_user_id` (primary ownership)
+- **Visibility scoping**: Determines access rules via `ThreadVisibility` enum:
+  - `PERSONAL`: Private to owner only (PostgreSQL RLS - TODO: LOG-259)
+  - `SPACE`: Shared within team workspace (SpiceDB + space membership)
+  - `ORGANIZATION`: Company-wide access (SpiceDB + org membership)
+- **Optional context**: `organization_id` and `space_id` are nullable
+- **Migration**: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+
+Messages use `AuthorType` enum (`user`, `agent`, `system`) to distinguish creators.
+
 **Available MCP Servers**:
 
 - **AuthZed MCP** (`authzed`): Provides searchable documentation and API references for SpiceDB/AuthZed
@@ -164,6 +178,59 @@ See [Environment Setup Guide](./docs/guides/environment-setup.md) for configurat
   - Use for database operations and Supabase-specific features
 
 See [Environment Setup Guide](./docs/guides/environment-setup.md) for MCP server configuration.
+
+#### SpiceDB Operations (M1/ARM64 Macs)
+
+**Issue**: Docker Rosetta on M1/ARM64 Macs causes `rosetta error: failed to open elf` when using `docker compose exec` with zed commands.
+
+**Solution**: Use local zed CLI directly instead of going through Docker:
+
+```bash
+# Install zed CLI (if not already installed)
+brew install authzed/tap/zed
+
+# Load schema using local zed (bypasses Docker/Rosetta)
+zed schema write \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  apps/api/app/policies/olympus.zed
+
+# Read schema
+zed schema read \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure
+
+# Create relationships
+zed relationship create thread:THREAD_ID owner user:USER_ID \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure
+
+# Read relationships
+zed relationship read thread owner \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  --json
+```
+
+**Why This Works**:
+
+- `localhost:50051` connects directly to SpiceDB Docker container's exposed port
+- Bypasses Docker exec layer that causes Rosetta compatibility issues
+- Uses same token from `.env` file for authentication
+- `--insecure` flag required for local development (no TLS)
+
+**When to Use**:
+
+- ✅ **Always use local zed on M1/ARM64 Macs** to avoid Rosetta errors
+- ✅ For bulk operations (schema updates, relationship migrations)
+- ✅ For scripting and automation
+- ❌ Not needed on x86_64/Intel Macs or Linux (Docker exec works fine)
+
+See [SPICEDB_SETUP.md](./apps/api/SPICEDB_SETUP.md) for complete SpiceDB configuration.
 
 ### Vector Search & RAG Pipeline
 

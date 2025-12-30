@@ -460,16 +460,47 @@ class Citation:
     page_number: int | None = None
 
 
+@strawberry.enum
+class ThreadVisibilityEnum(StrEnum):
+    """Thread visibility scope for access control."""
+
+    PERSONAL = "personal"
+    SPACE = "space"
+    ORGANIZATION = "organization"
+
+
+@strawberry.enum
+class AuthorTypeEnum(StrEnum):
+    """Message author type for distinguishing message creators."""
+
+    USER = "user"
+    AGENT = "agent"
+    SYSTEM = "system"
+
+
 @strawberry.input
 class CreateThreadInput:
     """Input type for creating a new thread (manual creation, not via streaming)."""
 
-    organization_id: strawberry.ID
-    space_id: strawberry.ID | None = None  # Optional: threads can be org-wide
-    query_text: str
-    result: str | None = None
-    title: str | None = None
-    confidence_score: float | None = None
+    organization_id: strawberry.ID | None = strawberry.field(
+        default=None,
+        description="Organization context (required for SPACE/ORGANIZATION threads, null for PERSONAL)",
+    )
+    space_id: strawberry.ID | None = strawberry.field(
+        default=None,
+        description="Space context (required for SPACE threads, null for PERSONAL/ORGANIZATION)",
+    )
+    visibility: ThreadVisibilityEnum = strawberry.field(
+        description="Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members)"
+    )
+    query_text: str = strawberry.field(description="User's question or query text")
+    result: str | None = strawberry.field(
+        default=None, description="Optional pre-computed result (for manual thread creation)"
+    )
+    title: str | None = strawberry.field(default=None, description="Optional thread title")
+    confidence_score: float | None = strawberry.field(
+        default=None, description="Optional confidence score (0.0-1.0)"
+    )
 
 
 @strawberry.input
@@ -486,9 +517,21 @@ class Thread:
     """GraphQL Thread type for AI agent conversation threads."""
 
     id: strawberry.ID
-    organization_id: strawberry.ID
-    space_id: strawberry.ID | None  # Optional: threads can be org-wide
-    created_by: strawberry.ID
+    owner_user_id: strawberry.ID | None = strawberry.field(
+        description="Current owner (mutable). Null when user deleted, triggers reassignment."
+    )
+    visibility: ThreadVisibilityEnum = strawberry.field(
+        description="Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members)"
+    )
+    organization_id: strawberry.ID | None = strawberry.field(
+        description="Organization context (null for personal threads)"
+    )
+    space_id: strawberry.ID | None = strawberry.field(
+        description="Space context (null for personal/org-wide threads)"
+    )
+    created_by: strawberry.ID | None = strawberry.field(
+        description="Original creator (immutable provenance). Null when user deleted."
+    )
     query_text: str
     result: str | None
     title: str | None
@@ -516,14 +559,23 @@ class Thread:
         if thread.status:
             status = ThreadStatusEnum[thread.status.name]
 
+        # Convert ThreadVisibility enum
+        visibility = ThreadVisibilityEnum[thread.visibility.name]
+
         # Convert messages
         messages = [Message.from_model(msg) for msg in thread.messages] if thread.messages else []
 
         return cls(
             id=strawberry.ID(str(thread.id)),
-            organization_id=strawberry.ID(str(thread.organization_id)),
+            owner_user_id=strawberry.ID(str(thread.owner_user_id))
+            if thread.owner_user_id
+            else None,
+            visibility=visibility,
+            organization_id=strawberry.ID(str(thread.organization_id))
+            if thread.organization_id
+            else None,
             space_id=strawberry.ID(str(thread.space_id)) if thread.space_id else None,
-            created_by=strawberry.ID(str(thread.created_by)),
+            created_by=strawberry.ID(str(thread.created_by)) if thread.created_by else None,
             query_text=thread.query_text,
             result=thread.result,
             title=thread.title,
@@ -561,6 +613,10 @@ class Message:
     id: strawberry.ID
     thread_id: strawberry.ID
     message_role: MessageRole
+    author_user_id: (
+        strawberry.ID | None
+    )  # NEW: User who authored the message (null for agent/system)
+    author_type: AuthorTypeEnum  # NEW: Type of author (user, agent, system)
     content: str
     message_metadata: strawberry.scalars.JSON  # type: ignore[valid-type]
     created_at: datetime
@@ -569,10 +625,17 @@ class Message:
     @classmethod
     def from_model(cls, message: MessageModel) -> "Message":
         """Convert SQLAlchemy Message model to GraphQL Message type."""
+        # Convert AuthorType enum
+        author_type = AuthorTypeEnum[message.author_type.name]
+
         return cls(
             id=strawberry.ID(str(message.id)),
             thread_id=strawberry.ID(str(message.thread_id)),
             message_role=MessageRole[message.message_role.name],
+            author_user_id=strawberry.ID(str(message.author_user_id))
+            if message.author_user_id
+            else None,
+            author_type=author_type,
             content=message.content,
             message_metadata=message.message_metadata,
             created_at=message.created_at,

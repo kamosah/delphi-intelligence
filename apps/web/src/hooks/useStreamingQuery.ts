@@ -10,7 +10,12 @@ import {
 } from '@/constants/streaming';
 import { useClientToken } from '@/hooks/useClientToken';
 import type { GetThreadQuery } from '@/lib/api/generated';
-import { MessageRole, ThreadStatusEnum } from '@/lib/api/generated';
+import {
+  AuthorTypeEnum,
+  MessageRole,
+  ThreadStatusEnum,
+  ThreadVisibilityEnum,
+} from '@/lib/api/generated';
 import { buildStreamUrl, type SSEEvent } from '@/lib/api/queries-client';
 import { queryKeys } from '@/lib/query/query-keys';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -224,8 +229,14 @@ export function useStreamingQuery(threadId?: string) {
                       thread: {
                         __typename: 'Thread',
                         id: data.thread_id,
+                        ownerUserId: user?.id || '',
+                        visibility: params.spaceId
+                          ? ThreadVisibilityEnum.Space
+                          : params.organizationId
+                            ? ThreadVisibilityEnum.Organization
+                            : ThreadVisibilityEnum.Personal,
                         queryText: params.query,
-                        organizationId: params.organizationId || '',
+                        organizationId: params.organizationId || null,
                         spaceId: params.spaceId || null,
                         createdBy: user?.id || '',
                         createdAt: new Date().toISOString(),
@@ -236,6 +247,8 @@ export function useStreamingQuery(threadId?: string) {
                             id: `temp-user-${Date.now()}`,
                             threadId: data.thread_id,
                             messageRole: MessageRole.User,
+                            authorUserId: user?.id || null,
+                            authorType: AuthorTypeEnum.User,
                             content: params.query,
                             messageMetadata: {} satisfies MessageMetadata,
                             createdAt: new Date().toISOString(),
@@ -332,6 +345,8 @@ export function useStreamingQuery(threadId?: string) {
                                   id: `assistant-${Date.now()}`,
                                   threadId: activeId,
                                   messageRole: MessageRole.Assistant,
+                                  authorUserId: null,
+                                  authorType: AuthorTypeEnum.Agent,
                                   content: currentSession.response,
                                   messageMetadata: {
                                     citations: currentSession.citations,

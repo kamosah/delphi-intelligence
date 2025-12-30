@@ -12,6 +12,7 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .document import Document
+    from .message import Message
     from .organization import Organization
     from .organization_member import OrganizationMember
     from .space import Space, SpaceMember
@@ -85,8 +86,28 @@ class User(Base):
         "Document", back_populates="uploader", cascade="all, delete-orphan"
     )
 
+    # Owned threads (new ownership model)
+    # NO CASCADE: Threads persist when user deleted (SET NULL at DB level)
+    # Allows ownership reassignment to space/org default owner (LOG-260)
+    owned_threads: Mapped[list["Thread"]] = relationship(
+        "Thread",
+        foreign_keys="[Thread.owner_user_id]",
+        back_populates="owner",
+    )
+
+    # Created threads (immutable provenance tracking)
+    # NO CASCADE: Preserve thread history when user deleted (SET NULL at DB level)
     created_threads: Mapped[list["Thread"]] = relationship(
-        "Thread", back_populates="creator", cascade="all, delete-orphan"
+        "Thread",
+        foreign_keys="[Thread.created_by]",
+        back_populates="creator",
+    )
+
+    # Authored messages (new authorship tracking)
+    authored_messages: Mapped[list["Message"]] = relationship(
+        "Message",
+        foreign_keys="[Message.author_user_id]",
+        back_populates="author",
     )
 
     preferences: Mapped["UserPreferences | None"] = relationship(

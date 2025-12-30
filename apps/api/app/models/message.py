@@ -11,6 +11,7 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .thread import Thread
+    from .user import User
 
 
 class MessageRole(StrEnum):
@@ -19,6 +20,14 @@ class MessageRole(StrEnum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
+
+
+class AuthorType(StrEnum):
+    """Message author type for distinguishing message creators."""
+
+    USER = "user"  # Human user
+    AGENT = "agent"  # AI agent/assistant
+    SYSTEM = "system"  # System-generated message
 
 
 class Message(Base):
@@ -48,6 +57,22 @@ class Message(Base):
         index=True,
     )
 
+    # Author user (nullable for agent/system messages)
+    author_user_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Author type (user, agent, system)
+    author_type: Mapped[AuthorType] = mapped_column(
+        SQLEnum(AuthorType, name="author_type", values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=AuthorType.USER,
+        server_default="user",
+    )
+
     # Message role using message_role enum
     message_role: Mapped[MessageRole] = mapped_column(
         SQLEnum(MessageRole, name="message_role", values_callable=lambda x: [e.value for e in x]),
@@ -69,6 +94,11 @@ class Message(Base):
 
     # Relationships
     thread: Mapped["Thread"] = relationship("Thread", back_populates="messages")
+
+    # Author relationship (nullable for agent/system messages)
+    author: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[author_user_id], back_populates="authored_messages"
+    )
 
     def __repr__(self) -> str:
         """String representation of the message."""

@@ -187,7 +187,7 @@ class TestSpiceDBPermissionsIntegration:
         await spicedb_service.sync_organization_owner(org_id, creator_id)
         await spicedb_service.sync_space_relationships(space_id, org_id, creator_id)
         await spicedb_service.sync_thread_relationships(
-            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=space_id
+            thread_id=thread_id, organization_id=org_id, owner_id=creator_id, space_id=space_id
         )
 
         # Act & Assert
@@ -221,7 +221,7 @@ class TestSpiceDBPermissionsIntegration:
         await spicedb_service.sync_organization_owner(org_id, creator_id)
         await spicedb_service.sync_space_relationships(space_id, org_id, creator_id)
         await spicedb_service.sync_thread_relationships(
-            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=space_id
+            thread_id=thread_id, organization_id=org_id, owner_id=creator_id, space_id=space_id
         )
         await spicedb_service.sync_space_member(space_id, viewer_id, "viewer")
 
@@ -275,7 +275,7 @@ class TestSpiceDBPermissionsIntegration:
         await spicedb_service.sync_organization_member(org_id, admin_id, "admin")
         await spicedb_service.sync_space_relationships(space_id, org_id, creator_id)
         await spicedb_service.sync_thread_relationships(
-            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=space_id
+            thread_id=thread_id, organization_id=org_id, owner_id=creator_id, space_id=space_id
         )
 
         # Act & Assert: Org admin can update and delete even though not creator
@@ -364,7 +364,7 @@ class TestSpiceDBPermissionsIntegration:
         await spicedb_service.sync_organization_member(org_id, admin_id, "admin")
         await spicedb_service.sync_organization_member(org_id, member_id, "member")
         await spicedb_service.sync_thread_relationships(
-            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=None
+            thread_id=thread_id, organization_id=org_id, owner_id=creator_id, space_id=None
         )  # No space - personal thread
 
         # Act & Assert: Creator can read, update, and delete
@@ -455,7 +455,7 @@ class TestSpiceDBPermissionsIntegration:
 
         # Create space thread
         await spicedb_service.sync_thread_relationships(
-            thread_id=thread_id, organization_id=org_id, creator_id=user_a_id, space_id=space_id
+            thread_id=thread_id, organization_id=org_id, owner_id=user_a_id, space_id=space_id
         )
 
         # Act & Assert: User A can read (has space access)
@@ -503,7 +503,7 @@ class TestSpiceDBPermissionsIntegration:
 
         # Create personal thread (no space_id)
         await spicedb_service.sync_thread_relationships(
-            thread_id=thread_id, organization_id=org_id, creator_id=creator_id, space_id=None
+            thread_id=thread_id, organization_id=org_id, owner_id=creator_id, space_id=None
         )
 
         # Act & Assert: Creator can read
