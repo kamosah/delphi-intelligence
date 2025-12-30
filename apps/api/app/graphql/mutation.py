@@ -1052,15 +1052,8 @@ class Mutation:
                 org_id = UUID(str(input.organization_id)) if input.organization_id else None
                 space_id = UUID(str(input.space_id)) if input.space_id else None
 
-                # Determine visibility based on input
-                if input.visibility:
-                    visibility = ThreadVisibility(input.visibility.value)
-                elif space_id:
-                    visibility = ThreadVisibility.SPACE
-                elif org_id:
-                    visibility = ThreadVisibility.ORGANIZATION
-                else:
-                    visibility = ThreadVisibility.PERSONAL
+                # Convert visibility (REQUIRED field)
+                visibility = ThreadVisibility(input.visibility.value)
 
                 # Validate visibility rules
                 if visibility == ThreadVisibility.PERSONAL:

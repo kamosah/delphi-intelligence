@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.graphql.mutation import Mutation
-from app.graphql.types import CreateThreadInput, UpdateThreadInput
+from app.graphql.types import CreateThreadInput, UpdateThreadInput, ThreadVisibilityEnum
 
 
 class TestThreadMutations:
@@ -30,6 +30,7 @@ class TestThreadMutations:
         input_data = CreateThreadInput(
             organization_id=str(mock_organization.id),
             space_id=str(mock_space.id),
+            visibility=ThreadVisibilityEnum.SPACE,
             query_text="Test query with organization",
             title="Test Thread",
         )
@@ -57,6 +58,7 @@ class TestThreadMutations:
         input_data = CreateThreadInput(
             organization_id=str(mock_organization.id),
             space_id=None,  # Org-wide thread
+            visibility=ThreadVisibilityEnum.ORGANIZATION,
             query_text="Org-wide query across all spaces",
             title="Org-Wide Thread",
         )
@@ -81,6 +83,7 @@ class TestThreadMutations:
         input_data = CreateThreadInput(
             organization_id=str(mock_organization.id),
             space_id=str(mock_space.id),
+            visibility=ThreadVisibilityEnum.SPACE,
             query_text="Unauthenticated query",
         )
 
@@ -109,6 +112,7 @@ class TestThreadMutations:
         input_data = CreateThreadInput(
             organization_id=str(mock_organization.id),
             space_id=nonexistent_space_id,
+            visibility=ThreadVisibilityEnum.SPACE,
             query_text="Query with bad space",
         )
 
@@ -140,6 +144,7 @@ class TestThreadMutations:
         input_data = CreateThreadInput(
             organization_id=str(mock_organization.id),
             space_id=str(mock_space.id),
+            visibility=ThreadVisibilityEnum.SPACE,
             query_text="Unauthorized query",
         )
 
