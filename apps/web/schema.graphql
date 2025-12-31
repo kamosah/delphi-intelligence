@@ -9,6 +9,12 @@ input AddOrganizationMemberInput {
   userId: ID!
 }
 
+enum AuthorTypeEnum {
+  AGENT
+  SYSTEM
+  USER
+}
+
 input BulkDeleteDocumentsInput {
   documentIds: [ID!]!
 }
@@ -16,6 +22,7 @@ input BulkDeleteDocumentsInput {
 type BulkDeleteResult {
   deletedCount: Int!
   failedIds: [ID!]!
+  storageFailures: [ID!]!
 }
 
 input CreateOrganizationInput {
@@ -32,12 +39,26 @@ input CreateSpaceInput {
 }
 
 input CreateThreadInput {
+  """Optional confidence score (0.0-1.0)"""
   confidenceScore: Float = null
-  organizationId: ID!
+  """
+  Organization context (required for SPACE/ORGANIZATION threads, null for PERSONAL)
+  """
+  organizationId: ID = null
+  """User's question or query text"""
   queryText: String!
+  """Optional pre-computed result (for manual thread creation)"""
   result: String = null
+  """
+  Space context (required for SPACE threads, null for PERSONAL/ORGANIZATION)
+  """
   spaceId: ID = null
+  """Optional thread title"""
   title: String = null
+  """
+  Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members)
+  """
+  visibility: ThreadVisibilityEnum!
 }
 
 input CreateUserInput {
@@ -73,6 +94,7 @@ type Document {
   processedAt: DateTime
   processingError: String
   sizeBytes: Int!
+  space: Space
   spaceId: ID!
   status: String!
   updatedAt: DateTime!
@@ -119,6 +141,8 @@ The `JSON` scalar type represents JSON values as specified by [ECMA-404](https:/
 scalar JSON
 
 type Message {
+  authorType: AuthorTypeEnum!
+  authorUserId: ID
   content: String!
   createdAt: DateTime!
   id: ID!
@@ -254,22 +278,33 @@ type Thread {
   context: String
   costUsd: Float
   createdAt: DateTime!
-  createdBy: ID!
+  """Original creator (immutable provenance). Null when user deleted."""
+  createdBy: ID
   errorMessage: String
   id: ID!
   isStarred: Boolean!
   messages: [Message!]!
   modelUsed: String
-  organizationId: ID!
+  """Organization context (null for personal threads)"""
+  organizationId: ID
+  """
+  Current owner (mutable). Null when user deleted, triggers reassignment.
+  """
+  ownerUserId: ID
   processingTimeMs: Int
   queryText: String!
   result: String
   sources: JSON
+  """Space context (null for personal/org-wide threads)"""
   spaceId: ID
   status: ThreadStatusEnum
   title: String
   tokensUsed: Int
   updatedAt: DateTime!
+  """
+  Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members)
+  """
+  visibility: ThreadVisibilityEnum!
 }
 
 enum ThreadStatusEnum {
@@ -277,6 +312,12 @@ enum ThreadStatusEnum {
   FAILED
   PENDING
   PROCESSING
+}
+
+enum ThreadVisibilityEnum {
+  ORGANIZATION
+  PERSONAL
+  SPACE
 }
 
 input UpdateOrganizationInput {
