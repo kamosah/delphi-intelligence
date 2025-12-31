@@ -1101,18 +1101,20 @@ class Mutation:
                         raise ValueError(msg)
 
                     # Check authorization via SpiceDB
+                    # Use "update" permission to ensure user has write access (owner/editor role)
+                    # Prevents space viewers from creating threads (they can only read)
                     spicedb = get_spicedb_service()
                     has_permission = await spicedb.check_permission(
                         CheckPermissionInput(
                             user_id=str(user_id),
-                            permission="read",
+                            permission="update",
                             resource_type="space",
                             resource_id=str(space_id),
                         )
                     )
 
                     if not has_permission:
-                        msg = "Insufficient permissions to create thread in this space"
+                        msg = "Insufficient permissions to create thread in this space. Must be space owner or editor."
                         raise ValueError(msg)
 
                 # Create new thread with ownership fields

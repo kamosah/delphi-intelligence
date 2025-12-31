@@ -55,17 +55,17 @@
         "ms-azuretools.vscode-docker"
       ],
       "settings": {
-        // Python interpreter (container's system Python)
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        // Python interpreter (Poetry virtual env)
+        "python.defaultInterpreterPath": "/workspace/apps/api/.venv/bin/python",
         "python.analysis.typeCheckingMode": "basic",
         "python.analysis.autoImportCompletions": true,
         "python.analysis.diagnosticMode": "workspace",
         "python.analysis.extraPaths": ["/workspace/apps/api", "/app"],
 
-        // Ruff configuration
+        // Ruff configuration - use virtual env's ruff
         "ruff.configurationPreference": "filesystemFirst",
         "ruff.importStrategy": "fromEnvironment",
-        "ruff.path": ["/usr/local/bin/ruff"],
+        "ruff.path": ["/workspace/apps/api/.venv/bin/ruff"],
 
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff",
@@ -98,7 +98,7 @@
   },
 
   // Run commands after the container is created
-  "postCreateCommand": "echo '=== Dev Container Setup Complete ===' && echo 'Workspace: /workspace' && ls /workspace | head -5 && echo '\nPython: /app' && ls /app/app | head -5 && echo '\nGit:' && git --version && git branch 2>/dev/null || echo 'Git repo not initialized' && echo '\nTools:' && python --version && ruff --version",
+  "postCreateCommand": "cd /workspace/apps/api && poetry config virtualenvs.in-project true && poetry install --no-interaction && echo '=== Dev Container Setup Complete ===' && echo 'Workspace: /workspace' && ls /workspace | head -5 && echo '\nPython: /app' && ls /app/app | head -5 && echo '\nGit:' && git --version && git branch 2>/dev/null || echo 'Git repo not initialized' && echo '\nTools:' && python --version && echo 'Poetry venv:' && poetry env info --path && echo '\nVirtual env Python:' && /workspace/apps/api/.venv/bin/python --version && echo '\nVirtual env Ruff:' && /workspace/apps/api/.venv/bin/ruff --version",
 
   // User to use inside the container (root by default in the Dockerfile)
   "remoteUser": "root"

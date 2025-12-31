@@ -22,7 +22,7 @@ from app.agents.thread_agent import (
     add_citations,
     retrieve_context,
 )
-from app.models.message import Message, MessageRole
+from app.models.message import AuthorType, Message, MessageRole
 from app.models.space import Space, SpaceMember
 from app.models.thread import Thread
 from app.services.citation_service import get_citation_service
@@ -351,6 +351,8 @@ class AIAgentService:
                 user_message = Message(
                     thread_id=thread_id,
                     message_role=MessageRole.USER,
+                    author_user_id=user_id,  # Track message author
+                    author_type=AuthorType.USER,  # User-generated message
                     content=query,
                     message_metadata={},
                 )
@@ -403,6 +405,8 @@ class AIAgentService:
             user_message = Message(
                 thread_id=thread_record.id,
                 message_role=MessageRole.USER,
+                author_user_id=user_id,  # Track message author
+                author_type=AuthorType.USER,  # User-generated message
                 content=query,
                 message_metadata={},
             )
@@ -480,6 +484,8 @@ class AIAgentService:
             assistant_message = Message(
                 thread_id=UUID(saved_thread_id),
                 message_role=MessageRole.ASSISTANT,
+                author_user_id=None,  # No user author for AI-generated messages
+                author_type=AuthorType.AGENT,  # AI agent-generated message
                 content=final_response,
                 message_metadata=assistant_metadata,
             )
