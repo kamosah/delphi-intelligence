@@ -1228,6 +1228,7 @@ class Mutation:
                 if input.timezone is not None:
                     preferences_model.timezone = input.timezone
                 if input.custom_settings is not None:
+                    # Mypy false positive: thinks this line is unreachable but it's valid when custom_settings is provided
                     preferences_model.custom_settings = input.custom_settings  # type: ignore[unreachable]
 
                 await session.commit()

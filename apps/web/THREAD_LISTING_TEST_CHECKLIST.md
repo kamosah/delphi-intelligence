@@ -35,7 +35,22 @@ Test that thread listing queries work correctly with the new visibility model af
 
 ---
 
-### 2. Organization Thread Listing
+### 2. Personal Thread Listing
+
+**Location**: Navigate to Personal Threads page (e.g., `/threads?filter=personal`)
+
+**Expected Behavior**:
+
+- [ ] Only user's personal threads displayed (`visibility: PERSONAL`)
+- [ ] Each thread shows `organizationId: null` and `spaceId: null`
+- [ ] Private to owner: Other users cannot see these threads
+- [ ] No console errors
+
+**GraphQL Query**: `threads(organizationId: ID)` filtered by `visibility: PERSONAL`
+
+---
+
+### 3. Organization Thread Listing
 
 **Location**: Navigate to Threads page without space filter (e.g., `/threads`)
 
@@ -50,18 +65,23 @@ Test that thread listing queries work correctly with the new visibility model af
 
 ---
 
-### 3. Thread Creation
+### 4. Thread Creation
 
 **Location**: Create new thread form
 
 **Test Data**:
 
+- [ ] Create **Personal thread**: No organization or space selected
+  - Should set `visibility: PERSONAL`
+  - Both `organizationId` and `spaceId` should be null
+
 - [ ] Create **Space thread**: Select a space from dropdown
   - Should set `visibility: SPACE`
   - Should require `spaceId`
 
-- [ ] Create **Org thread**: No space selected
+- [ ] Create **Org thread**: Select organization, no space
   - Should set `visibility: ORGANIZATION`
+  - Should require `organizationId`
   - `spaceId` should be null
 
 **Expected Behavior**:
@@ -75,7 +95,7 @@ Test that thread listing queries work correctly with the new visibility model af
 
 ---
 
-### 4. Thread Detail View
+### 5. Thread Detail View
 
 **Location**: Click into an individual thread (e.g., `/threads/[thread-id]`)
 
