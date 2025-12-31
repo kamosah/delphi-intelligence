@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useClientToken } from '@/hooks/useClientToken';
@@ -47,6 +48,7 @@ export function useThreads(options?: {
 }) {
   const { clientToken } = useClientToken();
   const { currentOrganization } = useAuthStore();
+  const queryClient = useQueryClient();
   const spaceId = options?.spaceId;
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
@@ -69,6 +71,18 @@ export function useThreads(options?: {
       }),
     }
   );
+
+  // Pre-populate individual thread caches for instant navigation
+  // When user clicks on a thread from the list, detail page loads from cache (no network request)
+  useEffect(() => {
+    if (query.isSuccess && query.data?.threads) {
+      query.data.threads.forEach((thread) => {
+        queryClient.setQueryData(queryKeys.threads.detail(thread.id), {
+          thread,
+        });
+      });
+    }
+  }, [query.isSuccess, query.data, queryClient]);
 
   return {
     threads: query.data?.threads || [],
