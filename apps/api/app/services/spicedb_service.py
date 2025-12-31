@@ -162,54 +162,6 @@ class SpiceDBService:
             # Fail closed - deny access on errors
             return False
 
-    async def check_thread_read_permission(
-        self,
-        user_id: str,
-        thread_id: str,
-        space_id: str | None = None,
-    ) -> bool:
-        """Check if user has read permission on a thread using appropriate permission.
-
-        This helper automatically selects the correct permission based on thread visibility:
-        - Space threads (space_id != None) → use 'read' permission (space-scoped)
-        - Organization threads (space_id == None) → use 'read_org' permission (org-wide)
-        - Personal threads → use 'read' permission (owner-only via RLS - future: LOG-259)
-
-        Args:
-            user_id: The user ID
-            thread_id: The thread ID
-            space_id: The thread's space_id (None for org-wide threads)
-
-        Returns:
-            True if user has permission, False otherwise
-
-        Example:
-            # Space thread
-            has_access = await spicedb.check_thread_read_permission(
-                user_id=user.id,
-                thread_id=thread.id,
-                space_id=thread.space_id,
-            )
-
-            # Organization thread
-            has_access = await spicedb.check_thread_read_permission(
-                user_id=user.id,
-                thread_id=thread.id,
-                space_id=None,
-            )
-        """
-        # Select permission based on space context
-        permission = "read" if space_id else "read_org"
-
-        return await self.check_permission(
-            CheckPermissionInput(
-                user_id=user_id,
-                permission=permission,
-                resource_type="thread",
-                resource_id=thread_id,
-            )
-        )
-
     async def write_relationship(self, input: WriteRelationshipInput) -> bool:
         """Write a relationship to SpiceDB.
 

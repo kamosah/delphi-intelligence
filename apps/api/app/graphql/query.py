@@ -681,7 +681,13 @@ class Query:
                         .offset(offset)
                     )
                 else:
-                    # No organization - return only user's PERSONAL threads (no org, no space)
+                    # No organization - return only user's PERSONAL threads
+                    # Query filters by NULL org_id AND NULL space_id, which database constraints
+                    # guarantee can only occur for visibility=PERSONAL threads:
+                    # - PERSONAL: org_id=NULL, space_id=NULL, visibility=PERSONAL
+                    # - SPACE: org_id!=NULL, space_id!=NULL, visibility=SPACE
+                    # - ORGANIZATION: org_id!=NULL, space_id=NULL, visibility=ORGANIZATION
+                    # (Constraints enforced by migration a3c105090510_fix_thread_ownership_enums_and_indexes.py)
                     stmt = (
                         select(ThreadModel)
                         .options(joinedload(ThreadModel.messages))  # Eager load messages
@@ -752,15 +758,25 @@ class Query:
                     return None
 
                 # Check authorization via SpiceDB using appropriate permission
-                # Uses 'read' for space threads, 'read_org' for organization threads
+                # Select permission based on thread visibility:
+                # - Space threads (space_id != None) → use 'read' permission (space-scoped)
+                # - Organization threads (space_id == None) → use 'read_org' permission (org-wide)
+                permission = "read" if thread_model.space_id else "read_org"
+
                 spicedb = get_spicedb_service()
-                has_permission = await spicedb.check_thread_read_permission(
-                    user_id=str(user_id),
-                    thread_id=str(thread_id),
-                    space_id=str(thread_model.space_id) if thread_model.space_id else None,
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission=permission,
+                        resource_type="thread",
+                        resource_id=str(thread_id),
+                    )
                 )
 
                 if not has_permission:
+                    logger.warning(
+                        f"User {user_id} attempted to access unauthorized thread {thread_id}"
+                    )
                     return None
 
                 if thread_model:

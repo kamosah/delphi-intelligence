@@ -314,19 +314,24 @@ definition thread {
 
 #### Permission Selection Logic
 
-**Application code uses `check_thread_read_permission()` helper**:
+**Application code selects permission based on thread visibility**:
 
 ```python
-# SpiceDBService helper automatically selects correct permission
-has_access = await spicedb.check_thread_read_permission(
-    user_id=user.id,
-    thread_id=thread.id,
-    space_id=thread.space_id,  # None for org threads
+# Select permission based on thread's space_id
+permission = "read" if thread.space_id else "read_org"
+
+has_access = await spicedb.check_permission(
+    CheckPermissionInput(
+        user_id=user.id,
+        permission=permission,
+        resource_type="thread",
+        resource_id=thread.id,
+    )
 )
 
 # Logic:
-# - If space_id != None → use 'read' permission
-# - If space_id == None → use 'read_org' permission
+# - If space_id != None → use 'read' permission (space-scoped)
+# - If space_id == None → use 'read_org' permission (org-wide)
 ```
 
 **Why split permissions?**
