@@ -256,14 +256,228 @@ has_perm = await service.check_permission(
 print(has_perm)  # Should be True
 ```
 
+## Thread Ownership Model (LOG-254, LOG-255, LOG-256)
+
+### Overview
+
+Threads use a **user-centric ownership model** with **visibility-based access control** enforced by SpiceDB.
+
+### Ownership Fields (Database)
+
+| Field | Type | Nullable | Purpose |
+|-------|------|----------|---------|
+| `owner_user_id` | UUID | Yes | Current owner (mutable, SET NULL on user delete) |
+| `created_by` | UUID | Yes | Original creator (immutable, historical provenance) |
+| `visibility` | Enum | No | Access scope (PERSONAL, SPACE, ORGANIZATION) |
+| `organization_id` | UUID | Yes | Organization context (nullable for personal threads) |
+| `space_id` | UUID | Yes | Space context (nullable for personal/org threads) |
+
+### Visibility Model
+
+Threads have three visibility levels that determine access rules:
+
+#### 1. PERSONAL Threads
+- **Database**: `visibility=PERSONAL`, `organization_id=NULL`, `space_id=NULL`
+- **Access**: Owner only
+- **Authorization**: PostgreSQL RLS (future: LOG-259)
+- **Use case**: Personal drafts, private analysis
+
+#### 2. SPACE Threads
+- **Database**: `visibility=SPACE`, `space_id!=NULL`, `organization_id!=NULL`
+- **Access**: All space members (owner, editor, viewer)
+- **Authorization**: SpiceDB `thread->read` permission (via `space->read`)
+- **Use case**: Team collaboration, project-specific threads
+
+#### 3. ORGANIZATION Threads
+- **Database**: `visibility=ORGANIZATION`, `space_id=NULL`, `organization_id!=NULL`
+- **Access**: All organization members
+- **Authorization**: SpiceDB `thread->read_org` permission (via `organization->view`)
+- **Use case**: Company-wide announcements, shared resources
+
+### Dual Read Permissions
+
+Threads use **two separate read permissions** to prevent permission leaks:
+
+```zed
+definition thread {
+  relation owner: user
+  relation organization: organization    // Optional
+  relation space: space                  // Optional
+
+  // Space-scoped & personal threads
+  permission read = owner + space->read
+
+  // Organization-wide threads
+  permission read_org = owner + organization->view
+}
+```
+
+#### Permission Selection Logic
+
+**Application code uses `check_thread_read_permission()` helper**:
+
+```python
+# SpiceDBService helper automatically selects correct permission
+has_access = await spicedb.check_thread_read_permission(
+    user_id=user.id,
+    thread_id=thread.id,
+    space_id=thread.space_id,  # None for org threads
+)
+
+# Logic:
+# - If space_id != None → use 'read' permission
+# - If space_id == None → use 'read_org' permission
+```
+
+**Why split permissions?**
+- Prevents organization members from bypassing space restrictions
+- Space threads remain isolated within team workspaces
+- Organization threads are explicitly company-wide
+
+### Permission Matrix
+
+| Visibility | Owner | Space Member | Org Member (not in space) |
+|------------|-------|--------------|---------------------------|
+| PERSONAL | ✅ Read/Write/Delete | ❌ No access | ❌ No access |
+| SPACE | ✅ Read/Write/Delete | ✅ Read | ❌ No access |
+| ORGANIZATION | ✅ Read/Write/Delete | N/A | ✅ Read |
+
+### SpiceDB Relationships
+
+```bash
+# Space thread
+zed relationship create thread:THREAD_ID owner user:USER_ID
+zed relationship create thread:THREAD_ID space space:SPACE_ID
+zed relationship create thread:THREAD_ID organization organization:ORG_ID
+
+# Organization thread (no space)
+zed relationship create thread:THREAD_ID owner user:USER_ID
+zed relationship create thread:THREAD_ID organization organization:ORG_ID
+
+# Personal thread (no SpiceDB sync - uses PostgreSQL RLS)
+# - No relationships created
+# - Access controlled at database level (future: LOG-259)
+```
+
+### Thread Creation Authorization
+
+**Space threads** require write access to the space:
+
+```python
+# Check user has 'update' permission on space (owner/editor role)
+has_permission = await spicedb.check_permission(
+    CheckPermissionInput(
+        user_id=user_id,
+        permission="update",  # Not "read" - ensures write access
+        resource_type="space",
+        resource_id=space_id,
+    )
+)
+
+if not has_permission:
+    raise ValueError("Insufficient permissions. Must be space owner or editor.")
+```
+
+This prevents space **viewers** from creating threads (they can only read).
+
+### Message Author Tracking
+
+Messages track authorship for SpiceDB permission checks:
+
+```python
+# User message
+Message(
+    thread_id=thread.id,
+    message_role=MessageRole.USER,
+    author_user_id=user.id,           # User who wrote it
+    author_type=AuthorType.USER,      # Human-generated
+    content=query,
+)
+
+# AI assistant message
+Message(
+    thread_id=thread.id,
+    message_role=MessageRole.ASSISTANT,
+    author_user_id=None,              # No user author (AI)
+    author_type=AuthorType.AGENT,     # AI-generated
+    content=response,
+)
+```
+
+**SpiceDB message permissions**:
+```zed
+definition message {
+  relation thread: thread
+  relation author: user  // Nullable for agent/system messages
+
+  permission read = thread->read + thread->read_org
+  permission update = author
+  permission delete = thread->owner + author
+}
+```
+
+Users can edit their own messages, but not AI responses.
+
+### Thread Listing Queries
+
+**Space threads** (all threads in accessible spaces):
+```python
+# Returns ALL threads in space, not just user's
+threads = (
+    select(ThreadModel)
+    .where(ThreadModel.space_id == space_uuid)
+    .order_by(ThreadModel.created_at.desc())
+)
+```
+
+**Organization threads** (org-wide + user's personal):
+```python
+# Returns org-wide threads + user's personal threads
+threads = (
+    select(ThreadModel)
+    .where(
+        (ThreadModel.organization_id == org_uuid)
+        & (
+            # Org threads (no space, visible to all org members)
+            (ThreadModel.space_id.is_(None))
+            # OR user's personal threads
+            | (ThreadModel.owner_user_id == user_id)
+        )
+    )
+    .order_by(ThreadModel.created_at.desc())
+)
+```
+
+### Migration (LOG-255)
+
+**Backfill existing threads** with owner relationships:
+
+```bash
+# Run backfill script
+docker compose exec api python scripts/backfill_thread_ownership.py
+
+# Verify relationships created
+zed relationship read thread owner \
+  --endpoint localhost:50051 \
+  --token "$(grep SPICEDB_TOKEN apps/api/.env | cut -d= -f2)" \
+  --insecure \
+  --json
+```
+
+The script:
+- Sets `thread->owner` relationship for all existing threads
+- Creates `thread->organization` relationships
+- Creates `thread->space` relationships (if space_id present)
+- Idempotent (safe to run multiple times)
+
 ## Next Steps
 
 After setup:
 1. ✅ SpiceDB running in Docker
-2. ✅ Schema loaded
-3. ✅ Tests passing
-4. 🚧 Integrate with API endpoints (Phase 2)
-5. 🚧 Add permission checks to GraphQL resolvers (Phase 3)
+2. ✅ Schema loaded with thread ownership model
+3. ✅ Tests passing (including thread ownership tests)
+4. ✅ Backfill script executed (LOG-255)
+5. ✅ Thread permissions migrated to SpiceDB (LOG-256)
 
 ## References
 

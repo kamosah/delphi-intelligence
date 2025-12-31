@@ -17,7 +17,9 @@ from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
+from app.schemas.spicedb import CheckPermissionInput
 from app.services.organization_service import OrganizationService
+from app.services.spicedb_service import get_spicedb_service
 from app.services.vector_search_service import get_vector_search_service
 from app.supabase_client import get_admin_client
 
@@ -557,7 +559,12 @@ class Query:
         offset: int = 0,
     ) -> list[Thread]:
         """
-        Get a list of threads created by the authenticated user.
+        Get a list of threads accessible to the authenticated user.
+
+        Thread visibility determines access:
+        - SPACE threads: All threads in accessible spaces (all space members can see)
+        - ORGANIZATION threads: All org-wide threads in user's organization
+        - PERSONAL threads: Only user's own personal threads
 
         Args:
             space_id: Optional space ID to filter threads by space
@@ -567,11 +574,12 @@ class Query:
             offset: Number of threads to skip for pagination
 
         Returns:
-            List of user's threads ordered by creation date (most recent first)
+            List of accessible threads ordered by creation date (most recent first)
 
         Authorization:
-            - Returns only threads created by the authenticated user
-            - Verifies user has access to requested space/organization
+            - Space threads: User must have space access (checked via SpiceDB)
+            - Organization threads: User must be org member
+            - Personal threads: User must be the owner
 
         Example query:
             query {
@@ -596,30 +604,30 @@ class Query:
 
             user_id = user.id
 
-            # Build query based on filters
+            # Build query based on filters and visibility model
             if space_id:
-                # Filter by specific space
+                # Filter by specific space - return all SPACE threads in this space
                 space_uuid = UUID(str(space_id))
 
-                # Verify user has access to this space
-                space_access_stmt = (
-                    select(SpaceModel.id)
-                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
-                    .where(
-                        (SpaceModel.id == space_uuid)
-                        & ((SpaceModel.owner_id == user_id) | (SpaceMemberModel.user_id == user_id))
+                # Verify user has access to this space via SpiceDB
+                spicedb = get_spicedb_service()
+                has_space_access = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user_id),
+                        permission="read",
+                        resource_type="space",
+                        resource_id=str(space_uuid),
                     )
-                    .distinct()
                 )
-                space_result = await session.execute(space_access_stmt)
-                if not space_result.scalar_one_or_none():
-                    # User doesn't have access to this space
+
+                if not has_space_access:
                     logger.warning(
                         f"User {user_id} attempted to access threads for unauthorized space {space_uuid}"
                     )
                     return []
 
-                # Get threads for the space
+                # Get all SPACE threads in this space (not just user's threads)
+                # All space members can see all threads in the space
                 stmt = (
                     select(ThreadModel)
                     .options(joinedload(ThreadModel.messages))  # Eager load messages
@@ -629,7 +637,7 @@ class Query:
                     .offset(offset)
                 )
             else:
-                # No space_id - filter by organization and user
+                # No space_id - filter by organization
                 # Use explicit organization_id or fall back to user's current org
                 org_uuid: UUID | None
                 if organization_id:
@@ -653,22 +661,35 @@ class Query:
                         )
                         return []
 
-                    # Return user's threads in this organization
+                    # Return ORGANIZATION threads (org-wide, no space) + user's PERSONAL threads
+                    # Organization threads: All org members can see
+                    # Personal threads: Only owner can see
                     stmt = (
                         select(ThreadModel)
                         .options(joinedload(ThreadModel.messages))  # Eager load messages
-                        .where(ThreadModel.organization_id == org_uuid)
-                        .where(ThreadModel.created_by == user_id)
+                        .where(
+                            (ThreadModel.organization_id == org_uuid)
+                            & (
+                                # ORGANIZATION threads (no space_id, visible to all org members)
+                                (ThreadModel.space_id.is_(None))
+                                # OR user's PERSONAL threads in this org
+                                | (ThreadModel.owner_user_id == user_id)
+                            )
+                        )
                         .order_by(ThreadModel.created_at.desc())
                         .limit(limit)
                         .offset(offset)
                     )
                 else:
-                    # No organization - return all threads user created
+                    # No organization - return only user's PERSONAL threads (no org, no space)
                     stmt = (
                         select(ThreadModel)
                         .options(joinedload(ThreadModel.messages))  # Eager load messages
-                        .where(ThreadModel.created_by == user_id)
+                        .where(
+                            (ThreadModel.owner_user_id == user_id)
+                            & (ThreadModel.organization_id.is_(None))
+                            & (ThreadModel.space_id.is_(None))
+                        )
                         .order_by(ThreadModel.created_at.desc())
                         .limit(limit)
                         .offset(offset)
@@ -683,7 +704,7 @@ class Query:
         return []
 
     @strawberry.field
-    async def thread(self, info: strawberry.types.Info, id: strawberry.ID) -> Thread | None:
+    async def thread(self, info: strawberry.types.Info, id: strawberry.ID) -> Thread | None:  # noqa: PLR0911
         """
         Get a single thread by ID.
 
@@ -717,37 +738,30 @@ class Query:
                 user_id = user.id
                 thread_id = UUID(str(id))
 
-                # Get thread and verify user has access
-                # For threads with space_id: check space membership
-                # For org-wide threads (no space_id): check organization membership (TODO)
+                # Get thread first
                 stmt = (
                     select(ThreadModel)
                     .options(joinedload(ThreadModel.messages))  # Eager load messages
-                    .outerjoin(SpaceModel, SpaceModel.id == ThreadModel.space_id)
-                    .outerjoin(SpaceMemberModel, SpaceMemberModel.space_id == SpaceModel.id)
-                    .where(
-                        (ThreadModel.id == thread_id)
-                        & (
-                            # Access via space membership
-                            (
-                                (ThreadModel.space_id.isnot(None))
-                                & (
-                                    (SpaceModel.owner_id == user_id)
-                                    | (SpaceMemberModel.user_id == user_id)
-                                )
-                            )
-                            # OR thread creator for org-wide threads (TODO: add org membership check)
-                            | (
-                                (ThreadModel.space_id.is_(None))
-                                & (ThreadModel.created_by == user_id)
-                            )
-                        )
-                    )
-                    .distinct()
+                    .where(ThreadModel.id == thread_id)
                 )
 
                 result = await session.execute(stmt)
                 thread_model = result.unique().scalar_one_or_none()
+
+                if not thread_model:
+                    return None
+
+                # Check authorization via SpiceDB using appropriate permission
+                # Uses 'read' for space threads, 'read_org' for organization threads
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_thread_read_permission(
+                    user_id=str(user_id),
+                    thread_id=str(thread_id),
+                    space_id=str(thread_model.space_id) if thread_model.space_id else None,
+                )
+
+                if not has_permission:
+                    return None
 
                 if thread_model:
                     return Thread.from_model(thread_model)
