@@ -12,13 +12,13 @@ from app.auth.schemas import TokenResponse, UserProfile
 from app.main import app
 
 
-@pytest.fixture()
+@pytest.fixture
 def client():
     """Create test client"""
     return TestClient(app)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_auth_service():
     """Mock authentication service"""
     with patch("app.routes.auth.get_auth_service") as mock:

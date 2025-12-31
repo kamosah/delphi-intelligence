@@ -16,20 +16,20 @@ from app.services.embedding_service import EmbeddingService, get_embedding_servi
 class TestEmbeddingService:
     """Test cases for embedding service"""
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_openai_client(self):
         """Create a mock OpenAI client"""
         client = AsyncMock()
         return client
 
-    @pytest.fixture()
+    @pytest.fixture
     def embedding_service(self, mock_openai_client):
         """Create an embedding service instance with mocked OpenAI client"""
         service = EmbeddingService(api_key="test-api-key")
         service.client = mock_openai_client
         return service
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_document(self):
         """Create a mock document for testing"""
         document = Document()

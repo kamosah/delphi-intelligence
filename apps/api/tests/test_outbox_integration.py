@@ -31,13 +31,13 @@ class TestOutboxProcessor:
     No mocks - verify end-to-end flow from outbox → SpiceDB.
     """
 
-    @pytest.fixture()
+    @pytest.fixture
     async def outbox_processor(self, db_session):
         """Create outbox processor with test database."""
         processor = OutboxProcessor(db_session)
         return processor
 
-    @pytest.fixture()
+    @pytest.fixture
     async def sample_outbox_item(self, db_session, test_resource_ids):
         """Create a sample outbox item for testing with unique IDs.
 
@@ -504,7 +504,7 @@ class TestOutboxWebhook:
     Philosophy: Test real HTTP authentication, database updates, AND SpiceDB sync.
     """
 
-    @pytest.fixture()
+    @pytest.fixture
     async def _cleanup_dependency_overrides(self):
         """Cleanup fixture to ensure dependency overrides are cleared."""
         yield
