@@ -1228,7 +1228,7 @@ class Mutation:
                 if input.timezone is not None:
                     preferences_model.timezone = input.timezone
                 if input.custom_settings is not None:
-                    preferences_model.custom_settings = input.custom_settings
+                    preferences_model.custom_settings = input.custom_settings  # type: ignore[unreachable]
 
                 await session.commit()
                 await session.refresh(preferences_model)
@@ -1241,7 +1241,6 @@ class Mutation:
                 logger.exception("Error updating user preferences")
                 raise ValueError(f"Failed to update preferences: {str(e)}") from e
 
-        # This should never be reached, but mypy requires it
         msg = "Failed to get database session"
         raise ValueError(msg)
 
