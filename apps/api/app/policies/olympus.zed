@@ -83,10 +83,41 @@ definition thread {
   permission delete = owner + space->manage_members + organization->admin
   permission update = owner + space->owner + organization->admin
 
+  // ============================================================================
+  // Dual Read Permissions: Visibility-Based Access Control
+  // ============================================================================
+  //
+  // Threads use TWO read permissions to prevent permission leaks:
+  //
+  // 1. 'read' permission (space-scoped & personal threads):
+  //    - For threads WITH space_id: accessible to space members (space->read)
+  //    - For threads WITHOUT space_id AND org_id: personal threads (owner only)
+  //    - Does NOT grant access via organization membership (prevents leaks)
+  //
+  // 2. 'read_org' permission (organization-wide threads):
+  //    - For threads WITHOUT space_id BUT WITH org_id: org-wide visibility
+  //    - Accessible to all organization members (organization->view)
+  //    - Used for company-wide announcements, shared resources
+  //
+  // Application logic: Use check_thread_read_permission() helper
+  // - If thread.space_id != None → use 'read' permission
+  // - If thread.space_id == None → use 'read_org' permission
+  //
+  // Why split permissions?
+  // - Prevents org members from bypassing space restrictions
+  // - Space threads remain isolated within team workspaces
+  // - Org threads are explicitly shared company-wide
+  //
   // Read permission for space/personal threads (does NOT include org->view to prevent leaks)
+  // IMPORTANT: Does NOT include organization->admin intentionally
+  // - Space threads should remain isolated to team workspaces
+  // - Prevents admin overreach and maintains privacy expectations
+  // - If admin needs access, add them as space member explicitly
+  // - Matches org models where departments (HR, finance) have restricted access
   permission read = owner + space->read
 
   // Read permission for org-wide threads (requires organization membership)
+  // Note: organization->admin is included via organization->view (admins are also viewers)
   permission read_org = owner + organization->view
 }
 
