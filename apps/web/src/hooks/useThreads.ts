@@ -74,19 +74,16 @@ export function useThreads(options?: {
 
   // Pre-populate individual thread caches for instant navigation
   // When user clicks on a thread from the list, detail page loads from cache (no network request)
-  // IMPORTANT: Only populate if cache is empty to avoid overwriting fresher detail data with stale list data
+  // IMPORTANT: Atomic update prevents race conditions between list and detail queries
   const populateCaches = useCallback(() => {
     if (query.isSuccess && query.data?.threads) {
       query.data.threads.forEach((thread) => {
-        // Check if this thread is already cached - if so, don't overwrite with potentially stale list data
-        const existingData = queryClient.getQueryData(
-          queryKeys.threads.detail(thread.id)
+        // Atomic update: only set data if cache is empty, avoiding race conditions
+        // If existingData is present, keep it (fresher detail data); otherwise use thread from list
+        queryClient.setQueryData(
+          queryKeys.threads.detail(thread.id),
+          (existingData) => existingData ?? { thread }
         );
-        if (!existingData) {
-          queryClient.setQueryData(queryKeys.threads.detail(thread.id), {
-            thread,
-          });
-        }
       });
     }
   }, [query.isSuccess, query.data, queryClient]);

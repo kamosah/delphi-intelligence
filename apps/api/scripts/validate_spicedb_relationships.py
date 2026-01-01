@@ -122,8 +122,8 @@ async def validate_thread_relationships() -> bool:  # noqa: PLR0915
                                 f"Thread {thread_id} missing owner relationship for user {owner_id}"
                             )
                     except Exception as e:
-                        logger.exception(
-                            f"Error checking owner relationship for thread {thread_id}"
+                        logger.warning(
+                            f"Error checking owner relationship for thread {thread_id}: {e}"
                         )
                         validation_results["errors"].append({
                             "thread_id": thread_id,
@@ -158,8 +158,8 @@ async def validate_thread_relationships() -> bool:  # noqa: PLR0915
                                     f"Thread {thread_id} missing organization relationship"
                                 )
                         except Exception as e:
-                            logger.exception(
-                                f"Error checking org relationship for thread {thread_id}"
+                            logger.warning(
+                                f"Error checking org relationship for thread {thread_id}: {e}"
                             )
                             validation_results["errors"].append({
                                 "thread_id": thread_id,
@@ -194,8 +194,8 @@ async def validate_thread_relationships() -> bool:  # noqa: PLR0915
                                 is_valid = False
                                 logger.warning(f"Thread {thread_id} missing space relationship")
                         except Exception as e:
-                            logger.exception(
-                                f"Error checking space relationship for thread {thread_id}"
+                            logger.warning(
+                                f"Error checking space relationship for thread {thread_id}: {e}"
                             )
                             validation_results["errors"].append({
                                 "thread_id": thread_id,

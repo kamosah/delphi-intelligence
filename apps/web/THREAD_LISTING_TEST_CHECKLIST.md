@@ -140,6 +140,92 @@ npm run graphql:generate
 
 ---
 
+## Performance Testing
+
+### Cache Pre-Population Verification
+
+**Purpose**: Verify that thread listing pre-populates individual thread caches for instant navigation
+
+**Steps**:
+
+1. **Open DevTools Network Tab** (Chrome/Firefox/Edge)
+
+   ```bash
+   # Frontend should be running
+   cd apps/web && npm run dev
+   ```
+
+2. **Clear all caches** to start fresh
+   - Open DevTools Console
+   - Run: `localStorage.clear(); sessionStorage.clear();`
+   - Hard refresh: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)
+
+3. **Navigate to threads list** (e.g., `/threads` or `/spaces/[space-id]`)
+   - **Expected**: GraphQL `threads` query in Network tab
+   - Record response time (baseline)
+
+4. **Click on a thread** from the list to view details
+   - **Expected**: NO new GraphQL `thread` query in Network tab
+   - Page should load instantly from cache
+   - Verify thread detail page renders correctly
+
+5. **Verify cache behavior**:
+   - Navigate back to threads list
+   - Click a different thread
+   - **Expected**: Still no GraphQL request (all threads pre-populated)
+
+**Pass Criteria**:
+
+- [ ] Threads list query completes successfully
+- [ ] Thread detail pages load without GraphQL requests (cached)
+- [ ] Navigation is instant (<100ms perceived latency)
+- [ ] No console errors
+
+---
+
+### Large Dataset Testing
+
+**Purpose**: Verify performance with realistic data volumes (50+ threads)
+
+**Setup**:
+
+```bash
+# Backend - seed large dataset (if seeding script exists)
+cd apps/api
+docker compose exec api poetry run python scripts/seed_threads.py --count=50
+
+# Or manually create 50+ threads via UI/GraphQL
+```
+
+**Test Cases**:
+
+1. **List Rendering Performance**
+   - Navigate to threads list with 50+ threads
+   - **Expected**: Page renders within 2 seconds
+   - Scroll should be smooth (60fps)
+   - No layout shifts or jank
+
+2. **Cache Pre-Population at Scale**
+   - Click on 10 random threads sequentially
+   - **Expected**: All load instantly from cache
+   - DevTools Network tab shows only initial `threads` query
+
+3. **Memory Usage**
+   - Open DevTools Memory Profiler
+   - Take heap snapshot before loading threads
+   - Load threads list (50+ threads)
+   - Take heap snapshot after
+   - **Expected**: Memory increase <10MB for cache data
+
+**Pass Criteria**:
+
+- [ ] List renders within 2 seconds for 50+ threads
+- [ ] Smooth scrolling performance (no jank)
+- [ ] All threads cached after initial query
+- [ ] Memory usage remains reasonable (<10MB increase)
+
+---
+
 ## Common Issues & Fixes
 
 ### Issue: "visibility is required" error
