@@ -13,7 +13,7 @@ from app.auth.redis_client import RedisManager
 class TestRedisManager:
     """Test cases for Redis session management"""
 
-    @pytest.fixture()
+    @pytest.fixture
     async def redis_manager(self):
         """Create Redis manager for testing"""
         with patch("app.auth.redis_client.aioredis") as mock_redis:

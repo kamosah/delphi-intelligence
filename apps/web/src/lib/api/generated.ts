@@ -66,13 +66,20 @@ export type CreateSpaceInput = {
 };
 
 export type CreateThreadInput = {
+  /** Optional confidence score (0.0-1.0) */
   confidenceScore?: InputMaybe<Scalars['Float']['input']>;
+  /** Organization context (required for SPACE/ORGANIZATION threads, null for PERSONAL) */
   organizationId?: InputMaybe<Scalars['ID']['input']>;
+  /** User's question or query text */
   queryText: Scalars['String']['input'];
+  /** Optional pre-computed result (for manual thread creation) */
   result?: InputMaybe<Scalars['String']['input']>;
+  /** Space context (required for SPACE threads, null for PERSONAL/ORGANIZATION) */
   spaceId?: InputMaybe<Scalars['ID']['input']>;
+  /** Optional thread title */
   title?: InputMaybe<Scalars['String']['input']>;
-  visibility?: InputMaybe<ThreadVisibilityEnum>;
+  /** Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members) */
+  visibility: ThreadVisibilityEnum;
 };
 
 export type CreateUserInput = {
@@ -444,23 +451,28 @@ export type Thread = {
   context?: Maybe<Scalars['String']['output']>;
   costUsd?: Maybe<Scalars['Float']['output']>;
   createdAt: Scalars['DateTime']['output'];
-  createdBy: Scalars['ID']['output'];
+  /** Original creator (immutable provenance). Null when user deleted. */
+  createdBy?: Maybe<Scalars['ID']['output']>;
   errorMessage?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isStarred: Scalars['Boolean']['output'];
   messages: Array<Message>;
   modelUsed?: Maybe<Scalars['String']['output']>;
+  /** Organization context (null for personal threads) */
   organizationId?: Maybe<Scalars['ID']['output']>;
-  ownerUserId: Scalars['ID']['output'];
+  /** Current owner (mutable). Null when user deleted, triggers reassignment. */
+  ownerUserId?: Maybe<Scalars['ID']['output']>;
   processingTimeMs?: Maybe<Scalars['Int']['output']>;
   queryText: Scalars['String']['output'];
   result?: Maybe<Scalars['String']['output']>;
   sources?: Maybe<Scalars['JSON']['output']>;
+  /** Space context (null for personal/org-wide threads) */
   spaceId?: Maybe<Scalars['ID']['output']>;
   status?: Maybe<ThreadStatusEnum>;
   title?: Maybe<Scalars['String']['output']>;
   tokensUsed?: Maybe<Scalars['Int']['output']>;
   updatedAt: Scalars['DateTime']['output'];
+  /** Visibility scope: PERSONAL (owner only), SPACE (team members), ORGANIZATION (all org members) */
   visibility: ThreadVisibilityEnum;
 };
 
@@ -750,7 +762,7 @@ export type CreateThreadMutation = {
     id: string;
     organizationId?: string | null;
     spaceId?: string | null;
-    createdBy: string;
+    createdBy?: string | null;
     queryText: string;
     result?: string | null;
     title?: string | null;
@@ -783,7 +795,7 @@ export type UpdateThreadMutation = {
     id: string;
     organizationId?: string | null;
     spaceId?: string | null;
-    createdBy: string;
+    createdBy?: string | null;
     queryText: string;
     result?: string | null;
     title?: string | null;
@@ -1055,11 +1067,11 @@ export type GetThreadsQuery = {
   threads: Array<{
     __typename?: 'Thread';
     id: string;
-    ownerUserId: string;
+    ownerUserId?: string | null;
     visibility: ThreadVisibilityEnum;
     organizationId?: string | null;
     spaceId?: string | null;
-    createdBy: string;
+    createdBy?: string | null;
     queryText: string;
     result?: string | null;
     title?: string | null;
@@ -1101,11 +1113,11 @@ export type GetThreadQuery = {
   thread?: {
     __typename?: 'Thread';
     id: string;
-    ownerUserId: string;
+    ownerUserId?: string | null;
     visibility: ThreadVisibilityEnum;
     organizationId?: string | null;
     spaceId?: string | null;
-    createdBy: string;
+    createdBy?: string | null;
     queryText: string;
     result?: string | null;
     title?: string | null;

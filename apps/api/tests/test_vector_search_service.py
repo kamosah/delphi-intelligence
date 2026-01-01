@@ -19,7 +19,7 @@ from app.services.vector_search_service import (
 class TestVectorSearchService:
     """Test cases for vector search service."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_embedding_service(self):
         """Create a mock embedding service."""
         service = AsyncMock()
@@ -29,12 +29,12 @@ class TestVectorSearchService:
         )
         return service
 
-    @pytest.fixture()
+    @pytest.fixture
     def vector_search_service(self, mock_embedding_service):
         """Create a vector search service instance with mocked embedding service."""
         return VectorSearchService(embedding_service=mock_embedding_service)
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_document(self):
         """Create a mock document for testing."""
         document = Document()
@@ -48,7 +48,7 @@ class TestVectorSearchService:
         document.uploaded_by = uuid4()
         return document
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_chunk(self, mock_document):
         """Create a mock document chunk for testing."""
         chunk = DocumentChunk()

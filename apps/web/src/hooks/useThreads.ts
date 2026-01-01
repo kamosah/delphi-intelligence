@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useClientToken } from '@/hooks/useClientToken';
@@ -47,6 +48,7 @@ export function useThreads(options?: {
 }) {
   const { clientToken } = useClientToken();
   const { currentOrganization } = useAuthStore();
+  const queryClient = useQueryClient();
   const spaceId = options?.spaceId;
   const orgId = options?.organizationId ?? currentOrganization?.id;
   const limit = options?.limit ?? 100;
@@ -69,6 +71,26 @@ export function useThreads(options?: {
       }),
     }
   );
+
+  // Pre-populate individual thread caches for instant navigation
+  // When user clicks on a thread from the list, detail page loads from cache (no network request)
+  // IMPORTANT: Atomic update prevents race conditions between list and detail queries
+  const populateCaches = useCallback(() => {
+    if (query.isSuccess && query.data?.threads) {
+      query.data.threads.forEach((thread) => {
+        // Atomic update: only set data if cache is empty, avoiding race conditions
+        // If existingData is present, keep it (fresher detail data); otherwise use thread from list
+        queryClient.setQueryData(
+          queryKeys.threads.detail(thread.id),
+          (existingData) => existingData ?? { thread }
+        );
+      });
+    }
+  }, [query.isSuccess, query.data, queryClient]);
+
+  useEffect(() => {
+    populateCaches();
+  }, [populateCaches]);
 
   return {
     threads: query.data?.threads || [],
