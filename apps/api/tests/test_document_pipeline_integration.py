@@ -21,13 +21,13 @@ from app.services.document_processor import DocumentProcessor
 class TestDocumentProcessingPipeline:
     """Integration tests for complete document processing pipeline"""
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_db(self):
         """Create a mock database session"""
         db = AsyncMock()
         return db
 
-    @pytest.fixture()
+    @pytest.fixture
     def sample_pdf_content(self):
         """Sample PDF text content for testing"""
         return """
@@ -77,7 +77,7 @@ class TestDocumentProcessingPipeline:
         semantic analysis capabilities.
         """
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_test_document(self, mock_db):
         """Factory for creating test documents"""
 

@@ -32,7 +32,7 @@ from app.services.spicedb_service import SpiceDBService, get_spicedb_service
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_user() -> MagicMock:
     """Create a mock user for testing."""
     user = MagicMock(spec=User)
@@ -43,7 +43,7 @@ def mock_user() -> MagicMock:
     return user
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_organization(mock_user: MagicMock) -> MagicMock:
     """Create a mock organization for testing."""
     org = MagicMock(spec=Organization)
@@ -56,7 +56,7 @@ def mock_organization(mock_user: MagicMock) -> MagicMock:
     return org
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_organization_member(mock_organization: MagicMock, mock_user: MagicMock) -> MagicMock:
     """Create a mock organization member for testing."""
     member = MagicMock(spec=OrganizationMember)
@@ -69,7 +69,7 @@ def mock_organization_member(mock_organization: MagicMock, mock_user: MagicMock)
     return member
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_space(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     """Create a mock space for testing."""
     space = MagicMock(spec=Space)
@@ -83,7 +83,7 @@ def mock_space(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     return space
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_thread(
     mock_user: MagicMock, mock_organization: MagicMock, mock_space: MagicMock
 ) -> MagicMock:
@@ -129,7 +129,7 @@ def mock_thread(
     return thread
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_org_thread(mock_user: MagicMock, mock_organization: MagicMock) -> MagicMock:
     """Create a mock org-wide thread (no space) with messages for multi-turn testing."""
     thread = MagicMock(spec=Thread)
@@ -166,7 +166,7 @@ def mock_org_thread(mock_user: MagicMock, mock_organization: MagicMock) -> Magic
     return thread
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_db_session() -> AsyncMock:
     """Create a mock database session for testing."""
     session = AsyncMock()
@@ -180,7 +180,7 @@ def mock_db_session() -> AsyncMock:
     return session
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_info(mock_user: MagicMock) -> MagicMock:
     """Create a mock GraphQL info context with authenticated user."""
     mock_request = MagicMock()
@@ -190,7 +190,7 @@ def mock_info(mock_user: MagicMock) -> MagicMock:
     return mock_info
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_info_no_auth() -> MagicMock:
     """Create a mock GraphQL info context without authenticated user."""
     mock_request = MagicMock()
@@ -200,7 +200,7 @@ def mock_info_no_auth() -> MagicMock:
     return mock_info
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[AsyncMock, None]]:
     """Create a mock get_session generator for patching."""
 
@@ -210,7 +210,7 @@ def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[
     return _mock_get_session
 
 
-@pytest.fixture()
+@pytest.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """Provide an async HTTP client for testing endpoints."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -233,7 +233,7 @@ class GraphQLClient:
         return result
 
 
-@pytest.fixture()
+@pytest.fixture
 async def graphql_client(async_client: AsyncClient) -> GraphQLClient:
     """Provide a GraphQL client wrapper for testing."""
     return GraphQLClient(async_client)
@@ -244,7 +244,7 @@ async def graphql_client(async_client: AsyncClient) -> GraphQLClient:
 # --------------------------------------------------------------------------- #
 
 
-@pytest.fixture()
+@pytest.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide an in-memory SQLite database session for testing.
@@ -303,7 +303,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 # --------------------------------------------------------------------------- #
 
 
-@pytest.fixture()
+@pytest.fixture
 def test_resource_ids(request: pytest.FixtureRequest) -> Callable[[str], str]:
     """Generate unique resource IDs scoped to this test (parallel-safe).
 
@@ -346,7 +346,7 @@ def test_resource_ids(request: pytest.FixtureRequest) -> Callable[[str], str]:
     return make_id
 
 
-@pytest.fixture()
+@pytest.fixture
 async def spicedb_service(
     test_resource_ids: Callable[[str], str],
 ) -> AsyncGenerator[SpiceDBService, None]:

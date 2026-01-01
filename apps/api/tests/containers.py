@@ -54,7 +54,7 @@ async def postgres_engine(
     await engine.dispose()
 
 
-@pytest.fixture()
+@pytest.fixture
 async def postgres_session(
     postgres_engine: AsyncEngine,
 ) -> AsyncGenerator[AsyncSession, None]:

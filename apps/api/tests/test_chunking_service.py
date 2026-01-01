@@ -14,7 +14,7 @@ from app.services.chunking_service import ChunkingService, chunking_service
 class TestChunkingService:
     """Test cases for chunking service"""
 
-    @pytest.fixture()
+    @pytest.fixture
     def chunking_service(self):
         """Create a chunking service instance with default settings"""
         return ChunkingService(
@@ -24,7 +24,7 @@ class TestChunkingService:
             max_chunk_size=1000,
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_document(self):
         """Create a mock document for testing"""
         document = Document()
@@ -363,7 +363,7 @@ class TestChunkingService:
 class TestChunkingServiceDatabase:
     """Test cases for chunking service with database operations"""
 
-    @pytest.fixture()
+    @pytest.fixture
     def mock_document_async(self):
         """Create a mock document for async tests"""
         document = Document()

@@ -11,13 +11,13 @@ import pytest
 from app.main import app
 
 
-@pytest.fixture()
+@pytest.fixture
 def client():
     """Create test client"""
     return TestClient(app)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_user():
     """Mock authenticated user"""
     user_id = uuid4()
@@ -30,13 +30,13 @@ def mock_user():
     return mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def auth_headers():
     """Create authorization headers with mock JWT"""
     return {"Authorization": "Bearer mock.jwt.token"}
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_auth(mock_user):
     """Setup complete auth mocking for middleware and GraphQL"""
     with (
@@ -73,7 +73,7 @@ def mock_auth(mock_user):
         }
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_space_model(mock_user):
     """Create a mock Space model instance"""
     space_id = uuid4()

@@ -64,12 +64,26 @@ npm run dev                     # Dev server
 npm run graphql:generate       # Generate types after backend changes
 npm run storybook              # Component development (port 6006)
 
-# Backend
+# Backend (Docker)
 cd apps/api
 docker compose up -d                                 # Start services
 docker compose exec api poetry run pytest           # Run tests
 docker compose exec api poetry run alembic upgrade head # Apply migrations
+
+# Backend (Local - requires Python 3.11 via pyenv/asdf/mise)
+cd apps/api
+poetry install                  # Install dependencies to .venv/
+poetry run pytest               # Run tests locally
+poetry run ruff check           # Lint code
+poetry run mypy app/            # Type check
 ```
+
+**Python Version Management:**
+
+- Project uses **Python 3.11.9** (specified in `apps/api/.python-version`)
+- **Dev Container**: Python installed in Docker container
+- **Local Development**: Use pyenv/asdf/mise to manage Python versions
+- See [Local Python Setup Guide](./docs/guides/local-python-setup.md) for installation
 
 See [Development Commands Guide](./docs/guides/development-commands.md) for complete reference.
 
