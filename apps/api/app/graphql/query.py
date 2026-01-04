@@ -710,7 +710,7 @@ class Query:
         return []
 
     @strawberry.field
-    async def thread(self, info: strawberry.types.Info, id: strawberry.ID) -> Thread | None:  # noqa: PLR0911
+    async def thread(self, info: strawberry.types.Info, id: strawberry.ID) -> Thread | None:
         """
         Get a single thread by ID.
 
@@ -777,7 +777,8 @@ class Query:
                     logger.warning(
                         f"User {user_id} attempted to access unauthorized thread {thread_id}"
                     )
-                    return None
+                    msg = f"You do not have permission to access thread {thread_id}"
+                    raise PermissionError(msg)
 
                 if thread_model:
                     return Thread.from_model(thread_model)

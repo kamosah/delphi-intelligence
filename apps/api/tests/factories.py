@@ -267,6 +267,7 @@ async def create_thread(
         title=title,
         organization_id=organization.id,
         space_id=space.id if space else None,
+        owner_user_id=creator.id,  # Set owner to creator by default
         created_by=creator.id,
         status=status,
     )
