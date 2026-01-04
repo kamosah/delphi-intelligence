@@ -346,35 +346,6 @@ def test_resource_ids(request: pytest.FixtureRequest) -> Callable[[str], str]:
     return make_id
 
 
-def create_mock_graphql_info(user: MagicMock) -> MagicMock:
-    """Helper function to create a mock GraphQL info context with authenticated user.
-
-    This helper reduces coupling to internal authentication implementation
-    and improves test maintainability across test files.
-
-    Args:
-        user: Mock user object with id and email attributes
-
-    Returns:
-        Mock GraphQL info object with authenticated user in request context
-
-    Example:
-        >>> mock_user = MagicMock()
-        >>> mock_user.id = uuid4()
-        >>> mock_user.email = "test@example.com"
-        >>> info = create_mock_graphql_info(mock_user)
-        >>> # Use info in resolver tests
-        >>> result = await resolver.thread(id=thread_id, info=info)
-    """
-    mock_request = MagicMock()
-    mock_request.state.user = user
-
-    mock_info = MagicMock()
-    mock_info.context = {"request": mock_request}
-
-    return mock_info
-
-
 @pytest.fixture
 async def spicedb_service(
     test_resource_ids: Callable[[str], str],
