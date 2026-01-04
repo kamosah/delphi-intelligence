@@ -700,10 +700,14 @@ class TestMultiOrgUserIsolation:
     across organizational boundaries.
     """
 
-    async def test_user_in_org_a_cannot_read_org_b_personal_thread(
+    async def test_personal_thread_accessible_to_owner_regardless_of_org(
         self, spicedb_service: SpiceDBService, test_resource_ids
     ):
-        """Test that personal threads are user-specific, not org-dependent."""
+        """Test that personal threads are user-specific, not org-dependent.
+
+        Personal threads are accessible to the owner regardless of which organization
+        context they're in. This validates that ownership is user-centric, not org-centric.
+        """
         # Generate unique IDs for multi-org scenario
         user_id = test_resource_ids("user")
         org_a_id = test_resource_ids("org_a")
