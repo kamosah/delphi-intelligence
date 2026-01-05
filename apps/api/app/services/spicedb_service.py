@@ -588,8 +588,7 @@ class SpiceDBService:
                 space_id=None,
             )
 
-            # Personal thread (no SpiceDB sync - use PostgreSQL RLS instead)
-            # TODO(LOG-259): Implement RLS policies for personal threads
+            # Personal threads use PostgreSQL RLS (migration 19f86983628b)
             if visibility != ThreadVisibility.PERSONAL:
                 await spicedb.sync_thread_relationships(...)
         """
