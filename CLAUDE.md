@@ -172,13 +172,16 @@ Threads use a **dual authorization strategy**:
 
 - **Owner-based access**: All threads have an `owner_user_id` (primary ownership)
 - **Visibility scoping**: Determines access rules via `ThreadVisibility` enum:
-  - `PERSONAL`: Private to owner only (PostgreSQL RLS - implemented in migration `19f86983628b`)
+  - `PERSONAL`: Private to owner only (PostgreSQL RLS - see migration below)
   - `SPACE`: Shared within team workspace (SpiceDB + space membership)
   - `ORGANIZATION`: Company-wide access (SpiceDB + org membership)
 - **Optional context**: `organization_id` and `space_id` are nullable
 - **Migrations**:
-  - Ownership model: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
-  - RLS policies: `19f86983628b_add_rls_policies_for_personal_threads.py`
+  - Ownership model: `apps/api/alembic/versions/a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+  - RLS policies: `apps/api/alembic/versions/19f86983628b_add_rls_policies_for_personal_threads.py`
+- **SpiceDB Schema**: Full schema definition in `apps/api/app/policies/olympus.zed`
+
+**CRITICAL**: RLS policies use Supabase's `auth.uid()` function - this is essential for the current Supabase architecture. The `auth.uid()` function returns the authenticated user's UUID from the JWT token, enabling database-level filtering without application code.
 
 Messages use `AuthorType` enum (`user`, `agent`, `system`) to distinguish creators.
 

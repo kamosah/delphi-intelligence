@@ -293,7 +293,7 @@ Olympus uses a **hybrid authorization approach** that balances security with per
 - Fast performance (no external service calls)
 - Automatic filtering via Supabase `auth.uid()`
 
-**Implementation**: Migration `19f86983628b_add_rls_policies_for_personal_threads.py`
+**Implementation**: `apps/api/alembic/versions/19f86983628b_add_rls_policies_for_personal_threads.py`
 
 **RLS Policies:**
 
@@ -301,6 +301,8 @@ Olympus uses a **hybrid authorization approach** that balances security with per
 - INSERT: Users can create personal threads
 - UPDATE/DELETE: Users can modify/delete own threads
 - Service role bypass for admin operations
+
+**CRITICAL**: Policies use Supabase's `auth.uid()` function to get authenticated user's UUID from JWT token. This is essential for the current Supabase architecture.
 
 **Code Example:**
 
@@ -369,7 +371,7 @@ has_access = await spicedb.check_permission(
 )
 ```
 
-**Permission Logic** (from `olympus.zed`):
+**Permission Logic** (from `apps/api/app/policies/olympus.zed`):
 
 ```zed
 definition thread {

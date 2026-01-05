@@ -514,13 +514,16 @@ Olympus uses a **dual authorization strategy** that balances security with perfo
 
 #### 1. Personal Threads (PostgreSQL RLS)
 
-**Implementation**: Migration `19f86983628b_add_rls_policies_for_personal_threads.py`
+**Implementation**: `apps/api/alembic/versions/19f86983628b_add_rls_policies_for_personal_threads.py`
 
 **Why RLS for personal threads?**
 - Simple owner-based access control (no complex relationships)
 - Database-level enforcement (defense-in-depth)
 - Fast performance (no external authorization service call)
-- Supabase integration via `auth.uid()`
+- **CRITICAL**: Uses Supabase's `auth.uid()` function for authentication
+  - `auth.uid()` returns authenticated user's UUID from JWT token
+  - Essential for current Supabase architecture
+  - Enables database-level filtering without application code
 
 **RLS Policies Created:**
 ```sql
@@ -574,7 +577,7 @@ await spicedb.sync_thread_relationships(
 )
 ```
 
-**SpiceDB Schema** (`olympus.zed`):
+**SpiceDB Schema** (`apps/api/app/policies/olympus.zed`):
 - Organization members can read org-wide threads
 - Space members can read space-scoped threads
 - Thread owners always have full permissions
