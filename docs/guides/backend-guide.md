@@ -280,18 +280,68 @@ system_message = Message(
 )
 ```
 
-### Authorization Strategy
+### Thread Authorization: Dual Strategy
 
-**Org/Space Threads:**
+Olympus uses a **hybrid authorization approach** that balances security with performance:
 
-- Use SpiceDB for fine-grained access control
-- Permissions based on organization roles and space membership
-- Relationships synced via `spicedb_service.sync_thread_relationships()`
+#### Personal Threads → PostgreSQL RLS
+
+**Why RLS?**
+
+- Simple owner-based access control (no relationships)
+- Database-level enforcement (defense-in-depth)
+- Fast performance (no external service calls)
+- Automatic filtering via Supabase `auth.uid()`
+
+**Implementation**: Migration `19f86983628b_add_rls_policies_for_personal_threads.py`
+
+**RLS Policies:**
+
+- SELECT: Users can read own personal threads
+- INSERT: Users can create personal threads
+- UPDATE/DELETE: Users can modify/delete own threads
+- Service role bypass for admin operations
+
+**Code Example:**
+
+```python
+# Personal threads - RLS handles authorization automatically
+personal_thread = Thread(
+    owner_user_id=user.id,
+    visibility=ThreadVisibility.PERSONAL,
+    query_text="My private analysis"
+)
+db.add(personal_thread)
+await db.commit()
+# No SpiceDB sync needed - RLS enforces owner-only access
+```
+
+**RLS Policy SQL:**
+
+```sql
+CREATE POLICY "Users can read own personal threads" ON threads
+    FOR SELECT
+    USING (
+        visibility = 'personal'
+        AND owner_user_id = (SELECT id FROM users WHERE auth_user_id = auth.uid())
+    );
+```
+
+#### Space/Organization Threads → SpiceDB
+
+**Why SpiceDB?**
+
+- Complex relationship-based permissions
+- Supports hierarchical access (org → space → thread)
+- Centralized authorization across all resources
+- Future-ready for advanced features (caveats, time-based access)
+
+**SpiceDB Authorization Flow:**
 
 ```python
 from app.services.spicedb_service import get_spicedb_service
 
-# Sync organization thread to SpiceDB
+# 1. Sync organization thread to SpiceDB
 spicedb = get_spicedb_service()
 await spicedb.sync_thread_relationships(
     thread_id=str(thread.id),
@@ -300,26 +350,61 @@ await spicedb.sync_thread_relationships(
     space_id=None,  # Org-wide thread
 )
 
-# Sync space thread to SpiceDB
+# 2. Sync space thread to SpiceDB
 await spicedb.sync_thread_relationships(
     thread_id=str(thread.id),
     owner_id=str(user.id),
     organization_id=str(org.id),
-    space_id=str(space.id),
+    space_id=str(space.id),  # Space-scoped thread
+)
+
+# 3. Check permissions via SpiceDB
+has_access = await spicedb.check_permission(
+    CheckPermissionInput(
+        user_id=str(user.id),
+        permission="read",
+        resource_type="thread",
+        resource_id=str(thread.id)
+    )
 )
 ```
 
-**Personal Threads:**
+**Permission Logic** (from `olympus.zed`):
 
-- Use PostgreSQL RLS for owner-based isolation
-- Database-level filtering on `owner_user_id`
-- TODO(LOG-259): RLS policies to be implemented
+```zed
+definition thread {
+  relation organization: organization
+  relation space: space | organization#space
+  relation owner: user
+
+  // Read permissions
+  permission read = owner + space->member + organization->member
+
+  // Write permissions
+  permission write = owner + space->admin
+  permission delete = owner + organization->admin
+}
+```
+
+**Sync Strategy:**
 
 ```python
 # Personal threads skip SpiceDB sync
 if visibility != ThreadVisibility.PERSONAL:
-    await spicedb.sync_thread_relationships(...)
+    await spicedb.sync_thread_relationships(
+        thread_id=str(thread.id),
+        owner_id=str(user.id),
+        organization_id=str(org_id),
+        space_id=str(space_id) if space_id else None
+    )
 ```
+
+**Why This Hybrid Approach?**
+
+- ✅ Best performance for personal workflows (RLS = no network calls)
+- ✅ Flexible team collaboration (SpiceDB = relationship-based)
+- ✅ Defense-in-depth security (RLS + SpiceDB)
+- ✅ Scalable for future features (caveats, expiration)
 
 ### GraphQL Integration
 

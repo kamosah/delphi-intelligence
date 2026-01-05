@@ -463,7 +463,7 @@ class ThreadVisibility(StrEnum):
 - **PERSONAL**: Private threads owned by a single user
   - No organization or space context
   - Use for: Personal analysis, drafts, private notes
-  - Access: Owner only (PostgreSQL RLS - TODO: LOG-259)
+  - Access: Owner only (PostgreSQL RLS - implemented in migration 19f86983628b)
 
 - **SPACE**: Threads shared within a specific team workspace
   - Requires `space_id` and `organization_id`
@@ -508,17 +508,92 @@ agent_message = Message(
 )
 ```
 
-### Authorization Strategy
+### Thread Authorization Architecture
 
-**Org/Space Threads:**
-- Use SpiceDB for fine-grained access control
-- Permissions based on organization roles and space membership
-- Relationships synced via `spicedb_service.sync_thread_relationships()`
+Olympus uses a **dual authorization strategy** that balances security with performance:
 
-**Personal Threads:**
-- Use PostgreSQL RLS for owner-based isolation
-- Database-level filtering on `owner_user_id`
-- TODO(LOG-259): RLS policies to be implemented
+#### 1. Personal Threads (PostgreSQL RLS)
+
+**Implementation**: Migration `19f86983628b_add_rls_policies_for_personal_threads.py`
+
+**Why RLS for personal threads?**
+- Simple owner-based access control (no complex relationships)
+- Database-level enforcement (defense-in-depth)
+- Fast performance (no external authorization service call)
+- Supabase integration via `auth.uid()`
+
+**RLS Policies Created:**
+```sql
+-- SELECT: Users can read own personal threads
+CREATE POLICY "Users can read own personal threads" ON threads
+    FOR SELECT
+    USING (
+        visibility = 'personal'
+        AND owner_user_id = (SELECT id FROM users WHERE auth_user_id = auth.uid())
+    );
+
+-- INSERT: Users can create personal threads
+-- UPDATE: Users can update own personal threads
+-- DELETE: Users can delete own personal threads
+-- Service role bypass for admin operations
+```
+
+**Key Features:**
+- Uses Supabase's `auth.uid()` for authentication
+- Automatic filtering at database layer
+- No application code needed for access checks
+- Helper function: `is_personal_thread_owner(thread_id UUID)`
+
+#### 2. Space/Organization Threads (SpiceDB)
+
+**Why SpiceDB for collaborative threads?**
+- Complex relationship-based permissions (org roles, space membership)
+- Supports hierarchical access (org → space → thread)
+- Centralized authorization across all resources
+- Future-ready for advanced features (time-based access, caveats)
+
+**Authorization Flow:**
+```python
+# 1. Check permission via SpiceDB
+spicedb = get_spicedb_service()
+has_access = await spicedb.check_permission(
+    CheckPermissionInput(
+        user_id=str(user.id),
+        permission="read",
+        resource_type="thread",
+        resource_id=str(thread.id)
+    )
+)
+
+# 2. Sync relationships on thread creation
+await spicedb.sync_thread_relationships(
+    thread_id=str(thread.id),
+    organization_id=str(org.id),
+    owner_id=str(user.id),
+    space_id=str(space.id) if space_id else None
+)
+```
+
+**SpiceDB Schema** (`olympus.zed`):
+- Organization members can read org-wide threads
+- Space members can read space-scoped threads
+- Thread owners always have full permissions
+- Admins can manage all threads in their org/space
+
+**Sync Strategy:**
+- **Synchronous**: Thread creation, membership changes (user expects immediate access)
+- **Asynchronous**: Role updates, cleanup operations (eventual consistency OK)
+
+#### Architecture Decision
+
+**Personal threads**: RLS (simple, fast, owner-only)
+**Space/Org threads**: SpiceDB (complex, relationship-based)
+
+This hybrid approach provides:
+- ✅ Best performance for personal workflows
+- ✅ Flexible permissions for team collaboration
+- ✅ Defense-in-depth security (RLS + SpiceDB)
+- ✅ Scalable architecture for future features
 
 ### Database Schema
 

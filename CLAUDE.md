@@ -168,15 +168,17 @@ See [Environment Setup Guide](./docs/guides/environment-setup.md) for configurat
 
 **Thread Ownership Model**: User-centric ownership with visibility scoping
 
-Threads use a dual authorization strategy:
+Threads use a **dual authorization strategy**:
 
 - **Owner-based access**: All threads have an `owner_user_id` (primary ownership)
 - **Visibility scoping**: Determines access rules via `ThreadVisibility` enum:
-  - `PERSONAL`: Private to owner only (PostgreSQL RLS - TODO: LOG-259)
+  - `PERSONAL`: Private to owner only (PostgreSQL RLS - implemented in migration `19f86983628b`)
   - `SPACE`: Shared within team workspace (SpiceDB + space membership)
   - `ORGANIZATION`: Company-wide access (SpiceDB + org membership)
 - **Optional context**: `organization_id` and `space_id` are nullable
-- **Migration**: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+- **Migrations**:
+  - Ownership model: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+  - RLS policies: `19f86983628b_add_rls_policies_for_personal_threads.py`
 
 Messages use `AuthorType` enum (`user`, `agent`, `system`) to distinguish creators.
 
