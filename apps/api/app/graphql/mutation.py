@@ -1135,8 +1135,7 @@ class Mutation:
                 await session.refresh(thread_model)
 
                 # Sync to SpiceDB ONLY for org/space threads
-                # Personal threads use PostgreSQL RLS (to be implemented in future PR)
-                # TODO(LOG-259): Implement RLS policies for personal threads
+                # Personal threads use PostgreSQL RLS (migration 19f86983628b)
                 if org_id:
                     spicedb = get_spicedb_service()
                     sync_success = await spicedb.sync_thread_relationships(
