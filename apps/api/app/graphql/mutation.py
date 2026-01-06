@@ -10,6 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
 from app.models.organization import Organization as OrganizationModel
+from app.models.organization_invitation import (
+    OrganizationInvitation as OrganizationInvitationModel,
+)
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
     OrganizationRole,
@@ -19,21 +22,25 @@ from app.models.thread import Thread as ThreadModel, ThreadVisibility
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.schemas.spicedb import CheckPermissionInput
+from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.spicedb_service import get_spicedb_service
 from app.services.storage_service import get_storage_service
 from app.utils.slug import generate_unique_slug
 
 from .types import (
+    AcceptInvitationInput,
     AddOrganizationMemberInput,
     BulkDeleteDocumentsInput,
     BulkDeleteResult,
+    CreateInvitationInput,
     CreateOrganizationInput,
     CreateSpaceInput,
     CreateThreadInput,
     CreateUserInput,
     DeleteDocumentInput,
     Organization,
+    OrganizationInvitation,
     OrganizationMember,
     OrganizationRole as OrganizationRoleType,
     Space,
@@ -1541,3 +1548,191 @@ class Mutation:
                 raise
 
         return BulkDeleteResult(deleted_count=0, failed_ids=[])
+
+    # Organization Invitations
+
+    @strawberry.mutation
+    async def invite_user_to_organization(
+        self, info: strawberry.types.Info, input: CreateInvitationInput
+    ) -> OrganizationInvitation:
+        """
+        Invite a user to an organization via email.
+
+        Sends invitation email using Supabase inviteUserByEmail() and creates
+        invitation record in database.
+
+        Args:
+            input: CreateInvitationInput with organization_id, invitee_email, role
+
+        Returns:
+            The created organization invitation
+
+        Authorization:
+            - Only organization admins/owners can invite members
+        """
+        async for session in get_session():
+            try:
+                # Get authenticated user
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                org_id = UUID(str(input.organization_id))
+
+                # Check permission to invite members
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="invite_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "You don't have permission to invite members to this organization"
+                    raise PermissionError(msg)
+
+                # Create invitation
+                invitation = await InvitationService.create_invitation(
+                    db=session,
+                    organization_id=org_id,
+                    inviter_id=user.id,
+                    invitee_email=input.invitee_email,
+                    role=OrganizationRole(input.role),
+                )
+
+                return OrganizationInvitation.from_model(invitation)
+
+            except (ValueError, PermissionError):
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield for MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.mutation
+    async def accept_organization_invitation(
+        self, info: strawberry.types.Info, input: AcceptInvitationInput
+    ) -> OrganizationMember:
+        """
+        Accept an organization invitation.
+
+        Creates organization membership and updates invitation status.
+
+        Args:
+            input: AcceptInvitationInput with invitation_id
+
+        Returns:
+            The created organization membership
+
+        Authorization:
+            - User must be authenticated
+            - Invitation must belong to authenticated user's email
+        """
+        async for session in get_session():
+            try:
+                # Get authenticated user
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                invitation_id = UUID(str(input.invitation_id))
+
+                # Accept invitation (creates membership and syncs to SpiceDB)
+                membership = await InvitationService.accept_invitation(
+                    db=session,
+                    invitation_id=invitation_id,
+                    user_id=user.id,
+                )
+
+                # Refresh to load relationships for GraphQL type conversion
+                await session.refresh(membership)
+
+                return OrganizationMember.from_model(membership)
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield for MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.mutation
+    async def revoke_organization_invitation(
+        self, info: strawberry.types.Info, invitation_id: strawberry.ID
+    ) -> OrganizationInvitation:
+        """
+        Revoke a pending organization invitation.
+
+        Args:
+            invitation_id: ID of invitation to revoke
+
+        Returns:
+            The revoked invitation
+
+        Authorization:
+            - Only organization admins/owners can revoke invitations
+        """
+        async for session in get_session():
+            try:
+                # Get authenticated user
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                inv_id = UUID(str(invitation_id))
+
+                # Get invitation to check organization
+                stmt = select(OrganizationInvitationModel).where(
+                    OrganizationInvitationModel.id == inv_id
+                )
+                result = await session.execute(stmt)
+                invitation = result.scalar_one_or_none()
+
+                if not invitation:
+                    msg = f"Invitation {invitation_id} not found"
+                    raise ValueError(msg)
+
+                # Check permission
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="invite_member",
+                        resource_type="organization",
+                        resource_id=str(invitation.organization_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "You don't have permission to revoke invitations for this organization"
+                    raise PermissionError(msg)
+
+                # Revoke invitation
+                revoked_invitation = await InvitationService.revoke_invitation(
+                    db=session,
+                    invitation_id=inv_id,
+                )
+
+                return OrganizationInvitation.from_model(revoked_invitation)
+
+            except (ValueError, PermissionError):
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield for MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
