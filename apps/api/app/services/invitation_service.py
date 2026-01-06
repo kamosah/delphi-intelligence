@@ -25,6 +25,18 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def _ensure_timezone(dt: datetime) -> datetime:
+    """Ensure datetime is timezone-aware (SQLite compatibility).
+
+    SQLite doesn't preserve timezone info, so datetimes from the database
+    may be timezone-naive even though they're stored as UTC. This helper
+    ensures consistency when comparing datetimes.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
 class InvitationService:
     """Service for organization invitation management."""
 
@@ -137,7 +149,7 @@ class InvitationService:
         if invitation.status != InvitationStatus.PENDING:
             raise ValueError(f"Invitation already {invitation.status.value}")
 
-        if invitation.expires_at < _now():
+        if _ensure_timezone(invitation.expires_at) < _now():
             # Mark as expired
             invitation.status = InvitationStatus.EXPIRED
             await db.commit()
@@ -149,7 +161,6 @@ class InvitationService:
             organization_id=invitation.organization_id,
             user_id=user_id,
             organization_role=invitation.invitation_role,
-            is_active=True,
         )
         db.add(membership)
 
