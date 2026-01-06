@@ -673,8 +673,44 @@ input CreateThreadInput {
 
 ### Migration Reference
 
-- **Initial model**: `60e29a1ed846_add_thread_ownership_model.py`
-- **ENUM conversion & indexes**: `a3c105090510_fix_thread_ownership_enums_and_indexes.py`
+The thread ownership model was built across multiple migrations in a specific dependency sequence:
+
+1. **60e29a1ed846** - `add_thread_ownership_model.py`
+   - Added ownership fields: `owner_user_id`, `visibility` (VARCHAR), CASCADE deletes
+   - Initial thread ownership implementation (LOG-255)
+
+2. **a3c105090510** - `fix_thread_ownership_enums_and_indexes.py`
+   - Converted `visibility` VARCHAR to ThreadVisibility ENUM
+   - Converted `author_type` VARCHAR to AuthorType ENUM
+   - Added indexes for performance optimization
+
+3. **8f8ac8a3fe0a** - `fix_thread_ownership_deletion_policy_for_messages.py`
+   - Fixed deletion policy: CASCADE → SET NULL for message.author_user_id
+   - Prevents message deletion when user is deleted
+
+4. **19f86983628b** - `add_rls_policies_for_personal_threads.py`
+   - **Added PostgreSQL RLS** for personal threads (LOG-259/LOG-260)
+   - Uses Supabase `auth.uid()` for owner verification
+   - 5 policies: SELECT, INSERT, UPDATE, DELETE, service role bypass
+
+5. **d94e0dd20da6** - `add_thread_created_at_index.py`
+   - Performance: Index on threads.created_at for ORDER BY queries
+   - Improves thread listing performance
+
+6. **4c8eeb31dbfe** - `add_author_type_index_to_messages_table.py`
+   - **Performance: Index on messages.author_type** (LOG-262)
+   - Improves filtering by author type (user, agent, system)
+
+7. **83e918a0b0ba** - `add_defensive_rls_for_space_org_threads.py`
+   - **Defense-in-depth RLS** for space/org threads (LOG-262)
+   - Blocks direct database access, requires service role
+   - Complements SpiceDB authorization
+
+**Current head**: `83e918a0b0ba`
+
+**Dual Authorization Strategy**:
+- Personal threads: PostgreSQL RLS (owner-only access)
+- Space/org threads: Defense-in-depth RLS + SpiceDB (relationship-based permissions)
 
 See [SpiceDB Setup](./SPICEDB_SETUP.md) for authorization schema details.
 
