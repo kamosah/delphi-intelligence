@@ -6,6 +6,7 @@ from .document import Document, DocumentStatus
 from .document_chunk import DocumentChunk
 from .message import AuthorType, Message, MessageRole
 from .organization import Organization
+from .organization_invitation import InvitationStatus, OrganizationInvitation
 from .organization_member import OrganizationMember, OrganizationRole
 from .space import MemberRole, Space, SpaceMember
 from .thread import Thread, ThreadStatus, ThreadVisibility
@@ -20,10 +21,12 @@ __all__ = [
     "Document",
     "DocumentChunk",
     "DocumentStatus",
+    "InvitationStatus",
     "MemberRole",
     "Message",
     "MessageRole",
     "Organization",
+    "OrganizationInvitation",
     "OrganizationMember",
     "OrganizationRole",
     "Space",
