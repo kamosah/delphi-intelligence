@@ -26,13 +26,16 @@ async def test_sse_basic_streaming(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
+    unique_test_id: str,
 ) -> None:
     """Test basic SSE streaming with mocked LLM."""
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
@@ -75,13 +78,16 @@ async def test_sse_event_type_parsing(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
+    unique_test_id: str,
 ) -> None:
     """Test that SSE events contain correct type fields (token, citations, done, error)."""
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
@@ -122,13 +128,16 @@ async def test_sse_stream_completion(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
+    unique_test_id: str,
 ) -> None:
     """Test that SSE stream completes with 'done' event."""
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
@@ -166,13 +175,16 @@ async def test_sse_chunk_reconstruction(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
+    unique_test_id: str,
 ) -> None:
     """Test reconstructing full message from token chunks."""
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
@@ -218,13 +230,16 @@ async def test_sse_chunk_reconstruction(
 async def test_sse_missing_query_parameter(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
+    unique_test_id: str,
 ) -> None:
     """Test that SSE endpoint returns 400 for missing query parameter."""
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
@@ -246,10 +261,11 @@ async def test_sse_missing_query_parameter(
 async def test_sse_requires_authentication(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
+    unique_test_id: str,
 ) -> None:
     """Test that SSE endpoint requires authentication."""
     # Create organization (no user auth)
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await postgres_integration_session.commit()
 
     # Request WITHOUT authentication
@@ -266,16 +282,21 @@ async def test_sse_space_access_control(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
+    unique_test_id: str,
 ) -> None:
     """Test that SSE endpoint enforces space access control."""
     # Create two users and organization
     user1 = await create_user(
-        postgres_integration_session, email="user1@example.com", full_name="User One"
+        postgres_integration_session,
+        email=f"user1-{unique_test_id}@example.com",
+        full_name="User One",
     )
     user2 = await create_user(
-        postgres_integration_session, email="user2@example.com", full_name="User Two"
+        postgres_integration_session,
+        email=f"user2-{unique_test_id}@example.com",
+        full_name="User Two",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user1, org)
     await create_membership(postgres_integration_session, user2, org)
 
@@ -302,13 +323,16 @@ async def test_sse_concurrent_streams(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
+    unique_test_id: str,
 ) -> None:
     """Test multiple concurrent SSE streams (parallel safety)."""
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
@@ -352,6 +376,7 @@ async def test_sse_concurrent_streams(
 async def test_sse_timeout_handling(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
+    unique_test_id: str,
 ) -> None:
     """Test that SSE stream times out after 120 seconds (endpoint max).
 
@@ -360,9 +385,11 @@ async def test_sse_timeout_handling(
     """
     # Create test user and organization
     user = await create_user(
-        postgres_integration_session, email="user@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"user-{unique_test_id}@example.com",
+        full_name="Test User",
     )
-    org = await create_organization(postgres_integration_session, "Test Org")
+    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
 
