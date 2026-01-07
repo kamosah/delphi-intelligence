@@ -67,6 +67,7 @@ factory-boy = "^3.3.0"
 pytest-xdist = "^3.6.1"
 faker = "^30.0.0"
 httpx-sse = "^0.4.0"
+psycopg2-binary = "^2.9.11"
 
 [build-system]
 requires = ["poetry-core"]
