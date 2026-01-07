@@ -8,26 +8,29 @@ This module tests the PostgreSQL testing infrastructure to ensure:
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.models.user import User
 from tests.factories import create_user
 
 
 @pytest.mark.integration
-async def test_postgres_session_transaction_rollback(postgres_session: AsyncSession) -> None:
+async def test_postgres_session_transaction_rollback(
+    postgres_session: AsyncSession, postgres_engine: AsyncEngine
+) -> None:
     """Verify that PostgreSQL transactions roll back properly."""
-    # Arrange: Create user
+    # Arrange: Create user and save ID
     user = await create_user(postgres_session, email="test@example.com")
     user_id = user.id
     await postgres_session.flush()
 
-    # Act: Rollback happens in fixture cleanup (simulated here)
+    # Act: Rollback the transaction
     await postgres_session.rollback()
 
-    # Assert: User should not exist after rollback
-    result = await postgres_session.execute(select(User).where(User.id == user_id))
-    assert result.scalar_one_or_none() is None
+    # Assert: User should not exist after rollback (verify with new session)
+    async with AsyncSession(postgres_engine) as verification_session:
+        result = await verification_session.execute(select(User).where(User.id == user_id))
+        assert result.scalar_one_or_none() is None
 
 
 @pytest.mark.integration

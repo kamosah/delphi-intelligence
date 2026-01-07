@@ -5,7 +5,8 @@ This module provides pytest fixtures for testing with real in-memory database
 and mocked dependencies where necessary.
 """
 
-from collections.abc import AsyncGenerator, Callable
+import asyncio
+from collections.abc import AsyncGenerator, Callable, Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -31,8 +32,29 @@ from app.models.user import User
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 
-# PostgreSQL fixtures available in tests.fixtures.postgres
-# Import them as needed in later phases
+# Import PostgreSQL fixtures for integration tests
+# - Fixtures must be imported for pytest discovery even if not directly referenced
+from tests.fixtures.postgres import (  # noqa: F401
+    postgres_container,
+    postgres_engine,
+    postgres_session,
+    unique_test_id,
+)
+
+
+# Override event_loop fixture to be session-scoped for PostgreSQL integration tests
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """Create an instance of the default event loop for the entire test session.
+
+    This fixture is session-scoped to support session-scoped async fixtures like
+    postgres_engine. Without this, pytest-asyncio's default function-scoped event
+    loop causes ScopeMismatch errors.
+    """
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture

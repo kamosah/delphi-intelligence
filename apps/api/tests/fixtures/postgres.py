@@ -4,16 +4,19 @@ This module provides PostgreSQL-based fixtures for integration tests,
 following the principles in TESTING.md:
 - Tests actual database operations (not mocks)
 - Per-test transaction rollback for isolation
-- Alembic migration support for production parity
+- SQLAlchemy metadata schema creation (simple and fast)
 - Parallel-safe with unique_test_id fixture
+
+Note: Future enhancement (LOG-270) will add Alembic migration support
+for full production parity.
 """
 
+import os
 from collections.abc import AsyncGenerator
 from uuid import uuid4
 
 import pytest
-from alembic import command
-from alembic.config import Config
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -22,6 +25,13 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
+from app.models.base import Base
+
+
+def _is_ci_environment() -> bool:
+    """Check if running in CI environment (GitHub Actions)."""
+    return os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+
 
 @pytest.fixture(scope="session")
 def postgres_container() -> PostgresContainer:
@@ -29,32 +39,52 @@ def postgres_container() -> PostgresContainer:
 
     Uses pgvector/pgvector:pg16 image for vector search support.
     Container is session-scoped to minimize startup overhead.
+
+    Environment Detection:
+    - **CI (GitHub Actions)**: Returns mock container pointing to service container
+    - **Local Development**: Starts real testcontainer (requires Docker on host)
+
+    Note: Run tests with `poetry run pytest` locally (not `docker compose exec api pytest`)
     """
-    container = PostgresContainer(
-        image="pgvector/pgvector:pg16",
-        username="test",
-        password="test",
-        dbname="olympus_test",
-    )
-    container.start()
-    yield container
-    container.stop()
+    if _is_ci_environment():
+        # CI: Use GitHub Actions service container (Phase 5)
+        # Mock container with connection details from environment
+        class MockContainer:
+            def get_connection_url(self) -> str:
+                # CI service container connection (will be configured in Phase 5)
+                return "postgresql://test:test@localhost:5432/olympus_test"
+
+        # Yield to match local behavior (even though no cleanup needed)
+        yield MockContainer()  # type: ignore[misc]
+    else:
+        # Local: Start testcontainer
+        container = PostgresContainer(
+            image="pgvector/pgvector:pg16",
+            username="test",
+            password="test",
+            dbname="olympus_test",
+        )
+        container.start()
+        yield container
+        container.stop()
 
 
-def apply_migrations(db_url: str) -> None:
-    """Apply Alembic migrations to test database.
+async def setup_database_schema(engine: AsyncEngine) -> None:
+    """Create database schema using SQLAlchemy metadata.
 
-    This ensures production parity - tests use the same database schema
-    as production, created via Alembic migrations rather than create_all().
+    Creates all tables defined in Base.metadata. This approach is simpler than
+    Alembic migrations for test setup and avoids event loop conflicts.
+
+    Note: For production parity with Alembic migrations, see issue LOG-270.
 
     Args:
-        db_url: Database URL (must be synchronous, not async)
+        engine: Async SQLAlchemy engine connected to test database
     """
-    alembic_cfg = Config("alembic.ini")
-    # Convert asyncpg URL to psycopg2 for Alembic (synchronous driver)
-    sync_url = db_url.replace("+asyncpg", "")
-    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
-    command.upgrade(alembic_cfg, "head")
+    async with engine.begin() as conn:
+        # Install pgvector extension (required for document_chunks.embedding column)
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        # Create all tables
+        await conn.run_sync(Base.metadata.create_all)
 
 
 @pytest.fixture(scope="session")
@@ -64,16 +94,17 @@ async def postgres_engine(
     """Create async engine for PostgreSQL container.
 
     Converts psycopg2 URL from testcontainers to asyncpg for SQLAlchemy async support.
-    Applies Alembic migrations for production parity.
+    Creates database schema using SQLAlchemy metadata (simpler than Alembic for tests).
     """
     db_url = postgres_container.get_connection_url()
     # Convert psycopg2 URL to asyncpg
     async_url = db_url.replace("psycopg2", "asyncpg")
 
-    # Apply migrations BEFORE creating engine (synchronous operation)
-    apply_migrations(db_url)
-
+    # Create engine
     engine = create_async_engine(async_url, echo=False)
+
+    # Create database schema
+    await setup_database_schema(engine)
 
     yield engine
 
