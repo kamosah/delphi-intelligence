@@ -31,6 +31,9 @@ from app.models.user import User
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 
+# PostgreSQL fixtures available in tests.fixtures.postgres
+# Import them as needed in later phases
+
 
 @pytest.fixture
 def mock_user() -> MagicMock:
@@ -386,11 +389,11 @@ async def spicedb_service(
     yield service
 
     # Parallel-safe cleanup: Only delete relationships for this test's resource IDs
-    if hasattr(test_resource_ids, "created_ids") and test_resource_ids.created_ids:  # type: ignore[attr-defined]
+    if hasattr(test_resource_ids, "created_ids") and test_resource_ids.created_ids:
         try:
             result = await delete_relationships_by_ids(
                 service,
-                test_resource_ids.created_ids,  # type: ignore[attr-defined]
+                test_resource_ids.created_ids,
             )
             if result["failed_ids"]:
                 pytest.fail(f"Cleanup failed for IDs: {result['failed_ids']}")
