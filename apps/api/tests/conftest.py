@@ -325,25 +325,29 @@ def sse_client(async_client: AsyncClient) -> SSEClient:
 @pytest.fixture
 async def authenticated_graphql_client(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,  # noqa: F811
+    postgres_integration_session: AsyncSession,  # noqa: F811
+    unique_test_id: str,  # noqa: F811
 ) -> GraphQLClient:
     """Provide GraphQL client with authenticated test user.
 
     Creates a test user in PostgreSQL, generates a JWT token, and injects
     it via cookie. Use this for integration tests requiring authentication.
 
-    Uses postgres_session fixture (imported from tests.fixtures.postgres).
+    Uses postgres_integration_session fixture (commits data to database).
+    Uses unique_test_id to prevent data pollution between tests.
 
     Usage:
         async def test_authenticated_query(authenticated_graphql_client):
             data = await authenticated_graphql_client.execute_expecting_data(
                 query='{ me { id email } }',
             )
-            assert data["me"]["email"] == "test@example.com"
+            # Email will be f"test-{unique_test_id}@example.com"
     """
-    # Create test user in database
-    user = await create_user(postgres_session, email="test@example.com")
-    await postgres_session.commit()
+    # Create test user in database with unique email
+    user = await create_user(
+        postgres_integration_session, email=f"test-{unique_test_id}@example.com"
+    )
+    await postgres_integration_session.commit()
 
     # Create JWT token
     test_user = TestUser(

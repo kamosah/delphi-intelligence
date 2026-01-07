@@ -63,7 +63,7 @@ async def test_authenticated_graphql_client_query(
 
     data = await authenticated_graphql_client.execute_expecting_data(query)
     assert data["me"] is not None
-    assert data["me"]["email"] == "test@example.com"
+    assert "@example.com" in data["me"]["email"]  # Email format: test-{unique_test_id}@example.com
 
 
 @pytest.mark.integration
