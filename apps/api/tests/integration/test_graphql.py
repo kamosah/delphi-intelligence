@@ -147,7 +147,9 @@ async def test_graphql_list_organizations(
 ) -> None:
     """Test listing organizations via GraphQL query."""
     # Create test user for authentication
-    user = await create_user(postgres_integration_session, email=f"test-{unique_test_id}@example.com")
+    user = await create_user(
+        postgres_integration_session, email=f"test-{unique_test_id}@example.com"
+    )
 
     # Create test organizations
     await create_organization(postgres_integration_session, f"Organization 1 {unique_test_id}")
@@ -184,7 +186,9 @@ async def test_graphql_create_space(
 ) -> None:
     """Test creating a space via GraphQL mutation."""
     # Create test user and organization
-    user = await create_user(postgres_integration_session, email=f"user-{unique_test_id}@example.com")
+    user = await create_user(
+        postgres_integration_session, email=f"user-{unique_test_id}@example.com"
+    )
     org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
@@ -226,7 +230,9 @@ async def test_graphql_update_space(
 ) -> None:
     """Test updating a space via GraphQL mutation."""
     # Create test user, organization, and space
-    user = await create_user(postgres_integration_session, email=f"user-{unique_test_id}@example.com")
+    user = await create_user(
+        postgres_integration_session, email=f"user-{unique_test_id}@example.com"
+    )
     org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     space = await create_space(postgres_integration_session, "Original Space", org, user)
     await postgres_integration_session.commit()
@@ -270,7 +276,9 @@ async def test_graphql_create_thread_with_mocked_llm(
 ) -> None:
     """Test creating a thread with mocked LLM (no real OpenAI API calls)."""
     # Create test user and organization
-    user = await create_user(postgres_integration_session, email=f"user-{unique_test_id}@example.com")
+    user = await create_user(
+        postgres_integration_session, email=f"user-{unique_test_id}@example.com"
+    )
     org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await create_membership(postgres_integration_session, user, org)
     await postgres_integration_session.commit()
@@ -347,7 +355,9 @@ async def test_graphql_validation_error_handling(
     """Test GraphQL validation error handling."""
     # Create test user for authentication
     user = await create_user(
-        postgres_integration_session, email=f"test-{unique_test_id}@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"test-{unique_test_id}@example.com",
+        full_name="Test User",
     )
     await postgres_integration_session.commit()
 
@@ -381,7 +391,9 @@ async def test_graphql_query_nonexistent_resource(
     """Test querying a nonexistent resource returns None."""
     # Create test user for authentication
     user = await create_user(
-        postgres_integration_session, email=f"test-{unique_test_id}@example.com", full_name="Test User"
+        postgres_integration_session,
+        email=f"test-{unique_test_id}@example.com",
+        full_name="Test User",
     )
     await postgres_integration_session.commit()
 
