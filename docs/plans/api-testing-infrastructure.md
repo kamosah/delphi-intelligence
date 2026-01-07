@@ -7,7 +7,19 @@
 
 ## Revision History
 
-**2026-01-06 - Review Feedback Incorporated**:
+**2026-01-06 - Second Review Feedback Incorporated**:
+
+- ✅ **Split Phase 4 into 4A and 4B** for clearer milestones (4A: core tests 5pts, 4B: advanced 5-8pts)
+- ✅ **Clarified SpiceDB CI strategy**: Always use `authzed/spicedb` service container (Option A)
+- ✅ **Added test data isolation pattern** with `unique_test_id` fixture for parallel execution
+- ✅ **Added transaction rollback verification test** example to Phase 1
+- ✅ **Clarified authentication approach**: Tests use FastAPI JWT tokens (not Supabase SSR cookies)
+- ✅ **Added coverage exclusions** to pytest configuration (Alembic, models/**init**.py, config.py)
+- ✅ **Adjusted CI target to 5 minutes** (realistic initial target, optimize to 3-4 minutes later)
+- ✅ **Added SSE timeout handling** example to Phase 4B
+- ✅ **Updated timeline estimates** to 20-29 points total (24 points mid-range recommendation)
+
+**2026-01-06 - Initial Review Feedback Incorporated**:
 
 - ✅ Added SpiceDB authorization testing (Phase 4)
 - ✅ Clarified fixture integration strategy with existing `conftest.py` (Phase 1)
@@ -99,15 +111,77 @@ tests/
    - Ensure SpiceDB fixtures (`spicedb_service`, `test_resource_ids`) work with PostgreSQL
    - Make factory functions database-agnostic (accept any `AsyncSession`)
 
-4. Configure pytest settings
+4. **Add test data isolation pattern for parallel execution**
+   - Create `unique_test_id` fixture using pytest worker_id
+   - Pattern ensures each test gets unique data (prevents cross-test conflicts)
+   - Example implementation:
+
+     ```python
+     @pytest.fixture
+     def unique_test_id(worker_id: str) -> str:
+         """Generate unique ID for this test (parallel-safe)."""
+         return f"{worker_id}_{uuid4().hex[:8]}"
+
+     async def test_example(postgres_session: AsyncSession, unique_test_id: str) -> None:
+         user = await create_user(
+             postgres_session,
+             email=f"user-{unique_test_id}@test.com"
+         )
+         # Test logic here
+     ```
+
+   - Document fixture scoping guidelines:
+     - `session`: Expensive setup (database containers, engines)
+     - `function`: Default for most fixtures (transaction rollback per test)
+     - `module`: Shared data within module (rare, use with caution)
+
+5. Configure pytest settings
    - Update `pyproject.toml` with asyncio configuration
    - Add markers for integration tests (`@pytest.mark.integration`)
-   - **Configure pytest-cov with 80% threshold and exclusions**
+   - **Configure pytest-cov with 80% threshold and exclusions**:
+
+     ```toml
+     [tool.coverage.run]
+     omit = [
+         "app/alembic/*",
+         "app/models/__init__.py",
+         "app/config.py",  # Settings are environment-specific
+     ]
+
+     [tool.coverage.report]
+     fail_under = 80
+     exclude_lines = [
+         "pragma: no cover",
+         "if TYPE_CHECKING:",
+         "raise NotImplementedError",
+         "@abstractmethod",
+     ]
+     ```
+
    - Add type checking for tests (`mypy tests/` in CI per `type-safety-guide.md`)
 
-5. Verify basic functionality
+6. Verify basic functionality
    - Simple test creating user and organization
-   - Confirm transaction rollback works
+   - **Verify transaction rollback** with explicit test:
+
+     ```python
+     async def test_transaction_rollback(postgres_session: AsyncSession) -> None:
+         """Verify that test transactions roll back properly."""
+         user = await create_user(postgres_session)
+         user_id = user.id
+         await postgres_session.flush()
+
+         # Rollback happens automatically in fixture cleanup
+         # This test verifies the mechanism works
+         await postgres_session.rollback()
+
+         # User should not exist after rollback
+         result = await postgres_session.execute(
+             select(User).where(User.id == user_id)
+         )
+         assert result.scalar_one_or_none() is None
+     ```
+
    - Test parallel execution with pytest-xdist
    - Verify SpiceDB cleanup works with PostgreSQL
 
@@ -142,10 +216,14 @@ tests/
      - **Event filtering** by event type (e.g., filter "message" vs "done" events)
 
 2. Implement authentication helpers (`tests/fixtures/auth.py`)
-   - JWT token generation for test users
+   - **JWT token generation for test users** (FastAPI custom tokens, not Supabase)
    - `TestUser` dataclass for consistent user data
-   - Cookie-based auth injection
+   - **Token injection via cookies** (`access_token` cookie for FastAPI auth)
    - **Type-hinted helper functions** for token creation
+   - **Note**: Tests use FastAPI JWT tokens directly (not Supabase SSR cookies):
+     - Production: Supabase tokens → exchanged for Olympus JWTs → HTTP-only cookies
+     - Tests: Generate Olympus JWTs directly → inject via cookies
+     - Rationale: Simpler test setup, bypasses Supabase auth complexity
 
 3. Create pytest fixtures for each client type
    - Authenticated and unauthenticated variants
@@ -167,8 +245,8 @@ tests/
 - ✅ GraphQL client can execute queries with proper error handling
 - ✅ REST client supports all HTTP verbs with auth
 - ✅ SSE client can collect and parse streaming events
-- ✅ **SSE tests cover event parsing, chunking, errors, and completion**
-- ✅ Authentication works via HTTP-only cookies
+- ✅ **SSE tests cover event parsing, chunking, errors, and completion** (with timeout examples)
+- ✅ **Authentication works via FastAPI JWT tokens injected as cookies**
 - ✅ **All fixtures have proper type hints, mypy passes**
 
 ### Phase 3: LangChain Mocking (2-3 points)
@@ -218,50 +296,53 @@ tests/
 - ✅ **All mocks have proper type hints, mypy passes**
 - ✅ **Alternative approaches documented for future reference**
 
-### Phase 4: Integration Test Suite (5-8 points)
+### Phase 4A: Core Integration Tests (5 points)
 
-**Goal**: Implement comprehensive integration tests covering all critical API functionality including SpiceDB authorization.
+**Goal**: Implement foundational integration tests for GraphQL, REST authentication, and basic workflows.
+
+**Rationale for Split**: Breaking Phase 4 into two sub-phases provides clearer milestones and reduces risk. Phase 4A establishes core integration testing patterns, while Phase 4B adds advanced features (SpiceDB, SSE, vector search).
 
 **Test Categories**:
 
 1. **GraphQL Endpoint Tests** (`tests/integration/test_graphql.py`)
-   - Thread creation with AI response
+   - Thread creation with basic AI response (using mocked LLM)
    - Space and document CRUD operations
    - Organization membership queries
-   - Authentication and authorization checks
+   - Authentication and authorization checks (basic)
    - Error handling and validation
    - **Type-safe GraphQL client usage with proper assertions**
 
-2. **Vector Search Tests** (`tests/integration/test_vector_search.py`)
-   - pgvector cosine similarity search
-   - Document chunk creation and embedding
-   - Search relevance ranking
-   - Deterministic embedding verification
-   - **Verify PostgreSQL pgvector extension works correctly**
-
-3. **SSE Streaming Tests** (`tests/integration/test_sse_streaming.py`)
-   - AI response streaming with `httpx-sse`
-   - **Event parsing and collection** (event type, data, id, retry)
-   - **Stream chunk reconstruction** (concatenate message chunks)
-   - **Stream completion verification** (done event received)
-   - **Error handling in streams** (timeout, connection errors, malformed events)
-   - **Multiple concurrent streams** (parallel test safety)
-   - **Example test pattern**:
-     ```python
-     events = await sse_client.stream_events("/api/stream", max_events=10)
-     message_events = [e for e in events if e.event == "message"]
-     full_response = "".join(e.json()["content"] for e in message_events)
-     assert "expected content" in full_response
-     assert any(e.event == "done" for e in events)
-     ```
-
-4. **REST Authentication Tests** (`tests/integration/test_rest_auth.py`)
+2. **REST Authentication Tests** (`tests/integration/test_rest_auth.py`)
    - Login/logout flows
-   - Token exchange
-   - Protected endpoint access
-   - Session management
+   - Token exchange and validation
+   - Protected endpoint access (401/403 responses)
+   - Session management basics
 
-5. **SpiceDB Authorization Tests** (`tests/integration/test_spicedb_authorization.py`) **[NEW]**
+**Tasks**:
+
+1. Migrate core GraphQL tests from mocks to PostgreSQL
+2. Implement REST authentication test suite
+3. Ensure all tests use proper factory functions from `tests/utils.py`
+4. Add integration test markers (`@pytest.mark.integration`)
+5. **Add type hints to all test functions**
+
+**Acceptance Criteria**:
+
+- ✅ GraphQL CRUD operations work with PostgreSQL
+- ✅ REST authentication flows tested (login, token validation, logout)
+- ✅ Factory functions work with PostgreSQL
+- ✅ **All tests have type hints, mypy tests/ passes**
+- ✅ **Test coverage ≥60%** (will reach 80% after Phase 4B)
+
+### Phase 4B: Advanced Integration Tests (5-8 points)
+
+**Goal**: Add advanced integration tests for SpiceDB authorization, SSE streaming, and pgvector search.
+
+**Dependencies**: Phase 4A must be complete (establishes core integration testing patterns).
+
+**Test Categories**:
+
+1. **SpiceDB Authorization Tests** (`tests/integration/test_spicedb_authorization.py`)
    - **Thread ownership and visibility**:
      - `PERSONAL` threads (RLS + SpiceDB): Owner-only access, PostgreSQL RLS enforces isolation
      - `SPACE` threads: Space members can access (test SpiceDB space membership checks)
@@ -284,7 +365,7 @@ tests/
      ```python
      async def test_personal_thread_isolation(
          postgres_session, spicedb_service, test_resource_ids
-     ):
+     ) -> None:
          user1_id = test_resource_ids("user1")
          user2_id = test_resource_ids("user2")
          thread_id = test_resource_ids("thread")
@@ -302,26 +383,63 @@ tests/
          assert result.permitted is False
      ```
 
+2. **SSE Streaming Tests** (`tests/integration/test_sse_streaming.py`)
+   - AI response streaming with `httpx-sse`
+   - **Event parsing and collection** (event type, data, id, retry)
+   - **Stream chunk reconstruction** (concatenate message chunks)
+   - **Stream completion verification** (done event received)
+   - **Error handling in streams** (timeout, connection errors, malformed events)
+   - **Multiple concurrent streams** (parallel test safety)
+   - **Example test pattern**:
+
+     ```python
+     # Add timeout handling example
+     events = await sse_client.stream_events(
+         "/api/stream",
+         max_events=10,
+         timeout=5.0  # Explicit timeout
+     )
+     assert len(events) > 0, "Stream timeout - no events received"
+
+     message_events = [e for e in events if e.event == "message"]
+     full_response = "".join(e.json()["content"] for e in message_events)
+     assert "expected content" in full_response
+     assert any(e.event == "done" for e in events)
+     ```
+
+3. **Vector Search Tests** (`tests/integration/test_vector_search.py`)
+   - pgvector cosine similarity search
+   - Document chunk creation and embedding
+   - Search relevance ranking
+   - Deterministic embedding verification
+   - **Verify PostgreSQL pgvector extension works correctly**
+
 **Tasks**:
 
-1. Migrate existing mock-based tests to PostgreSQL fixtures
-2. Add new tests for untested functionality
-3. **Implement comprehensive SpiceDB authorization tests**
-4. Ensure all tests use proper factory functions from `tests/utils.py`
-5. Add integration test markers (`@pytest.mark.integration`)
-6. **Verify existing SpiceDB fixtures (`spicedb_service`, `test_resource_ids`) work with PostgreSQL**
-7. **Add type hints to all test functions and assertions**
+1. **Implement comprehensive SpiceDB authorization tests**
+   - Thread ownership and visibility (PERSONAL/SPACE/ORGANIZATION)
+   - Space and organization permissions
+   - RLS policy integration verification
+2. **Implement SSE streaming tests**
+   - Event parsing and chunk reconstruction
+   - Timeout handling and error cases
+   - Concurrent stream testing
+3. **Implement pgvector search tests**
+   - Cosine similarity search
+   - Embedding determinism verification
+4. **Verify existing SpiceDB fixtures work with PostgreSQL**
+   - `spicedb_service` and `test_resource_ids` integration
+   - Parallel test safety with unique resource IDs
+5. **Add type hints to all test functions**
 
 **Acceptance Criteria**:
 
-- ✅ All critical API endpoints have integration tests
-- ✅ Tests use real PostgreSQL, not mocks
-- ✅ Vector search tests validate pgvector functionality
-- ✅ SSE tests verify streaming behavior with detailed event parsing
 - ✅ **SpiceDB authorization tests cover thread ownership, space/org permissions, RLS integration**
 - ✅ **SpiceDB tests use `test_resource_ids` for parallel safety**
+- ✅ **SSE tests verify streaming behavior with detailed event parsing and timeout handling**
+- ✅ **Vector search tests validate pgvector functionality**
 - ✅ **All tests have type hints, mypy tests/ passes**
-- ✅ Test coverage ≥80%
+- ✅ **Test coverage ≥80%** (combined with Phase 4A)
 
 ### Phase 5: GitHub Actions CI (2-3 points)
 
@@ -339,25 +457,33 @@ tests/
 - Automatic cleanup and isolation
 - Works identically across different development environments
 
+**SpiceDB CI Strategy**: **Use `authzed/spicedb` service container** (required for Phase 4B authorization tests)
+
+- **Decision**: Option A - Always use SpiceDB service container in CI
+- **Rationale**: Maintains parity with local development, required for Phase 4B tests
+- **Alternative rejected**: Skipping SpiceDB tests in CI breaks parity and reduces confidence
+
 **Tasks**:
 
 1. Create `.github/workflows/api-tests.yml`
-   - **Use service containers** for PostgreSQL, Redis, and SpiceDB (if needed in CI)
+   - **Use service containers** for PostgreSQL, Redis, and **SpiceDB** (all required)
    - Install dependencies with `astral-sh/setup-uv` (10-100x faster than pip/poetry)
    - Run tests with pytest-xdist in parallel (`-n auto --dist loadscope`)
    - Upload coverage to Codecov
    - **Run mypy tests/ for type checking**
 
-2. Configure service containers
-   - `pgvector/pgvector:pg16` with health checks and pgvector extension enabled
-   - `redis:7-alpine` for session management
-   - Optional: `authzed/spicedb` for SpiceDB authorization tests (or use local Docker Compose)
+2. Configure service containers with health checks
+   - `pgvector/pgvector:pg16` - PostgreSQL with pgvector extension
+   - `redis:7-alpine` - Session management
+   - **`authzed/spicedb`** - Authorization testing (required for Phase 4B)
+   - All containers must have proper health checks for reliability
 
 3. Optimize CI performance
    - Use uv cache for dependencies (enables caching between runs)
    - Use `--dist loadscope` for pytest-xdist (groups tests by module for better fixture reuse)
    - Set timeout limits (10 minutes max for entire workflow)
-   - Run lint/typecheck in parallel with tests if possible
+   - **Initial target: 5 minutes** (realistic for initial implementation)
+   - **Optimization target: 3-4 minutes** (after Phase 5 complete, measure and optimize)
 
 4. Add status badges to README
    - Test status badge
@@ -365,12 +491,12 @@ tests/
 
 **Acceptance Criteria**:
 
-- ✅ CI runs complete in <5 minutes (target: 3-4 minutes)
+- ✅ **CI runs complete in ≤5 minutes initially** (optimize to 3-4 min in follow-up)
 - ✅ Tests run in parallel without conflicts
 - ✅ Coverage reports upload successfully with ≥80% threshold
-- ✅ **Service containers start reliably with health checks**
-- ✅ **SpiceDB service container configured if needed**
+- ✅ **All service containers (PostgreSQL, Redis, SpiceDB) start reliably with health checks**
 - ✅ **mypy tests/ runs in CI and passes**
+- ✅ **SpiceDB authorization tests run successfully in CI**
 
 ### Phase 6: Documentation and Migration (1-2 points)
 
@@ -598,13 +724,14 @@ Based on Modified Fibonacci scale (see CLAUDE.md):
 - **Phase 1 (Foundation)**: 3-5 points (~4-10 hours)
 - **Phase 2 (API Clients)**: 2-3 points (~3-6 hours)
 - **Phase 3 (LangChain Mocking)**: 2-3 points (~3-6 hours)
-- **Phase 4 (Integration Tests)**: 5-8 points (~6-15 hours) - **Includes SpiceDB authorization tests**
+- **Phase 4A (Core Integration Tests)**: 5 points (~6-8 hours) - **GraphQL CRUD, REST auth**
+- **Phase 4B (Advanced Integration Tests)**: 5-8 points (~6-15 hours) - **SpiceDB, SSE, pgvector**
 - **Phase 5 (CI Setup)**: 2-3 points (~3-6 hours)
 - **Phase 6 (Documentation)**: 1-2 points (~2-4 hours) - **Includes testing-migration.md creation**
 
-**Total**: 15-24 points (~21-47 hours)
+**Total**: 20-29 points (~26-55 hours)
 
-**Recommendation**: **Plan for 24 points** (conservative upper bound) to account for:
+**Recommendation**: **Plan for 24 points** (mid-range estimate) to account for:
 
 - SpiceDB authorization test complexity
 - Fixture integration with existing conftest.py
