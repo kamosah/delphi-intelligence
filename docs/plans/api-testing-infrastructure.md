@@ -2,10 +2,20 @@
 
 **Related**: LOG-268 (Implementation issue)
 **Created**: 2026-01-06
-**Updated**: 2026-01-06 (Review feedback incorporated)
-**Status**: Planning → Ready for Implementation
+**Updated**: 2026-01-06 (Final review incorporated - ready for implementation)
+**Status**: Planning → Ready for Implementation ✅
 
 ## Revision History
+
+**2026-01-06 - Final Review Improvements (Pre-Implementation)**:
+
+- ✅ **Added `app/main.py` to coverage exclusions** (Phase 1) - avoid penalizing declarative routes
+- ✅ **Added strict mypy for test fixtures** (Phase 1) - `mypy tests/fixtures/ --strict` catches fixture type issues early
+- ✅ **Defined critical paths for ≥90% coverage** (Phase 1) - auth, permissions, session management, mutations
+- ✅ **Added typed response classes requirement** (Phase 2) - API clients return proper types (not `dict[str, Any]`)
+- ✅ **Added SpiceDB cleanup verification test** (Phase 4B) - prevent `test_resource_ids` fixture regression
+- ✅ **Added CI performance baseline documentation** (Phase 5) - track metrics, identify bottlenecks
+- ✅ **Added CI troubleshooting section** (Phase 5) - common failures, debug commands, local reproduction
 
 **2026-01-06 - Second Review Feedback Incorporated**:
 
@@ -146,6 +156,7 @@ tests/
          "app/alembic/*",
          "app/models/__init__.py",
          "app/config.py",  # Settings are environment-specific
+         "app/main.py",  # FastAPI app factory (declarative routes)
      ]
 
      [tool.coverage.report]
@@ -158,7 +169,14 @@ tests/
      ]
      ```
 
+   - **Define critical paths requiring ≥90% coverage**:
+     - `app/auth/` - Authentication and JWT token handling
+     - `app/services/spicedb_service.py` - Authorization checks
+     - `app/db/session.py` - Database session management and RLS
+     - `app/graphql/mutations/` - Data modification operations
+     - Rationale: Security-critical and data integrity modules require higher confidence
    - Add type checking for tests (`mypy tests/` in CI per `type-safety-guide.md`)
+   - **Enforce strict mode for test fixtures**: `mypy tests/fixtures/ --strict` (catches fixture type issues early)
 
 6. Verify basic functionality
    - Simple test creating user and organization
@@ -230,7 +248,13 @@ tests/
    - Database session override for FastAPI dependency injection
    - **Add type hints to all fixture return types**
 
-4. Write example tests demonstrating each client
+4. **Define typed response classes for API client methods**
+   - Create `@dataclass` or `TypedDict` classes for common response shapes
+   - Example: `GraphQLResponse[T]`, `GraphQLError`, `SSEEvent`
+   - Ensures API client methods return properly typed responses (not `dict[str, Any]`)
+   - Improves IDE autocomplete and catches type errors early
+
+5. Write example tests demonstrating each client
    - GraphQL query/mutation test
    - REST endpoint test with authentication
    - **Comprehensive SSE streaming tests**:
@@ -248,6 +272,7 @@ tests/
 - ✅ **SSE tests cover event parsing, chunking, errors, and completion** (with timeout examples)
 - ✅ **Authentication works via FastAPI JWT tokens injected as cookies**
 - ✅ **All fixtures have proper type hints, mypy passes**
+- ✅ **API client methods return typed responses** (not `dict[str, Any]`)
 
 ### Phase 3: LangChain Mocking (2-3 points)
 
@@ -420,22 +445,28 @@ tests/
    - Thread ownership and visibility (PERSONAL/SPACE/ORGANIZATION)
    - Space and organization permissions
    - RLS policy integration verification
-2. **Implement SSE streaming tests**
+2. **Add SpiceDB cleanup verification test**
+   - Verify `test_resource_ids` fixture cleanup works correctly
+   - Test that relationships are deleted after test completion
+   - Prevent test_resource_ids fixture regression (parallel test safety)
+   - Example: Create relationships, verify deletion in teardown, confirm no orphaned data
+3. **Implement SSE streaming tests**
    - Event parsing and chunk reconstruction
    - Timeout handling and error cases
    - Concurrent stream testing
-3. **Implement pgvector search tests**
+4. **Implement pgvector search tests**
    - Cosine similarity search
    - Embedding determinism verification
-4. **Verify existing SpiceDB fixtures work with PostgreSQL**
+5. **Verify existing SpiceDB fixtures work with PostgreSQL**
    - `spicedb_service` and `test_resource_ids` integration
    - Parallel test safety with unique resource IDs
-5. **Add type hints to all test functions**
+6. **Add type hints to all test functions**
 
 **Acceptance Criteria**:
 
 - ✅ **SpiceDB authorization tests cover thread ownership, space/org permissions, RLS integration**
 - ✅ **SpiceDB tests use `test_resource_ids` for parallel safety**
+- ✅ **SpiceDB cleanup verification test confirms fixture cleanup works correctly**
 - ✅ **SSE tests verify streaming behavior with detailed event parsing and timeout handling**
 - ✅ **Vector search tests validate pgvector functionality**
 - ✅ **All tests have type hints, mypy tests/ passes**
@@ -485,7 +516,32 @@ tests/
    - **Initial target: 5 minutes** (realistic for initial implementation)
    - **Optimization target: 3-4 minutes** (after Phase 5 complete, measure and optimize)
 
-4. Add status badges to README
+4. **Document CI performance baselines**
+   - Create `docs/ci-performance-baselines.md` with:
+     - **Initial metrics**: Container startup times, dependency install duration, test execution time
+     - **Performance breakdown**: Service container startup (~15s), uv install (~30s), test execution (~3-4min)
+     - **Optimization targets**: Track improvements over time
+     - **Bottleneck identification**: Which phases take longest (useful for optimization)
+   - Add CI metrics collection step to workflow (GitHub Actions timing)
+   - Document expected performance ranges for different test suites
+
+5. **Add CI troubleshooting section**
+   - Common CI failures and solutions:
+     - **Service container health check failures**: Check health check timeouts, verify container logs
+     - **SpiceDB connection errors**: Verify endpoint/token env vars, check service container status
+     - **Test timeouts**: Review timeout settings, check for deadlocks in async code
+     - **Flaky tests**: Use `test_resource_ids` for parallel safety, check transaction isolation
+     - **Coverage drops**: Review new code, check if critical paths tested
+     - **mypy failures in tests/**: Check fixture type hints, verify TypedDict/dataclass usage
+   - Debug commands for local CI reproduction:
+     ```bash
+     # Reproduce CI environment locally
+     docker compose -f docker-compose.ci.yml up
+     # Run tests with same settings as CI
+     pytest -n auto --dist loadscope --cov=app --cov-report=html
+     ```
+
+6. Add status badges to README
    - Test status badge
    - Coverage badge
 
@@ -497,6 +553,8 @@ tests/
 - ✅ **All service containers (PostgreSQL, Redis, SpiceDB) start reliably with health checks**
 - ✅ **mypy tests/ runs in CI and passes**
 - ✅ **SpiceDB authorization tests run successfully in CI**
+- ✅ **CI performance baselines documented** in `docs/ci-performance-baselines.md`
+- ✅ **CI troubleshooting guide created** with common failures and solutions
 
 ### Phase 6: Documentation and Migration (1-2 points)
 
