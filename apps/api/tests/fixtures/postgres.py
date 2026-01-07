@@ -137,6 +137,44 @@ async def postgres_session(
 
 
 @pytest.fixture
+async def postgres_integration_session(
+    postgres_engine: AsyncEngine,
+) -> AsyncGenerator[AsyncSession, None]:
+    """Per-test session WITHOUT transaction isolation (for integration tests).
+
+    Unlike postgres_session, this fixture commits data directly to the database,
+    making it visible to other database connections (e.g., FastAPI middleware).
+
+    Use this for integration tests that make real HTTP requests via async_client,
+    where the test needs to set up data that the application's database session can see.
+
+    WARNING: Data is committed to the database and must be manually cleaned up.
+    Tests using this fixture should delete created data in a finally block.
+
+    Example:
+        async def test_api_endpoint(async_client, postgres_integration_session):
+            user = await create_user(postgres_integration_session, email="test@example.com")
+            await postgres_integration_session.commit()  # Commits to database!
+
+            # HTTP request via async_client can now see this user
+            response = await async_client.get("/api/users/me")
+            assert response.status_code == 200
+
+            # Cleanup
+            await postgres_integration_session.delete(user)
+            await postgres_integration_session.commit()
+    """
+    async with postgres_engine.connect() as conn:
+        # NO transaction - commits go directly to database
+        session_factory = async_sessionmaker(bind=conn, class_=AsyncSession, expire_on_commit=False)
+        session = session_factory()
+
+        yield session
+
+        await session.close()
+
+
+@pytest.fixture
 def unique_test_id(worker_id: str) -> str:
     """Generate unique ID for this test (parallel-safe).
 

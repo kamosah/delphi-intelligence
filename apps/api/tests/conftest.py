@@ -39,6 +39,7 @@ from tests.fixtures.postgres import (  # noqa: F401
     postgres_container,
     postgres_engine,
     postgres_session,
+    postgres_integration_session,  # For integration tests with real HTTP requests
     unique_test_id,
 )
 

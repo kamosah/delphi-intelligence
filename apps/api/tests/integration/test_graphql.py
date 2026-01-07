@@ -25,12 +25,14 @@ from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 
 @pytest.mark.integration
 async def test_graphql_create_user_mutation(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test creating a user via GraphQL mutation."""
     # Create admin user for authentication
-    admin = await create_user(postgres_session, email="admin@example.com", full_name="Admin User")
-    await postgres_session.commit()
+    admin = await create_user(
+        postgres_integration_session, email="admin@example.com", full_name="Admin User"
+    )
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(admin.id), email=admin.email, full_name=admin.full_name or "")
@@ -65,12 +67,14 @@ async def test_graphql_create_user_mutation(
 
 @pytest.mark.integration
 async def test_graphql_query_user_by_id(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test querying a user by ID via GraphQL."""
     # Create test user
-    user = await create_user(postgres_session, email="test@example.com", full_name="Test User")
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="test@example.com", full_name="Test User"
+    )
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -98,12 +102,12 @@ async def test_graphql_query_user_by_id(
 
 @pytest.mark.integration
 async def test_graphql_create_organization(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test creating an organization via GraphQL mutation."""
     # Create test user as owner
-    user = await create_user(postgres_session, email="owner@example.com")
-    await postgres_session.commit()
+    user = await create_user(postgres_integration_session, email="owner@example.com")
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -139,16 +143,16 @@ async def test_graphql_create_organization(
 
 @pytest.mark.integration
 async def test_graphql_list_organizations(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test listing organizations via GraphQL query."""
     # Create test user for authentication
-    user = await create_user(postgres_session, email="test@example.com")
+    user = await create_user(postgres_integration_session, email="test@example.com")
 
     # Create test organizations
-    await create_organization(postgres_session, "Organization 1")
-    await create_organization(postgres_session, "Organization 2")
-    await postgres_session.commit()
+    await create_organization(postgres_integration_session, "Organization 1")
+    await create_organization(postgres_integration_session, "Organization 2")
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -176,14 +180,14 @@ async def test_graphql_list_organizations(
 
 @pytest.mark.integration
 async def test_graphql_create_space(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test creating a space via GraphQL mutation."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(postgres_integration_session, email="user@example.com")
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -219,14 +223,14 @@ async def test_graphql_create_space(
 
 @pytest.mark.integration
 async def test_graphql_update_space(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test updating a space via GraphQL mutation."""
     # Create test user, organization, and space
-    user = await create_user(postgres_session, email="user@example.com")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Original Space", org, user)
-    await postgres_session.commit()
+    user = await create_user(postgres_integration_session, email="user@example.com")
+    org = await create_organization(postgres_integration_session, "Test Org")
+    space = await create_space(postgres_integration_session, "Original Space", org, user)
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -261,15 +265,15 @@ async def test_graphql_update_space(
 @pytest.mark.integration
 async def test_graphql_create_thread_with_mocked_llm(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test creating a thread with mocked LLM (no real OpenAI API calls)."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(postgres_integration_session, email="user@example.com")
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Configure mock LLM response
     mock_llm, _mock_embeddings = patch_openai
@@ -336,12 +340,14 @@ async def test_graphql_authentication_required(async_client: AsyncClient) -> Non
 
 @pytest.mark.integration
 async def test_graphql_validation_error_handling(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test GraphQL validation error handling."""
     # Create test user for authentication
-    user = await create_user(postgres_session, email="test@example.com", full_name="Test User")
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="test@example.com", full_name="Test User"
+    )
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -368,12 +374,14 @@ async def test_graphql_validation_error_handling(
 
 @pytest.mark.integration
 async def test_graphql_query_nonexistent_resource(
-    async_client: AsyncClient, postgres_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession
 ) -> None:
     """Test querying a nonexistent resource returns None."""
     # Create test user for authentication
-    user = await create_user(postgres_session, email="test@example.com", full_name="Test User")
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="test@example.com", full_name="Test User"
+    )
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")

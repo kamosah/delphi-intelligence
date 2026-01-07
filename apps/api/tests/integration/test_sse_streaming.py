@@ -24,15 +24,17 @@ from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 @pytest.mark.integration
 async def test_sse_basic_streaming(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test basic SSE streaming with mocked LLM."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Configure mock LLM
     mock_llm, _mock_embeddings = patch_openai
@@ -71,15 +73,17 @@ async def test_sse_basic_streaming(
 @pytest.mark.integration
 async def test_sse_event_type_parsing(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test that SSE events contain correct type fields (token, citations, done, error)."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Configure mock LLM
     mock_llm, _mock_embeddings = patch_openai
@@ -116,15 +120,17 @@ async def test_sse_event_type_parsing(
 @pytest.mark.integration
 async def test_sse_stream_completion(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test that SSE stream completes with 'done' event."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Configure mock LLM
     mock_llm, _mock_embeddings = patch_openai
@@ -158,15 +164,17 @@ async def test_sse_stream_completion(
 @pytest.mark.integration
 async def test_sse_chunk_reconstruction(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test reconstructing full message from token chunks."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Configure mock LLM with known response
     mock_llm, _mock_embeddings = patch_openai
@@ -209,14 +217,16 @@ async def test_sse_chunk_reconstruction(
 @pytest.mark.integration
 async def test_sse_missing_query_parameter(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
 ) -> None:
     """Test that SSE endpoint returns 400 for missing query parameter."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -235,12 +245,12 @@ async def test_sse_missing_query_parameter(
 @pytest.mark.integration
 async def test_sse_requires_authentication(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
 ) -> None:
     """Test that SSE endpoint requires authentication."""
     # Create organization (no user auth)
-    org = await create_organization(postgres_session, "Test Org")
-    await postgres_session.commit()
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await postgres_integration_session.commit()
 
     # Request WITHOUT authentication
     response = await async_client.get(
@@ -254,20 +264,24 @@ async def test_sse_requires_authentication(
 @pytest.mark.integration
 async def test_sse_space_access_control(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test that SSE endpoint enforces space access control."""
     # Create two users and organization
-    user1 = await create_user(postgres_session, email="user1@example.com", full_name="User One")
-    user2 = await create_user(postgres_session, email="user2@example.com", full_name="User Two")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user1, org)
-    await create_membership(postgres_session, user2, org)
+    user1 = await create_user(
+        postgres_integration_session, email="user1@example.com", full_name="User One"
+    )
+    user2 = await create_user(
+        postgres_integration_session, email="user2@example.com", full_name="User Two"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user1, org)
+    await create_membership(postgres_integration_session, user2, org)
 
     # Create space with only user1 as member
-    space = await create_space(postgres_session, "Test Space", org, user1)
-    await postgres_session.commit()
+    space = await create_space(postgres_integration_session, "Test Space", org, user1)
+    await postgres_integration_session.commit()
 
     # Authenticate as user2 (NOT in space)
     test_user = TestUser(id=str(user2.id), email=user2.email, full_name=user2.full_name or "")
@@ -286,15 +300,17 @@ async def test_sse_space_access_control(
 @pytest.mark.integration
 async def test_sse_concurrent_streams(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Test multiple concurrent SSE streams (parallel safety)."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Configure mock LLM
     mock_llm, _mock_embeddings = patch_openai
@@ -335,7 +351,7 @@ async def test_sse_concurrent_streams(
 @pytest.mark.integration
 async def test_sse_timeout_handling(
     async_client: AsyncClient,
-    postgres_session: AsyncSession,
+    postgres_integration_session: AsyncSession,
 ) -> None:
     """Test that SSE stream times out after 120 seconds (endpoint max).
 
@@ -343,10 +359,12 @@ async def test_sse_timeout_handling(
     The actual endpoint timeout is 120 seconds (THREAD_TIMEOUT_SECONDS).
     """
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    await create_membership(postgres_session, user, org)
-    await postgres_session.commit()
+    user = await create_user(
+        postgres_integration_session, email="user@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_integration_session, "Test Org")
+    await create_membership(postgres_integration_session, user, org)
+    await postgres_integration_session.commit()
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")

@@ -85,7 +85,9 @@ async def test_graphql_client_with_variables(graphql_client: GraphQLClient) -> N
 
 
 @pytest.mark.integration
-async def test_rest_client_post(rest_client: RESTClient, postgres_session: AsyncSession) -> None:
+async def test_rest_client_post(
+    rest_client: RESTClient, postgres_integration_session: AsyncSession
+) -> None:
     """Verify RESTClient.post makes HTTP POST requests."""
     # Test the health check endpoint (if it exists)
     response = await rest_client.get("/")
