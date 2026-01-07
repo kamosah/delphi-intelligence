@@ -45,6 +45,7 @@ from tests.fixtures.postgres import (  # noqa: F401
 # Import API client abstractions for integration tests
 from tests.fixtures.api_clients import GraphQLClient, RESTClient, SSEClient
 from tests.fixtures.auth import TestUser, create_test_token
+from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 
 
 # Override event_loop fixture to be session-scoped for PostgreSQL integration tests
@@ -487,3 +488,70 @@ async def spicedb_service(
                 pytest.fail(f"Cleanup failed for IDs: {result['failed_ids']}")
         except Exception as e:
             pytest.fail(f"Cleanup error: {e}")
+
+
+# --------------------------------------------------------------------------- #
+# LangChain Mock Fixtures (OpenAI LLM and Embeddings)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def mock_chat_openai() -> MockChatOpenAI:
+    """Provide mock ChatOpenAI for deterministic testing without API calls.
+
+    Usage:
+        def test_llm(mock_chat_openai):
+            mock_chat_openai.responses = ["Hello!", "How can I help?"]
+            response = mock_chat_openai.invoke("What's up?")
+            assert response.content == "Hello!"
+    """
+    return MockChatOpenAI()
+
+
+@pytest.fixture
+def mock_embeddings() -> MockOpenAIEmbeddings:
+    """Provide mock OpenAI embeddings with deterministic hash-based vectors.
+
+    Usage:
+        def test_embeddings(mock_embeddings):
+            vector1 = mock_embeddings.embed_query("Hello")
+            vector2 = mock_embeddings.embed_query("Hello")
+            assert vector1 == vector2  # Deterministic
+            assert len(vector1) == 1536  # Correct dimensions
+    """
+    return MockOpenAIEmbeddings()
+
+
+@pytest.fixture
+def patch_openai(
+    monkeypatch: pytest.MonkeyPatch,
+    mock_chat_openai: MockChatOpenAI,
+    mock_embeddings: MockOpenAIEmbeddings,
+) -> tuple[MockChatOpenAI, MockOpenAIEmbeddings]:
+    """Patch LangChain factory functions to return mocks (no API calls).
+
+    Monkeypatches:
+        - app.services.langchain_config.get_llm → returns mock_chat_openai
+        - app.services.langchain_config.get_embeddings → returns mock_embeddings
+
+    Usage:
+        def test_query_agent(patch_openai):
+            llm, embeddings = patch_openai
+            llm.responses = ["Specific test response"]
+            # Now any code calling get_llm() or get_embeddings() uses mocks
+            result = query_agent.run("What is AI?")
+            assert "Specific test response" in result
+    """
+    # Patch get_llm to return mock ChatOpenAI
+    monkeypatch.setattr(
+        "app.services.langchain_config.get_llm",
+        lambda **_kwargs: mock_chat_openai,
+    )
+
+    # Patch get_embeddings to return mock OpenAI embeddings
+    monkeypatch.setattr(
+        "app.services.langchain_config.get_embeddings",
+        lambda **_kwargs: mock_embeddings,
+    )
+
+    return mock_chat_openai, mock_embeddings
