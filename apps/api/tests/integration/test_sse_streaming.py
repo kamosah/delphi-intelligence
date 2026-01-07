@@ -301,7 +301,9 @@ async def test_sse_space_access_control(
     await create_membership(postgres_integration_session, user2, org)
 
     # Create space with only user1 as member
-    space = await create_space(postgres_integration_session, "Test Space", org, user1)
+    space = await create_space(
+        postgres_integration_session, f"Test Space {unique_test_id}", org, user1
+    )
     await postgres_integration_session.commit()
 
     # Authenticate as user2 (NOT in space)

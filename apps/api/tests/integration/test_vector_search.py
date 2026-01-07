@@ -44,12 +44,15 @@ async def test_vector_search_basic(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test basic vector search with cosine similarity."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Test Space", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space = await create_space(postgres_session, f"Test Space {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create document
@@ -119,12 +122,15 @@ async def test_vector_search_similarity_threshold(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test that similarity threshold filters out low-relevance results."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Test Space", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space = await create_space(postgres_session, f"Test Space {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create document
@@ -199,12 +205,15 @@ async def test_vector_search_top_k_limit(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test that top-k limit restricts number of results."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Test Space", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space = await create_space(postgres_session, f"Test Space {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create document
@@ -259,13 +268,16 @@ async def test_vector_search_space_scoped(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test that vector search is scoped to specific space."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space1 = await create_space(postgres_session, "Space 1", org, user)
-    space2 = await create_space(postgres_session, "Space 2", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space1 = await create_space(postgres_session, f"Space 1 {unique_test_id}", org, user)
+    space2 = await create_space(postgres_session, f"Space 2 {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create document in space1
@@ -357,12 +369,15 @@ async def test_vector_search_empty_query(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test that vector search raises ValueError for empty query."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Test Space", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space = await create_space(postgres_session, f"Test Space {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create vector search service with mock embedding service
@@ -384,12 +399,15 @@ async def test_vector_search_invalid_limit(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test that vector search raises ValueError for invalid limit."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Test Space", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space = await create_space(postgres_session, f"Test Space {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create vector search service with mock embedding service
@@ -421,12 +439,15 @@ async def test_vector_search_cosine_similarity_calculation(
     postgres_session: AsyncSession,
     mock_embeddings: MockOpenAIEmbeddings,
     mock_embedding_service: MockEmbeddingService,
+    unique_test_id: str,
 ) -> None:
     """Test that cosine similarity is calculated correctly (1.0 - distance)."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
-    org = await create_organization(postgres_session, "Test Org")
-    space = await create_space(postgres_session, "Test Space", org, user)
+    user = await create_user(
+        postgres_session, email=f"user-{unique_test_id}@example.com", full_name="Test User"
+    )
+    org = await create_organization(postgres_session, f"Test Org {unique_test_id}")
+    space = await create_space(postgres_session, f"Test Space {unique_test_id}", org, user)
     await postgres_session.commit()
 
     # Create document
