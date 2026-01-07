@@ -2,11 +2,34 @@
 
 **Related**: LOG-268 (Implementation issue)
 **Created**: 2026-01-06
-**Status**: Planning
+**Updated**: 2026-01-06 (Review feedback incorporated)
+**Status**: Planning → Ready for Implementation
+
+## Revision History
+
+**2026-01-06 - Review Feedback Incorporated**:
+
+- ✅ Added SpiceDB authorization testing (Phase 4)
+- ✅ Clarified fixture integration strategy with existing `conftest.py` (Phase 1)
+- ✅ Expanded SSE testing details with concrete examples (Phase 2)
+- ✅ Added type safety requirements (`mypy tests/`) throughout all phases
+- ✅ Added pytest-cov configuration to Phase 1
+- ✅ Documented LangChain mocking alternative (respx at HTTP layer)
+- ✅ Clarified CI strategy (GitHub Actions service containers, not testcontainers)
+- ✅ Added testing-migration.md and development-commands.md updates to Phase 6
+- ✅ Added pytest-testmon recommendation for local testing
+- ✅ Updated timeline to recommend 24 points (conservative)
 
 ## Overview
 
 This plan details the implementation of a comprehensive PostgreSQL-based testing infrastructure for the Olympus API, following the principles outlined in `apps/api/TESTING.md`. The goal is to establish fast, reliable E2E and integration tests that can run efficiently in CI and locally.
+
+**Key additions from review**:
+
+- SpiceDB authorization testing integrated with PostgreSQL
+- Comprehensive SSE streaming test patterns
+- Type safety enforcement for all test code
+- Migration guide creation for converting existing tests
 
 ## Core Principles
 
@@ -51,7 +74,7 @@ tests/
 
 ### Phase 1: Foundation (3-5 points)
 
-**Goal**: Set up core testing infrastructure with PostgreSQL containers and basic fixtures.
+**Goal**: Set up core testing infrastructure with PostgreSQL containers and basic fixtures while preserving existing SQLite/mock fixtures.
 
 **Tasks**:
 
@@ -59,6 +82,7 @@ tests/
    - `testcontainers[postgres]>=4.0.0`
    - `pytest-xdist>=3.5.0`
    - `httpx-sse>=0.4.0`
+   - `pytest-cov>=4.1.0`
    - Update `pyproject.toml` with test dependencies
 
 2. Create PostgreSQL fixture infrastructure (`tests/fixtures/postgres.py`)
@@ -66,59 +90,98 @@ tests/
    - Async engine and sessionmaker fixtures
    - Database setup with Alembic migrations
    - Per-test transaction rollback fixture using `join_transaction_mode="create_savepoint"`
+   - **Create `postgres_session` fixture alongside existing `db_session`** (preserve SQLite)
 
-3. Configure pytest settings
+3. **Integrate with existing `conftest.py` fixtures**
+   - Preserve existing mock fixtures (`mock_user`, `mock_organization`, etc.) for unit tests
+   - Keep SQLite `db_session` fixture for fast unit tests
+   - Add `postgres_session` for integration tests
+   - Ensure SpiceDB fixtures (`spicedb_service`, `test_resource_ids`) work with PostgreSQL
+   - Make factory functions database-agnostic (accept any `AsyncSession`)
+
+4. Configure pytest settings
    - Update `pyproject.toml` with asyncio configuration
-   - Add markers for integration tests
-   - Configure coverage settings
+   - Add markers for integration tests (`@pytest.mark.integration`)
+   - **Configure pytest-cov with 80% threshold and exclusions**
+   - Add type checking for tests (`mypy tests/` in CI per `type-safety-guide.md`)
 
-4. Verify basic functionality
+5. Verify basic functionality
    - Simple test creating user and organization
    - Confirm transaction rollback works
    - Test parallel execution with pytest-xdist
+   - Verify SpiceDB cleanup works with PostgreSQL
 
 **Acceptance Criteria**:
 
 - ✅ PostgreSQL container starts and applies migrations
 - ✅ Test transactions roll back properly
 - ✅ Tests can run in parallel without conflicts
-- ✅ Coverage reporting works
+- ✅ **Existing SQLite unit tests continue to work**
+- ✅ **SpiceDB fixtures integrate with PostgreSQL session**
+- ✅ **Coverage reporting configured with 80% threshold**
+- ✅ **Type hints added to fixtures, mypy tests/ passes**
 
 ### Phase 2: API Client Abstractions (2-3 points)
 
-**Goal**: Build reusable HTTPX-based clients for testing GraphQL, REST, and SSE endpoints.
+**Goal**: Build reusable HTTPX-based clients for testing GraphQL, REST, and SSE endpoints with comprehensive type safety.
 
 **Tasks**:
 
 1. Create `tests/fixtures/api_clients.py` with:
    - `GraphQLClient` - Execute queries/mutations with auth support
+     - `execute()` - Basic execution with result/error handling
+     - `execute_expecting_data()` - Assert no errors, return typed data
+     - `execute_expecting_error()` - Assert errors exist, optional message match
    - `RESTClient` - Standard HTTP verbs with cookie injection
+     - `get()`, `post()`, `put()`, `delete()` with auth support
+     - `.with_auth(token)` for fluent authentication
    - `SSEClient` - Server-Sent Events stream handling with `httpx-sse`
+     - `stream_events()` - Collect events with max_events/timeout control
+     - **Detailed SSE event parsing** (event type, data, id, retry)
+     - **JSON parsing helper** (`SSEEvent.json()` for data deserialization)
+     - **Event filtering** by event type (e.g., filter "message" vs "done" events)
 
 2. Implement authentication helpers (`tests/fixtures/auth.py`)
    - JWT token generation for test users
    - `TestUser` dataclass for consistent user data
    - Cookie-based auth injection
+   - **Type-hinted helper functions** for token creation
 
 3. Create pytest fixtures for each client type
    - Authenticated and unauthenticated variants
    - Database session override for FastAPI dependency injection
+   - **Add type hints to all fixture return types**
 
 4. Write example tests demonstrating each client
    - GraphQL query/mutation test
    - REST endpoint test with authentication
-   - SSE streaming test with event collection
+   - **Comprehensive SSE streaming tests**:
+     - Event collection and parsing
+     - Streaming chunk reconstruction
+     - Stream completion verification (done event)
+     - Error handling in streams (timeout, connection errors)
+     - Multiple concurrent streams (parallel test safety)
 
 **Acceptance Criteria**:
 
 - ✅ GraphQL client can execute queries with proper error handling
 - ✅ REST client supports all HTTP verbs with auth
 - ✅ SSE client can collect and parse streaming events
+- ✅ **SSE tests cover event parsing, chunking, errors, and completion**
 - ✅ Authentication works via HTTP-only cookies
+- ✅ **All fixtures have proper type hints, mypy passes**
 
 ### Phase 3: LangChain Mocking (2-3 points)
 
 **Goal**: Implement deterministic mocks for OpenAI LLM and embeddings to avoid API costs and non-determinism.
+
+**Approach**: Monkeypatch factory functions (`get_llm`, `get_embeddings`) with custom mock classes.
+
+**Alternative Considered**: Using `respx` to mock at HTTP layer (intercept OpenAI API calls). This approach offers:
+
+- **Pros**: Less coupling to LangChain internals, easier maintenance if LangChain changes
+- **Cons**: More complex setup, need to mock HTTP responses, less control over streaming behavior
+- **Decision**: Start with LangChain class extension for simplicity, consider respx if maintenance becomes an issue
 
 **Tasks**:
 
@@ -126,21 +189,25 @@ tests/
    - Extend `BaseChatModel` with custom `_stream()` and `_astream()`
    - Support configurable responses and streaming chunk sizes
    - Handle both sync and async invocations
+   - **Add comprehensive type hints** for all methods
 
 2. Create `MockOpenAIEmbeddings` class
    - Return deterministic 1536-dimensional vectors using hash-based seeding
    - Support batch embeddings
    - Ensure same text always returns same vector
+   - **Type-safe embedding generation**
 
 3. Implement monkeypatch fixtures
    - `patch_openai` - Patches both `get_llm()` and `get_embeddings()`
    - `patch_get_llm` - LLM only
    - `patch_get_embeddings` - Embeddings only
+   - **Document why we patch factories, not LangChain internals**
 
 4. Write tests validating mock behavior
    - Test streaming responses
    - Test deterministic embeddings
    - Test async operations
+   - **Test that same text produces same embedding (determinism)**
 
 **Acceptance Criteria**:
 
@@ -148,10 +215,12 @@ tests/
 - ✅ Mock LLM supports streaming with proper chunking
 - ✅ Mock embeddings are deterministic and 1536-dimensional
 - ✅ Monkeypatch works at factory function level
+- ✅ **All mocks have proper type hints, mypy passes**
+- ✅ **Alternative approaches documented for future reference**
 
 ### Phase 4: Integration Test Suite (5-8 points)
 
-**Goal**: Implement comprehensive integration tests covering all critical API functionality.
+**Goal**: Implement comprehensive integration tests covering all critical API functionality including SpiceDB authorization.
 
 **Test Categories**:
 
@@ -161,18 +230,30 @@ tests/
    - Organization membership queries
    - Authentication and authorization checks
    - Error handling and validation
+   - **Type-safe GraphQL client usage with proper assertions**
 
 2. **Vector Search Tests** (`tests/integration/test_vector_search.py`)
    - pgvector cosine similarity search
    - Document chunk creation and embedding
    - Search relevance ranking
    - Deterministic embedding verification
+   - **Verify PostgreSQL pgvector extension works correctly**
 
 3. **SSE Streaming Tests** (`tests/integration/test_sse_streaming.py`)
-   - AI response streaming
-   - Event parsing and collection
-   - Stream completion verification
-   - Error handling in streams
+   - AI response streaming with `httpx-sse`
+   - **Event parsing and collection** (event type, data, id, retry)
+   - **Stream chunk reconstruction** (concatenate message chunks)
+   - **Stream completion verification** (done event received)
+   - **Error handling in streams** (timeout, connection errors, malformed events)
+   - **Multiple concurrent streams** (parallel test safety)
+   - **Example test pattern**:
+     ```python
+     events = await sse_client.stream_events("/api/stream", max_events=10)
+     message_events = [e for e in events if e.event == "message"]
+     full_response = "".join(e.json()["content"] for e in message_events)
+     assert "expected content" in full_response
+     assert any(e.event == "done" for e in events)
+     ```
 
 4. **REST Authentication Tests** (`tests/integration/test_rest_auth.py`)
    - Login/logout flows
@@ -180,82 +261,187 @@ tests/
    - Protected endpoint access
    - Session management
 
+5. **SpiceDB Authorization Tests** (`tests/integration/test_spicedb_authorization.py`) **[NEW]**
+   - **Thread ownership and visibility**:
+     - `PERSONAL` threads (RLS + SpiceDB): Owner-only access, PostgreSQL RLS enforces isolation
+     - `SPACE` threads: Space members can access (test SpiceDB space membership checks)
+     - `ORGANIZATION` threads: Org members can access (test SpiceDB org membership checks)
+   - **Space permissions**:
+     - Space viewer can read documents but not modify
+     - Space editor can create/update documents
+     - Space admin can manage members
+   - **Organization permissions**:
+     - Org member can view org-wide threads
+     - Org admin can manage spaces and members
+   - **RLS policy integration**:
+     - Test PostgreSQL RLS policies work with `auth.uid()` function
+     - Verify RLS + SpiceDB dual authorization strategy
+   - **Parallel test safety**:
+     - Use `test_resource_ids` fixture for unique resource IDs
+     - Verify SpiceDB cleanup works after each test
+   - **Example test pattern**:
+
+     ```python
+     async def test_personal_thread_isolation(
+         postgres_session, spicedb_service, test_resource_ids
+     ):
+         user1_id = test_resource_ids("user1")
+         user2_id = test_resource_ids("user2")
+         thread_id = test_resource_ids("thread")
+
+         # Create thread with PERSONAL visibility
+         await create_thread(postgres_session, owner=user1_id, visibility="PERSONAL")
+         await spicedb_service.write_relationship("thread", thread_id, "owner", "user", user1_id)
+
+         # User1 can access (owner)
+         result = await spicedb_service.check_permission("thread", thread_id, "view", "user", user1_id)
+         assert result.permitted is True
+
+         # User2 cannot access (not owner, PERSONAL visibility)
+         result = await spicedb_service.check_permission("thread", thread_id, "view", "user", user2_id)
+         assert result.permitted is False
+     ```
+
 **Tasks**:
 
 1. Migrate existing mock-based tests to PostgreSQL fixtures
 2. Add new tests for untested functionality
-3. Ensure all tests use proper factory functions from `tests/utils.py`
-4. Add integration test markers
+3. **Implement comprehensive SpiceDB authorization tests**
+4. Ensure all tests use proper factory functions from `tests/utils.py`
+5. Add integration test markers (`@pytest.mark.integration`)
+6. **Verify existing SpiceDB fixtures (`spicedb_service`, `test_resource_ids`) work with PostgreSQL**
+7. **Add type hints to all test functions and assertions**
 
 **Acceptance Criteria**:
 
 - ✅ All critical API endpoints have integration tests
 - ✅ Tests use real PostgreSQL, not mocks
 - ✅ Vector search tests validate pgvector functionality
-- ✅ SSE tests verify streaming behavior
+- ✅ SSE tests verify streaming behavior with detailed event parsing
+- ✅ **SpiceDB authorization tests cover thread ownership, space/org permissions, RLS integration**
+- ✅ **SpiceDB tests use `test_resource_ids` for parallel safety**
+- ✅ **All tests have type hints, mypy tests/ passes**
 - ✅ Test coverage ≥80%
 
 ### Phase 5: GitHub Actions CI (2-3 points)
 
-**Goal**: Set up fast, reliable CI pipeline with parallel test execution.
+**Goal**: Set up fast, reliable CI pipeline with parallel test execution using GitHub Actions service containers.
+
+**CI Strategy**: Use **GitHub Actions service containers** (not testcontainers) for faster startup:
+
+- Service containers start in parallel with job setup (~15s vs ~30-45s for testcontainers)
+- Simpler configuration, no Docker-in-Docker complexity
+- Consistent with GitHub Actions best practices
+
+**Local Development**: Use **testcontainers-python** for developer machines:
+
+- No manual Docker Compose setup required
+- Automatic cleanup and isolation
+- Works identically across different development environments
 
 **Tasks**:
 
 1. Create `.github/workflows/api-tests.yml`
-   - Use service containers for PostgreSQL and Redis
-   - Install dependencies with `astral-sh/setup-uv` (10-100x faster)
-   - Run tests with pytest-xdist in parallel
+   - **Use service containers** for PostgreSQL, Redis, and SpiceDB (if needed in CI)
+   - Install dependencies with `astral-sh/setup-uv` (10-100x faster than pip/poetry)
+   - Run tests with pytest-xdist in parallel (`-n auto --dist loadscope`)
    - Upload coverage to Codecov
+   - **Run mypy tests/ for type checking**
 
 2. Configure service containers
-   - `pgvector/pgvector:pg16` with health checks
+   - `pgvector/pgvector:pg16` with health checks and pgvector extension enabled
    - `redis:7-alpine` for session management
-   - Enable pgvector extension in PostgreSQL
+   - Optional: `authzed/spicedb` for SpiceDB authorization tests (or use local Docker Compose)
 
 3. Optimize CI performance
-   - Use uv cache for dependencies
-   - Use `--dist loadscope` for pytest-xdist (groups by module)
-   - Set timeout limits (10 minutes max)
+   - Use uv cache for dependencies (enables caching between runs)
+   - Use `--dist loadscope` for pytest-xdist (groups tests by module for better fixture reuse)
+   - Set timeout limits (10 minutes max for entire workflow)
+   - Run lint/typecheck in parallel with tests if possible
 
 4. Add status badges to README
+   - Test status badge
+   - Coverage badge
 
 **Acceptance Criteria**:
 
-- ✅ CI runs complete in <5 minutes
+- ✅ CI runs complete in <5 minutes (target: 3-4 minutes)
 - ✅ Tests run in parallel without conflicts
-- ✅ Coverage reports upload successfully
-- ✅ Service containers start reliably
+- ✅ Coverage reports upload successfully with ≥80% threshold
+- ✅ **Service containers start reliably with health checks**
+- ✅ **SpiceDB service container configured if needed**
+- ✅ **mypy tests/ runs in CI and passes**
 
 ### Phase 6: Documentation and Migration (1-2 points)
 
-**Goal**: Update documentation and migrate remaining tests.
+**Goal**: Update documentation, create migration guides, and provide comprehensive testing references.
 
 **Tasks**:
 
 1. Update `apps/api/TESTING.md` with:
-   - PostgreSQL testing patterns
-   - Example integration tests
+   - PostgreSQL testing patterns and best practices
+   - Example integration tests with PostgreSQL
+   - SpiceDB authorization testing patterns
+   - SSE streaming test examples
    - CI setup instructions
-   - Troubleshooting guide
+   - Troubleshooting guide (common pitfalls, solutions)
 
-2. Create migration guide for existing tests
-   - Identify mock-based tests to migrate
-   - Document conversion patterns
-   - Track migration progress
+2. **Create `docs/guides/testing-migration.md`** **[NEW]**
+   - **Decision tree**: When to use unit tests (SQLite) vs integration tests (PostgreSQL)
+   - **Migration patterns**: Converting mock-based tests to PostgreSQL
+   - **Before/after examples** showing mock → PostgreSQL conversions
+   - **Fixture migration guide**: How to adapt existing test fixtures
+   - **Common pitfalls and solutions** when migrating
+   - **Progress tracking**: Checklist of tests to migrate
 
-3. Add test organization guidelines
-   - When to use unit vs integration tests
-   - Factory function patterns
-   - Common test patterns
+3. **Update `docs/guides/development-commands.md`** **[NEW]**
+   - Add comprehensive test commands section:
 
-4. Update `apps/api/README.md` with testing commands
+     ```bash
+     # Run all tests
+     docker compose exec api poetry run pytest
+
+     # Run unit tests only (SQLite, fast)
+     docker compose exec api poetry run pytest tests/unit
+
+     # Run integration tests only (PostgreSQL)
+     docker compose exec api poetry run pytest tests/integration -m integration
+
+     # Run with coverage
+     docker compose exec api poetry run pytest --cov=app --cov-report=html
+
+     # Run in parallel (faster)
+     docker compose exec api poetry run pytest -n auto
+
+     # Run specific test file
+     docker compose exec api poetry run pytest tests/integration/test_graphql.py
+
+     # Run mypy type checking on tests
+     docker compose exec api poetry run mypy tests/
+
+     # Fast mode (skip integration tests)
+     docker compose exec api poetry run pytest --fast
+     ```
+
+4. Add test organization guidelines
+   - When to use unit vs integration tests (decision matrix)
+   - Factory function patterns (database-agnostic design)
+   - Common test patterns (AAA pattern, fixtures, parametrization)
+   - SpiceDB test patterns (use `test_resource_ids` for parallel safety)
+
+5. Update `apps/api/README.md` with:
+   - Link to TESTING.md
+   - Link to testing-migration.md
+   - Quick test commands reference
 
 **Acceptance Criteria**:
 
 - ✅ Documentation reflects PostgreSQL testing approach
+- ✅ **`testing-migration.md` created with decision tree and conversion examples**
+- ✅ **`development-commands.md` updated with comprehensive test commands**
 - ✅ Migration guide helps convert existing tests
 - ✅ All test commands documented
-- ✅ Examples demonstrate best practices
+- ✅ Examples demonstrate best practices (unit, integration, SpiceDB, SSE)
 
 ## Critical Implementation Details
 
@@ -411,12 +597,43 @@ Based on Modified Fibonacci scale (see CLAUDE.md):
 
 - **Phase 1 (Foundation)**: 3-5 points (~4-10 hours)
 - **Phase 2 (API Clients)**: 2-3 points (~3-6 hours)
-- **Phase 3 (LLM Mocking)**: 2-3 points (~3-6 hours)
-- **Phase 4 (Integration Tests)**: 5-8 points (~6-15 hours)
+- **Phase 3 (LangChain Mocking)**: 2-3 points (~3-6 hours)
+- **Phase 4 (Integration Tests)**: 5-8 points (~6-15 hours) - **Includes SpiceDB authorization tests**
 - **Phase 5 (CI Setup)**: 2-3 points (~3-6 hours)
-- **Phase 6 (Documentation)**: 1-2 points (~2-4 hours)
+- **Phase 6 (Documentation)**: 1-2 points (~2-4 hours) - **Includes testing-migration.md creation**
 
 **Total**: 15-24 points (~21-47 hours)
+
+**Recommendation**: **Plan for 24 points** (conservative upper bound) to account for:
+
+- SpiceDB authorization test complexity
+- Fixture integration with existing conftest.py
+- Documentation creation (testing-migration.md, development-commands.md updates)
+- Unforeseen integration issues with PostgreSQL/testcontainers
+
+## Additional Recommendations
+
+### Optional Enhancements (Future Work)
+
+1. **pytest-testmon for faster local testing**
+   - Automatically runs only tests affected by code changes
+   - Dramatically speeds up local TDD workflow
+   - Install: `pytest-testmon>=2.1.0`
+   - Usage: `pytest --testmon` (first run creates baseline, subsequent runs are incremental)
+
+2. **pytest-timeout for flaky test detection**
+   - Automatically fail tests that take too long
+   - Helps identify deadlocks or infinite loops in async code
+
+3. **Database snapshots for complex test setup**
+   - Create reusable database snapshots with pre-populated data
+   - Faster than creating data in each test
+   - Consider for large integration test suites (>100 tests)
+
+4. **Mutation testing with mutmut**
+   - Verify test quality by introducing code mutations
+   - High-quality tests should catch mutations
+   - Run periodically, not in CI (slow)
 
 ## References
 
