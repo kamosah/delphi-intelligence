@@ -52,7 +52,8 @@ def postgres_container() -> PostgresContainer:
         class MockContainer:
             def get_connection_url(self) -> str:
                 # CI service container connection (will be configured in Phase 5)
-                return "postgresql://test:test@localhost:5432/olympus_test"
+                # Must use psycopg2 format so postgres_engine can convert to asyncpg
+                return "postgresql+psycopg2://test:test@localhost:5432/olympus_test"
 
         # Yield to match local behavior (even though no cleanup needed)
         yield MockContainer()  # type: ignore[misc]
