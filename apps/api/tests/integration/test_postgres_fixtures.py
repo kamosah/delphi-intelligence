@@ -16,11 +16,11 @@ from tests.factories import create_user
 
 @pytest.mark.integration
 async def test_postgres_session_transaction_rollback(
-    postgres_session: AsyncSession, postgres_engine: AsyncEngine
+    postgres_session: AsyncSession, postgres_engine: AsyncEngine, unique_test_id: str
 ) -> None:
     """Verify that PostgreSQL transactions roll back properly."""
     # Arrange: Create user and save ID
-    user = await create_user(postgres_session, email="test@example.com")
+    user = await create_user(postgres_session, email=f"test-{unique_test_id}@example.com")
     user_id = user.id
     await postgres_session.flush()
 
@@ -43,18 +43,22 @@ async def test_unique_test_id_parallel_safety(unique_test_id: str) -> None:
 
 
 @pytest.mark.integration
-async def test_postgres_session_can_create_user(postgres_session: AsyncSession) -> None:
+async def test_postgres_session_can_create_user(
+    postgres_session: AsyncSession, unique_test_id: str
+) -> None:
     """Verify basic database operations work with PostgreSQL session."""
     # Arrange & Act: Create user
-    user = await create_user(postgres_session, email="create@example.com")
+    user = await create_user(postgres_session, email=f"create-{unique_test_id}@example.com")
     await postgres_session.commit()
 
     # Assert: User should exist with generated ID
     assert user.id is not None
-    assert user.email == "create@example.com"
+    assert user.email == f"create-{unique_test_id}@example.com"
 
     # Assert: Can query user from database
-    result = await postgres_session.execute(select(User).where(User.email == "create@example.com"))
+    result = await postgres_session.execute(
+        select(User).where(User.email == f"create-{unique_test_id}@example.com")
+    )
     queried_user = result.scalar_one_or_none()
     assert queried_user is not None
     assert queried_user.id == user.id
