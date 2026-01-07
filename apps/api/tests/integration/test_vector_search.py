@@ -57,7 +57,7 @@ async def test_vector_search_basic(
         name="test.txt",
         file_type="text/plain",
         size_bytes=100,
-        storage_path="/test/test.txt",
+        file_path="/test/test.txt",
         space_id=space.id,
         uploaded_by=user.id,
     )
@@ -132,7 +132,7 @@ async def test_vector_search_similarity_threshold(
         name="test.txt",
         file_type="text/plain",
         size_bytes=100,
-        storage_path="/test/test.txt",
+        file_path="/test/test.txt",
         space_id=space.id,
         uploaded_by=user.id,
     )
@@ -212,7 +212,7 @@ async def test_vector_search_top_k_limit(
         name="test.txt",
         file_type="text/plain",
         size_bytes=100,
-        storage_path="/test/test.txt",
+        file_path="/test/test.txt",
         space_id=space.id,
         uploaded_by=user.id,
     )
@@ -273,7 +273,7 @@ async def test_vector_search_space_scoped(
         name="doc1.txt",
         file_type="text/plain",
         size_bytes=100,
-        storage_path="/test/doc1.txt",
+        file_path="/test/doc1.txt",
         space_id=space1.id,
         uploaded_by=user.id,
     )
@@ -284,7 +284,7 @@ async def test_vector_search_space_scoped(
         name="doc2.txt",
         file_type="text/plain",
         size_bytes=100,
-        storage_path="/test/doc2.txt",
+        file_path="/test/doc2.txt",
         space_id=space2.id,
         uploaded_by=user.id,
     )
@@ -434,7 +434,7 @@ async def test_vector_search_cosine_similarity_calculation(
         name="test.txt",
         file_type="text/plain",
         size_bytes=100,
-        storage_path="/test/test.txt",
+        file_path="/test/test.txt",
         space_id=space.id,
         uploaded_by=user.id,
     )

@@ -17,7 +17,7 @@ jobs:
         name: Run Pytest
         runs-on: ubuntu-latest
 
-        # PostgreSQL service container for integration tests
+        # Service containers for integration tests
         services:
             postgres:
                 image: pgvector/pgvector:pg16
@@ -32,6 +32,16 @@ jobs:
                     --health-retries 5
                 ports:
                     - 5432:5432
+
+            redis:
+                image: redis:7-alpine
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 6379:6379
 
         defaults:
             run:
