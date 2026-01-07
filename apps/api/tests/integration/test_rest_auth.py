@@ -70,11 +70,11 @@ async def test_rest_auth_register_duplicate_email(async_client: AsyncClient) -> 
 
 @pytest.mark.integration
 async def test_rest_auth_login_success(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
 ) -> None:
     """Test successful login returns tokens."""
     # Create test user with hashed password (would normally use auth service)
-    await create_user(postgres_integration_session, email="login@example.com")
+    await create_user(postgres_integration_session, email=f"login-{unique_test_id}@example.com")
     await postgres_integration_session.commit()
 
     client = RESTClient(async_client)
@@ -83,7 +83,7 @@ async def test_rest_auth_login_success(
     response: Response = await client.post(
         "/auth/login",
         json={
-            "email": "login@example.com",
+            "email": f"login-{unique_test_id}@example.com",
             "password": "password123",
         },
     )
@@ -116,12 +116,14 @@ async def test_rest_auth_login_invalid_credentials(async_client: AsyncClient) ->
 
 @pytest.mark.integration
 async def test_rest_auth_get_current_user(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
 ) -> None:
     """Test getting current user profile with valid token."""
     # Create test user
     user = await create_user(
-        postgres_integration_session, email="current@example.com", full_name="Current User"
+        postgres_integration_session,
+        email=f"current-{unique_test_id}@example.com",
+        full_name="Current User",
     )
     await postgres_integration_session.commit()
 
@@ -137,7 +139,7 @@ async def test_rest_auth_get_current_user(
 
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == "current@example.com"
+    assert data["email"] == f"current-{unique_test_id}@example.com"
     assert data["full_name"] == "Current User"
 
 
@@ -165,11 +167,13 @@ async def test_rest_auth_get_current_user_invalid_token(async_client: AsyncClien
 
 @pytest.mark.integration
 async def test_rest_auth_logout_success(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
 ) -> None:
     """Test logout endpoint with valid token."""
     # Create test user
-    user = await create_user(postgres_integration_session, email="logout@example.com")
+    user = await create_user(
+        postgres_integration_session, email=f"logout-{unique_test_id}@example.com"
+    )
     await postgres_integration_session.commit()
 
     # Create JWT token
@@ -229,11 +233,13 @@ async def test_rest_auth_exchange_supabase_token(async_client: AsyncClient) -> N
 
 @pytest.mark.integration
 async def test_rest_auth_sse_token_creation(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession
+    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
 ) -> None:
     """Test SSE token creation with valid authentication."""
     # Create test user
-    user = await create_user(postgres_integration_session, email="sse@example.com")
+    user = await create_user(
+        postgres_integration_session, email=f"sse-{unique_test_id}@example.com"
+    )
     await postgres_integration_session.commit()
 
     # Create JWT token
