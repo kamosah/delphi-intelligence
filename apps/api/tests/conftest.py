@@ -21,6 +21,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.schema import Table
 
 from app.config import settings
+from app.db.session import get_session
 from app.main import app
 from app.models.base import Base
 from app.models.message import Message, MessageRole, AuthorType
@@ -247,10 +248,32 @@ def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[
 
 
 @pytest.fixture
-async def async_client() -> AsyncGenerator[AsyncClient, None]:
-    """Provide an async HTTP client for testing endpoints."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
+async def async_client(
+    postgres_integration_session: AsyncSession,  # noqa: F811
+) -> AsyncGenerator[AsyncClient, None]:
+    """Provide an async HTTP client for testing endpoints.
+
+    CRITICAL: Overrides app's database dependency to use test database session.
+    Without this override, the app's database engine connects to an empty database
+    (no tables) because it's created when conftest.py imports the app at module level,
+    BEFORE postgres_engine fixture creates the schema.
+
+    This ensures all HTTP requests via async_client use the same database connection
+    as the test fixtures, allowing tests to set up data that the app can see.
+    """
+
+    # Override app's get_session dependency to use test database
+    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        yield postgres_integration_session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            yield client
+    finally:
+        # Clean up dependency override after test
+        app.dependency_overrides.clear()
 
 
 # --------------------------------------------------------------------------- #
