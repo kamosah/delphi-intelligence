@@ -45,7 +45,11 @@ from tests.fixtures.postgres import (  # noqa: F401
 # Import API client abstractions for integration tests
 from tests.fixtures.api_clients import GraphQLClient, RESTClient, SSEClient
 from tests.fixtures.auth import TestUser, create_test_token
-from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
+from tests.fixtures.openai_mocks import (
+    MockChatOpenAI,
+    MockEmbeddingService,
+    MockOpenAIEmbeddings,
+)
 
 
 # Override event_loop fixture to be session-scoped for PostgreSQL integration tests
@@ -520,6 +524,21 @@ def mock_embeddings() -> MockOpenAIEmbeddings:
             assert len(vector1) == 1536  # Correct dimensions
     """
     return MockOpenAIEmbeddings()
+
+
+@pytest.fixture
+def mock_embedding_service() -> MockEmbeddingService:
+    """Provide mock EmbeddingService for vector search tests.
+
+    Returns MockEmbeddingService that uses deterministic hash-based embeddings
+    instead of calling OpenAI API.
+
+    Usage:
+        async def test_vector_search(mock_embedding_service):
+            vector = await mock_embedding_service.generate_embedding("Hello")
+            assert len(vector) == 1536  # Deterministic
+    """
+    return MockEmbeddingService()
 
 
 @pytest.fixture

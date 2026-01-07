@@ -244,3 +244,61 @@ class MockOpenAIEmbeddings(Embeddings):
             current_hash = hashlib.sha256(current_hash).digest()
 
         return vector[: self.dimensions]
+
+
+class MockEmbeddingService:
+    """Mock EmbeddingService that uses MockOpenAIEmbeddings.
+
+    Provides the same interface as EmbeddingService but uses deterministic
+    hash-based embeddings instead of calling OpenAI API.
+
+    Usage:
+        mock_service = MockEmbeddingService()
+        vector = await mock_service.generate_embedding("Hello world")
+        # Returns: [0.123, -0.456, ...] (1536 dimensions, deterministic)
+    """
+
+    def __init__(self) -> None:
+        """Initialize mock embedding service."""
+        self.embeddings = MockOpenAIEmbeddings()
+
+    async def generate_embedding(self, text: str) -> list[float]:
+        """Generate embedding for a single text.
+
+        Args:
+            text: Input text to embed
+
+        Returns:
+            List of float values representing the embedding vector
+
+        Raises:
+            ValueError: If text is empty
+        """
+        if not text or not text.strip():
+            error_msg = "Text cannot be empty"
+            raise ValueError(error_msg)
+
+        return await self.embeddings.aembed_query(text)
+
+    async def generate_batch_embeddings(
+        self,
+        texts: list[str],
+        batch_size: int | None = None,
+    ) -> list[list[float]]:
+        """Generate embeddings for multiple texts in batches.
+
+        Args:
+            texts: List of input texts to embed
+            batch_size: Ignored (mock processes all at once)
+
+        Returns:
+            List of embedding vectors (one per input text)
+
+        Raises:
+            ValueError: If texts list is empty
+        """
+        if not texts:
+            error_msg = "Texts list cannot be empty"
+            raise ValueError(error_msg)
+
+        return await self.embeddings.aembed_documents(texts)

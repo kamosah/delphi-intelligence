@@ -14,7 +14,8 @@ Usage:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from typing import cast
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -71,7 +72,7 @@ async def create_organization(
     name: str,
     slug: str | None = None,
     description: str | None = None,
-    owner_id: str | None = None,
+    owner_id: UUID | None = None,
 ) -> Organization:
     """
     Create a test organization in the database.
@@ -81,7 +82,7 @@ async def create_organization(
         name: Organization name
         slug: Organization slug (auto-generated from name if None)
         description: Organization description
-        owner_id: Owner user ID
+        owner_id: Owner user ID (UUID)
 
     Returns:
         Created Organization instance
@@ -335,7 +336,7 @@ async def create_user_with_org(
         Tuple of (User, Organization, OrganizationMember)
     """
     user = await create_user(session, email=user_email)
-    org = await create_organization(session, name=org_name, owner_id=user.id)
+    org = await create_organization(session, name=org_name, owner_id=cast(UUID | None, user.id))
     member = await create_membership(session, user, org, is_default=True, role=role)
     await session.commit()
     return user, org, member
