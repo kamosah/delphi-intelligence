@@ -357,8 +357,8 @@ async def authenticated_graphql_client(
     )
     token = create_test_token(test_user)
 
-    # Inject token via cookie (matches FastAPI cookie auth)
-    async_client.cookies.set("access_token", token)
+    # Inject token via Authorization header (matches integration test pattern)
+    async_client.headers["Authorization"] = f"Bearer {token}"
 
     return GraphQLClient(async_client)
 
