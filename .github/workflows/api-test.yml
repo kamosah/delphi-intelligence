@@ -17,6 +17,22 @@ jobs:
         name: Run Pytest
         runs-on: ubuntu-latest
 
+        # PostgreSQL service container for integration tests
+        services:
+            postgres:
+                image: pgvector/pgvector:pg16
+                env:
+                    POSTGRES_USER: test
+                    POSTGRES_PASSWORD: test
+                    POSTGRES_DB: olympus_test
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
+
         defaults:
             run:
                 working-directory: apps/api
@@ -67,7 +83,7 @@ jobs:
               env:
                   SPICEDB_ENDPOINT: localhost:50051
                   SPICEDB_TOKEN: testtoken
-                  DATABASE_URL: sqlite+aiosqlite:///test.db
+                  DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
                   REDIS_URL: redis://localhost:6379/0
                   OPENAI_API_KEY: test-openai-api-key
               run: |
