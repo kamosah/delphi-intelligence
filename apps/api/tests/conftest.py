@@ -30,6 +30,7 @@ from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus, ThreadVisibility
 from app.models.user import User
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
+from tests.factories import create_user
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 
 # Import PostgreSQL fixtures for integration tests
@@ -40,6 +41,10 @@ from tests.fixtures.postgres import (  # noqa: F401
     postgres_session,
     unique_test_id,
 )
+
+# Import API client abstractions for integration tests
+from tests.fixtures.api_clients import GraphQLClient, RESTClient, SSEClient
+from tests.fixtures.auth import TestUser, create_test_token
 
 
 # Override event_loop fixture to be session-scoped for PostgreSQL integration tests
@@ -242,25 +247,86 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
         yield client
 
 
-class GraphQLClient:
-    """Simple GraphQL client for testing."""
-
-    def __init__(self, client: AsyncClient) -> None:
-        self.client = client
-
-    async def execute(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Execute a GraphQL query."""
-        response = await self.client.post(
-            "/graphql",
-            json={"query": query, "variables": variables or {}},
-        )
-        result: dict[str, Any] = response.json()
-        return result
+# --------------------------------------------------------------------------- #
+# API Client Fixtures (GraphQL, REST, SSE)
+# --------------------------------------------------------------------------- #
 
 
 @pytest.fixture
-async def graphql_client(async_client: AsyncClient) -> GraphQLClient:
-    """Provide a GraphQL client wrapper for testing."""
+def graphql_client(async_client: AsyncClient) -> GraphQLClient:
+    """Provide GraphQL client with typed responses and error handling.
+
+    Usage:
+        async def test_query(graphql_client):
+            data = await graphql_client.execute_expecting_data(
+                query='{ me { id email } }',
+            )
+            assert data["me"]["email"] == "test@example.com"
+    """
+    return GraphQLClient(async_client)
+
+
+@pytest.fixture
+def rest_client(async_client: AsyncClient) -> RESTClient:
+    """Provide REST API client with authentication support.
+
+    Usage:
+        async def test_endpoint(rest_client):
+            response = await rest_client.get("/api/users/me")
+            assert response.status_code == 200
+    """
+    return RESTClient(async_client)
+
+
+@pytest.fixture
+def sse_client(async_client: AsyncClient) -> SSEClient:
+    """Provide SSE client for testing streaming endpoints.
+
+    Usage:
+        async def test_streaming(sse_client):
+            events = await sse_client.stream_events(
+                "/api/threads/123/stream",
+                max_events=5,
+            )
+            assert len(events) == 5
+    """
+    return SSEClient(async_client)
+
+
+@pytest.fixture
+async def authenticated_graphql_client(
+    async_client: AsyncClient,
+    postgres_session: AsyncSession,  # noqa: F811
+) -> GraphQLClient:
+    """Provide GraphQL client with authenticated test user.
+
+    Creates a test user in PostgreSQL, generates a JWT token, and injects
+    it via cookie. Use this for integration tests requiring authentication.
+
+    Uses postgres_session fixture (imported from tests.fixtures.postgres).
+
+    Usage:
+        async def test_authenticated_query(authenticated_graphql_client):
+            data = await authenticated_graphql_client.execute_expecting_data(
+                query='{ me { id email } }',
+            )
+            assert data["me"]["email"] == "test@example.com"
+    """
+    # Create test user in database
+    user = await create_user(postgres_session, email="test@example.com")
+    await postgres_session.commit()
+
+    # Create JWT token
+    test_user = TestUser(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name or "Test User",
+    )
+    token = create_test_token(test_user)
+
+    # Inject token via cookie (matches FastAPI cookie auth)
+    async_client.cookies.set("access_token", token)
+
     return GraphQLClient(async_client)
 
 

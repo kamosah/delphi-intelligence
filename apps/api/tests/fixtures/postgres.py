@@ -56,7 +56,7 @@ def postgres_container() -> PostgresContainer:
                 return "postgresql+psycopg2://test:test@localhost:5432/olympus_test"
 
         # Yield to match local behavior (even though no cleanup needed)
-        yield MockContainer()  # type: ignore[misc]
+        yield MockContainer()
     else:
         # Local: Start testcontainer
         container = PostgresContainer(
