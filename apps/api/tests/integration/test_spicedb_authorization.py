@@ -35,7 +35,7 @@ async def test_personal_thread_isolation(
     - Prevent access by other users
     """
     # Create user
-    user1 = await create_user(postgres_session, email="user1@example.com")
+    user1 = await create_user(postgres_session, email="user1@example.com", full_name="User One")
     await postgres_session.commit()
 
     # Create PERSONAL thread owned by user1 (no organization, no space)

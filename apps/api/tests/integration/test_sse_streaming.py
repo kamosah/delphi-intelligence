@@ -29,7 +29,7 @@ async def test_sse_basic_streaming(
 ) -> None:
     """Test basic SSE streaming with mocked LLM."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()
@@ -76,7 +76,7 @@ async def test_sse_event_type_parsing(
 ) -> None:
     """Test that SSE events contain correct type fields (token, citations, done, error)."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()
@@ -121,7 +121,7 @@ async def test_sse_stream_completion(
 ) -> None:
     """Test that SSE stream completes with 'done' event."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()
@@ -163,7 +163,7 @@ async def test_sse_chunk_reconstruction(
 ) -> None:
     """Test reconstructing full message from token chunks."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()
@@ -213,7 +213,7 @@ async def test_sse_missing_query_parameter(
 ) -> None:
     """Test that SSE endpoint returns 400 for missing query parameter."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()
@@ -259,8 +259,8 @@ async def test_sse_space_access_control(
 ) -> None:
     """Test that SSE endpoint enforces space access control."""
     # Create two users and organization
-    user1 = await create_user(postgres_session, email="user1@example.com")
-    user2 = await create_user(postgres_session, email="user2@example.com")
+    user1 = await create_user(postgres_session, email="user1@example.com", full_name="User One")
+    user2 = await create_user(postgres_session, email="user2@example.com", full_name="User Two")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user1, org)
     await create_membership(postgres_session, user2, org)
@@ -291,7 +291,7 @@ async def test_sse_concurrent_streams(
 ) -> None:
     """Test multiple concurrent SSE streams (parallel safety)."""
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()
@@ -343,7 +343,7 @@ async def test_sse_timeout_handling(
     The actual endpoint timeout is 120 seconds (THREAD_TIMEOUT_SECONDS).
     """
     # Create test user and organization
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     await create_membership(postgres_session, user, org)
     await postgres_session.commit()

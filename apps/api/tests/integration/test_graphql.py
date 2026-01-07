@@ -28,6 +28,15 @@ async def test_graphql_create_user_mutation(
     async_client: AsyncClient, postgres_session: AsyncSession
 ) -> None:
     """Test creating a user via GraphQL mutation."""
+    # Create admin user for authentication
+    admin = await create_user(postgres_session, email="admin@example.com", full_name="Admin User")
+    await postgres_session.commit()
+
+    # Authenticate client
+    test_user = TestUser(id=str(admin.id), email=admin.email, full_name=admin.full_name or "")
+    token = create_test_token(test_user)
+    async_client.headers["Authorization"] = f"Bearer {token}"
+
     client = GraphQLClient(async_client)
 
     query = """
@@ -62,6 +71,11 @@ async def test_graphql_query_user_by_id(
     # Create test user
     user = await create_user(postgres_session, email="test@example.com", full_name="Test User")
     await postgres_session.commit()
+
+    # Authenticate client
+    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    token = create_test_token(test_user)
+    async_client.headers["Authorization"] = f"Bearer {token}"
 
     client = GraphQLClient(async_client)
 
@@ -128,10 +142,18 @@ async def test_graphql_list_organizations(
     async_client: AsyncClient, postgres_session: AsyncSession
 ) -> None:
     """Test listing organizations via GraphQL query."""
+    # Create test user for authentication
+    user = await create_user(postgres_session, email="test@example.com")
+
     # Create test organizations
     await create_organization(postgres_session, "Organization 1")
     await create_organization(postgres_session, "Organization 2")
     await postgres_session.commit()
+
+    # Authenticate client
+    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    token = create_test_token(test_user)
+    async_client.headers["Authorization"] = f"Bearer {token}"
 
     client = GraphQLClient(async_client)
 
@@ -317,6 +339,15 @@ async def test_graphql_validation_error_handling(
     async_client: AsyncClient, postgres_session: AsyncSession
 ) -> None:
     """Test GraphQL validation error handling."""
+    # Create test user for authentication
+    user = await create_user(postgres_session, email="test@example.com", full_name="Test User")
+    await postgres_session.commit()
+
+    # Authenticate client
+    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    token = create_test_token(test_user)
+    async_client.headers["Authorization"] = f"Bearer {token}"
+
     client = GraphQLClient(async_client)
 
     query = """
@@ -340,6 +371,15 @@ async def test_graphql_query_nonexistent_resource(
     async_client: AsyncClient, postgres_session: AsyncSession
 ) -> None:
     """Test querying a nonexistent resource returns None."""
+    # Create test user for authentication
+    user = await create_user(postgres_session, email="test@example.com", full_name="Test User")
+    await postgres_session.commit()
+
+    # Authenticate client
+    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    token = create_test_token(test_user)
+    async_client.headers["Authorization"] = f"Bearer {token}"
+
     client = GraphQLClient(async_client)
 
     query = """

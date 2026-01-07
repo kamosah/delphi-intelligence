@@ -47,7 +47,7 @@ async def test_vector_search_basic(
 ) -> None:
     """Test basic vector search with cosine similarity."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space = await create_space(postgres_session, "Test Space", org, user)
     await postgres_session.commit()
@@ -122,7 +122,7 @@ async def test_vector_search_similarity_threshold(
 ) -> None:
     """Test that similarity threshold filters out low-relevance results."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space = await create_space(postgres_session, "Test Space", org, user)
     await postgres_session.commit()
@@ -202,7 +202,7 @@ async def test_vector_search_top_k_limit(
 ) -> None:
     """Test that top-k limit restricts number of results."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space = await create_space(postgres_session, "Test Space", org, user)
     await postgres_session.commit()
@@ -262,7 +262,7 @@ async def test_vector_search_space_scoped(
 ) -> None:
     """Test that vector search is scoped to specific space."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space1 = await create_space(postgres_session, "Space 1", org, user)
     space2 = await create_space(postgres_session, "Space 2", org, user)
@@ -360,7 +360,7 @@ async def test_vector_search_empty_query(
 ) -> None:
     """Test that vector search raises ValueError for empty query."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space = await create_space(postgres_session, "Test Space", org, user)
     await postgres_session.commit()
@@ -387,7 +387,7 @@ async def test_vector_search_invalid_limit(
 ) -> None:
     """Test that vector search raises ValueError for invalid limit."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space = await create_space(postgres_session, "Test Space", org, user)
     await postgres_session.commit()
@@ -424,7 +424,7 @@ async def test_vector_search_cosine_similarity_calculation(
 ) -> None:
     """Test that cosine similarity is calculated correctly (1.0 - distance)."""
     # Create test data
-    user = await create_user(postgres_session, email="user@example.com")
+    user = await create_user(postgres_session, email="user@example.com", full_name="Test User")
     org = await create_organization(postgres_session, "Test Org")
     space = await create_space(postgres_session, "Test Space", org, user)
     await postgres_session.commit()
