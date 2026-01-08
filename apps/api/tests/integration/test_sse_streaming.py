@@ -46,14 +46,13 @@ async def test_sse_basic_streaming(
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
     # Create SSE client
     sse_client = SSEClient(async_client)
 
-    # Stream events
+    # Stream events (SSE requires token in query params, not Authorization header)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true",
+        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
         max_events=20,  # Limit events for test performance
         timeout=30.0,
     )
@@ -98,14 +97,13 @@ async def test_sse_event_type_parsing(
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
     # Create SSE client
     sse_client = SSEClient(async_client)
 
-    # Stream events
+    # Stream events (SSE requires token in query params, not Authorization header)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true",
+        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
         max_events=20,
         timeout=30.0,
     )
@@ -148,14 +146,13 @@ async def test_sse_stream_completion(
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
     # Create SSE client
     sse_client = SSEClient(async_client)
 
-    # Stream ALL events (no max_events limit)
+    # Stream ALL events (no max_events limit, SSE requires token in query params)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true",
+        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
         timeout=30.0,
     )
 
@@ -196,14 +193,13 @@ async def test_sse_chunk_reconstruction(
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
     # Create SSE client
     sse_client = SSEClient(async_client)
 
-    # Stream events
+    # Stream events (SSE requires token in query params, not Authorization header)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true",
+        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
         timeout=30.0,
     )
 
@@ -309,11 +305,10 @@ async def test_sse_space_access_control(
     # Authenticate as user2 (NOT in space)
     test_user = TestUser(id=str(user2.id), email=user2.email, full_name=user2.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
-    # Request with space_id that user2 cannot access
+    # Request with space_id that user2 cannot access (SSE requires token in query params)
     response = await async_client.get(
-        f"/api/thread/stream?query=Test&space_id={space.id}&save_to_db=true"
+        f"/api/thread/stream?query=Test&space_id={space.id}&save_to_db=true&token={token}"
     )
 
     # Should return 403 (forbidden - no space access)
@@ -345,16 +340,15 @@ async def test_sse_concurrent_streams(
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
     # Create SSE client
     sse_client = SSEClient(async_client)
 
-    # Define async task for streaming
+    # Define async task for streaming (SSE requires token in query params)
     async def stream_query(query_text: str) -> list:
         """Stream a single query and return events."""
         return await sse_client.stream_events(
-            url=f"/api/thread/stream?query={query_text}&organization_id={org.id}&save_to_db=true",
+            url=f"/api/thread/stream?query={query_text}&organization_id={org.id}&save_to_db=true&token={token}",
             max_events=10,
             timeout=30.0,
         )
@@ -398,17 +392,16 @@ async def test_sse_timeout_handling(
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
-    async_client.headers["Authorization"] = f"Bearer {token}"
 
     # Create SSE client with very short timeout
     sse_client = SSEClient(async_client)
 
-    # Attempt to stream with timeout
+    # Attempt to stream with timeout (SSE requires token in query params)
     # Use a query that might take longer than 1 second (simulates timeout scenario)
     exception_raised = False
     try:
         events = await sse_client.stream_events(
-            url=f"/api/thread/stream?query=Complex question requiring analysis&organization_id={org.id}&save_to_db=true",
+            url=f"/api/thread/stream?query=Complex question requiring analysis&organization_id={org.id}&save_to_db=true&token={token}",
             max_events=100,  # Large max to potentially trigger timeout
             timeout=1.0,  # Very short timeout
         )
