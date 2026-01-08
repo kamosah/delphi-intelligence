@@ -117,8 +117,8 @@ async def test_sse_event_type_parsing(
     # Verify all events have a 'type' field
     for event_data in parsed_events:
         assert "type" in event_data
-        # Valid event types from thread_stream.py
-        assert event_data["type"] in {"token", "citations", "done", "error"}
+        # Valid event types from thread_stream.py and ai_agent.py
+        assert event_data["type"] in {"start", "token", "citations", "done", "error"}
 
 
 @pytest.mark.integration
@@ -264,13 +264,14 @@ async def test_sse_requires_authentication(
     org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     await postgres_integration_session.commit()
 
-    # Request WITHOUT authentication
+    # Request WITHOUT authentication (no token parameter)
     response = await async_client.get(
         f"/api/thread/stream?query=Test&organization_id={org.id}&save_to_db=true"
     )
 
-    # Should return 401 or 403 (unauthorized)
-    assert response.status_code in {401, 403}
+    # Should return 422 (validation error - missing required 'token' parameter)
+    # FastAPI validates required parameters before authentication dependency runs
+    assert response.status_code == 422
 
 
 @pytest.mark.integration
