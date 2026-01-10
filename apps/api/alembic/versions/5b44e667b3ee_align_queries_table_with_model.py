@@ -19,24 +19,114 @@ depends_on: Union[str, Sequence[str], None] = None  # noqa: F841
 
 
 def upgrade() -> None:
-    """Align queries table columns with SQLAlchemy model naming conventions."""
-    # Rename columns to match model (better naming)
-    op.execute('ALTER TABLE queries RENAME COLUMN question TO query_text;')
-    op.execute('ALTER TABLE queries RENAME COLUMN answer TO result;')
-    op.execute('ALTER TABLE queries RENAME COLUMN user_id TO created_by;')
+    """Conditionally align queries table columns with SQLAlchemy model naming conventions.
 
-    # Add agent_steps column for LangGraph debugging
-    op.execute('ALTER TABLE queries ADD COLUMN agent_steps JSONB;')
+    Initial schema (3df48089188e) already has: query_text, result, created_by, agent_steps
+    This migration handles cases where manual DB had: question, answer, user_id
+    """
+    # Conditionally rename question → query_text if question exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'question'
+            ) THEN
+                ALTER TABLE queries RENAME COLUMN question TO query_text;
+            END IF;
+        END $$;
+    """)
 
-    # Keep context, title, and other Supabase columns for RAG pipeline
+    # Conditionally rename answer → result if answer exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'answer'
+            ) THEN
+                ALTER TABLE queries RENAME COLUMN answer TO result;
+            END IF;
+        END $$;
+    """)
+
+    # Conditionally rename user_id → created_by if user_id exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'user_id'
+            ) THEN
+                ALTER TABLE queries RENAME COLUMN user_id TO created_by;
+            END IF;
+        END $$;
+    """)
+
+    # Conditionally add agent_steps if not exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'agent_steps'
+            ) THEN
+                ALTER TABLE queries ADD COLUMN agent_steps JSONB;
+            END IF;
+        END $$;
+    """)
 
 
 def downgrade() -> None:
-    """Revert queries table to original Supabase schema."""
-    # Rename columns back
-    op.execute('ALTER TABLE queries RENAME COLUMN query_text TO question;')
-    op.execute('ALTER TABLE queries RENAME COLUMN result TO answer;')
-    op.execute('ALTER TABLE queries RENAME COLUMN created_by TO user_id;')
+    """Conditionally revert queries table column renames."""
+    # Conditionally rename query_text → question if query_text exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'query_text'
+            ) THEN
+                ALTER TABLE queries RENAME COLUMN query_text TO question;
+            END IF;
+        END $$;
+    """)
 
-    # Drop agent_steps
-    op.execute('ALTER TABLE queries DROP COLUMN IF EXISTS agent_steps;')
+    # Conditionally rename result → answer if result exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'result'
+            ) THEN
+                ALTER TABLE queries RENAME COLUMN result TO answer;
+            END IF;
+        END $$;
+    """)
+
+    # Conditionally rename created_by → user_id if created_by exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'created_by'
+            ) THEN
+                ALTER TABLE queries RENAME COLUMN created_by TO user_id;
+            END IF;
+        END $$;
+    """)
+
+    # Drop agent_steps if exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'queries' AND column_name = 'agent_steps'
+            ) THEN
+                ALTER TABLE queries DROP COLUMN agent_steps;
+            END IF;
+        END $$;
+    """)
