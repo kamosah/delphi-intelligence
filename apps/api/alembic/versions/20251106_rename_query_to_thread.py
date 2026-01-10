@@ -100,8 +100,16 @@ def upgrade() -> None:
     # PART 3: Rename Query → Thread
     # ========================================
 
-    # Step 1: Rename enum type query_status → thread_status
-    op.execute("ALTER TYPE query_status RENAME TO thread_status;")
+    # Step 1: Conditionally rename enum type query_status → thread_status
+    # (query_status only exists in manual Supabase DBs, not in fresh installs)
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'query_status') THEN
+                ALTER TYPE query_status RENAME TO thread_status;
+            END IF;
+        END $$;
+    """)
 
     # Step 2: Rename tables
     op.rename_table('queries', 'threads')
@@ -218,8 +226,15 @@ def downgrade() -> None:
     op.rename_table('threads', 'queries')
     op.rename_table('thread_documents', 'query_documents')
 
-    # Step 5: Rename enum type back
-    op.execute("ALTER TYPE thread_status RENAME TO query_status;")
+    # Step 5: Conditionally rename enum type back
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'thread_status') THEN
+                ALTER TYPE thread_status RENAME TO query_status;
+            END IF;
+        END $$;
+    """)
 
 
     # ========================================
