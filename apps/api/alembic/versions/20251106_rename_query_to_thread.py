@@ -115,6 +115,41 @@ def upgrade() -> None:
     op.rename_table('queries', 'threads')
     op.rename_table('query_documents', 'thread_documents')
 
+    # Step 2.5: Drop old foreign key constraints that may have outdated names
+    # In manual DBs, the constraint might be named queries_user_id_fkey (from old user_id column)
+    # In fresh installs, it's queries_created_by_fkey (from created_by column)
+    # We conditionally drop both to handle all cases
+    op.execute("""
+        DO $$
+        BEGIN
+            -- Drop queries_user_id_fkey if it exists (manual DB with old column name)
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'queries_user_id_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT queries_user_id_fkey;
+            END IF;
+
+            -- Drop queries_created_by_fkey if it exists (fresh install)
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'queries_created_by_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT queries_created_by_fkey;
+            END IF;
+        END $$;
+    """)
+
+    # Recreate the foreign key with correct naming convention
+    op.create_foreign_key(
+        'fk_threads_created_by',
+        'threads', 'users',
+        ['created_by'], ['id'],
+        ondelete='SET NULL'
+    )
+
     # Step 3: Rename columns in thread_documents
     op.alter_column('thread_documents', 'query_id', new_column_name='thread_id')
 
@@ -210,7 +245,30 @@ def downgrade() -> None:
     op.execute("ALTER INDEX IF EXISTS idx_thread_documents_thread_id RENAME TO idx_query_documents_query_id;")
     op.execute("ALTER INDEX IF EXISTS idx_thread_documents_document_id RENAME TO idx_query_documents_document_id;")
 
-    # Step 2: Rename foreign key constraints back (using SQLAlchemy ops)
+    # Step 2: Drop the standardized foreign key and recreate with original name
+    # Conditionally drop fk_threads_created_by if it exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'fk_threads_created_by'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT fk_threads_created_by;
+            END IF;
+        END $$;
+    """)
+
+    # Recreate with original name from initial schema
+    op.create_foreign_key(
+        'queries_created_by_fkey',
+        'threads', 'users',
+        ['created_by'], ['id'],
+        ondelete='SET NULL'
+    )
+
+    # Step 3: Rename foreign key constraints back (using SQLAlchemy ops)
     op.drop_constraint('thread_documents_thread_id_fkey', 'thread_documents', type_='foreignkey')
     op.create_foreign_key(
         'query_documents_query_id_fkey',
@@ -219,10 +277,10 @@ def downgrade() -> None:
         ondelete='CASCADE'
     )
 
-    # Step 3: Rename columns back
+    # Step 4: Rename columns back
     op.alter_column('thread_documents', 'thread_id', new_column_name='query_id')
 
-    # Step 4: Rename tables back
+    # Step 5: Rename tables back
     op.rename_table('threads', 'queries')
     op.rename_table('thread_documents', 'query_documents')
 
