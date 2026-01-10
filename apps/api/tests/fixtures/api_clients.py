@@ -249,14 +249,14 @@ class SSEClient:
         self,
         url: str,
         max_events: int | None = None,
-        timeout: float = 30.0,  # noqa: ASYNC109
+        timeout_seconds: float = 30.0,
     ) -> list[SSEEvent]:
         """Collect Server-Sent Events from a stream.
 
         Args:
             url: SSE endpoint URL
             max_events: Optional limit on number of events to collect
-            timeout: Timeout in seconds (default: 30.0)
+            timeout_seconds: Timeout in seconds (default: 30.0)
 
         Returns:
             List of SSEEvent objects collected from stream
@@ -265,7 +265,7 @@ class SSEClient:
             httpx.TimeoutException: If stream times out
         """
         events: list[SSEEvent] = []
-        async with aconnect_sse(self.client, "GET", url, timeout=timeout) as event_source:
+        async with aconnect_sse(self.client, "GET", url, timeout=timeout_seconds) as event_source:
             async for sse in event_source.aiter_sse():
                 events.append(
                     SSEEvent(

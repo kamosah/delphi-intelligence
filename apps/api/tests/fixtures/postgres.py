@@ -84,6 +84,54 @@ async def setup_database_schema(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         # Install pgvector extension (required for document_chunks.embedding column)
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
+        # Create auth schema and PostgreSQL roles for RLS testing
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS auth"))
+
+        # Create PostgreSQL roles used by Supabase RLS
+        # These roles are required for SET ROLE commands in RLS tests
+        # Use DO blocks for idempotency (PostgreSQL doesn't support CREATE ROLE IF NOT EXISTS)
+        await conn.execute(
+            text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+                    CREATE ROLE authenticated NOLOGIN;
+                END IF;
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
+                    CREATE ROLE anon NOLOGIN;
+                END IF;
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN
+                    CREATE ROLE service_role NOLOGIN;
+                END IF;
+            END
+            $$
+        """)
+        )
+
+        # Grant privileges to test user to assume these roles
+        await conn.execute(text("GRANT authenticated TO test"))
+        await conn.execute(text("GRANT anon TO test"))
+        await conn.execute(text("GRANT service_role TO test"))
+
+        # Create auth.uid() function for RLS testing
+        # This function is required by RLS policies that use auth.uid()
+        await conn.execute(
+            text("""
+            CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
+            LANGUAGE sql STABLE
+            AS $$
+              SELECT NULLIF(
+                COALESCE(
+                  current_setting('request.jwt.claim.sub', true),
+                  (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')
+                ),
+                ''
+              )::uuid
+            $$
+        """)
+        )
+
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)
 

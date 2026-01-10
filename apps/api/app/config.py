@@ -1,5 +1,9 @@
 """
 Application configuration management using Pydantic Settings
+
+Environment Loading:
+- Development/Production: Loads .env file
+- Testing: pytest-dotenv loads .env.test into os.environ (takes precedence over .env)
 """
 
 from pydantic import Field
@@ -10,7 +14,10 @@ class Settings(BaseSettings):
     """Application settings"""
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
     )
 
     # App Configuration

@@ -5,6 +5,7 @@ Validates deterministic behavior of mocks without making real API calls.
 
 import pytest
 
+from app.services.langchain_config import get_embeddings, get_llm
 from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 
 
@@ -118,8 +119,6 @@ def test_patch_openai_monkeypatch_works(
     patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
 ) -> None:
     """Verify patch_openai monkeypatches factory functions."""
-    from app.services.langchain_config import get_embeddings, get_llm  # noqa: PLC0415
-
     llm_mock, embeddings_mock = patch_openai
 
     # get_llm() should return our mock

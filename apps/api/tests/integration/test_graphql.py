@@ -8,10 +8,14 @@ This module tests GraphQL operations with PostgreSQL database:
 - Authentication and authorization
 """
 
+from collections.abc import Callable
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.schemas.spicedb import WriteRelationshipInput
+from app.services.spicedb_service import SpiceDBService
 from tests.factories import (
     create_membership,
     create_organization,
@@ -151,9 +155,15 @@ async def test_graphql_list_organizations(
         postgres_integration_session, email=f"test-{unique_test_id}@example.com"
     )
 
-    # Create test organizations
-    await create_organization(postgres_integration_session, f"Organization 1 {unique_test_id}")
-    await create_organization(postgres_integration_session, f"Organization 2 {unique_test_id}")
+    # Create test organizations with user memberships
+    org1 = await create_organization(
+        postgres_integration_session, f"Organization 1 {unique_test_id}"
+    )
+    org2 = await create_organization(
+        postgres_integration_session, f"Organization 2 {unique_test_id}"
+    )
+    await create_membership(postgres_integration_session, user, org1)
+    await create_membership(postgres_integration_session, user, org2)
     await postgres_integration_session.commit()
 
     # Authenticate client
@@ -226,9 +236,13 @@ async def test_graphql_create_space(
 
 @pytest.mark.integration
 async def test_graphql_update_space(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
+    async_client: AsyncClient,
+    postgres_integration_session: AsyncSession,
+    spicedb_service: SpiceDBService,
+    test_resource_ids: Callable[[str], str],
+    unique_test_id: str,
 ) -> None:
-    """Test updating a space via GraphQL mutation."""
+    """Test updating a space via GraphQL mutation with SpiceDB permissions."""
     # Create test user, organization, and space
     user = await create_user(
         postgres_integration_session, email=f"user-{unique_test_id}@example.com"
@@ -236,6 +250,42 @@ async def test_graphql_update_space(
     org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
     space = await create_space(postgres_integration_session, "Original Space", org, user)
     await postgres_integration_session.commit()
+
+    # Set up SpiceDB relationships (required for update permission check)
+    org_id = test_resource_ids(str(org.id))
+    space_id = test_resource_ids(str(space.id))
+    user_id = test_resource_ids(str(user.id))
+
+    # Organization with owner
+    await spicedb_service.write_relationship(
+        WriteRelationshipInput(
+            resource_type="organization",
+            resource_id=org_id,
+            relation="owner",
+            subject_type="user",
+            subject_id=user_id,
+        )
+    )
+
+    # Space with organization and owner (owner can update)
+    await spicedb_service.write_relationship(
+        WriteRelationshipInput(
+            resource_type="space",
+            resource_id=space_id,
+            relation="organization",
+            subject_type="organization",
+            subject_id=org_id,
+        )
+    )
+    await spicedb_service.write_relationship(
+        WriteRelationshipInput(
+            resource_type="space",
+            resource_id=space_id,
+            relation="owner",
+            subject_type="user",
+            subject_id=user_id,
+        )
+    )
 
     # Authenticate client
     test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
@@ -352,7 +402,7 @@ async def test_graphql_authentication_required(async_client: AsyncClient) -> Non
 async def test_graphql_validation_error_handling(
     async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
 ) -> None:
-    """Test GraphQL validation error handling."""
+    """Test GraphQL validation error handling for duplicate email."""
     # Create test user for authentication
     user = await create_user(
         postgres_integration_session,
@@ -377,11 +427,12 @@ async def test_graphql_validation_error_handling(
         }
     """
 
-    # Invalid email format
-    variables = {"input": {"email": "invalid-email"}}
+    # Duplicate email (user already exists)
+    variables = {"input": {"email": f"test-{unique_test_id}@example.com"}}
 
     errors = await client.execute_expecting_error(query, variables)
     assert len(errors) > 0
+    assert any("already exists" in str(err) for err in errors)
 
 
 @pytest.mark.integration

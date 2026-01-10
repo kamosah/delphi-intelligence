@@ -89,7 +89,13 @@ jobs:
                     --token testtoken \
                     --insecure
 
-            - name: Run pytest
+            - name: Apply database migrations
+              env:
+                  DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
+              run: |
+                  poetry run alembic upgrade head
+
+            - name: Run pytest with coverage
               env:
                   SPICEDB_ENDPOINT: localhost:50051
                   SPICEDB_TOKEN: testtoken
@@ -97,7 +103,14 @@ jobs:
                   REDIS_URL: redis://localhost:6379/0
                   OPENAI_API_KEY: test-openai-api-key
               run: |
-                  poetry run pytest tests/ -v
+                  poetry run pytest -n auto --dist loadscope --cov=app --cov-report=xml --cov-report=html -v
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./apps/api/coverage.xml
+                  flags: api
+                  fail_ci_if_error: false
 
             - name: Check test results
               if: failure()

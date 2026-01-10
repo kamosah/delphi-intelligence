@@ -655,6 +655,447 @@ async def test_document_upload_to_search_workflow(
 | **Unit Test** | In-Memory SQLite | Single service, no external deps, fast |
 | **Integration Test** | Docker PostgreSQL | Multi-service, external deps, workflows |
 | **E2E Test** | Docker PostgreSQL | Full stack, authentication, real APIs |
+| **RLS Test** | Local Supabase PostgreSQL | Row Level Security policies, auth.uid() |
+
+## Supabase RLS Integration Testing
+
+### Overview
+
+**Row Level Security (RLS)** policies are tested against local Supabase PostgreSQL to ensure production parity. RLS tests verify that database-level access control works correctly with Supabase's `auth.uid()` function.
+
+### Why Local Supabase for RLS Tests?
+
+✅ **Production parity** - Uses same PostgreSQL with Supabase Auth extensions
+✅ **Real auth.uid()** - Tests actual JWT token parsing via `auth.jwt.claim.sub`
+✅ **Alembic migrations** - RLS policies loaded from production migration files
+✅ **No manual policy writing** - Migrations are the source of truth
+✅ **Isolated per test** - Fresh database schemas for each test session
+
+### Test Infrastructure
+
+**Fixture**: `supabase_postgres_engine` (located in `tests/fixtures/supabase_local.py`)
+
+**What it provides:**
+
+- **Local Supabase PostgreSQL** - Connected to `npx supabase start` instance
+- **Clean slate** - Drops and recreates `public` and `_internal` schemas
+- **Alembic migrations** - Applies all migrations including RLS policies
+- **Auth extensions** - GoTrue roles (`authenticated`, `anon`, `service_role`)
+- **pgvector** - Vector search extension pre-installed
+
+**Database URL**: `postgresql+asyncpg://postgres:postgres@127.0.0.1:54322/postgres`
+
+### Setup: Start Local Supabase
+
+Before running RLS tests, start local Supabase:
+
+```bash
+cd apps/api
+npx supabase start
+
+# Expected output:
+# Started supabase local development setup.
+# API URL: http://127.0.0.1:54321
+# DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+```
+
+**Note**: Local Supabase runs in Docker containers and persists data between runs. If you encounter stale migration state, restart:
+
+```bash
+npx supabase stop
+npx supabase start
+```
+
+### Fixture Implementation
+
+The `supabase_postgres_engine` fixture follows this workflow:
+
+```python
+@pytest.fixture(scope="session")
+async def supabase_postgres_engine() -> AsyncGenerator[AsyncEngine, None]:
+    """Async engine connected to local Supabase PostgreSQL database."""
+
+    # 1. Connect to local Supabase
+    database_url = "postgresql+asyncpg://postgres:postgres@127.0.0.1:54322/postgres"
+    engine = create_async_engine(database_url, echo=False, pool_pre_ping=True)
+
+    # 2. Drop and recreate application schemas (leave auth schema intact)
+    async with engine.begin() as conn:
+        await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        await conn.execute(text("DROP SCHEMA IF EXISTS _internal CASCADE"))
+
+        await conn.execute(text("CREATE SCHEMA public"))
+        await conn.execute(text("CREATE SCHEMA _internal"))
+
+        # Grant permissions
+        await conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+        await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+
+        # Install extensions
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
+        # Grant postgres user ability to assume RLS roles
+        await conn.execute(text("GRANT authenticated TO postgres"))
+        await conn.execute(text("GRANT anon TO postgres"))
+        await conn.execute(text("GRANT service_role TO postgres"))
+
+    # 3. Apply Alembic migrations (runs synchronously in thread pool)
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, apply_alembic_migrations_sync, database_url)
+
+    yield engine
+    await engine.dispose()
+```
+
+### Alembic Migration Function
+
+**Key principle**: RLS policies come from Alembic migrations, **not** hardcoded in fixtures.
+
+```python
+def apply_alembic_migrations_sync(database_url: str) -> None:
+    """Apply Alembic migrations synchronously for production parity."""
+    from alembic import command
+    from alembic.config import Config
+    import psycopg2
+
+    # Convert asyncpg URL to psycopg2 (Alembic requirement)
+    sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+
+    # Clear stale alembic_version records
+    conn = psycopg2.connect(sync_url)
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM _internal.alembic_version")
+    conn.commit()
+    conn.close()
+
+    # Load and run Alembic migrations
+    alembic_ini_path = Path(__file__).parent.parent.parent / "alembic.ini"
+    alembic_cfg = Config(str(alembic_ini_path))
+    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+
+    # Migrate to HEAD
+    command.upgrade(alembic_cfg, "head")
+```
+
+### Writing RLS Tests
+
+**Pattern 1: Testing auth.uid() Function**
+
+```python
+@pytest.mark.integration()
+@pytest.mark.rls()
+class TestAuthUidFunction:
+    """Verify auth.uid() returns correct user UUID."""
+
+    async def test_auth_uid_returns_correct_user(
+        self,
+        supabase_admin,
+        supabase_postgres_engine
+    ) -> None:
+        # Arrange: Create two Supabase Auth users
+        user1 = await supabase_admin.auth.admin.create_user({
+            "email": "user1@test.com",
+            "password": "password123",
+        })
+
+        user2 = await supabase_admin.auth.admin.create_user({
+            "email": "user2@test.com",
+            "password": "password456",
+        })
+
+        # Act: Execute query as each user
+        async with supabase_postgres_engine.begin() as conn:
+            # Set JWT claims for user1
+            await conn.execute(text(f"""
+                SELECT set_config('request.jwt.claims',
+                    '{{"sub": "{user1.user.id}"}}',
+                    false)
+            """))
+
+            result1 = await conn.execute(text("SELECT auth.uid()"))
+            uid1 = result1.scalar()
+
+            # Set JWT claims for user2
+            await conn.execute(text(f"""
+                SELECT set_config('request.jwt.claims',
+                    '{{"sub": "{user2.user.id}"}}',
+                    false)
+            """))
+
+            result2 = await conn.execute(text("SELECT auth.uid()"))
+            uid2 = result2.scalar()
+
+        # Assert: auth.uid() returns correct UUIDs
+        assert str(uid1) == user1.user.id
+        assert str(uid2) == user2.user.id
+```
+
+**Pattern 2: Testing RLS Policies**
+
+```python
+@pytest.mark.integration()
+@pytest.mark.rls()
+class TestThreadRLSPolicies:
+    """Test Row Level Security for personal threads."""
+
+    async def test_user_can_read_own_personal_threads(
+        self,
+        supabase_admin,
+        supabase_postgres_engine,
+    ) -> None:
+        # Arrange: Create user and thread via factories
+        user_context = await create_test_user(supabase_admin)
+
+        async with supabase_postgres_engine.begin() as conn:
+            # Create user in database
+            await conn.execute(text("""
+                INSERT INTO app_users (id, email, full_name)
+                VALUES (:id, :email, :name)
+            """), {
+                "id": user_context.user_id,
+                "email": user_context.email,
+                "name": "Test User",
+            })
+
+            # Create personal thread
+            await conn.execute(text("""
+                INSERT INTO threads (
+                    id, owner_user_id, visibility,
+                    query_text, created_by
+                )
+                VALUES (
+                    gen_random_uuid(),
+                    :user_id,
+                    'personal',
+                    'My query',
+                    :user_id
+                )
+            """), {"user_id": user_context.user_id})
+
+        # Act: Query threads as authenticated user
+        async with supabase_postgres_engine.begin() as conn:
+            # Set JWT claims (simulates authenticated request)
+            await conn.execute(text(f"""
+                SELECT set_config('request.jwt.claims',
+                    '{{"sub": "{user_context.user_id}"}}',
+                    false)
+            """))
+
+            # Set role to authenticated
+            await conn.execute(text("SET LOCAL ROLE authenticated"))
+
+            # Query threads (RLS policies will filter)
+            result = await conn.execute(text("""
+                SELECT COUNT(*) FROM threads
+                WHERE visibility = 'personal'
+            """))
+            count = result.scalar()
+
+        # Assert: User can see their own thread
+        assert count == 1
+```
+
+**Pattern 3: Testing Cross-User Isolation**
+
+```python
+async def test_user_cannot_read_other_users_personal_threads(
+    self,
+    supabase_admin,
+    supabase_postgres_engine,
+) -> None:
+    # Arrange: Create two users
+    user1_context = await create_test_user(supabase_admin, "user1@test.com")
+    user2_context = await create_test_user(supabase_admin, "user2@test.com")
+
+    async with supabase_postgres_engine.begin() as conn:
+        # Create both users in DB
+        await conn.execute(text("""
+            INSERT INTO app_users (id, email, full_name)
+            VALUES
+                (:id1, :email1, 'User 1'),
+                (:id2, :email2, 'User 2')
+        """), {
+            "id1": user1_context.user_id,
+            "email1": user1_context.email,
+            "id2": user2_context.user_id,
+            "email2": user2_context.email,
+        })
+
+        # Create thread owned by user1
+        await conn.execute(text("""
+            INSERT INTO threads (
+                id, owner_user_id, visibility,
+                query_text, created_by
+            )
+            VALUES (
+                gen_random_uuid(),
+                :user1_id,
+                'personal',
+                'User 1 query',
+                :user1_id
+            )
+        """), {"user1_id": user1_context.user_id})
+
+    # Act: Try to query as user2
+    async with supabase_postgres_engine.begin() as conn:
+        # Set JWT claims for user2
+        await conn.execute(text(f"""
+            SELECT set_config('request.jwt.claims',
+                '{{"sub": "{user2_context.user_id}"}}',
+                false)
+        """))
+
+        await conn.execute(text("SET LOCAL ROLE authenticated"))
+
+        # Query threads
+        result = await conn.execute(text("""
+            SELECT COUNT(*) FROM threads
+            WHERE visibility = 'personal'
+        """))
+        count = result.scalar()
+
+    # Assert: User2 cannot see User1's thread
+    assert count == 0
+```
+
+### Helper Fixtures
+
+**`create_test_user` - Factory for Supabase Auth users**
+
+```python
+@dataclass
+class TestUserContext:
+    user_id: str
+    email: str
+    access_token: str
+    refresh_token: str
+
+async def create_test_user(
+    supabase_admin,
+    email: str = "test@example.com",
+) -> TestUserContext:
+    """Create Supabase Auth user and return tokens."""
+    user_response = await supabase_admin.auth.admin.create_user({
+        "email": email,
+        "password": "password123",
+        "email_confirm": True,
+    })
+
+    session = await supabase_admin.auth.sign_in_with_password({
+        "email": email,
+        "password": "password123",
+    })
+
+    return TestUserContext(
+        user_id=user_response.user.id,
+        email=email,
+        access_token=session.session.access_token,
+        refresh_token=session.session.refresh_token,
+    )
+```
+
+### Running RLS Tests
+
+```bash
+# Start local Supabase first
+npx supabase start
+
+# Run RLS tests only
+docker compose exec api poetry run pytest -m rls -v
+
+# Run specific RLS test file
+docker compose exec api poetry run pytest tests/integration/test_rls_policies.py -v
+
+# Run RLS tests with coverage
+docker compose exec api poetry run pytest -m rls --cov=app --cov-report=html
+```
+
+### Test Organization
+
+**Location**: `tests/integration/test_rls_policies.py`
+
+**Markers**:
+- `@pytest.mark.integration()` - Integration test with external dependencies
+- `@pytest.mark.rls()` - Specifically tests Row Level Security policies
+
+**Example file structure**:
+
+```
+tests/
+├── fixtures/
+│   ├── supabase_local.py     # Supabase fixtures (engine, admin client)
+│   └── __init__.py
+├── integration/
+│   ├── test_rls_policies.py  # RLS policy tests
+│   └── __init__.py
+├── conftest.py               # Global fixtures
+└── test_*.py                 # Unit tests (in-memory SQLite)
+```
+
+### CI Configuration
+
+**GitHub Actions**: RLS tests run in CI with service containers
+
+```yaml
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    env:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: olympus_test
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 5432:5432
+
+steps:
+  - name: Apply database migrations
+    env:
+      DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
+    run: poetry run alembic upgrade head
+
+  - name: Run pytest with coverage
+    env:
+      DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
+      SPICEDB_ENDPOINT: localhost:50051
+      SPICEDB_TOKEN: testtoken
+    run: poetry run pytest -n auto --dist loadscope --cov=app --cov-report=xml -v
+```
+
+### Important Notes
+
+**Production Parity**:
+- ✅ RLS policies loaded from Alembic migrations
+- ✅ Same PostgreSQL version as production (pgvector/pgvector:pg16)
+- ✅ Same auth.uid() function behavior
+- ❌ **Never** hardcode RLS policies in test fixtures
+
+**Local Supabase Persistence**:
+- Local Supabase (`npx supabase start`) persists data between runs
+- If tests fail with stale state, restart: `npx supabase stop && npx supabase start`
+- Fixture automatically cleans schemas on each session
+
+**auth.uid() Function**:
+- Returns UUID from `request.jwt.claims.sub` (set via `set_config`)
+- **Critical** for Supabase architecture - do not modify
+- Test this function explicitly to ensure RLS policies work
+
+### Reference Implementation
+
+**Example**: `tests/integration/test_rls_policies.py`
+
+This file demonstrates:
+- ✅ Real local Supabase PostgreSQL
+- ✅ Alembic-based RLS policy testing
+- ✅ auth.uid() function verification
+- ✅ Cross-user isolation testing
+- ✅ Production parity (same migrations as production)
+
+Study this file for RLS testing patterns.
 
 ## Troubleshooting
 

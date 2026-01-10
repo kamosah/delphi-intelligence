@@ -70,39 +70,51 @@ async def test_rest_auth_register_duplicate_email(async_client: AsyncClient) -> 
 
 @pytest.mark.integration
 async def test_rest_auth_login_success(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
+    async_client: AsyncClient,
+    postgres_integration_session: AsyncSession,
+    local_supabase_client,
+    unique_test_id: str,
 ) -> None:
-    """Test successful login returns tokens."""
-    # Create test user with hashed password (would normally use auth service)
-    await create_user(postgres_integration_session, email=f"login-{unique_test_id}@example.com")
+    """Test successful login returns tokens with real local Supabase."""
+    test_email = f"login-{unique_test_id}@example.com"
+    test_password = "password123"
+
+    # Create user in local Supabase Auth
+    auth_result = local_supabase_client.auth.sign_up({
+        "email": test_email,
+        "password": test_password,
+    })
+    assert auth_result.user is not None, "Failed to create test user in Supabase Auth"
+
+    # Create corresponding user in PostgreSQL (required by Olympus API)
+    await create_user(postgres_integration_session, email=test_email)
     await postgres_integration_session.commit()
 
     client = RESTClient(async_client)
 
-    # Note: This test assumes the auth service properly handles password hashing
+    # Test login via Olympus API (calls real Supabase Auth)
     response: Response = await client.post(
         "/auth/login",
         json={
-            "email": f"login-{unique_test_id}@example.com",
-            "password": "password123",
+            "email": test_email,
+            "password": test_password,
         },
     )
 
-    # May fail if user doesn't have password set (expected in basic factory)
-    # This verifies the endpoint exists and handles requests
-    assert response.status_code in {200, 401}  # Either success or invalid credentials
-
-    if response.status_code == 200:
-        data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
 
 
 @pytest.mark.integration
-async def test_rest_auth_login_invalid_credentials(async_client: AsyncClient) -> None:
-    """Test login with invalid credentials fails."""
+async def test_rest_auth_login_invalid_credentials(
+    async_client: AsyncClient,
+) -> None:
+    """Test login with invalid credentials fails with real local Supabase."""
     client = RESTClient(async_client)
 
+    # Try to login with credentials that don't exist in Supabase Auth
     response: Response = await client.post(
         "/auth/login",
         json={
@@ -111,12 +123,15 @@ async def test_rest_auth_login_invalid_credentials(async_client: AsyncClient) ->
         },
     )
 
+    # Should return 401 Unauthorized (invalid credentials)
     assert response.status_code == 401
 
 
 @pytest.mark.integration
 async def test_rest_auth_get_current_user(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
+    async_client: AsyncClient,
+    postgres_integration_session: AsyncSession,
+    unique_test_id: str,
 ) -> None:
     """Test getting current user profile with valid token."""
     # Create test user
@@ -269,13 +284,11 @@ async def test_rest_auth_sse_token_no_auth(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.integration
-async def test_rest_auth_client_token_creation(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession
-) -> None:
-    """Test client token creation endpoint."""
+async def test_rest_auth_client_token_creation(async_client: AsyncClient) -> None:
+    """Test client token creation endpoint with invalid token."""
     client = RESTClient(async_client)
 
-    # Test with invalid token (verifies endpoint exists)
+    # Test with invalid token (real Supabase will reject it)
     response: Response = await client.post(
         "/auth/client-token",
         headers={"Authorization": "Bearer invalid.supabase.token"},
@@ -303,9 +316,10 @@ async def test_rest_auth_forgot_password(async_client: AsyncClient) -> None:
 
 @pytest.mark.integration
 async def test_rest_auth_resend_verification(async_client: AsyncClient) -> None:
-    """Test resend verification email endpoint."""
+    """Test resend verification email endpoint with real local Supabase."""
     client = RESTClient(async_client)
 
+    # Send resend verification request (real Supabase will send email to Inbucket)
     response: Response = await client.post(
         "/auth/resend-verification",
         json={"email": "verify@example.com"},

@@ -24,7 +24,7 @@ from app.models.message import Message, MessageRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
-from app.models.thread import Thread, ThreadStatus
+from app.models.thread import Thread, ThreadStatus, ThreadVisibility
 from app.models.user import User
 
 
@@ -241,12 +241,13 @@ async def create_document(
 async def create_thread(
     session: AsyncSession,
     query_text: str,
-    organization: Organization,
     creator: User,
     *,
+    organization: Organization | None = None,
     space: Space | None = None,
     title: str | None = None,
     status: ThreadStatus = ThreadStatus.PENDING,
+    visibility: ThreadVisibility | None = None,
 ) -> Thread:
     """
     Create a test thread in the database.
@@ -254,23 +255,34 @@ async def create_thread(
     Args:
         session: Database session
         query_text: Initial query text
-        organization: Organization instance
         creator: User who created the thread
-        space: Optional Space instance (None for org-wide threads)
+        organization: Optional Organization instance (required unless visibility is PERSONAL)
+        space: Optional Space instance (for SPACE visibility)
         title: Thread title
         status: Thread status
+        visibility: Thread visibility (defaults based on org/space if not provided)
 
     Returns:
         Created Thread instance
     """
+    # Auto-determine visibility if not explicitly set
+    if visibility is None:
+        if space is not None:
+            visibility = ThreadVisibility.SPACE
+        elif organization is not None:
+            visibility = ThreadVisibility.ORGANIZATION
+        else:
+            visibility = ThreadVisibility.PERSONAL
+
     thread = Thread(
         query_text=query_text,
         title=title,
-        organization_id=organization.id,
+        organization_id=organization.id if organization else None,
         space_id=space.id if space else None,
         owner_user_id=creator.id,  # Set owner to creator by default
         created_by=creator.id,
         status=status,
+        visibility=visibility,
     )
     session.add(thread)
     await session.flush()
@@ -391,7 +403,9 @@ async def create_thread_with_messages(
     Returns:
         Tuple of (Thread, list[Message])
     """
-    thread = await create_thread(session, query_text, organization, creator, space=space)
+    thread = await create_thread(
+        session, query_text, creator, organization=organization, space=space
+    )
 
     messages = []
     for i in range(num_exchanges):
