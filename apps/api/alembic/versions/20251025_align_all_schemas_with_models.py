@@ -165,9 +165,10 @@ def upgrade() -> None:
 
     # Create query_documents table if it doesn't exist
     # (It already exists in Supabase, but this ensures it matches the model)
+    # Uses gen_random_uuid() instead of extensions.uuid_generate_v4() for PostgreSQL compatibility
     op.execute("""
         CREATE TABLE IF NOT EXISTS query_documents (
-            id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             query_id UUID NOT NULL REFERENCES queries(id),
