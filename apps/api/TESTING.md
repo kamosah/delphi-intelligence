@@ -1036,9 +1036,31 @@ tests/
 └── test_*.py                 # Unit tests (in-memory SQLite)
 ```
 
-### CI Configuration
+### Running Tests Locally vs CI
 
-**GitHub Actions**: RLS tests run in CI with service containers
+**Local Development:**
+- ✅ **Integration tests**: Run with `poetry run pytest` (host machine)
+- ✅ **Unit tests**: Run with `docker compose exec api poetry run pytest` (in container)
+- ❌ **Never** run integration tests inside Docker container (causes Docker-in-Docker conflicts with testcontainers)
+
+**Key Difference**: Integration tests use `testcontainers-python` to spin up PostgreSQL containers, which requires Docker socket access only available on the host machine.
+
+```bash
+# ✅ CORRECT: Run integration tests on host
+cd apps/api
+poetry run pytest tests/integration/ -v
+
+# ✅ CORRECT: Run unit tests in container
+docker compose exec api poetry run pytest tests/test_*.py -v
+
+# ❌ WRONG: Run integration tests in container (will fail)
+docker compose exec api poetry run pytest tests/integration/ -v  # Docker socket error!
+```
+
+**CI Environment (GitHub Actions)**:
+- Uses GitHub Actions service containers instead of testcontainers
+- `postgres_container` fixture detects CI and returns mock container pointing to service container
+- Migrations applied automatically by `postgres_engine` fixture (no manual step needed)
 
 ```yaml
 services:
@@ -1057,11 +1079,7 @@ services:
       - 5432:5432
 
 steps:
-  - name: Apply database migrations
-    env:
-      DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
-    run: poetry run alembic upgrade head
-
+  # No manual migration step needed - fixtures handle it automatically!
   - name: Run pytest with coverage
     env:
       DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
@@ -1069,6 +1087,11 @@ steps:
       SPICEDB_TOKEN: testtoken
     run: poetry run pytest -n auto --dist loadscope --cov=app --cov-report=xml -v
 ```
+
+**Fixture Behavior:**
+- **Local**: `postgres_container` starts real testcontainer via Docker socket
+- **CI**: `postgres_container` returns mock container pointing to `localhost:5432`
+- Both apply Alembic migrations automatically via `postgres_engine` fixture
 
 ### Important Notes
 
