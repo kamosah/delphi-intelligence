@@ -142,14 +142,25 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
         RuntimeError: If schema creation or migration application fails
     """
     async with engine.begin() as conn:
+        # Drop all schemas to ensure clean state for migrations
+        # CASCADE ensures all tables, functions, and objects are removed
+        await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        await conn.execute(text("DROP SCHEMA IF EXISTS _internal CASCADE"))
+        await conn.execute(text("DROP SCHEMA IF EXISTS auth CASCADE"))
+
+        # Recreate schemas with fresh state
+        await conn.execute(text("CREATE SCHEMA public"))
+        await conn.execute(text("CREATE SCHEMA _internal"))
+        await conn.execute(text("CREATE SCHEMA auth"))
+
+        # Grant privileges on schemas
+        await conn.execute(text("GRANT ALL ON SCHEMA public TO test"))
+        await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+        await conn.execute(text("GRANT ALL ON SCHEMA _internal TO test"))
+        await conn.execute(text("GRANT ALL ON SCHEMA auth TO test"))
+
         # Install pgvector extension (required for document_chunks.embedding column)
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-
-        # Create auth schema and PostgreSQL roles for RLS testing
-        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS auth"))
-
-        # Create _internal schema for Alembic version tracking
-        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS _internal"))
 
         # Create PostgreSQL roles used by Supabase RLS
         # These roles are required for SET ROLE commands in RLS tests
