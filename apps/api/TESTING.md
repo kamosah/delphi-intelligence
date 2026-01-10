@@ -769,7 +769,11 @@ def apply_alembic_migrations_sync(database_url: str) -> None:
     conn.close()
 
     # Load and run Alembic migrations
-    alembic_ini_path = Path(__file__).parent.parent.parent / "alembic.ini"
+    # Get path to alembic.ini
+    # From: tests/fixtures/supabase_local.py
+    # To:   apps/api/alembic.ini (2 levels up)
+    api_root = Path(__file__).resolve().parents[2]
+    alembic_ini_path = api_root / "alembic.ini"
     alembic_cfg = Config(str(alembic_ini_path))
     alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
 

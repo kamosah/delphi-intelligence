@@ -4,18 +4,21 @@ This module provides PostgreSQL-based fixtures for integration tests,
 following the principles in TESTING.md:
 - Tests actual database operations (not mocks)
 - Per-test transaction rollback for isolation
-- SQLAlchemy metadata schema creation (simple and fast)
+- Full production parity via Alembic migrations (includes RLS policies)
 - Parallel-safe with unique_test_id fixture
-
-Note: Future enhancement (LOG-270) will add Alembic migration support
-for full production parity.
 """
 
+import asyncio
 import os
 from collections.abc import AsyncGenerator
+from pathlib import Path
+from typing import Protocol
 from uuid import uuid4
 
+import psycopg2
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -25,16 +28,22 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from app.models.base import Base
-
 
 def _is_ci_environment() -> bool:
     """Check if running in CI environment (GitHub Actions)."""
     return os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
 
 
+class PostgresContainerProtocol(Protocol):
+    """Protocol for PostgreSQL container abstraction."""
+
+    def get_connection_url(self) -> str:
+        """Get PostgreSQL connection URL."""
+        ...
+
+
 @pytest.fixture(scope="session")
-def postgres_container() -> PostgresContainer:
+def postgres_container() -> PostgresContainerProtocol:
     """Start PostgreSQL container for entire test session.
 
     Uses pgvector/pgvector:pg16 image for vector search support.
@@ -47,11 +56,11 @@ def postgres_container() -> PostgresContainer:
     Note: Run tests with `poetry run pytest` locally (not `docker compose exec api pytest`)
     """
     if _is_ci_environment():
-        # CI: Use GitHub Actions service container (Phase 5)
+        # CI: Use GitHub Actions service container
         # Mock container with connection details from environment
         class MockContainer:
             def get_connection_url(self) -> str:
-                # CI service container connection (will be configured in Phase 5)
+                # CI service container connection
                 # Must use psycopg2 format so postgres_engine can convert to asyncpg
                 return "postgresql+psycopg2://test:test@localhost:5432/olympus_test"
 
@@ -70,16 +79,67 @@ def postgres_container() -> PostgresContainer:
         container.stop()
 
 
-async def setup_database_schema(engine: AsyncEngine) -> None:
-    """Create database schema using SQLAlchemy metadata.
+def apply_alembic_migrations_sync(database_url: str) -> None:
+    """Apply Alembic migrations synchronously for production parity.
 
-    Creates all tables defined in Base.metadata. This approach is simpler than
-    Alembic migrations for test setup and avoids event loop conflicts.
+    This runs ALL Alembic migrations including RLS policies exactly as they
+    exist in the migration files, ensuring complete production parity.
 
-    Note: For production parity with Alembic migrations, see issue LOG-270.
+    Args:
+        database_url: PostgreSQL connection URL (postgresql://...)
+
+    Raises:
+        RuntimeError: If migrations fail to apply
+    """
+    # Override database URL (ensure it's synchronous psycopg2 URL)
+    sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+
+    # Manually clear alembic_version table using direct psycopg2 connection
+    # This ensures the table is truly empty before Alembic reads it
+    try:
+        conn = psycopg2.connect(sync_url)
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM _internal.alembic_version")
+        conn.commit()
+        conn.close()
+        print("✓ Cleared alembic_version table")
+    except Exception as e:
+        print(f"⚠ Warning: Could not clear alembic_version: {e}")
+
+    # Get path to alembic.ini
+    # From: tests/fixtures/postgres.py
+    # To:   apps/api/alembic.ini (2 levels up)
+    api_root = Path(__file__).resolve().parents[2]
+    alembic_ini_path = api_root / "alembic.ini"
+
+    # Create Alembic config
+    alembic_cfg = Config(str(alembic_ini_path))
+    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+
+    # Apply all migrations from clean state
+    try:
+        # With empty alembic_version table, just upgrade to head
+        # Alembic will apply all migrations from scratch
+        command.upgrade(alembic_cfg, "head")
+        print("✓ Applied Alembic migrations to test database")
+    except Exception as e:
+        msg = f"Failed to apply Alembic migrations: {e}"
+        print(f"✗ {msg}")
+        raise RuntimeError(msg) from e
+
+
+async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
+    """Create database schema using Alembic migrations.
+
+    Applies all Alembic migrations to provide full production parity,
+    including RLS policies and other migration-specific logic.
 
     Args:
         engine: Async SQLAlchemy engine connected to test database
+        database_url: Database URL for Alembic migrations
+
+    Raises:
+        RuntimeError: If schema creation or migration application fails
     """
     async with engine.begin() as conn:
         # Install pgvector extension (required for document_chunks.embedding column)
@@ -87,6 +147,9 @@ async def setup_database_schema(engine: AsyncEngine) -> None:
 
         # Create auth schema and PostgreSQL roles for RLS testing
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS auth"))
+
+        # Create _internal schema for Alembic version tracking
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS _internal"))
 
         # Create PostgreSQL roles used by Supabase RLS
         # These roles are required for SET ROLE commands in RLS tests
@@ -132,18 +195,31 @@ async def setup_database_schema(engine: AsyncEngine) -> None:
         """)
         )
 
-        # Create all tables
-        await conn.run_sync(Base.metadata.create_all)
+        # Ensure alembic_version table exists for Alembic to use
+        await conn.execute(
+            text("""
+            CREATE TABLE IF NOT EXISTS _internal.alembic_version (
+                version_num VARCHAR(32) NOT NULL,
+                CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+            )
+        """)
+        )
+
+    # Apply Alembic migrations for production parity
+    # Run in thread pool executor to avoid event loop conflicts
+    # (Alembic uses asyncio.run() which can't run in an active loop)
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, apply_alembic_migrations_sync, database_url)
 
 
 @pytest.fixture(scope="session")
 async def postgres_engine(
-    postgres_container: PostgresContainer,
+    postgres_container: PostgresContainerProtocol,
 ) -> AsyncGenerator[AsyncEngine, None]:
     """Create async engine for PostgreSQL container.
 
     Converts psycopg2 URL from testcontainers to asyncpg for SQLAlchemy async support.
-    Creates database schema using SQLAlchemy metadata (simpler than Alembic for tests).
+    Creates database schema using Alembic migrations for full production parity.
     """
     db_url = postgres_container.get_connection_url()
     # Convert psycopg2 URL to asyncpg
@@ -152,8 +228,8 @@ async def postgres_engine(
     # Create engine
     engine = create_async_engine(async_url, echo=False)
 
-    # Create database schema
-    await setup_database_schema(engine)
+    # Create database schema with Alembic migrations
+    await setup_database_schema(engine, async_url)
 
     yield engine
 
@@ -171,7 +247,7 @@ async def postgres_session(
 
     This fixture provides:
     - Transaction-level isolation (changes don't persist across tests)
-    - Full database schema via Alembic migrations
+    - Full database schema via Alembic migrations (includes RLS policies)
     - Automatic cleanup via rollback
     - Parallel-safe execution (unique data via unique_test_id)
     """

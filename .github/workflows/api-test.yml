@@ -89,12 +89,6 @@ jobs:
                     --token testtoken \
                     --insecure
 
-            - name: Apply database migrations
-              env:
-                  DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
-              run: |
-                  poetry run alembic upgrade head
-
             - name: Run pytest with coverage
               env:
                   SPICEDB_ENDPOINT: localhost:50051

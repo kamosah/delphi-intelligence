@@ -30,15 +30,18 @@ Environment Variables (required for tests):
 """
 
 import asyncio
-
 import json
 import os
 import uuid
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
+from pathlib import Path
 
+import psycopg2
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -121,11 +124,6 @@ def apply_alembic_migrations_sync(database_url: str) -> None:
     Raises:
         RuntimeError: If migrations fail to apply
     """
-    from alembic import command  # noqa: PLC0415
-    from alembic.config import Config  # noqa: PLC0415
-    from pathlib import Path  # noqa: PLC0415
-    import psycopg2  # noqa: PLC0415
-
     # Override database URL (ensure it's synchronous psycopg2 URL)
     sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
 
@@ -142,7 +140,10 @@ def apply_alembic_migrations_sync(database_url: str) -> None:
         print(f"⚠ Warning: Could not clear alembic_version: {e}")
 
     # Get path to alembic.ini
-    alembic_ini_path = Path(__file__).parent.parent.parent / "alembic.ini"
+    # From: tests/fixtures/supabase_local.py
+    # To:   apps/api/alembic.ini (2 levels up)
+    api_root = Path(__file__).resolve().parents[2]
+    alembic_ini_path = api_root / "alembic.ini"
 
     # Create Alembic config
     alembic_cfg = Config(str(alembic_ini_path))
