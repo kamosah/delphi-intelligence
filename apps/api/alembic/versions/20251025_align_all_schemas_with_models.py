@@ -79,9 +79,27 @@ def upgrade() -> None:
     # ============================================
 
     # Add missing columns to users table
-    # Note: These columns exist in Supabase but not in original model
-    # auth_user_id, role, is_active, last_login_at already exist in Supabase
-    # We're adding bio which is in the model but not in Supabase
+    # Note: These columns were manually added to Supabase but need to be added for fresh installs
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE;
+    """)
+
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
+    """)
+
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+    """)
+
+    op.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+    """)
+
     op.execute("""
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS bio VARCHAR(500);
@@ -198,7 +216,8 @@ def upgrade() -> None:
     print("✅ Schema alignment complete!")
     print("   - Cleaned up duplicate enums (memberrole, document_type)")
     print("   - Created document_status enum")
-    print("   - Added missing columns (users.bio, documents.extracted_text)")
+    print("   - Added missing columns (users.auth_user_id, users.role, users.is_active, users.last_login_at, users.bio)")
+    print("   - Added missing columns (documents.extracted_text)")
     print("   - Fixed timestamp types (queries.completed_at, document_chunks.created_at)")
     print("   - Ensured query_documents table exists")
 
@@ -206,8 +225,14 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Revert schema alignment changes."""
 
-    # Remove added columns
+    # Remove added columns from users table
+    op.execute("ALTER TABLE users DROP COLUMN IF EXISTS last_login_at;")
+    op.execute("ALTER TABLE users DROP COLUMN IF EXISTS is_active;")
+    op.execute("ALTER TABLE users DROP COLUMN IF EXISTS role;")
+    op.execute("ALTER TABLE users DROP COLUMN IF EXISTS auth_user_id;")
     op.execute("ALTER TABLE users DROP COLUMN IF EXISTS bio;")
+
+    # Remove added columns from documents table
     op.execute("ALTER TABLE documents DROP COLUMN IF EXISTS extracted_text;")
 
     # Revert type changes
