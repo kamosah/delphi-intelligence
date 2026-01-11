@@ -9,11 +9,13 @@ following the principles in TESTING.md:
 """
 
 import asyncio
+import json
 import os
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Protocol
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg2
 import pytest
@@ -46,33 +48,45 @@ class PostgresContainerProtocol(Protocol):
 def postgres_container() -> PostgresContainerProtocol:
     """Start PostgreSQL container for entire test session.
 
-    Uses pgvector/pgvector:pg16 image for vector search support.
+    Uses pgvector/pgvector:pg16 image with custom auth functions:
+    - Includes pgvector extension for vector search
+    - Includes auth schema with auth.uid() and auth.role() functions via init script
+    - Compatible with Supabase RLS policies
+    - Lighter weight than full Supabase image (faster startup in tests)
+
     Container is session-scoped to minimize startup overhead.
 
     Environment Detection:
     - **CI (GitHub Actions)**: Returns mock container pointing to service container
-    - **Local Development**: Starts real testcontainer (requires Docker on host)
+      (CI uses supabase/postgres:15.8.1.085 via GitHub Actions service container)
+    - **Local Development**: Starts testcontainer with pgvector image + auth init script
+      (Lighter than Supabase image, avoids supabase_admin authentication issues)
 
     Note: Run tests with `poetry run pytest` locally (not `docker compose exec api pytest`)
     """
     if _is_ci_environment():
-        # CI: Use GitHub Actions service container
+        # CI: Use GitHub Actions service container (supabase/postgres)
         # Mock container with connection details from environment
         class MockContainer:
             def get_connection_url(self) -> str:
                 # CI service container connection
                 # Must use psycopg2 format so postgres_engine can convert to asyncpg
-                return "postgresql+psycopg2://test:test@localhost:5432/olympus_test"
+                return "postgresql+psycopg2://postgres:postgres@localhost:5432/olympus_test"
 
         # Yield to match local behavior (even though no cleanup needed)
         yield MockContainer()
     else:
-        # Local: Start testcontainer
+        # Local: Start testcontainer with pgvector image + auth init script
+        # Path to init-auth-schema.sql: tests/fixtures/postgres.py -> ../../scripts/init-auth-schema.sql
+        auth_script_path = Path(__file__).resolve().parents[2] / "scripts" / "init-auth-schema.sql"
+
         container = PostgresContainer(
             image="pgvector/pgvector:pg16",
-            username="test",
-            password="test",
+            username="postgres",
+            password="postgres",
             dbname="olympus_test",
+        ).with_volume_mapping(
+            str(auth_script_path), "/docker-entrypoint-initdb.d/01-auth-schema.sql", "ro"
         )
         container.start()
         yield container
@@ -86,25 +100,41 @@ def apply_alembic_migrations_sync(database_url: str) -> None:
     exist in the migration files, ensuring complete production parity.
 
     Args:
-        database_url: PostgreSQL connection URL (postgresql://...)
+        database_url: PostgreSQL connection URL (postgresql+asyncpg://...)
 
     Raises:
         RuntimeError: If migrations fail to apply
     """
-    # Override database URL (ensure it's synchronous psycopg2 URL)
+    # Keep asyncpg URL for Alembic (env.py uses async engine)
+    async_url = database_url
+    # Convert to psycopg2 for verification queries only
     sync_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
 
-    # Manually clear alembic_version table using direct psycopg2 connection
-    # This ensures the table is truly empty before Alembic reads it
+    # Verify _internal schema exists and clear alembic_version table
+    # using direct psycopg2 connection
     try:
         conn = psycopg2.connect(sync_url)
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM _internal.alembic_version")
+            # Verify schema exists (should have been created by setup_database_schema)
+            cur.execute(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '_internal'"
+            )
+            if not cur.fetchone():
+                raise RuntimeError(
+                    "_internal schema does not exist - setup_database_schema may have failed"
+                )
+
+            # Clear version table (may not exist yet)
+            cur.execute("DELETE FROM _internal.alembic_version WHERE 1=1")
         conn.commit()
         conn.close()
         print("✓ Cleared alembic_version table")
+    except psycopg2.errors.UndefinedTable:
+        # Table doesn't exist yet - this is OK, Alembic will create it
+        print("✓ alembic_version table does not exist yet (will be created by Alembic)")
     except Exception as e:
-        print(f"⚠ Warning: Could not clear alembic_version: {e}")
+        print(f"⚠ Warning: Could not verify schema or clear alembic_version: {e}")
+        # Don't raise - let Alembic handle schema/table creation
 
     # Get path to alembic.ini
     # From: tests/fixtures/postgres.py
@@ -112,9 +142,9 @@ def apply_alembic_migrations_sync(database_url: str) -> None:
     api_root = Path(__file__).resolve().parents[2]
     alembic_ini_path = api_root / "alembic.ini"
 
-    # Create Alembic config
+    # Create Alembic config with asyncpg URL for env.py
     alembic_cfg = Config(str(alembic_ini_path))
-    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+    alembic_cfg.set_main_option("sqlalchemy.url", async_url)
 
     # Apply all migrations from clean state
     try:
@@ -154,10 +184,10 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
         await conn.execute(text("CREATE SCHEMA auth"))
 
         # Grant privileges on schemas
-        await conn.execute(text("GRANT ALL ON SCHEMA public TO test"))
+        await conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
         await conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
-        await conn.execute(text("GRANT ALL ON SCHEMA _internal TO test"))
-        await conn.execute(text("GRANT ALL ON SCHEMA auth TO test"))
+        await conn.execute(text("GRANT ALL ON SCHEMA _internal TO postgres"))
+        await conn.execute(text("GRANT ALL ON SCHEMA auth TO postgres"))
 
         # Install pgvector extension (required for document_chunks.embedding column)
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
@@ -183,10 +213,10 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
         """)
         )
 
-        # Grant privileges to test user to assume these roles
-        await conn.execute(text("GRANT authenticated TO test"))
-        await conn.execute(text("GRANT anon TO test"))
-        await conn.execute(text("GRANT service_role TO test"))
+        # Grant privileges to postgres user to assume these roles
+        await conn.execute(text("GRANT authenticated TO postgres"))
+        await conn.execute(text("GRANT anon TO postgres"))
+        await conn.execute(text("GRANT service_role TO postgres"))
 
         # Create auth.uid() function for RLS testing
         # This function is required by RLS policies that use auth.uid()
@@ -202,6 +232,22 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
                 ),
                 ''
               )::uuid
+            $$
+        """)
+        )
+
+        # Create auth.role() function for RLS testing
+        # This function is required by RLS policies that use auth.role()
+        await conn.execute(
+            text("""
+            CREATE OR REPLACE FUNCTION auth.role() RETURNS text
+            LANGUAGE sql STABLE
+            AS $$
+              SELECT COALESCE(
+                current_setting('request.jwt.claim.role', true),
+                (current_setting('request.jwt.claims', true)::jsonb ->> 'role'),
+                current_user
+              )::text
             $$
         """)
         )
@@ -330,3 +376,114 @@ def unique_test_id(worker_id: str) -> str:
             )
     """
     return f"{worker_id}_{uuid4().hex[:8]}"
+
+
+# ==============================================================================
+# RLS Testing Utilities
+# ==============================================================================
+
+
+@asynccontextmanager
+async def authenticated_db_session(
+    engine: AsyncEngine, auth_user_id: str | UUID, role: str = "authenticated"
+) -> AsyncGenerator[AsyncSession, None]:
+    """Set up RLS context for authenticated database queries.
+
+    This context manager configures a database session to simulate an authenticated
+    Supabase user by setting JWT claims that auth.uid() and auth.role() functions read.
+
+    The setup mimics how PostgREST handles authenticated requests:
+    1. Switch to appropriate PostgreSQL role (authenticated, anon, or service_role)
+    2. Set JWT claims as session variables (request.jwt.claims, request.jwt.claim.sub)
+    3. RLS policies evaluate auth.uid() which reads from these session variables
+    4. Reset role and claims after query completes
+
+    Args:
+        engine: AsyncEngine instance connected to test database
+        auth_user_id: UUID of the authenticated user (matches users.auth_user_id)
+        role: PostgreSQL role to assume (default: "authenticated")
+            - "authenticated": Regular logged-in user
+            - "anon": Unauthenticated user
+            - "service_role": Bypasses all RLS policies (admin)
+
+    Yields:
+        AsyncSession: Database session with RLS context configured
+
+    Raises:
+        RuntimeError: If auth.uid() doesn't return expected value after setup
+
+    Example:
+        async def test_user_can_read_own_threads(postgres_engine, postgres_integration_session):
+            # Create test user
+            user = await create_user(postgres_integration_session, email="test@example.com")
+            await postgres_integration_session.commit()
+
+            # Create thread owned by user
+            thread = Thread(owner_user_id=user.id, visibility=ThreadVisibility.PERSONAL)
+            postgres_integration_session.add(thread)
+            await postgres_integration_session.commit()
+
+            # Query with RLS context (auth.uid() = user.auth_user_id)
+            async with authenticated_db_session(postgres_engine, user.auth_user_id) as session:
+                result = await session.execute(select(Thread))
+                threads = result.scalars().all()
+                assert len(threads) == 1  # User can see their own thread
+
+    Implementation Notes:
+        - Role MUST be set BEFORE JWT claims (order matters!)
+        - Uses SET LOCAL to scope changes to current transaction
+        - Verifies auth.uid() returns expected value before yielding
+        - Automatically resets role and rolls back on exit
+    """
+    async with AsyncSession(engine) as session:
+        try:
+            # 1. Set PostgreSQL role (CRITICAL: must be first)
+            # This determines which RLS policies apply to queries
+            await session.execute(text(f"SET LOCAL ROLE {role}"))
+
+            # 2. Set JWT claims as JSON (full claims object)
+            # Some RLS policies read from the full claims object
+            claims = json.dumps({
+                "sub": str(auth_user_id),
+                "role": role,
+                "iss": "test-issuer",
+                "aud": "authenticated",
+            })
+            await session.execute(
+                text("SELECT set_config('request.jwt.claims', :claims, true)"), {"claims": claims}
+            )
+
+            # 3. Set individual claim for auth.uid()
+            # auth.uid() checks this first before parsing full claims JSON
+            await session.execute(
+                text("SELECT set_config('request.jwt.claim.sub', :sub, true)"),
+                {"sub": str(auth_user_id)},
+            )
+
+            # 4. Set role claim for auth.role()
+            await session.execute(
+                text("SELECT set_config('request.jwt.claim.role', :role, true)"), {"role": role}
+            )
+
+            # 5. Verify auth.uid() returns correct value
+            # This catches configuration errors before tests run
+            result = await session.execute(text("SELECT auth.uid()"))
+            actual_uid = result.scalar()
+            expected_uid = (
+                UUID(str(auth_user_id)) if isinstance(auth_user_id, str) else auth_user_id
+            )
+
+            if actual_uid != expected_uid:
+                raise RuntimeError(
+                    f"RLS context setup failed: auth.uid() returned {actual_uid}, "
+                    f"expected {expected_uid}. Check that auth.uid() function exists "
+                    f"and JWT claims are set correctly."
+                )
+
+            yield session
+
+        finally:
+            # Reset role and JWT claims (cleanup)
+            # RESET ROLE returns to the original connection role (postgres)
+            await session.execute(text("RESET ROLE"))
+            await session.rollback()

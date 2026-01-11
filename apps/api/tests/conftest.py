@@ -40,6 +40,7 @@ from tests.utils.spicedb_cleanup import delete_relationships_by_ids
 # Import PostgreSQL fixtures for integration tests
 # - Fixtures must be imported for pytest discovery even if not directly referenced
 from tests.fixtures.postgres import (  # noqa: F401
+    authenticated_db_session,  # RLS testing context manager
     postgres_container,
     postgres_engine,
     postgres_session,
@@ -54,18 +55,6 @@ from tests.fixtures.openai_mocks import (
     MockChatOpenAI,
     MockEmbeddingService,
     MockOpenAIEmbeddings,
-)
-
-# Real Supabase fixtures for integration testing
-from tests.fixtures.supabase_local import (  # noqa: F401
-    TestUserContext,
-    authenticated_db_session,
-    create_test_user,
-    local_supabase_admin_client,
-    local_supabase_client,
-    supabase_postgres_engine,
-    supabase_postgres_integration_session,
-    supabase_postgres_session,
 )
 
 

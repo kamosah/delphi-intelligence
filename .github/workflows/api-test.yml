@@ -20,18 +20,19 @@ jobs:
         # Service containers for integration tests
         services:
             postgres:
-                image: pgvector/pgvector:pg16
+                image: supabase/postgres:15.8.1.085
                 env:
-                    POSTGRES_USER: test
-                    POSTGRES_PASSWORD: test
                     POSTGRES_DB: olympus_test
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_HOST_AUTH_METHOD: trust
+                ports:
+                    - 5432:5432
                 options: >-
-                    --health-cmd pg_isready
+                    --health-cmd "pg_isready -U postgres"
                     --health-interval 10s
                     --health-timeout 5s
                     --health-retries 5
-                ports:
-                    - 5432:5432
 
             redis:
                 image: redis:7-alpine
@@ -74,6 +75,10 @@ jobs:
             - name: Install dependencies
               run: poetry install --no-interaction --no-root
 
+            - name: Initialize auth schema in PostgreSQL
+              run: |
+                  PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -f scripts/init-auth-schema.sql
+
             - name: Start SpiceDB test server
               uses: authzed/action-spicedb@v1
               with:
@@ -89,15 +94,16 @@ jobs:
                     --token testtoken \
                     --insecure
 
-            - name: Run pytest with coverage
+            - name: Run pytest with coverage (all tests including RLS)
               env:
                   SPICEDB_ENDPOINT: localhost:50051
                   SPICEDB_TOKEN: testtoken
-                  DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/olympus_test
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/olympus_test
                   REDIS_URL: redis://localhost:6379/0
                   OPENAI_API_KEY: test-openai-api-key
+                  CI: "true"
               run: |
-                  poetry run pytest -n auto --dist loadscope --cov=app --cov-report=xml --cov-report=html -v
+                  poetry run pytest --cov=app --cov-report=xml --cov-report=html -v
 
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v4
@@ -111,6 +117,7 @@ jobs:
               run: |
                   echo "❌ Tests failed!"
                   echo "Run the following command locally to reproduce:"
+                  echo "  docker compose up -d postgres redis spicedb"
                   echo "  poetry run pytest tests/ -v"
                   exit 1
 

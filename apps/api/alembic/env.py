@@ -17,10 +17,13 @@ from app.models import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the database URL from our settings
-# Replace asyncpg with psycopg2 for Alembic's synchronous operations
-alembic_db_url = settings.db_url.replace("postgresql+asyncpg://", "postgresql://")
-config.set_main_option("sqlalchemy.url", alembic_db_url)
+# Set the database URL from our settings if not already set
+# This allows test fixtures to override the URL programmatically
+if not config.get_main_option("sqlalchemy.url"):
+    # No URL configured - use settings (normal runtime)
+    # Replace asyncpg with psycopg2 for Alembic's synchronous operations
+    alembic_db_url = settings.db_url.replace("postgresql+asyncpg://", "postgresql://")
+    config.set_main_option("sqlalchemy.url", alembic_db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -187,7 +190,16 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     """Run migrations in async mode."""
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = settings.db_url
+
+    # Use config URL if set (e.g., from test fixtures), otherwise use settings
+    # This allows tests to pass their testcontainer URL via alembic config
+    config_url = config.get_main_option("sqlalchemy.url")
+    if config_url:
+        # Config URL explicitly set (e.g., from tests) - use it
+        configuration["sqlalchemy.url"] = config_url
+    else:
+        # No config URL - use settings (normal runtime)
+        configuration["sqlalchemy.url"] = settings.db_url
 
     # Supabase uses PgBouncer which doesn't support prepared statements
     # We must disable statement cache for compatibility
