@@ -20,12 +20,11 @@ jobs:
         # Service containers for integration tests
         services:
             postgres:
-                image: supabase/postgres:15.8.1.085
+                image: pgvector/pgvector:pg16
                 env:
                     POSTGRES_DB: olympus_test
                     POSTGRES_USER: postgres
                     POSTGRES_PASSWORD: postgres
-                    POSTGRES_HOST_AUTH_METHOD: trust
                 ports:
                     - 5432:5432
                 options: >-
