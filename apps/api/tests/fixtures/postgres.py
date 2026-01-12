@@ -252,6 +252,13 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
         """)
         )
 
+        # Grant auth schema permissions to RLS roles
+        # Required for RLS policies to call auth.uid() and auth.role()
+        await conn.execute(text("GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role"))
+        await conn.execute(
+            text("GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated, service_role")
+        )
+
         # Ensure alembic_version table exists for Alembic to use
         await conn.execute(
             text("""
@@ -267,6 +274,19 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
     # (Alembic uses asyncio.run() which can't run in an active loop)
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, apply_alembic_migrations_sync, database_url)
+
+    # Grant permissions on all tables/sequences/functions created by migrations
+    # This ensures RLS roles can access tables created during migration
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role")
+        )
+        await conn.execute(
+            text("GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role")
+        )
+        await conn.execute(
+            text("GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role")
+        )
 
 
 @pytest.fixture(scope="session")
