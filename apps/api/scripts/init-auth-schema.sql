@@ -13,6 +13,9 @@
 -- Create auth schema for Supabase compatibility
 CREATE SCHEMA IF NOT EXISTS auth;
 
+-- Create _internal schema for Alembic version tracking
+CREATE SCHEMA IF NOT EXISTS _internal;
+
 -- ============================================================================
 -- auth.uid() - Returns authenticated user's UUID from JWT claim
 -- ============================================================================
