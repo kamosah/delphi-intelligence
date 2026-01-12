@@ -21,9 +21,8 @@ config = context.config
 # This allows test fixtures to override the URL programmatically
 if not config.get_main_option("sqlalchemy.url"):
     # No URL configured - use settings (normal runtime)
-    # Replace asyncpg with psycopg2 for Alembic's synchronous operations
-    alembic_db_url = settings.db_url.replace("postgresql+asyncpg://", "postgresql://")
-    config.set_main_option("sqlalchemy.url", alembic_db_url)
+    # Keep asyncpg driver for async migrations
+    config.set_main_option("sqlalchemy.url", settings.db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
