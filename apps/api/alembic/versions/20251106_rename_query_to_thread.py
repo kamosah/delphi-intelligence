@@ -244,19 +244,70 @@ def upgrade() -> None:
     op.alter_column("threads", "space_id", nullable=True)
 
     # ========================================
-    # PART 5: Add title and context columns to threads
+    # PART 5: Add RAG pipeline and AI execution tracking columns to threads
     # ========================================
-    # Add title column (was added to Supabase manually, need to ensure it exists for fresh installs)
+    # These columns were added to Supabase manually via MCP, ensure they exist for fresh installs
+
+    # UI/UX fields
     op.execute("""
         ALTER TABLE threads
         ADD COLUMN IF NOT EXISTS title VARCHAR(255);
     """)
 
-    # Add context column for RAG pipeline (was added to Supabase manually)
+    # RAG pipeline fields
     op.execute("""
         ALTER TABLE threads
         ADD COLUMN IF NOT EXISTS context TEXT;
     """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS confidence_score FLOAT;
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS agent_steps JSONB;
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS sources JSONB;
+    """)
+
+    # AI execution tracking fields
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS model_used VARCHAR(100);
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS error_message TEXT;
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS processing_time_ms INTEGER;
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS tokens_used INTEGER;
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS cost_usd NUMERIC(10, 6);
+    """)
+
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;
+    """)
+
+    # Note: status column with thread_status enum is handled by a separate migration
+    # (60e29a1ed846_add_thread_ownership_model.py or earlier migration that created the threads table)
 
 
 def downgrade() -> None:
@@ -270,14 +321,21 @@ def downgrade() -> None:
     """
 
     # ========================================
-    # PART 1: Remove title, context, and organization_id from threads
+    # PART 1: Remove RAG/AI tracking columns and organization_id from threads
     # ========================================
 
-    # Drop title column if it exists
+    # Drop RAG pipeline and AI execution tracking columns
     op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS title;")
-
-    # Drop context column if it exists
     op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS context;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS confidence_score;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS agent_steps;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS sources;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS model_used;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS error_message;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS processing_time_ms;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS tokens_used;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS cost_usd;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS completed_at;")
 
     # Drop organization_id column
     op.drop_index("idx_threads_organization_id", table_name="threads")
