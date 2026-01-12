@@ -78,6 +78,20 @@ jobs:
               run: |
                   PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -f scripts/init-auth-schema.sql
 
+            - name: Run Alembic migrations
+              env:
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/olympus_test
+              run: |
+                  poetry run alembic upgrade head
+
+            - name: Grant permissions to migrated tables
+              run: |
+                  PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -c "
+                  GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+                  GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+                  GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+                  "
+
             - name: Start SpiceDB test server
               uses: authzed/action-spicedb@v1
               with:
