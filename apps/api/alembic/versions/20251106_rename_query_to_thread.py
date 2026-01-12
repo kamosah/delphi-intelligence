@@ -123,13 +123,18 @@ def upgrade() -> None:
     # PART 3: Rename Query → Thread
     # ========================================
 
-    # Step 1: Conditionally rename enum type query_status → thread_status
-    # (query_status only exists in manual Supabase DBs, not in fresh installs)
+    # Step 1: Create or rename enum type for thread status
+    # In manual Supabase DBs: rename query_status → thread_status
+    # In fresh installs: create thread_status enum
     op.execute("""
         DO $$
         BEGIN
             IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'query_status') THEN
+                -- Manual DB: rename existing enum
                 ALTER TYPE query_status RENAME TO thread_status;
+            ELSIF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'thread_status') THEN
+                -- Fresh install: create enum
+                CREATE TYPE thread_status AS ENUM ('pending', 'processing', 'completed', 'failed');
             END IF;
         END $$;
     """)
@@ -306,8 +311,11 @@ def upgrade() -> None:
         ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP WITH TIME ZONE;
     """)
 
-    # Note: status column with thread_status enum is handled by a separate migration
-    # (60e29a1ed846_add_thread_ownership_model.py or earlier migration that created the threads table)
+    # Add status column with thread_status enum (default: pending)
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS status thread_status DEFAULT 'pending';
+    """)
 
 
 def downgrade() -> None:
@@ -336,6 +344,7 @@ def downgrade() -> None:
     op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS tokens_used;")
     op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS cost_usd;")
     op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS completed_at;")
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS status;")
 
     # Drop organization_id column
     op.drop_index("idx_threads_organization_id", table_name="threads")
