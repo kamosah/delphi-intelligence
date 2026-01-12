@@ -244,12 +244,18 @@ def upgrade() -> None:
     op.alter_column("threads", "space_id", nullable=True)
 
     # ========================================
-    # PART 5: Add title column to threads
+    # PART 5: Add title and context columns to threads
     # ========================================
     # Add title column (was added to Supabase manually, need to ensure it exists for fresh installs)
     op.execute("""
         ALTER TABLE threads
         ADD COLUMN IF NOT EXISTS title VARCHAR(255);
+    """)
+
+    # Add context column for RAG pipeline (was added to Supabase manually)
+    op.execute("""
+        ALTER TABLE threads
+        ADD COLUMN IF NOT EXISTS context TEXT;
     """)
 
 
@@ -264,11 +270,14 @@ def downgrade() -> None:
     """
 
     # ========================================
-    # PART 1: Remove title and organization_id from threads
+    # PART 1: Remove title, context, and organization_id from threads
     # ========================================
 
     # Drop title column if it exists
     op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS title;")
+
+    # Drop context column if it exists
+    op.execute("ALTER TABLE threads DROP COLUMN IF EXISTS context;")
 
     # Drop organization_id column
     op.drop_index("idx_threads_organization_id", table_name="threads")
