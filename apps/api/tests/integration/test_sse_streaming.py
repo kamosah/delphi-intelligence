@@ -54,7 +54,7 @@ async def test_sse_basic_streaming(
     events = await sse_client.stream_events(
         url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
         max_events=20,  # Limit events for test performance
-        timeout=30.0,
+        timeout_seconds=30.0,
     )
 
     # Verify events received
@@ -105,7 +105,7 @@ async def test_sse_event_type_parsing(
     events = await sse_client.stream_events(
         url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
         max_events=20,
-        timeout=30.0,
+        timeout_seconds=30.0,
     )
 
     # Verify events received
@@ -153,7 +153,7 @@ async def test_sse_stream_completion(
     # Stream ALL events (no max_events limit, SSE requires token in query params)
     events = await sse_client.stream_events(
         url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
-        timeout=30.0,
+        timeout_seconds=30.0,
     )
 
     # Verify events received
@@ -200,7 +200,7 @@ async def test_sse_chunk_reconstruction(
     # Stream events (SSE requires token in query params, not Authorization header)
     events = await sse_client.stream_events(
         url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
-        timeout=30.0,
+        timeout_seconds=30.0,
     )
 
     # Verify events received
@@ -351,7 +351,7 @@ async def test_sse_concurrent_streams(
         return await sse_client.stream_events(
             url=f"/api/thread/stream?query={query_text}&organization_id={org.id}&save_to_db=true&token={token}",
             max_events=10,
-            timeout=30.0,
+            timeout_seconds=30.0,
         )
 
     # Run 3 concurrent streams
@@ -404,7 +404,7 @@ async def test_sse_timeout_handling(
         events = await sse_client.stream_events(
             url=f"/api/thread/stream?query=Complex question requiring analysis&organization_id={org.id}&save_to_db=true&token={token}",
             max_events=100,  # Large max to potentially trigger timeout
-            timeout=1.0,  # Very short timeout
+            timeout_seconds=1.0,  # Very short timeout
         )
 
         # If we get here, stream completed within 1 second

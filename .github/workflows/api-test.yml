@@ -1,155 +1,168 @@
 name: API Tests
 
 on:
-    push:
-        branches: [main, develop]
-        paths:
-            - "apps/api/**"
-            - ".github/workflows/api-test.yml"
-    pull_request:
-        branches: [main, develop]
-        paths:
-            - "apps/api/**"
-            - ".github/workflows/api-test.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api-test.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/api-test.yml'
 
 jobs:
-    test:
-        name: Run Pytest
-        runs-on: ubuntu-latest
+  test:
+    name: Run Pytest
+    runs-on: ubuntu-latest
 
-        # Service containers for integration tests
-        services:
-            postgres:
-                image: pgvector/pgvector:pg16
-                env:
-                    POSTGRES_DB: olympus_test
-                    POSTGRES_USER: postgres
-                    POSTGRES_PASSWORD: postgres
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd "pg_isready -U postgres"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
+    # Service containers for integration tests
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: olympus_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-            redis:
-                image: redis:7-alpine
-                options: >-
-                    --health-cmd "redis-cli ping"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-                ports:
-                    - 6379:6379
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
 
-        defaults:
-            run:
-                working-directory: apps/api
+    defaults:
+      run:
+        working-directory: apps/api
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: "3.11"
-                  cache: "pip"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
 
-            - name: Install Poetry
-              uses: snok/install-poetry@v1
-              with:
-                  version: latest
-                  virtualenvs-create: true
-                  virtualenvs-in-project: true
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-            - name: Load cached venv
-              id: cached-poetry-dependencies
-              uses: actions/cache@v4
-              with:
-                  path: .venv
-                  key: venv-v2-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-v2-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
-            - name: Install dependencies
-              run: poetry install --no-interaction --no-root
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
 
-            - name: Initialize auth schema in PostgreSQL
-              run: |
-                  PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -f scripts/init-auth-schema.sql
+      - name: Initialize auth schema in PostgreSQL
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -f scripts/init-auth-schema.sql
 
-            - name: Run Alembic migrations
-              env:
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/olympus_test
-              run: |
-                  poetry run alembic upgrade head
+      - name: Run Alembic migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/olympus_test
+        run: |
+          poetry run alembic upgrade head
 
-            - name: Grant permissions to migrated tables
-              run: |
-                  PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -c "
-                  GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
-                  GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated, service_role;
-                  GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-                  GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-                  GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
-                  "
+      - name: Grant permissions to migrated tables
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d olympus_test -c "
+          GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated, service_role;
+          GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+          GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+          GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+          "
 
-            - name: Start SpiceDB test server
-              uses: authzed/action-spicedb@v1
-              with:
-                  version: "v1.48.0"
+      - name: Start SpiceDB test server
+        uses: authzed/action-spicedb@v1
+        with:
+          version: 'v1.48.0'
 
-            - name: Load SpiceDB schema
-              run: |
-                  docker run --rm --network host \
-                    -v ${{ github.workspace }}/apps/api/app/policies:/policies \
-                    authzed/zed:latest \
-                    schema write /policies/olympus.zed \
-                    --endpoint localhost:50051 \
-                    --token testtoken \
-                    --insecure
+      - name: Load SpiceDB schema
+        run: |
+          docker run --rm --network host \
+            -v ${{ github.workspace }}/apps/api/app/policies:/policies \
+            authzed/zed:latest \
+            schema write /policies/olympus.zed \
+            --endpoint localhost:50051 \
+            --token testtoken \
+            --insecure
 
-            - name: Run pytest with coverage (all tests including RLS)
-              env:
-                  SPICEDB_ENDPOINT: localhost:50051
-                  SPICEDB_TOKEN: testtoken
-                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/olympus_test
-                  REDIS_URL: redis://localhost:6379/0
-                  OPENAI_API_KEY: test-openai-api-key
-                  CI: "true"
-              run: |
-                  poetry run pytest --cov=app --cov-report=xml --cov-report=html -v
+      - name: Run pytest with coverage (all tests including RLS)
+        env:
+          SPICEDB_ENDPOINT: localhost:50051
+          SPICEDB_TOKEN: testtoken
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/olympus_test
+          REDIS_URL: redis://localhost:6379/0
+          OPENAI_API_KEY: test-openai-api-key
+          CI: 'true'
+        run: |
+          cd apps/api
+          poetry run pytest --cov=app --cov-report=xml --cov-report=html -v -n auto
 
-            - name: Upload coverage to Codecov
-              uses: codecov/codecov-action@v4
-              with:
-                  file: ./apps/api/coverage.xml
-                  flags: api
-                  fail_ci_if_error: false
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          flags: api
+          fail_ci_if_error: false
 
-            - name: Check test results
-              if: failure()
-              run: |
-                  echo "❌ Tests failed!"
-                  echo "Run the following command locally to reproduce:"
-                  echo "  docker compose up -d postgres redis spicedb"
-                  echo "  poetry run pytest tests/ -v"
-                  exit 1
-
-    summary:
-        name: API Test Summary
-        runs-on: ubuntu-latest
-        needs: [test]
+      - name: Upload test results
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-html-report
+          path: htmlcov/
+          retention-days: 7
 
-        steps:
-            - name: Check test status
-              if: needs.test.result == 'failure'
-              run: |
-                  echo "::error::Pytest tests failed. Please run 'poetry run pytest tests/ -v' locally to see errors."
-                  exit 1
+      - name: Check test results
+        if: failure()
+        run: |
+          echo "❌ Tests failed!"
+           echo "Run the following command locally to reproduce:"
+           echo "  cd apps/api"
+           echo "  make test-all"
+           echo ""
+           echo "Or with Docker:"
+           echo "  docker compose -f apps/api/docker-compose.test.yml up -d"
+           echo "  docker compose -f apps/api/docker-compose.test.yml run --rm test-runner make test-all"
+          exit 1
 
-            - name: Success message
-              if: needs.test.result == 'success'
-              run: |
-                  echo "✅ All tests passed!"
+  summary:
+    name: API Test Summary
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+
+    steps:
+      - name: Check test status
+        if: needs.test.result == 'failure'
+        run: |
+          echo "::error::Pytest tests failed. Please run 'poetry run pytest tests/ -v' locally to see errors."
+          exit 1
+
+      - name: Success message
+        if: needs.test.result == 'success'
+        run: |
+          echo "✅ All tests passed!"

@@ -9,6 +9,7 @@ following the principles in TESTING.md:
 """
 
 import asyncio
+import contextlib
 import json
 import os
 from collections.abc import AsyncGenerator
@@ -36,6 +37,11 @@ def _is_ci_environment() -> bool:
     return os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
 
 
+def _is_docker_container() -> bool:
+    """Check if running inside a Docker container."""
+    return Path("/.dockerenv").exists() or os.getenv("DOCKER_CONTAINER") == "true"
+
+
 class PostgresContainerProtocol(Protocol):
     """Protocol for PostgreSQL container abstraction."""
 
@@ -59,6 +65,8 @@ def postgres_container() -> PostgresContainerProtocol:
     Environment Detection:
     - **CI (GitHub Actions)**: Returns mock container pointing to service container
       (CI uses supabase/postgres:15.8.1.085 via GitHub Actions service container)
+    - **Docker Container**: Uses Docker Compose test services (postgres-test:5433)
+      (When running tests in Docker container with docker-compose.test.yml)
     - **Local Development**: Starts testcontainer with pgvector image + auth init script
       (Lighter than Supabase image, avoids supabase_admin authentication issues)
 
@@ -75,6 +83,16 @@ def postgres_container() -> PostgresContainerProtocol:
 
         # Yield to match local behavior (even though no cleanup needed)
         yield MockContainer()
+    elif _is_docker_container():
+        # Docker Container: Use Docker Compose test services
+        # Connection to postgres-test service on port 5433 (mapped from 5432)
+        class DockerComposeContainer:
+            def get_connection_url(self) -> str:
+                # Use postgres-test service name (Docker Compose network)
+                # Port 5432 is internal to Docker network, 5433 is host mapping
+                return "postgresql+psycopg2://postgres:postgres@postgres-test:5432/olympus_test"
+
+        yield DockerComposeContainer()
     else:
         # Local: Start testcontainer with pgvector image + auth init script
         # Path to init-auth-schema.sql: tests/fixtures/postgres.py -> ../../scripts/init-auth-schema.sql
@@ -225,13 +243,15 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
             CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
             LANGUAGE sql STABLE
             AS $$
-              SELECT NULLIF(
-                COALESCE(
-                  current_setting('request.jwt.claim.sub', true),
-                  (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')
-                ),
-                ''
-              )::uuid
+              SELECT CASE
+                WHEN current_setting('request.jwt.claim.sub', true) IS NOT NULL
+                  AND current_setting('request.jwt.claim.sub', true) != ''
+                THEN current_setting('request.jwt.claim.sub', true)::uuid
+                WHEN current_setting('request.jwt.claims', true) IS NOT NULL
+                  AND (current_setting('request.jwt.claims', true)::jsonb ->> 'sub') IS NOT NULL
+                THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')::uuid
+                ELSE NULL
+              END
             $$
         """)
         )
@@ -256,7 +276,9 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
         # Required for RLS policies to call auth.uid() and auth.role()
         await conn.execute(text("GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role"))
         await conn.execute(
-            text("GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated, service_role")
+            text(
+                "GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA auth TO anon, authenticated, service_role"
+            )
         )
 
         # Ensure alembic_version table exists for Alembic to use
@@ -504,6 +526,9 @@ async def authenticated_db_session(
 
         finally:
             # Reset role and JWT claims (cleanup)
-            # RESET ROLE returns to the original connection role (postgres)
-            await session.execute(text("RESET ROLE"))
+            # Rollback first to clear any failed transaction state
             await session.rollback()
+            # RESET ROLE returns to the original connection role (postgres)
+            with contextlib.suppress(Exception):
+                # If RESET ROLE fails, session is closing anyway
+                await session.execute(text("RESET ROLE"))

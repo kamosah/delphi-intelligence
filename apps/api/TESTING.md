@@ -1304,24 +1304,106 @@ docker compose exec api poetry run pytest tests/ -v --durations=10
 
 ## Running Tests
 
+### Test Execution Modes
+
+The test suite supports three execution modes for flexibility:
+
+#### Mode 1: Local Host Execution (Recommended for Development)
+
+Runs on your host machine using testcontainers for service dependencies.
+
+```bash
+cd apps/api
+
+# Using Makefile (recommended)
+make test-unit        # Unit tests only (fast)
+make test-integration # Integration tests (PostgreSQL + services)
+make test-all         # All tests
+make test-coverage    # With coverage report
+make test-rls         # RLS policy tests only
+make test             # Alias for test-all
+
+# Or use pytest directly
+poetry run pytest tests/ -v
+```
+
+**Requirements:**
+- Docker daemon running (for testcontainers)
+- Poetry dependencies installed
+- `.env.test` file configured
+
+#### Mode 2: Docker Container Execution (For Consistent Environments)
+
+Runs tests in a Docker container with Docker socket mounted. Uses Docker Compose test services.
+
+```bash
+# Start test services (PostgreSQL, Redis, SpiceDB, MinIO)
+docker compose -f docker-compose.test.yml up -d
+
+# Run tests in container
+docker compose -f docker-compose.test.yml run --rm test-runner make test-all
+
+# Run specific test suite
+docker compose -f docker-compose.test.yml run --rm test-runner make test-integration
+
+# Stop test services
+docker compose -f docker-compose.test.yml down
+```
+
+**Requirements:**
+- Docker Compose installed
+- Docker socket accessible (`/var/run/docker.sock`)
+
+#### Mode 3: CI Execution (GitHub Actions)
+
+Uses GitHub Actions service containers (no Docker socket needed).
+
+```yaml
+# .github/workflows/api-test.yml
+services:
+  postgres: ...
+  redis: ...
+  spicedb: ...
+```
+
+### Test Commands
+
 ```bash
 # All tests
-docker compose exec api poetry run pytest
+poetry run pytest tests/ -v
 
 # Specific file
-docker compose exec api poetry run pytest tests/test_organization_service.py
+poetry run pytest tests/test_organization_service.py -v
 
 # Specific test
-docker compose exec api poetry run pytest tests/test_organization_service.py::TestGetCurrentOrganizationId::test_returns_default_organization
-
-# With verbose output
-docker compose exec api poetry run pytest -v
+poetry run pytest tests/test_organization_service.py::TestGetCurrentOrganizationId::test_returns_default_organization -v
 
 # With coverage
-docker compose exec api poetry run pytest --cov=app --cov-report=html
+poetry run pytest --cov=app --cov-report=html tests/
 
 # Parallel execution (fast!)
-docker compose exec api poetry run pytest -n auto
+poetry run pytest -n auto tests/
+```
+
+### Test Markers
+
+Tests are organized using pytest markers:
+
+- **No marker** (default): Unit tests (SQLite, fast, ~0.1s/test)
+- **`@pytest.mark.integration`**: Integration tests (PostgreSQL + services, ~1-2s/test)
+- **`@pytest.mark.rls`**: RLS policy tests (subset of integration tests)
+
+Run tests by marker:
+
+```bash
+# Unit tests only
+poetry run pytest tests/ -m "not integration" -v
+
+# Integration tests only
+poetry run pytest tests/ -m integration -v
+
+# RLS tests only
+poetry run pytest tests/ -m rls -v
 ```
 
 ## Reference Implementation

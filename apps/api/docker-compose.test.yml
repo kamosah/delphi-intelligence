@@ -1,0 +1,86 @@
+# Docker Compose configuration for API testing
+# Usage: docker compose -f docker-compose.test.yml up -d
+# This provides test services (PostgreSQL, Redis, SpiceDB) for integration tests
+
+name: olympus-test
+
+services:
+  postgres-test:
+    image: pgvector/pgvector:pg16
+    container_name: olympus-postgres-test
+    platform: linux/amd64
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with dev postgres
+    environment:
+      POSTGRES_DB: olympus_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./scripts/init-auth-schema.sql:/docker-entrypoint-initdb.d/01-auth-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: olympus-redis-test
+    ports:
+      - "6380:6379"  # Different port to avoid conflict with dev redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  spicedb-test:
+    image: authzed/spicedb:latest
+    container_name: olympus-spicedb-test
+    platform: linux/amd64
+    command: serve --grpc-preshared-key testtoken --datastore-engine memory --datastore-conn-uri ""
+    ports:
+      - "50052:50051"  # Different port to avoid conflict with dev spicedb
+      - "8444:8443"
+
+  minio-test:
+    image: minio/minio:latest
+    container_name: olympus-minio-test
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: olympus-test-runner
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock  # Mount Docker socket for testcontainers
+    environment:
+      - DOCKER_CONTAINER=true
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres-test:5432/olympus_test
+      - REDIS_URL=redis://redis-test:6379/0
+      - SPICEDB_ENDPOINT=spicedb-test:50051
+      - SPICEDB_TOKEN=testtoken
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      spicedb-test:
+        condition: service_started
+    command: ["make", "test-all"]  # Default: run all tests

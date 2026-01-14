@@ -9,7 +9,9 @@ Note: Test environment is automatically loaded via pytest configuration
 """
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator, Callable, Generator
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -18,14 +20,21 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import JSON, event
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+    async_sessionmaker,
+)
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.schema import Table
 
 from app.config import settings
+from app.db import session as db_session_module
 from app.db.session import get_session
 from app.main import app
+from app.services import storage_service as storage_module
 from app.models.base import Base
 from app.models.message import Message, MessageRole, AuthorType
 from app.models.organization import Organization
@@ -36,6 +45,7 @@ from app.models.user import User
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
 from tests.factories import create_user
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
+
 
 # Import PostgreSQL fixtures for integration tests
 # - Fixtures must be imported for pytest discovery even if not directly referenced
@@ -56,6 +66,32 @@ from tests.fixtures.openai_mocks import (
     MockEmbeddingService,
     MockOpenAIEmbeddings,
 )
+from tests.fixtures.storage_mocks import MockStorageService
+
+
+# --------------------------------------------------------------------------- #
+# Environment Detection
+# --------------------------------------------------------------------------- #
+
+
+def _is_ci_environment() -> bool:
+    """Check if running in CI environment (GitHub Actions)."""
+    return os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+
+
+def _is_docker_container() -> bool:
+    """Check if running inside a Docker container.
+
+    Detects Docker container execution by checking for:
+    - /.dockerenv file (present in Docker containers)
+    - DOCKER_CONTAINER environment variable (set by test scripts)
+    """
+    return Path("/.dockerenv").exists() or os.getenv("DOCKER_CONTAINER") == "true"
+
+
+def _is_local_host() -> bool:
+    """Check if running on local host machine (not CI, not Docker container)."""
+    return not _is_ci_environment() and not _is_docker_container()
 
 
 # Override event_loop fixture to be session-scoped for PostgreSQL integration tests
@@ -253,30 +289,53 @@ def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[
 
 @pytest.fixture
 async def async_client(
+    postgres_engine: AsyncEngine,  # noqa: F811
     postgres_integration_session: AsyncSession,  # noqa: F811
 ) -> AsyncGenerator[AsyncClient, None]:
     """Provide an async HTTP client for testing endpoints.
 
-    CRITICAL: Overrides app's database dependency to use test database session.
-    Without this override, the app's database engine connects to an empty database
-    (no tables) because it's created when conftest.py imports the app at module level,
-    BEFORE postgres_engine fixture creates the schema.
+    CRITICAL: Overrides app's database engine AND session to use test database.
+    Without this override, the app's database engine connects to olympus_dev database
+    (which has no schema) because it's created when conftest.py imports the app at
+    module level, BEFORE postgres_engine fixture creates the test database schema.
 
     This ensures all HTTP requests via async_client use the same database connection
     as the test fixtures, allowing tests to set up data that the app can see.
-    """
 
-    # Override app's get_session dependency to use test database
+    Implementation:
+    1. Clears app's cached engine (from app.db.session module)
+    2. Overrides get_engine() to return test postgres_engine
+    3. Overrides get_session() to use postgres_integration_session
+    """
+    # Save original engine and factory for cleanup
+    original_engine = db_session_module._engine
+    original_factory = db_session_module._async_session_factory
+
+    # Clear cached engine and factory so they'll be recreated with test database
+    db_session_module._engine = None
+    db_session_module._async_session_factory = None
+
+    # Override engine getter to return test engine
+    def override_get_engine() -> AsyncEngine:
+        return postgres_engine
+
+    # Override session getter to use test session
     async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
         yield postgres_integration_session
 
+    # Patch the module-level functions
+    original_get_engine = db_session_module.get_engine
+    db_session_module.get_engine = override_get_engine
     app.dependency_overrides[get_session] = override_get_session
 
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
     finally:
-        # Clean up dependency override after test
+        # Restore original engine and factory
+        db_session_module._engine = original_engine
+        db_session_module._async_session_factory = original_factory
+        db_session_module.get_engine = original_get_engine
         app.dependency_overrides.clear()
 
 
@@ -606,3 +665,43 @@ def patch_openai(
     )
 
     return mock_chat_openai, mock_embeddings
+
+
+# --------------------------------------------------------------------------- #
+# Storage Mock Fixtures
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def mock_storage_service(monkeypatch: pytest.MonkeyPatch) -> MockStorageService:
+    """Provide mock storage service that patches get_storage_service().
+
+    Uses local filesystem instead of Supabase Storage for deterministic testing.
+    Automatically cleans up temporary files after test.
+
+    Usage:
+        async def test_upload(mock_storage_service):
+            file_path = await mock_storage_service.upload_file(file, space_id, doc_id)
+            assert file_path is not None
+            # Cleanup happens automatically
+    """
+    # Create mock storage service with temporary directory
+    mock_storage = MockStorageService()
+
+    # Patch get_storage_service() to return mock
+    monkeypatch.setattr(
+        "app.services.storage_service.get_storage_service",
+        lambda: mock_storage,
+    )
+
+    # Also patch the module-level variable for consistency
+    original_service = getattr(storage_module, "_storage_service", None)
+    storage_module._storage_service = mock_storage
+
+    yield mock_storage
+
+    # Cleanup: Remove temporary files
+    mock_storage.cleanup()
+
+    # Restore original service
+    storage_module._storage_service = original_service

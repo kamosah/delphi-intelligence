@@ -38,6 +38,7 @@ async def create_user(
     email: str | None = None,
     full_name: str | None = None,
     is_active: bool = True,
+    auth_user_id: UUID | None = None,
 ) -> User:
     """
     Create a test user in the database.
@@ -47,6 +48,7 @@ async def create_user(
         email: User email (auto-generated if None)
         full_name: User's full name
         is_active: Whether user is active
+        auth_user_id: Supabase auth user ID (auto-generated if None)
 
     Returns:
         Created User instance
@@ -55,6 +57,7 @@ async def create_user(
         email=email or f"user-{uuid4()}@test.com",
         full_name=full_name,
         is_active=is_active,
+        auth_user_id=auth_user_id or uuid4(),  # Generate auth_user_id for RLS tests
     )
     session.add(user)
     await session.flush()
