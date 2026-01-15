@@ -319,6 +319,9 @@ async def postgres_engine(
 
     Converts psycopg2 URL from testcontainers to asyncpg for SQLAlchemy async support.
     Creates database schema using Alembic migrations for full production parity.
+
+    In CI, the GitHub Actions workflow already sets up the database schema.
+    In local/Docker environments, we need to set up the schema ourselves.
     """
     db_url = postgres_container.get_connection_url()
     # Convert psycopg2 URL to asyncpg
@@ -327,8 +330,22 @@ async def postgres_engine(
     # Create engine
     engine = create_async_engine(async_url, echo=False)
 
-    # Create database schema with Alembic migrations
-    await setup_database_schema(engine, async_url)
+    # Only set up schema in local/Docker environments
+    # In CI, workflow already ran init-auth-schema.sql + alembic migrations
+    if not _is_ci_environment():
+        await setup_database_schema(engine, async_url)
+    else:
+        # In CI, verify schema is ready (basic sanity check)
+        async with engine.connect() as conn:
+            result = await conn.execute(
+                text("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'")
+            )
+            table_count = result.scalar()
+            if table_count == 0:
+                raise RuntimeError(
+                    "CI database has no tables - workflow setup may have failed"
+                )
+            print(f"✓ Using pre-configured CI database ({table_count} tables in public schema)")
 
     yield engine
 
