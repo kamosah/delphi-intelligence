@@ -342,9 +342,7 @@ async def postgres_engine(
             )
             table_count = result.scalar()
             if table_count == 0:
-                raise RuntimeError(
-                    "CI database has no tables - workflow setup may have failed"
-                )
+                raise RuntimeError("CI database has no tables - workflow setup may have failed")
             print(f"✓ Using pre-configured CI database ({table_count} tables in public schema)")
 
     yield engine
