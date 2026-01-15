@@ -118,7 +118,7 @@ jobs:
           OPENAI_API_KEY: test-openai-api-key
           CI: 'true'
         run: |
-          poetry run pytest -m "not integration" -n auto --cov=app --cov-report=xml -v
+          poetry run pytest -m "not integration" -n auto --cov=app --cov-report= -v
 
       - name: Run integration tests serially
         env:
