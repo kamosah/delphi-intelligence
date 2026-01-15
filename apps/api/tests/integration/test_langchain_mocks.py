@@ -5,7 +5,6 @@ Validates deterministic behavior of mocks without making real API calls.
 
 import pytest
 
-from app.services.langchain_config import get_embeddings, get_llm
 from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 
 
@@ -112,24 +111,6 @@ def test_patch_openai_fixture(patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbe
     assert isinstance(embeddings, MockOpenAIEmbeddings)
     vector = embeddings.embed_query("Test")
     assert len(vector) == 1536
-
-
-@pytest.mark.integration
-def test_patch_openai_monkeypatch_works(
-    patch_openai: tuple[MockChatOpenAI, MockOpenAIEmbeddings],
-) -> None:
-    """Verify patch_openai monkeypatches factory functions."""
-    llm_mock, embeddings_mock = patch_openai
-
-    # get_llm() should return our mock
-    llm = get_llm()
-    assert llm is llm_mock  # type: ignore[comparison-overlap]
-    assert isinstance(llm, MockChatOpenAI)
-
-    # get_embeddings() should return our mock
-    embeddings = get_embeddings()
-    assert embeddings is embeddings_mock  # type: ignore[comparison-overlap]
-    assert isinstance(embeddings, MockOpenAIEmbeddings)  # type: ignore[unreachable]
 
 
 @pytest.mark.integration

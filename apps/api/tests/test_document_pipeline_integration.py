@@ -196,7 +196,7 @@ class TestDocumentProcessingPipeline:
                 mock_chunk.assert_called_once_with(document, db_session)
 
                 # Verify embedding was called
-                mock_embed.assert_called_once_with(document, db_session, False)
+                mock_embed.assert_called_once_with(document, db_session)
 
                 # Verify document was updated in database
                 assert document.status == DocumentStatus.PROCESSED

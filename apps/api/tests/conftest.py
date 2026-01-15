@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.schema import Table
+from supabase import create_client
 
 from app.config import settings
 from app.db import session as db_session_module
@@ -705,3 +706,23 @@ def mock_storage_service(monkeypatch: pytest.MonkeyPatch) -> MockStorageService:
 
     # Restore original service
     storage_module._storage_service = original_service
+
+
+# --------------------------------------------------------------------------- #
+# Supabase Client Fixture
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def supabase_client():
+    """Provide Supabase client for auth integration tests.
+
+    Uses cloud Supabase test instance configured in .env.test.
+    Allows tests to interact with real Supabase Auth for login/signup/etc.
+
+    Usage:
+        async def test_auth(supabase_client):
+            result = supabase_client.auth.sign_up({"email": "test@example.com", "password": "pass123"})
+            assert result.user is not None
+    """
+    return create_client(settings.supabase_url, settings.supabase_anon_key)

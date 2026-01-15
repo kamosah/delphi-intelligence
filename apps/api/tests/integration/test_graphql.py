@@ -252,22 +252,23 @@ async def test_graphql_update_space(
     await postgres_integration_session.commit()
 
     # Set up SpiceDB relationships (required for update permission check)
-    org_id = test_resource_ids(str(org.id))
-    space_id = test_resource_ids(str(space.id))
-    user_id = test_resource_ids(str(user.id))
+    # Use actual database IDs (not test-prefixed) so they match GraphQL permission checks
+    org_id = str(org.id)
+    space_id = str(space.id)
+    user_id = str(user.id)
 
-    # Organization with owner
+    # Organization with admin (required for space->update via organization->admin)
     await spicedb_service.write_relationship(
         WriteRelationshipInput(
             resource_type="organization",
             resource_id=org_id,
-            relation="owner",
+            relation="admin",  # Changed from "owner" to "admin" to satisfy permission requirement
             subject_type="user",
             subject_id=user_id,
         )
     )
 
-    # Space with organization and owner (owner can update)
+    # Space belongs to organization
     await spicedb_service.write_relationship(
         WriteRelationshipInput(
             resource_type="space",
@@ -277,6 +278,8 @@ async def test_graphql_update_space(
             subject_id=org_id,
         )
     )
+
+    # Space owner (user can update via space->owner)
     await spicedb_service.write_relationship(
         WriteRelationshipInput(
             resource_type="space",
