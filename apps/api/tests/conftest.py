@@ -14,11 +14,11 @@ from collections.abc import AsyncGenerator, Callable, Generator
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import JSON, event
+from sqlalchemy import JSON, delete, event
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -726,3 +726,97 @@ def supabase_client():
             assert result.user is not None
     """
     return create_client(settings.supabase_url, settings.supabase_anon_key)
+
+
+@pytest.fixture
+def supabase_test_user(supabase_client):
+    """Provide a pre-registered test user for Supabase auth integration tests.
+
+    Creates a consistent test user in cloud Supabase that can be used across tests.
+    Uses admin API with service role key to bypass email validation.
+
+    Returns:
+        dict: Test user credentials with email, password, and user_id
+
+    Usage:
+        def test_login(supabase_test_user, supabase_client):
+            result = supabase_client.auth.sign_in_with_password({
+                "email": supabase_test_user["email"],
+                "password": supabase_test_user["password"],
+            })
+            assert result.user.id == supabase_test_user["user_id"]
+    """
+    # Use a fixed test user email that won't be rejected
+    test_email = "olympus-integration-test@mail.com"
+    test_password = "TestPassword123!@#"
+
+    # Create admin client with service role key
+    admin_client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+
+    try:
+        # Try to create the user (idempotent - will fail if already exists)
+        result = admin_client.auth.admin.create_user({
+            "email": test_email,
+            "password": test_password,
+            "email_confirm": True,  # Auto-confirm email for testing
+        })
+        user_id = result.user.id
+    except Exception:
+        # User already exists, get their ID
+        users = admin_client.auth.admin.list_users()
+        user = next((u for u in users if u.email == test_email), None)
+        if user:
+            user_id = user.id
+            # Reset password to known value
+            admin_client.auth.admin.update_user_by_id(user_id, {"password": test_password})
+        else:
+            raise RuntimeError(f"Failed to create or find test user: {test_email}")
+
+    return {
+        "email": test_email,
+        "password": test_password,
+        "user_id": user_id,
+    }
+
+
+@pytest.fixture
+async def postgres_test_user(
+    postgres_integration_session: AsyncSession,  # noqa: F811
+    supabase_test_user: dict,
+):
+    """Create PostgreSQL user matching Supabase test user for auth integration tests.
+
+    This fixture ensures proper cleanup between tests by:
+    1. Deleting any existing user with the test email (from previous runs)
+    2. Creating a fresh user with ID matching Supabase Auth user_id
+    3. Cleaning up after the test
+
+    Args:
+        postgres_integration_session: Database session for integration tests
+        supabase_test_user: Supabase test user credentials
+
+    Returns:
+        User: The created PostgreSQL user record
+    """
+    test_email = supabase_test_user["email"]
+    test_user_id = UUID(supabase_test_user["user_id"])
+
+    # Clean up any existing user with this email (from previous test runs)
+    await postgres_integration_session.execute(delete(User).where(User.email == test_email))
+    await postgres_integration_session.commit()
+
+    # Create fresh user with ID matching Supabase Auth user_id
+    user = await create_user(
+        postgres_integration_session,
+        id=test_user_id,
+        email=test_email,
+        full_name="Test User",
+        auth_user_id=test_user_id,
+    )
+    await postgres_integration_session.commit()
+
+    yield user
+
+    # Cleanup after test
+    await postgres_integration_session.execute(delete(User).where(User.email == test_email))
+    await postgres_integration_session.commit()

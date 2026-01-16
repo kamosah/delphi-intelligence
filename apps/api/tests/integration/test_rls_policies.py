@@ -56,12 +56,10 @@ class TestThreadRLSPolicies:
         )
         await postgres_integration_session.commit()
 
-        # Create thread as service_role (bypasses RLS)
-        # Set service_role to bypass RLS for test data creation
-        await postgres_integration_session.execute(text("SET ROLE service_role"))
-
+        # Create thread using postgres_integration_session (no RLS for test setup)
+        thread_id = uuid.uuid4()
         thread = Thread(
-            id=uuid.uuid4(),
+            id=thread_id,
             title="User A's Personal Thread",
             query_text="Test query for user A",
             visibility="personal",
@@ -71,18 +69,13 @@ class TestThreadRLSPolicies:
         await postgres_integration_session.flush()
         await postgres_integration_session.commit()  # Commit so authenticated session can see it
 
-        # Reset role
-        await postgres_integration_session.execute(text("RESET ROLE"))
-
         # Query as User A (with RLS context)
         async with authenticated_db_session(postgres_engine, user_a.auth_user_id) as user_session:
-            result = await user_session.execute(
-                select(Thread).where(Thread.visibility == "personal")
-            )
+            result = await user_session.execute(select(Thread).where(Thread.id == thread_id))
             threads = result.scalars().all()
 
             assert len(threads) == 1
-            assert threads[0].id == thread.id
+            assert threads[0].id == thread_id
             assert threads[0].title == "User A's Personal Thread"
 
     async def test_user_cannot_read_other_users_personal_threads(
@@ -133,7 +126,7 @@ class TestThreadRLSPolicies:
         )
         await postgres_integration_session.commit()
 
-        # Create mixed threads
+        # Create mixed threads using postgres_integration_session (no RLS for test setup)
         threads_data = [
             # User A's threads
             {

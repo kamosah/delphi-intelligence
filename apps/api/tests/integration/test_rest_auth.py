@@ -72,19 +72,12 @@ async def test_rest_auth_register_duplicate_email(async_client: AsyncClient) -> 
 async def test_rest_auth_login_success(
     async_client: AsyncClient,
     postgres_integration_session: AsyncSession,
-    local_supabase_client,
-    unique_test_id: str,
+    supabase_test_user: dict,
 ) -> None:
-    """Test successful login returns tokens with real local Supabase."""
-    test_email = f"login-{unique_test_id}@example.com"
-    test_password = "password123"
-
-    # Create user in local Supabase Auth
-    auth_result = local_supabase_client.auth.sign_up({
-        "email": test_email,
-        "password": test_password,
-    })
-    assert auth_result.user is not None, "Failed to create test user in Supabase Auth"
+    """Test successful login returns tokens with real cloud Supabase."""
+    # Use pre-registered test user
+    test_email = supabase_test_user["email"]
+    test_password = supabase_test_user["password"]
 
     # Create corresponding user in PostgreSQL (required by Olympus API)
     await create_user(postgres_integration_session, email=test_email)
@@ -130,20 +123,18 @@ async def test_rest_auth_login_invalid_credentials(
 @pytest.mark.integration
 async def test_rest_auth_get_current_user(
     async_client: AsyncClient,
-    postgres_integration_session: AsyncSession,
-    unique_test_id: str,
+    postgres_test_user,
+    supabase_test_user: dict,
 ) -> None:
     """Test getting current user profile with valid token."""
-    # Create test user
-    user = await create_user(
-        postgres_integration_session,
-        email=f"current-{unique_test_id}@example.com",
-        full_name="Current User",
-    )
-    await postgres_integration_session.commit()
+    # postgres_test_user fixture ensures PostgreSQL user exists with matching ID
 
-    # Create JWT token
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    # Create JWT token using Supabase user_id
+    test_user = TestUser(
+        id=supabase_test_user["user_id"],
+        email=supabase_test_user["email"],
+        full_name="Test User",
+    )
     token = create_test_token(test_user)
 
     # Set authorization header
@@ -154,8 +145,8 @@ async def test_rest_auth_get_current_user(
 
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == f"current-{unique_test_id}@example.com"
-    assert data["full_name"] == "Current User"
+    assert data["email"] == supabase_test_user["email"]
+    assert "full_name" in data
 
 
 @pytest.mark.integration
@@ -182,17 +173,19 @@ async def test_rest_auth_get_current_user_invalid_token(async_client: AsyncClien
 
 @pytest.mark.integration
 async def test_rest_auth_logout_success(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
+    async_client: AsyncClient,
+    postgres_test_user,
+    supabase_test_user: dict,
 ) -> None:
     """Test logout endpoint with valid token."""
-    # Create test user
-    user = await create_user(
-        postgres_integration_session, email=f"logout-{unique_test_id}@example.com"
-    )
-    await postgres_integration_session.commit()
+    # postgres_test_user fixture ensures PostgreSQL user exists with matching ID
 
-    # Create JWT token
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    # Create JWT token using Supabase user_id
+    test_user = TestUser(
+        id=supabase_test_user["user_id"],
+        email=supabase_test_user["email"],
+        full_name="",
+    )
     token = create_test_token(test_user)
 
     # Set authorization header
@@ -248,17 +241,19 @@ async def test_rest_auth_exchange_supabase_token(async_client: AsyncClient) -> N
 
 @pytest.mark.integration
 async def test_rest_auth_sse_token_creation(
-    async_client: AsyncClient, postgres_integration_session: AsyncSession, unique_test_id: str
+    async_client: AsyncClient,
+    postgres_test_user,
+    supabase_test_user: dict,
 ) -> None:
     """Test SSE token creation with valid authentication."""
-    # Create test user
-    user = await create_user(
-        postgres_integration_session, email=f"sse-{unique_test_id}@example.com"
-    )
-    await postgres_integration_session.commit()
+    # postgres_test_user fixture ensures PostgreSQL user exists with matching ID
 
-    # Create JWT token
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    # Create JWT token using Supabase user_id
+    test_user = TestUser(
+        id=supabase_test_user["user_id"],
+        email=supabase_test_user["email"],
+        full_name="",
+    )
     token = create_test_token(test_user)
 
     # Set authorization header
@@ -267,6 +262,7 @@ async def test_rest_auth_sse_token_creation(
     client = RESTClient(async_client)
     response: Response = await client.post("/auth/sse-token")
 
+    # Should return 200 with valid token (Redis configured correctly on port 6380)
     assert response.status_code == 200
     data = response.json()
     assert "sse_token" in data
@@ -294,7 +290,7 @@ async def test_rest_auth_client_token_creation(async_client: AsyncClient) -> Non
         headers={"Authorization": "Bearer invalid.supabase.token"},
     )
 
-    # Should fail with 401 (invalid token)
+    # Should return 401 for invalid tokens (caught by AuthApiError handler)
     assert response.status_code == 401
 
 

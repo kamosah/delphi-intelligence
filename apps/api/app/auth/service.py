@@ -5,6 +5,7 @@ Authentication service for handling user auth operations with Supabase
 import datetime
 import logging
 from fastapi import HTTPException, status
+from gotrue.errors import AuthApiError, AuthError
 from sqlalchemy import select
 from supabase import Client
 
@@ -503,8 +504,16 @@ class AuthService:
 
         except HTTPException:
             raise
+        except (AuthApiError, AuthError) as e:
+            # Supabase auth errors (invalid/expired tokens, malformed JWT, etc.)
+            logger.warning(f"Supabase auth error during token exchange: {e!s}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired authentication token",
+            )
         except Exception as e:
-            logger.exception(f"Token exchange failed with exception: {e!s}")
+            # Unexpected errors (database failures, network issues, etc.)
+            logger.exception(f"Token exchange failed with unexpected exception: {e!s}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Token exchange failed: {e!s}",

@@ -1308,6 +1308,8 @@ docker compose exec api poetry run pytest tests/ -v --durations=10
 
 The test suite supports three execution modes for flexibility:
 
+**IMPORTANT**: Integration tests **must run sequentially** to avoid test isolation issues. Unit tests can run in parallel for speed.
+
 #### Mode 1: Local Host Execution (Recommended for Development)
 
 Runs on your host machine using testcontainers for service dependencies.
@@ -1315,22 +1317,24 @@ Runs on your host machine using testcontainers for service dependencies.
 ```bash
 cd apps/api
 
-# Using Makefile (recommended)
-make test-unit        # Unit tests only (fast)
-make test-integration # Integration tests (PostgreSQL + services)
-make test-all         # All tests
+# Using Makefile (recommended - handles parallel/sequential automatically)
+make test-unit        # Unit tests in parallel (fast)
+make test-integration # Integration tests sequentially (PostgreSQL + services)
+make test-all         # All tests (unit parallel, integration sequential)
 make test-coverage    # With coverage report
-make test-rls         # RLS policy tests only
+make test-rls         # RLS policy tests only (sequential)
 make test             # Alias for test-all
 
 # Or use pytest directly
-poetry run pytest tests/ -v
+poetry run pytest tests/ -m "not integration" -n auto -v  # Unit tests (parallel)
+poetry run pytest tests/ -m integration -v                # Integration tests (sequential)
 ```
 
 **Requirements:**
 - Docker daemon running (for testcontainers)
 - Poetry dependencies installed
 - `.env.test` file configured
+- `pytest-xdist` for parallel execution (`poetry install` includes this)
 
 #### Mode 2: Docker Container Execution (For Consistent Environments)
 
@@ -1369,21 +1373,29 @@ services:
 ### Test Commands
 
 ```bash
-# All tests
-poetry run pytest tests/ -v
+# All tests (use make test-all for proper parallel/sequential handling)
+make test-all
 
-# Specific file
-poetry run pytest tests/test_organization_service.py -v
+# Unit tests in parallel (fast!)
+poetry run pytest tests/ -m "not integration" -n auto -v
+
+# Integration tests sequentially (REQUIRED for stability)
+poetry run pytest tests/ -m integration -v
+
+# Specific file (unit test - can use parallel)
+poetry run pytest tests/test_organization_service.py -n auto -v
+
+# Specific file (integration test - run sequentially)
+poetry run pytest tests/integration/test_rest_auth.py -v
 
 # Specific test
 poetry run pytest tests/test_organization_service.py::TestGetCurrentOrganizationId::test_returns_default_organization -v
 
 # With coverage
 poetry run pytest --cov=app --cov-report=html tests/
-
-# Parallel execution (fast!)
-poetry run pytest -n auto tests/
 ```
+
+**⚠️ WARNING**: Do NOT run integration tests with `-n auto` (parallel). They require sequential execution to avoid test isolation issues.
 
 ### Test Markers
 
