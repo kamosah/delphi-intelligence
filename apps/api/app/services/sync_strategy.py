@@ -26,9 +26,7 @@ EVENT_SYNC_STRATEGY = {
     # User immediately checks permissions after these operations
     "organization_created": SyncStrategy.SYNCHRONOUS,  # User registration flow
     "organization_deleted": SyncStrategy.SYNCHRONOUS,  # Owner permissions removed
-    # Invitation acceptance creates member - user expects immediate access
-    # (invitation_accepted event will be added when invitation system is implemented)
-    # "invitation_accepted": SyncStrategy.SYNCHRONOUS,  # noqa: ERA001
+    "invitation_accepted": SyncStrategy.SYNCHRONOUS,  # User expects immediate access after accepting
     # === Tier 2: Asynchronous (Non-Critical Operations) ===
     # These can tolerate 100-500ms eventual consistency delay
     "organization_member_added": SyncStrategy.ASYNCHRONOUS,  # Admin adds non-elevated members
@@ -40,9 +38,9 @@ EVENT_SYNC_STRATEGY = {
     "space_member_removed": SyncStrategy.ASYNCHRONOUS,  # Space member removals
     "document_created": SyncStrategy.ASYNCHRONOUS,  # Document uploads
     "document_deleted": SyncStrategy.ASYNCHRONOUS,  # Document deletions
-    # Future invitation events (asynchronous)
-    # "invitation_created": SyncStrategy.ASYNCHRONOUS,  # noqa: ERA001
-    # "invitation_revoked": SyncStrategy.ASYNCHRONOUS,  # noqa: ERA001
+    # Invitation events (asynchronous - not permission-critical)
+    "invitation_created": SyncStrategy.ASYNCHRONOUS,  # Invitation sent
+    "invitation_revoked": SyncStrategy.ASYNCHRONOUS,  # Invitation canceled
 }
 
 

@@ -12,12 +12,14 @@ from app.auth.jwt_handler import jwt_manager
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
 from app.models.organization import Organization as OrganizationModel
+from app.models.organization_invitation import InvitationStatus
 from app.models.organization_member import OrganizationMember as OrganizationMemberModel
 from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.schemas.spicedb import CheckPermissionInput
+from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.spicedb_service import get_spicedb_service
 from app.services.vector_search_service import get_vector_search_service
@@ -28,7 +30,9 @@ from .types import (
     Document,
     DocumentFilterInput,
     DocumentSortInput,
+    InvitationStatusEnum,
     Organization,
+    OrganizationInvitation,
     OrganizationMember,
     SearchDocumentsInput,
     SearchResult,
@@ -1152,3 +1156,113 @@ class Query:
             logger.info(f"No preferences found for user {user_id}")
             return None
         return None
+
+    # Organization Invitations
+
+    @strawberry.field
+    async def organization_invitations(
+        self,
+        info: strawberry.types.Info,
+        organization_id: strawberry.ID,
+        status: InvitationStatusEnum | None = None,
+    ) -> list[OrganizationInvitation]:
+        """
+        List invitations for an organization.
+
+        Args:
+            organization_id: Organization to list invitations for
+            status: Optional status filter (pending, accepted, expired, revoked)
+
+        Returns:
+            List of invitations for the organization
+
+        Authorization:
+            - Only organization admins/owners can list invitations
+        """
+        async for session in get_session():
+            try:
+                # Get authenticated user
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                org_id = UUID(str(organization_id))
+
+                # Check permission to view invitations
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="invite_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "You don't have permission to view invitations for this organization"
+                    raise PermissionError(msg)
+
+                # Convert status enum to model enum if provided
+                status_filter = None
+                if status:
+                    status_filter = InvitationStatus(status.value)
+
+                # List invitations
+                invitations = await InvitationService.list_organization_invitations(
+                    db=session,
+                    organization_id=org_id,
+                    status=status_filter,
+                )
+
+                return [OrganizationInvitation.from_model(inv) for inv in invitations]
+
+            except (ValueError, PermissionError):
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield for MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.field
+    async def my_pending_invitations(
+        self, info: strawberry.types.Info
+    ) -> list[OrganizationInvitation]:
+        """
+        Get pending invitations for the authenticated user.
+
+        Returns:
+            List of pending invitations for the current user's email
+
+        Authorization:
+            - User must be authenticated
+        """
+        async for session in get_session():
+            try:
+                # Get authenticated user
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                # Get pending invitations for user's email
+                invitations = await InvitationService.get_user_pending_invitations(
+                    db=session,
+                    email=user.email,
+                )
+
+                return [OrganizationInvitation.from_model(inv) for inv in invitations]
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield for MyPy
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
