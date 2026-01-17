@@ -8,6 +8,28 @@ name: olympus
 # No explicit network definition needed - default network provides service discovery and isolation.
 
 services:
+  postgres:
+    image: supabase/postgres:15.8.1.085
+    container_name: olympus-postgres
+    platform: linux/amd64  # For M1/ARM64 Macs
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: olympus_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust  # For local dev only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/api/scripts/init-auth-schema.sql:/docker-entrypoint-initdb.d/01-auth-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     volumes:
@@ -61,4 +83,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  postgres_data:
   redis_data:

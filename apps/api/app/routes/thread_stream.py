@@ -237,12 +237,10 @@ async def stream_thread_response(
     # Extract user ID from authenticated user
     user_id_uuid = UUID(current_user["id"])
 
-    # For new threads (no thread_id), require organization_id or space_id
-    if save_to_db and not thread_id and not space_id and not organization_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Either space_id or organization_id is required for new threads when save_to_db=true",
-        )
+    # Personal threads (no space_id, no organization_id) are allowed
+    # Space threads require space_id
+    # Organization threads require organization_id
+    # No validation needed here - ai_agent_service handles visibility determination
 
     # Verify organization_id matches user's current organization
     if organization_id:

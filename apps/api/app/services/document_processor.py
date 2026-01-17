@@ -48,7 +48,7 @@ class DocumentProcessor:
 
     async def process_document(
         self,
-        document_id: str,
+        document_id: str | UUID,
         db: AsyncSession,
     ) -> None:
         """
@@ -62,19 +62,22 @@ class DocumentProcessor:
         5. Updates the document status
 
         Args:
-            document_id: UUID of the document to process
+            document_id: UUID of the document to process (str or UUID)
             db: Database session
 
         Raises:
             Exception: If document not found or processing fails
         """
         try:
+            # Convert document_id to UUID if it's a string
+            document_uuid = UUID(document_id) if isinstance(document_id, str) else document_id
+
             # Fetch document from database
-            result = await db.execute(select(Document).where(Document.id == document_id))
+            result = await db.execute(select(Document).where(Document.id == document_uuid))
             document = result.scalar_one_or_none()
 
             if not document:
-                logger.error(f"Document not found: {document_id}")
+                logger.error(f"Document not found: {document_uuid}")
                 return
 
             # Update status to processing
@@ -83,7 +86,7 @@ class DocumentProcessor:
 
             # Emit SSE event for status change
             await sse_manager.emit_document_update(
-                document_id=UUID(document_id),
+                document_id=document_uuid,
                 space_id=document.space_id,
                 event="status_update",
                 data={
@@ -92,7 +95,7 @@ class DocumentProcessor:
                 },
             )
 
-            logger.info(f"Processing document {document_id}: {document.name}")
+            logger.info(f"Processing document {document_uuid}: {document.name}")
 
             # Get appropriate extractor
             extractor = self.get_extractor_for_mime_type(document.file_type)
@@ -106,7 +109,7 @@ class DocumentProcessor:
 
                 # Emit SSE event for failure
                 await sse_manager.emit_document_update(
-                    document_id=UUID(document_id),
+                    document_id=document_uuid,
                     space_id=document.space_id,
                     event="status_update",
                     data={
@@ -139,7 +142,7 @@ class DocumentProcessor:
 
                 # Emit SSE event for failure
                 await sse_manager.emit_document_update(
-                    document_id=UUID(document_id),
+                    document_id=document_uuid,
                     space_id=document.space_id,
                     event="status_update",
                     data={
@@ -162,7 +165,7 @@ class DocumentProcessor:
 
             if not result_data.success:
                 logger.error(
-                    f"Failed to extract text from document {document_id}: " f"{result_data.error}"
+                    f"Failed to extract text from document {document_uuid}: " f"{result_data.error}"
                 )
                 document.status = DocumentStatus.FAILED
                 document.processing_error = result_data.error
@@ -170,7 +173,7 @@ class DocumentProcessor:
 
                 # Emit SSE event for failure
                 await sse_manager.emit_document_update(
-                    document_id=UUID(document_id),
+                    document_id=document_uuid,
                     space_id=document.space_id,
                     event="status_update",
                     data={
@@ -190,20 +193,20 @@ class DocumentProcessor:
             await db.commit()
 
             logger.info(
-                f"Successfully processed document {document_id}: "
+                f"Successfully processed document {document_uuid}: "
                 f"{result_data.metadata.get('word_count', 0)} words extracted"
             )
 
             # Create text chunks for embedding
             try:
                 chunks = await chunk_document(document, db)
-                logger.info(f"Created {len(chunks)} chunks for document {document_id}")
+                logger.info(f"Created {len(chunks)} chunks for document {document_uuid}")
 
                 # Generate embeddings for chunks
                 try:
                     embedded_count = await embed_document(document, db)
                     logger.info(
-                        f"Generated embeddings for {embedded_count} chunks of document {document_id}"
+                        f"Generated embeddings for {embedded_count} chunks of document {document_uuid}"
                     )
 
                     # Mark document as fully processed (with embeddings)
@@ -212,7 +215,7 @@ class DocumentProcessor:
 
                     # Emit SSE event for successful processing
                     await sse_manager.emit_document_update(
-                        document_id=UUID(document_id),
+                        document_id=document_uuid,
                         space_id=document.space_id,
                         event="status_update",
                         data={
@@ -224,7 +227,7 @@ class DocumentProcessor:
 
                 except Exception as embed_error:
                     logger.exception(
-                        f"Error generating embeddings for document {document_id}: {embed_error}"
+                        f"Error generating embeddings for document {document_uuid}: {embed_error}"
                     )
                     # Set document as processed but note the embedding error
                     document.status = DocumentStatus.PROCESSED
@@ -232,7 +235,7 @@ class DocumentProcessor:
                     await db.commit()
 
             except Exception as chunk_error:
-                logger.exception(f"Error chunking document {document_id}: {chunk_error}")
+                logger.exception(f"Error chunking document {document_uuid}: {chunk_error}")
                 # Don't fail the entire processing if chunking fails
                 # Document text extraction was successful
                 document.status = DocumentStatus.PROCESSED
@@ -240,11 +243,11 @@ class DocumentProcessor:
                 await db.commit()
 
         except Exception as e:
-            logger.exception(f"Error processing document {document_id}: {e}")
+            logger.exception(f"Error processing document {document_uuid}: {e}")
 
             # Update document status to failed
             try:
-                result = await db.execute(select(Document).where(Document.id == document_id))
+                result = await db.execute(select(Document).where(Document.id == document_uuid))
                 document = result.scalar_one_or_none()
 
                 if document:
@@ -254,7 +257,7 @@ class DocumentProcessor:
 
                     # Emit SSE event for failure
                     await sse_manager.emit_document_update(
-                        document_id=UUID(document_id),
+                        document_id=document_uuid,
                         space_id=document.space_id,
                         event="status_update",
                         data={

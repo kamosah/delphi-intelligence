@@ -501,20 +501,55 @@ OPENAI_EMBEDDING_MODEL=text-embedding-3-small  # Embedding model for vector sear
 
 The API includes comprehensive test coverage for all core functionality including RAG pipeline, SSE streaming, confidence scoring, and GraphQL operations.
 
-**Run All Tests:**
+**Test Execution Modes:**
+
+The test suite supports three execution modes:
+
+1. **Local Host Execution** (Recommended for development)
+   - Runs on your host machine
+   - Uses testcontainers for PostgreSQL/Redis/SpiceDB
+   - Requires Docker socket access
+
+2. **Docker Container Execution** (For consistent environments)
+   - Runs in Docker container with Docker socket mounted
+   - Uses Docker Compose test services
+   - Good for CI-like local testing
+
+3. **CI Execution** (GitHub Actions)
+   - Uses GitHub Actions service containers
+   - No Docker socket needed
+
+**Run Tests:**
 
 ```bash
-# Run all tests
-poetry run pytest
+cd apps/api
 
-# Run with verbose output
-poetry run pytest -v
+# Using Makefile (recommended)
+make test-unit        # Unit tests only (fast, SQLite)
+make test-integration # Integration tests (PostgreSQL + services)
+make test-all         # All tests
+make test-coverage    # With coverage report
+make test-rls         # RLS policy tests only
+make test             # Alias for test-all
 
-# Run with coverage report
-poetry run pytest --cov=app tests/
+# Or use pytest directly
+poetry run pytest tests/ -v
+```
 
-# Run with coverage HTML report
-poetry run pytest --cov=app --cov-report=html tests/
+**Docker-Based Testing:**
+
+```bash
+# Start test services (PostgreSQL, Redis, SpiceDB, MinIO)
+docker compose -f docker-compose.test.yml up -d
+
+# Run tests in Docker container
+docker compose -f docker-compose.test.yml run --rm test-runner make test-all
+
+# Or run specific test suite
+docker compose -f docker-compose.test.yml run --rm test-runner make test-integration
+
+# Stop test services
+docker compose -f docker-compose.test.yml down
 ```
 
 **Run Specific Test Suites:**

@@ -18,72 +18,60 @@ depends_on = None
 
 
 def upgrade() -> None:
-    """Align existing document schema with the new code model."""
+    """Transform documents table from collaborative editor schema to file-based schema.
 
-    # Rename columns to match new model
-    op.alter_column("documents", "file_name", new_column_name="name")
-    op.alter_column("documents", "file_size", new_column_name="size_bytes")
-    op.alter_column("documents", "mime_type", new_column_name="file_type")
-    op.alter_column("documents", "storage_path", new_column_name="file_path")
+    Initial schema (3df48089188e) has: title, content, yjs_state, created_by
+    Target schema needs: name, file_type, file_path, size_bytes, status, uploaded_by
+    """
 
-    # Add new columns that don't exist yet
+    # Step 1: Rename existing columns to match new model
+    op.alter_column("documents", "title", new_column_name="name")
+    op.alter_column("documents", "created_by", new_column_name="uploaded_by")
+
+    # Step 2: Add new file-related columns with defaults for existing rows
+    op.add_column("documents", sa.Column("file_type", sa.String(length=100), nullable=False, server_default="application/octet-stream"))
+    op.add_column("documents", sa.Column("file_path", sa.String(length=500), nullable=False, server_default=""))
+    op.add_column("documents", sa.Column("size_bytes", sa.BigInteger(), nullable=False, server_default="0"))
+
+    # Step 3: Add new processing-related columns
     op.add_column("documents", sa.Column("status", sa.String(length=20), nullable=False, server_default="uploaded"))
     op.add_column("documents", sa.Column("extracted_text", sa.Text(), nullable=True))
     op.add_column("documents", sa.Column("doc_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True))
-    op.add_column("documents", sa.Column("processed_at", sa.DateTime(), nullable=True))
+    op.add_column("documents", sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True))
 
-    # Create index on status for filtering
+    # Step 4: Create index on status for filtering
     op.create_index("ix_documents_status", "documents", ["status"], unique=False)
 
-    # Drop columns that are no longer needed
-    op.drop_column("documents", "title")
-    op.drop_column("documents", "description")
-    op.drop_column("documents", "document_type")
-    op.drop_column("documents", "url")
-    op.drop_column("documents", "content_preview")
-    op.drop_column("documents", "is_processed")
-    op.drop_column("documents", "content_vector")
+    # Step 5: Drop columns from old collaborative editor schema
+    op.drop_column("documents", "yjs_state")
 
-    # Make nullable columns non-nullable with defaults where appropriate
-    op.alter_column("documents", "name", nullable=False, server_default="Untitled")
-    op.alter_column("documents", "file_type", nullable=False, server_default="application/octet-stream")
-    op.alter_column("documents", "file_path", nullable=False, server_default="")
-    op.alter_column("documents", "size_bytes", nullable=False, server_default="0")
-    op.alter_column("documents", "uploaded_by", nullable=False)
+    # Step 6: Update uploaded_by index to match new column name
+    op.drop_index("ix_documents_created_by", table_name="documents")
+    op.create_index("ix_documents_uploaded_by", "documents", ["uploaded_by"], unique=False)
 
 
 def downgrade() -> None:
-    """Revert to previous schema."""
+    """Revert to collaborative editor schema (initial state from 3df48089188e)."""
 
-    # Rename columns back
-    op.alter_column("documents", "name", new_column_name="file_name")
-    op.alter_column("documents", "size_bytes", new_column_name="file_size")
-    op.alter_column("documents", "file_type", new_column_name="mime_type")
-    op.alter_column("documents", "file_path", new_column_name="storage_path")
+    # Step 1: Restore uploaded_by index name
+    op.drop_index("ix_documents_uploaded_by", table_name="documents")
+    op.create_index("ix_documents_created_by", "documents", ["uploaded_by"], unique=False)
 
-    # Drop new columns
+    # Step 2: Add back yjs_state column for collaborative editing
+    op.add_column("documents", sa.Column("yjs_state", sa.LargeBinary(), nullable=True))
+
+    # Step 3: Drop status index
     op.drop_index("ix_documents_status", table_name="documents")
+
+    # Step 4: Drop file-based and processing columns
     op.drop_column("documents", "processed_at")
     op.drop_column("documents", "doc_metadata")
     op.drop_column("documents", "extracted_text")
     op.drop_column("documents", "status")
+    op.drop_column("documents", "size_bytes")
+    op.drop_column("documents", "file_path")
+    op.drop_column("documents", "file_type")
 
-    # Add back old columns
-    op.add_column("documents", sa.Column("title", sa.String(length=200), nullable=False, server_default="Untitled"))
-    op.add_column("documents", sa.Column("description", sa.Text(), nullable=True))
-    op.add_column("documents", sa.Column("url", sa.Text(), nullable=True))
-    op.add_column("documents", sa.Column("content_preview", sa.Text(), nullable=True))
-    op.add_column("documents", sa.Column("is_processed", sa.Boolean(), nullable=True))
-    op.add_column("documents", sa.Column("content_vector", postgresql.TSVECTOR(), nullable=True))
-
-    # Recreate document_type enum and column
-    document_type_enum = postgresql.ENUM('text', 'pdf', 'image', 'url', 'code', name='document_type')
-    document_type_enum.create(op.get_bind())
-    op.add_column("documents", sa.Column("document_type", document_type_enum, nullable=False, server_default="text"))
-
-    # Revert nullable changes
-    op.alter_column("documents", "file_name", nullable=True)
-    op.alter_column("documents", "mime_type", nullable=True)
-    op.alter_column("documents", "storage_path", nullable=True)
-    op.alter_column("documents", "file_size", nullable=True)
-    op.alter_column("documents", "uploaded_by", nullable=True)
+    # Step 5: Rename columns back to original names
+    op.alter_column("documents", "uploaded_by", new_column_name="created_by")
+    op.alter_column("documents", "name", new_column_name="title")
