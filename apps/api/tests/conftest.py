@@ -103,11 +103,25 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     This fixture is session-scoped to support session-scoped async fixtures like
     postgres_engine. Without this, pytest-asyncio's default function-scoped event
     loop causes ScopeMismatch errors.
+
+    IMPORTANT: Properly cancels all pending tasks before closing to prevent pytest hang.
     """
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
     yield loop
-    loop.close()
+
+    # Cancel all pending tasks before closing the loop to prevent hang
+    try:
+        # Get all pending tasks
+        pending = asyncio.all_tasks(loop)
+        if pending:
+            # Cancel all pending tasks
+            for task in pending:
+                task.cancel()
+            # Wait for all tasks to be cancelled
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    finally:
+        loop.close()
 
 
 @pytest.fixture
