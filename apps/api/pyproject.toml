@@ -58,6 +58,7 @@ langsmith = "^0.1.0"  # Observability and tracing
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
 pytest-cov = "^4.1.0"
+pytest-dotenv = "^0.5.2"
 ruff = "^0.5.3"
 mypy = "^1.5.0"
 pre-commit = "^3.4.0"
@@ -66,6 +67,8 @@ testcontainers = "^4.8.0"
 factory-boy = "^3.3.0"
 pytest-xdist = "^3.6.1"
 faker = "^30.0.0"
+httpx-sse = "^0.4.0"
+psycopg2-binary = "^2.9.11"
 
 [build-system]
 requires = ["poetry-core"]
@@ -239,6 +242,9 @@ max-branches = 12
 max-returns = 6
 max-statements = 50
 
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false  # Enforce @pytest.fixture (no parens when no args)
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
@@ -290,12 +296,33 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+env_files = [".env.test"]  # pytest-dotenv: Load .env.test before running tests
 markers = [
     "unit: Unit tests with in-memory SQLite",
     "integration: Integration tests with PostgreSQL container",
     "postgres: Tests requiring PostgreSQL-specific features",
+    "rls: Tests specifically for Row Level Security policies",
     "benchmark: marks tests as performance benchmarks",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:importlib._bootstrap",  # PyMuPDF/SwigPy internal warnings
+    "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers",  # testcontainers library deprecation
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/alembic/*",
+    "app/models/__init__.py",
+    "app/config.py",
+    "app/main.py",
+]
+
+[tool.coverage.report]
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
 ]

@@ -5,27 +5,26 @@ Tests the full flow: Document upload → Extraction → Chunking → Embedding
 """
 
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document, DocumentStatus
 from app.models.document_chunk import DocumentChunk
 from app.services.document_processor import DocumentProcessor
+from tests.factories import create_document, create_space, create_user_with_org
+from tests.fixtures.storage_mocks import MockStorageService
+
+from io import BytesIO
+from fastapi import UploadFile
 
 
-@pytest.mark.skip(reason="Integration tests require full setup - will be enabled in future PR")
 @pytest.mark.integration
 @pytest.mark.asyncio
 class TestDocumentProcessingPipeline:
     """Integration tests for complete document processing pipeline"""
-
-    @pytest.fixture
-    def mock_db(self):
-        """Create a mock database session"""
-        db = AsyncMock()
-        return db
 
     @pytest.fixture
     def sample_pdf_content(self):
@@ -78,34 +77,49 @@ class TestDocumentProcessingPipeline:
         """
 
     @pytest.fixture
-    def create_test_document(self, mock_db):
-        """Factory for creating test documents"""
+    async def test_document(
+        self, db_session: AsyncSession, mock_storage_service: MockStorageService
+    ):
+        """Create a test document in the database with mock storage file."""
+        # Create user, org, space
+        user, org, _ = await create_user_with_org(db_session, org_name="Test Org")
+        space = await create_space(db_session, "Test Space", org, user)
+        await db_session.commit()
 
-        def _create_document(
-            extracted_text: str | None = None,
-            file_type: str = "application/pdf",
-        ):
-            document = Document()
-            document.id = uuid4()
-            document.name = "test_document.pdf"
-            document.file_type = file_type
-            document.file_path = "/var/tmp/test.pdf"  # noqa: S108  # Mock path for testing
-            document.space_id = uuid4()
-            document.status = DocumentStatus.UPLOADED
-            document.extracted_text = extracted_text
-            document.doc_metadata = {"page_count": 5}
+        # Create document (file_path will be set after doc.id is available)
+        doc = await create_document(
+            db_session,
+            name="test_document.pdf",
+            space=space,
+            uploaded_by=user,
+            file_type="application/pdf",
+            file_path="temp_path",  # Temporary, will be updated
+            status=DocumentStatus.UPLOADED,
+        )
+        await db_session.commit()
+        await db_session.refresh(doc)
 
-            # Mock database queries for this document
-            mock_result = AsyncMock()
-            mock_result.scalar_one_or_none.return_value = document
-            mock_db.execute.return_value = mock_result
+        # Update file_path with actual document ID
+        doc.file_path = f"{space.id}/{doc.id}/test_document.pdf"
+        await db_session.commit()
 
-            return document
+        # Upload mock file content to storage
 
-        return _create_document
+        file_content = b"Mock PDF content for testing"
+        mock_file = UploadFile(
+            filename="test_document.pdf",
+            file=BytesIO(file_content),
+        )
+        await mock_storage_service.upload_file(mock_file, space.id, doc.id)
+
+        return doc
 
     async def test_full_pipeline_pdf_document(
-        self, mock_db, sample_pdf_content, create_test_document
+        self,
+        db_session: AsyncSession,
+        sample_pdf_content,
+        test_document: Document,
+        mock_storage_service: MockStorageService,
     ):
         """
         Test complete pipeline: PDF upload → extraction → chunking → embedding.
@@ -118,8 +132,7 @@ class TestDocumentProcessingPipeline:
         5. Embeddings are generated for all chunks
         6. Document is marked as PROCESSED
         """
-        # Create test document
-        document = create_test_document()
+        document = test_document
 
         # Mock text extraction
         mock_extractor = MagicMock()
@@ -166,7 +179,10 @@ class TestDocumentProcessingPipeline:
                 processor = DocumentProcessor()
                 processor.extractors = [mock_extractor]
 
-                await processor.process_document(str(document.id), mock_db)
+                await processor.process_document(document.id, db_session)
+
+                # Refresh document from database
+                await db_session.refresh(document)
 
                 # Verify document status progression
                 # Should be set to PROCESSING, then PROCESSED
@@ -177,17 +193,19 @@ class TestDocumentProcessingPipeline:
                 assert document.doc_metadata["word_count"] > 0
 
                 # Verify chunking was called
-                mock_chunk.assert_called_once_with(document, mock_db)
+                mock_chunk.assert_called_once_with(document, db_session)
 
                 # Verify embedding was called
-                mock_embed.assert_called_once_with(document, mock_db, False)
+                mock_embed.assert_called_once_with(document, db_session)
 
-                # Verify database commit was called
-                assert mock_db.commit.call_count >= 2
+                # Verify document was updated in database
+                assert document.status == DocumentStatus.PROCESSED
 
-    async def test_pipeline_handles_extraction_failure(self, mock_db, create_test_document):
+    async def test_pipeline_handles_extraction_failure(
+        self, db_session: AsyncSession, test_document: Document
+    ):
         """Test pipeline gracefully handles text extraction failures"""
-        document = create_test_document()
+        document = test_document
 
         # Mock failed extraction
         mock_extractor = MagicMock()
@@ -201,17 +219,20 @@ class TestDocumentProcessingPipeline:
         processor = DocumentProcessor()
         processor.extractors = [mock_extractor]
 
-        await processor.process_document(str(document.id), mock_db)
+        await processor.process_document(str(document.id), db_session)
+
+        # Refresh document from database
+        await db_session.refresh(document)
 
         # Verify document is marked as failed
         assert document.status == DocumentStatus.FAILED
         assert document.processing_error == "Failed to extract text from PDF"
 
     async def test_pipeline_handles_chunking_failure(
-        self, mock_db, sample_pdf_content, create_test_document
+        self, db_session: AsyncSession, sample_pdf_content, test_document: Document
     ):
         """Test pipeline handles chunking failures gracefully"""
-        document = create_test_document()
+        document = test_document
 
         # Mock successful extraction
         mock_extractor = MagicMock()
@@ -231,18 +252,22 @@ class TestDocumentProcessingPipeline:
             processor = DocumentProcessor()
             processor.extractors = [mock_extractor]
 
-            await processor.process_document(str(document.id), mock_db)
+            await processor.process_document(str(document.id), db_session)
+
+            # Refresh document from database
+            await db_session.refresh(document)
 
             # Document should still be processed (text extraction succeeded)
             # but with an error note about chunking
             assert document.status == DocumentStatus.PROCESSED
+            assert document.processing_error is not None
             assert "Chunking failed" in document.processing_error
 
     async def test_pipeline_handles_embedding_failure(
-        self, mock_db, sample_pdf_content, create_test_document
+        self, db_session: AsyncSession, sample_pdf_content, test_document: Document
     ):
         """Test pipeline handles embedding generation failures gracefully"""
-        document = create_test_document()
+        document = test_document
 
         # Mock successful extraction
         mock_extractor = MagicMock()
@@ -267,29 +292,44 @@ class TestDocumentProcessingPipeline:
                 processor = DocumentProcessor()
                 processor.extractors = [mock_extractor]
 
-                await processor.process_document(str(document.id), mock_db)
+                await processor.process_document(document.id, db_session)
+
+                # Refresh document from database
+                await db_session.refresh(document)
 
                 # Document should still be processed but with embedding error
                 assert document.status == DocumentStatus.PROCESSED
+                assert document.processing_error is not None
                 assert "Embeddings failed" in document.processing_error
 
-    async def test_pipeline_unsupported_file_type(self, mock_db, create_test_document):
+    async def test_pipeline_unsupported_file_type(
+        self, db_session: AsyncSession, test_document: Document
+    ):
         """Test pipeline handles unsupported file types"""
-        document = create_test_document(file_type="application/unsupported")
+        document = test_document
+        # Update file type to unsupported
+        document.file_type = "application/unsupported"
+        await db_session.commit()
 
         # No extractor supports this MIME type
         processor = DocumentProcessor()
         processor.extractors = []  # Empty extractors list
 
-        await processor.process_document(str(document.id), mock_db)
+        await processor.process_document(str(document.id), db_session)
+
+        # Refresh document from database
+        await db_session.refresh(document)
 
         # Verify document is marked as failed
         assert document.status == DocumentStatus.FAILED
+        assert document.processing_error is not None
         assert "No extractor available" in document.processing_error
 
-    async def test_pipeline_with_empty_document(self, mock_db, create_test_document):
+    async def test_pipeline_with_empty_document(
+        self, db_session: AsyncSession, test_document: Document
+    ):
         """Test pipeline handles documents with no text content"""
-        document = create_test_document()
+        document = test_document
 
         # Mock extraction returning empty text
         mock_extractor = MagicMock()
@@ -309,15 +349,19 @@ class TestDocumentProcessingPipeline:
             processor = DocumentProcessor()
             processor.extractors = [mock_extractor]
 
-            await processor.process_document(str(document.id), mock_db)
+            await processor.process_document(str(document.id), db_session)
+
+            # Refresh document from database
+            await db_session.refresh(document)
 
             # Document should be processed but with chunking error
             assert document.status == DocumentStatus.PROCESSED
+            assert document.processing_error is not None
             assert "Chunking failed" in document.processing_error
 
     @pytest.mark.benchmark
     async def test_pipeline_performance_large_document(
-        self, mock_db, sample_pdf_content, create_test_document
+        self, db_session: AsyncSession, sample_pdf_content, test_document: Document
     ):
         """
         Test pipeline performance with a large document.
@@ -327,7 +371,7 @@ class TestDocumentProcessingPipeline:
         """
         # Create large document (simulate 100-page document)
         large_content = sample_pdf_content * 50  # ~100k characters
-        document = create_test_document()
+        document = test_document
 
         # Mock successful extraction
         mock_extractor = MagicMock()
@@ -358,9 +402,12 @@ class TestDocumentProcessingPipeline:
                 processor = DocumentProcessor()
                 processor.extractors = [mock_extractor]
 
-                await processor.process_document(str(document.id), mock_db)
+                await processor.process_document(document.id, db_session)
 
                 elapsed_time = time.time() - start_time
+
+                # Refresh document from database
+                await db_session.refresh(document)
 
                 # With mocking, pipeline should be very fast (< 1 second)
                 assert elapsed_time < 1.0, f"Pipeline took {elapsed_time:.2f}s, expected < 1s"

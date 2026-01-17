@@ -14,7 +14,8 @@ Usage:
 """
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from typing import cast
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +24,7 @@ from app.models.message import Message, MessageRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember, OrganizationRole
 from app.models.space import Space
-from app.models.thread import Thread, ThreadStatus
+from app.models.thread import Thread, ThreadStatus, ThreadVisibility
 from app.models.user import User
 
 
@@ -37,6 +38,8 @@ async def create_user(
     email: str | None = None,
     full_name: str | None = None,
     is_active: bool = True,
+    auth_user_id: UUID | None = None,
+    id: UUID | None = None,
 ) -> User:
     """
     Create a test user in the database.
@@ -46,15 +49,22 @@ async def create_user(
         email: User email (auto-generated if None)
         full_name: User's full name
         is_active: Whether user is active
+        auth_user_id: Supabase auth user ID (auto-generated if None)
+        id: User ID (auto-generated if None) - useful for matching Supabase Auth user IDs
 
     Returns:
         Created User instance
     """
-    user = User(
-        email=email or f"user-{uuid4()}@test.com",
-        full_name=full_name,
-        is_active=is_active,
-    )
+    user_data = {
+        "email": email or f"user-{uuid4()}@test.com",
+        "full_name": full_name,
+        "is_active": is_active,
+        "auth_user_id": auth_user_id or uuid4(),  # Generate auth_user_id for RLS tests
+    }
+    if id is not None:
+        user_data["id"] = id
+
+    user = User(**user_data)
     session.add(user)
     await session.flush()
     await session.refresh(user)
@@ -71,7 +81,7 @@ async def create_organization(
     name: str,
     slug: str | None = None,
     description: str | None = None,
-    owner_id: str | None = None,
+    owner_id: UUID | None = None,
 ) -> Organization:
     """
     Create a test organization in the database.
@@ -81,7 +91,7 @@ async def create_organization(
         name: Organization name
         slug: Organization slug (auto-generated from name if None)
         description: Organization description
-        owner_id: Owner user ID
+        owner_id: Owner user ID (UUID)
 
     Returns:
         Created Organization instance
@@ -240,12 +250,13 @@ async def create_document(
 async def create_thread(
     session: AsyncSession,
     query_text: str,
-    organization: Organization,
     creator: User,
     *,
+    organization: Organization | None = None,
     space: Space | None = None,
     title: str | None = None,
     status: ThreadStatus = ThreadStatus.PENDING,
+    visibility: ThreadVisibility | None = None,
 ) -> Thread:
     """
     Create a test thread in the database.
@@ -253,23 +264,34 @@ async def create_thread(
     Args:
         session: Database session
         query_text: Initial query text
-        organization: Organization instance
         creator: User who created the thread
-        space: Optional Space instance (None for org-wide threads)
+        organization: Optional Organization instance (required unless visibility is PERSONAL)
+        space: Optional Space instance (for SPACE visibility)
         title: Thread title
         status: Thread status
+        visibility: Thread visibility (defaults based on org/space if not provided)
 
     Returns:
         Created Thread instance
     """
+    # Auto-determine visibility if not explicitly set
+    if visibility is None:
+        if space is not None:
+            visibility = ThreadVisibility.SPACE
+        elif organization is not None:
+            visibility = ThreadVisibility.ORGANIZATION
+        else:
+            visibility = ThreadVisibility.PERSONAL
+
     thread = Thread(
         query_text=query_text,
         title=title,
-        organization_id=organization.id,
+        organization_id=organization.id if organization else None,
         space_id=space.id if space else None,
         owner_user_id=creator.id,  # Set owner to creator by default
         created_by=creator.id,
         status=status,
+        visibility=visibility,
     )
     session.add(thread)
     await session.flush()
@@ -335,7 +357,7 @@ async def create_user_with_org(
         Tuple of (User, Organization, OrganizationMember)
     """
     user = await create_user(session, email=user_email)
-    org = await create_organization(session, name=org_name, owner_id=user.id)
+    org = await create_organization(session, name=org_name, owner_id=cast(UUID | None, user.id))
     member = await create_membership(session, user, org, is_default=True, role=role)
     await session.commit()
     return user, org, member
@@ -390,7 +412,9 @@ async def create_thread_with_messages(
     Returns:
         Tuple of (Thread, list[Message])
     """
-    thread = await create_thread(session, query_text, organization, creator, space=space)
+    thread = await create_thread(
+        session, query_text, creator, organization=organization, space=space
+    )
 
     messages = []
     for i in range(num_exchanges):

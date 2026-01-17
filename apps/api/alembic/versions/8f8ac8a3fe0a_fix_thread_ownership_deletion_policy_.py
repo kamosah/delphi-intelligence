@@ -33,8 +33,47 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema: Change thread ownership to SET NULL on user delete."""
     # Step 1: Drop existing FK constraints (using actual constraint names from database)
-    op.drop_constraint('threads_owner_user_id_fkey', 'threads', type_='foreignkey')
-    op.drop_constraint('queries_user_id_fkey', 'threads', type_='foreignkey')  # Legacy name from when threads were queries
+    # Use conditional drops to handle both fresh installs and manual DBs
+    op.execute("""
+        DO $$
+        BEGIN
+            -- Drop threads_owner_user_id_fkey if it exists
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'threads_owner_user_id_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT threads_owner_user_id_fkey;
+            END IF;
+
+            -- Drop queries_user_id_fkey if it exists (legacy name from manual DBs)
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'queries_user_id_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT queries_user_id_fkey;
+            END IF;
+
+            -- Drop fk_threads_created_by if it exists (from 20251106 migration)
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'fk_threads_created_by'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT fk_threads_created_by;
+            END IF;
+
+            -- Drop threads_created_by_fkey if it exists
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'threads_created_by_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT threads_created_by_fkey;
+            END IF;
+        END $$;
+    """)
 
     # Step 2: Make columns nullable (allow NULL when user deleted)
     op.alter_column('threads', 'owner_user_id', nullable=True)
@@ -74,9 +113,29 @@ def downgrade() -> None:
     # WARNING: This downgrade will fail if there are any threads with NULL owner_user_id or created_by
     # This is intentional - you should not downgrade after users have been deleted
 
-    # Step 1: Drop FK constraints with SET NULL
-    op.drop_constraint('threads_owner_user_id_fkey', 'threads', type_='foreignkey')
-    op.drop_constraint('queries_user_id_fkey', 'threads', type_='foreignkey')  # Legacy name
+    # Step 1: Drop FK constraints with SET NULL (conditional for compatibility)
+    op.execute("""
+        DO $$
+        BEGIN
+            -- Drop threads_owner_user_id_fkey if it exists
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'threads_owner_user_id_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT threads_owner_user_id_fkey;
+            END IF;
+
+            -- Drop threads_created_by_fkey if it exists
+            IF EXISTS (
+                SELECT 1 FROM information_schema.table_constraints
+                WHERE constraint_name = 'threads_created_by_fkey'
+                AND table_name = 'threads'
+            ) THEN
+                ALTER TABLE threads DROP CONSTRAINT threads_created_by_fkey;
+            END IF;
+        END $$;
+    """)
 
     # Step 2: Make columns NOT NULL (will fail if NULL values exist)
     op.alter_column('threads', 'owner_user_id', nullable=False)

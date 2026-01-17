@@ -3,24 +3,39 @@ Test Configuration and Fixtures
 
 This module provides pytest fixtures for testing with real in-memory database
 and mocked dependencies where necessary.
+
+Note: Test environment is automatically loaded via pytest configuration
+(ENV=test in pyproject.toml), which causes Settings to load .env.test.
 """
 
-from collections.abc import AsyncGenerator, Callable
+import asyncio
+import os
+from collections.abc import AsyncGenerator, Callable, Generator, Iterator
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import JSON, event
+from sqlalchemy import JSON, delete, event
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+    async_sessionmaker,
+)
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.schema import Table
+from supabase import Client, ClientOptions, create_client
 
 from app.config import settings
+from app.db import session as db_session_module
+from app.db.session import get_session
 from app.main import app
+from app.services import storage_service as storage_module
 from app.models.base import Base
 from app.models.message import Message, MessageRole, AuthorType
 from app.models.organization import Organization
@@ -29,7 +44,84 @@ from app.models.space import Space
 from app.models.thread import Thread, ThreadStatus, ThreadVisibility
 from app.models.user import User
 from app.services.spicedb_service import SpiceDBService, get_spicedb_service
+from tests.factories import create_user
 from tests.utils.spicedb_cleanup import delete_relationships_by_ids
+
+
+# Import PostgreSQL fixtures for integration tests
+# - Fixtures must be imported for pytest discovery even if not directly referenced
+from tests.fixtures.postgres import (  # noqa: F401
+    authenticated_db_session,  # RLS testing context manager
+    postgres_container,
+    postgres_engine,
+    postgres_session,
+    postgres_integration_session,  # For integration tests with real HTTP requests
+    unique_test_id,
+)
+
+# Import API client abstractions for integration tests
+from tests.fixtures.api_clients import GraphQLClient, RESTClient, SSEClient
+from tests.fixtures.auth import AuthTestUser, create_test_token
+from tests.fixtures.openai_mocks import (
+    MockChatOpenAI,
+    MockEmbeddingService,
+    MockOpenAIEmbeddings,
+)
+from tests.fixtures.storage_mocks import MockStorageService
+
+
+# --------------------------------------------------------------------------- #
+# Environment Detection
+# --------------------------------------------------------------------------- #
+
+
+def _is_ci_environment() -> bool:
+    """Check if running in CI environment (GitHub Actions)."""
+    return os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+
+
+def _is_docker_container() -> bool:
+    """Check if running inside a Docker container.
+
+    Detects Docker container execution by checking for:
+    - /.dockerenv file (present in Docker containers)
+    - DOCKER_CONTAINER environment variable (set by test scripts)
+    """
+    return Path("/.dockerenv").exists() or os.getenv("DOCKER_CONTAINER") == "true"
+
+
+def _is_local_host() -> bool:
+    """Check if running on local host machine (not CI, not Docker container)."""
+    return not _is_ci_environment() and not _is_docker_container()
+
+
+# Override event_loop fixture to be session-scoped for PostgreSQL integration tests
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """Create an instance of the default event loop for the entire test session.
+
+    This fixture is session-scoped to support session-scoped async fixtures like
+    postgres_engine. Without this, pytest-asyncio's default function-scoped event
+    loop causes ScopeMismatch errors.
+
+    IMPORTANT: Properly cancels all pending tasks before closing to prevent pytest hang.
+    """
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+
+    # Cancel all pending tasks before closing the loop to prevent hang
+    try:
+        # Get all pending tasks
+        pending = asyncio.all_tasks(loop)
+        if pending:
+            # Cancel all pending tasks
+            for task in pending:
+                task.cancel()
+            # Wait for all tasks to be cancelled
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    finally:
+        loop.close()
 
 
 @pytest.fixture
@@ -211,31 +303,141 @@ def mock_get_session(mock_db_session: AsyncMock) -> Callable[[], AsyncGenerator[
 
 
 @pytest.fixture
-async def async_client() -> AsyncGenerator[AsyncClient, None]:
-    """Provide an async HTTP client for testing endpoints."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
+async def async_client(
+    postgres_engine: AsyncEngine,  # noqa: F811
+    postgres_integration_session: AsyncSession,  # noqa: F811
+) -> AsyncGenerator[AsyncClient, None]:
+    """Provide an async HTTP client for testing endpoints.
+
+    CRITICAL: Overrides app's database engine AND session to use test database.
+    Without this override, the app's database engine connects to olympus_dev database
+    (which has no schema) because it's created when conftest.py imports the app at
+    module level, BEFORE postgres_engine fixture creates the test database schema.
+
+    This ensures all HTTP requests via async_client use the same database connection
+    as the test fixtures, allowing tests to set up data that the app can see.
+
+    Implementation:
+    1. Clears app's cached engine (from app.db.session module)
+    2. Overrides get_engine() to return test postgres_engine
+    3. Overrides get_session() to use postgres_integration_session
+    """
+    # Save original engine and factory for cleanup
+    original_engine = db_session_module._engine
+    original_factory = db_session_module._async_session_factory
+
+    # Clear cached engine and factory so they'll be recreated with test database
+    db_session_module._engine = None
+    db_session_module._async_session_factory = None
+
+    # Override engine getter to return test engine
+    def override_get_engine() -> AsyncEngine:
+        return postgres_engine
+
+    # Override session getter to use test session
+    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        yield postgres_integration_session
+
+    # Patch the module-level functions
+    original_get_engine = db_session_module.get_engine
+    db_session_module.get_engine = override_get_engine
+    app.dependency_overrides[get_session] = override_get_session
+
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            yield client
+    finally:
+        # Restore original engine and factory
+        db_session_module._engine = original_engine
+        db_session_module._async_session_factory = original_factory
+        db_session_module.get_engine = original_get_engine
+        app.dependency_overrides.clear()
 
 
-class GraphQLClient:
-    """Simple GraphQL client for testing."""
-
-    def __init__(self, client: AsyncClient) -> None:
-        self.client = client
-
-    async def execute(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Execute a GraphQL query."""
-        response = await self.client.post(
-            "/graphql",
-            json={"query": query, "variables": variables or {}},
-        )
-        result: dict[str, Any] = response.json()
-        return result
+# --------------------------------------------------------------------------- #
+# API Client Fixtures (GraphQL, REST, SSE)
+# --------------------------------------------------------------------------- #
 
 
 @pytest.fixture
-async def graphql_client(async_client: AsyncClient) -> GraphQLClient:
-    """Provide a GraphQL client wrapper for testing."""
+def graphql_client(async_client: AsyncClient) -> GraphQLClient:
+    """Provide GraphQL client with typed responses and error handling.
+
+    Usage:
+        async def test_query(graphql_client):
+            data = await graphql_client.execute_expecting_data(
+                query='{ me { id email } }',
+            )
+            assert data["me"]["email"] == "test@example.com"
+    """
+    return GraphQLClient(async_client)
+
+
+@pytest.fixture
+def rest_client(async_client: AsyncClient) -> RESTClient:
+    """Provide REST API client with authentication support.
+
+    Usage:
+        async def test_endpoint(rest_client):
+            response = await rest_client.get("/api/users/me")
+            assert response.status_code == 200
+    """
+    return RESTClient(async_client)
+
+
+@pytest.fixture
+def sse_client(async_client: AsyncClient) -> SSEClient:
+    """Provide SSE client for testing streaming endpoints.
+
+    Usage:
+        async def test_streaming(sse_client):
+            events = await sse_client.stream_events(
+                "/api/threads/123/stream",
+                max_events=5,
+            )
+            assert len(events) == 5
+    """
+    return SSEClient(async_client)
+
+
+@pytest.fixture
+async def authenticated_graphql_client(
+    async_client: AsyncClient,
+    postgres_integration_session: AsyncSession,  # noqa: F811
+    unique_test_id: str,  # noqa: F811
+) -> GraphQLClient:
+    """Provide GraphQL client with authenticated test user.
+
+    Creates a test user in PostgreSQL, generates a JWT token, and injects
+    it via cookie. Use this for integration tests requiring authentication.
+
+    Uses postgres_integration_session fixture (commits data to database).
+    Uses unique_test_id to prevent data pollution between tests.
+
+    Usage:
+        async def test_authenticated_query(authenticated_graphql_client):
+            data = await authenticated_graphql_client.execute_expecting_data(
+                query='{ me { id email } }',
+            )
+            # Email will be f"test-{unique_test_id}@example.com"
+    """
+    # Create test user in database with unique email
+    user = await create_user(
+        postgres_integration_session, email=f"test-{unique_test_id}@example.com"
+    )
+    await postgres_integration_session.commit()
+
+    # Create JWT token
+    test_user = AuthTestUser(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name or "Test User",
+    )
+    token = create_test_token(test_user)
+
+    # Inject token via Authorization header (matches integration test pattern)
+    async_client.headers["Authorization"] = f"Bearer {token}"
+
     return GraphQLClient(async_client)
 
 
@@ -386,13 +588,276 @@ async def spicedb_service(
     yield service
 
     # Parallel-safe cleanup: Only delete relationships for this test's resource IDs
-    if hasattr(test_resource_ids, "created_ids") and test_resource_ids.created_ids:  # type: ignore[attr-defined]
+    if hasattr(test_resource_ids, "created_ids") and test_resource_ids.created_ids:
         try:
             result = await delete_relationships_by_ids(
                 service,
-                test_resource_ids.created_ids,  # type: ignore[attr-defined]
+                test_resource_ids.created_ids,
             )
             if result["failed_ids"]:
                 pytest.fail(f"Cleanup failed for IDs: {result['failed_ids']}")
         except Exception as e:
             pytest.fail(f"Cleanup error: {e}")
+
+
+# --------------------------------------------------------------------------- #
+# LangChain Mock Fixtures (OpenAI LLM and Embeddings)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def mock_chat_openai() -> MockChatOpenAI:
+    """Provide mock ChatOpenAI for deterministic testing without API calls.
+
+    Usage:
+        def test_llm(mock_chat_openai):
+            mock_chat_openai.responses = ["Hello!", "How can I help?"]
+            response = mock_chat_openai.invoke("What's up?")
+            assert response.content == "Hello!"
+    """
+    return MockChatOpenAI()
+
+
+@pytest.fixture
+def mock_embeddings() -> MockOpenAIEmbeddings:
+    """Provide mock OpenAI embeddings with deterministic hash-based vectors.
+
+    Usage:
+        def test_embeddings(mock_embeddings):
+            vector1 = mock_embeddings.embed_query("Hello")
+            vector2 = mock_embeddings.embed_query("Hello")
+            assert vector1 == vector2  # Deterministic
+            assert len(vector1) == 1536  # Correct dimensions
+    """
+    return MockOpenAIEmbeddings()
+
+
+@pytest.fixture
+def mock_embedding_service() -> MockEmbeddingService:
+    """Provide mock EmbeddingService for vector search tests.
+
+    Returns MockEmbeddingService that uses deterministic hash-based embeddings
+    instead of calling OpenAI API.
+
+    Usage:
+        async def test_vector_search(mock_embedding_service):
+            vector = await mock_embedding_service.generate_embedding("Hello")
+            assert len(vector) == 1536  # Deterministic
+    """
+    return MockEmbeddingService()
+
+
+@pytest.fixture
+def patch_openai(
+    monkeypatch: pytest.MonkeyPatch,
+    mock_chat_openai: MockChatOpenAI,
+    mock_embeddings: MockOpenAIEmbeddings,
+) -> tuple[MockChatOpenAI, MockOpenAIEmbeddings]:
+    """Patch LangChain factory functions to return mocks (no API calls).
+
+    Monkeypatches:
+        - app.services.langchain_config.get_llm → returns mock_chat_openai
+        - app.services.langchain_config.get_embeddings → returns mock_embeddings
+
+    Usage:
+        def test_query_agent(patch_openai):
+            llm, embeddings = patch_openai
+            llm.responses = ["Specific test response"]
+            # Now any code calling get_llm() or get_embeddings() uses mocks
+            result = query_agent.run("What is AI?")
+            assert "Specific test response" in result
+    """
+    # Patch get_llm to return mock ChatOpenAI
+    monkeypatch.setattr(
+        "app.services.langchain_config.get_llm",
+        lambda **_kwargs: mock_chat_openai,
+    )
+
+    # Patch get_embeddings to return mock OpenAI embeddings
+    monkeypatch.setattr(
+        "app.services.langchain_config.get_embeddings",
+        lambda **_kwargs: mock_embeddings,
+    )
+
+    return mock_chat_openai, mock_embeddings
+
+
+# --------------------------------------------------------------------------- #
+# Storage Mock Fixtures
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def mock_storage_service(monkeypatch: pytest.MonkeyPatch) -> MockStorageService:
+    """Provide mock storage service that patches get_storage_service().
+
+    Uses local filesystem instead of Supabase Storage for deterministic testing.
+    Automatically cleans up temporary files after test.
+
+    Usage:
+        async def test_upload(mock_storage_service):
+            file_path = await mock_storage_service.upload_file(file, space_id, doc_id)
+            assert file_path is not None
+            # Cleanup happens automatically
+    """
+    # Create mock storage service with temporary directory
+    mock_storage = MockStorageService()
+
+    # Patch get_storage_service() to return mock
+    monkeypatch.setattr(
+        "app.services.storage_service.get_storage_service",
+        lambda: mock_storage,
+    )
+
+    # Also patch the module-level variable for consistency
+    original_service = getattr(storage_module, "_storage_service", None)
+    storage_module._storage_service = mock_storage
+
+    yield mock_storage
+
+    # Cleanup: Remove temporary files
+    mock_storage.cleanup()
+
+    # Restore original service
+    storage_module._storage_service = original_service
+
+
+# --------------------------------------------------------------------------- #
+# Supabase Client Fixture
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(scope="session")
+def supabase_client() -> Iterator[Client]:
+    """Provide Supabase client for auth integration tests.
+
+    Uses cloud Supabase test instance configured in .env.test.
+    Allows tests to interact with real Supabase Auth for login/signup/etc.
+
+    IMPORTANT: Auto-refresh is disabled to prevent background threads from
+    outliving the test session and causing CI hangs. The GoTrue client starts
+    a background timer thread for token refresh that can cause pytest to hang
+    for up to 1 hour after tests complete.
+
+    Usage:
+        async def test_auth(supabase_client):
+            result = supabase_client.auth.sign_up({"email": "test@example.com", "password": "pass123"})
+            assert result.user is not None
+    """
+    options = ClientOptions(
+        auto_refresh_token=False,  # Prevents background Timer thread
+        persist_session=False,  # Don't persist sessions
+    )
+
+    client = create_client(settings.supabase_url, settings.supabase_anon_key, options=options)
+
+    yield client
+
+    # Cleanup: Explicitly close any connections
+    try:
+        if hasattr(client, "_http_client") and client._http_client:
+            # Try to close gracefully if possible
+            try:
+                loop = asyncio.get_event_loop()
+                if not loop.is_closed():
+                    loop.run_until_complete(client._http_client.aclose())
+            except Exception:
+                # If async close fails, just pass - fixture cleanup
+                pass
+    except Exception:
+        # Swallow any cleanup errors to avoid masking test failures
+        pass
+
+
+@pytest.fixture
+def supabase_test_user(supabase_client):
+    """Provide a pre-registered test user for Supabase auth integration tests.
+
+    Creates a consistent test user in cloud Supabase that can be used across tests.
+    Uses admin API with service role key to bypass email validation.
+
+    Returns:
+        dict: Test user credentials with email, password, and user_id
+
+    Usage:
+        def test_login(supabase_test_user, supabase_client):
+            result = supabase_client.auth.sign_in_with_password({
+                "email": supabase_test_user["email"],
+                "password": supabase_test_user["password"],
+            })
+            assert result.user.id == supabase_test_user["user_id"]
+    """
+    # Use a fixed test user email that won't be rejected
+    test_email = "olympus-integration-test@mail.com"
+    test_password = "TestPassword123!@#"
+
+    # Create admin client with service role key
+    admin_client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+
+    try:
+        # Try to create the user (idempotent - will fail if already exists)
+        result = admin_client.auth.admin.create_user({
+            "email": test_email,
+            "password": test_password,
+            "email_confirm": True,  # Auto-confirm email for testing
+        })
+        user_id = result.user.id
+    except Exception:
+        # User already exists, get their ID
+        users = admin_client.auth.admin.list_users()
+        user = next((u for u in users if u.email == test_email), None)
+        if user:
+            user_id = user.id
+            # Reset password to known value
+            admin_client.auth.admin.update_user_by_id(user_id, {"password": test_password})
+        else:
+            raise RuntimeError(f"Failed to create or find test user: {test_email}")
+
+    return {
+        "email": test_email,
+        "password": test_password,
+        "user_id": user_id,
+    }
+
+
+@pytest.fixture
+async def postgres_test_user(
+    postgres_integration_session: AsyncSession,  # noqa: F811
+    supabase_test_user: dict,
+):
+    """Create PostgreSQL user matching Supabase test user for auth integration tests.
+
+    This fixture ensures proper cleanup between tests by:
+    1. Deleting any existing user with the test email (from previous runs)
+    2. Creating a fresh user with ID matching Supabase Auth user_id
+    3. Cleaning up after the test
+
+    Args:
+        postgres_integration_session: Database session for integration tests
+        supabase_test_user: Supabase test user credentials
+
+    Returns:
+        User: The created PostgreSQL user record
+    """
+    test_email = supabase_test_user["email"]
+    test_user_id = UUID(supabase_test_user["user_id"])
+
+    # Clean up any existing user with this email (from previous test runs)
+    await postgres_integration_session.execute(delete(User).where(User.email == test_email))
+    await postgres_integration_session.commit()
+
+    # Create fresh user with ID matching Supabase Auth user_id
+    user = await create_user(
+        postgres_integration_session,
+        id=test_user_id,
+        email=test_email,
+        full_name="Test User",
+        auth_user_id=test_user_id,
+    )
+    await postgres_integration_session.commit()
+
+    yield user
+
+    # Cleanup after test
+    await postgres_integration_session.execute(delete(User).where(User.email == test_email))
+    await postgres_integration_session.commit()

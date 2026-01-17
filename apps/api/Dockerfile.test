@@ -1,0 +1,42 @@
+# Dockerfile for test runner container
+# Usage: docker compose -f docker-compose.test.yml run --rm test-runner pytest tests/ -v
+# This container runs tests with Docker socket mounted for testcontainers support
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VENV_IN_PROJECT=false \
+    POETRY_CACHE_DIR=/tmp/poetry_cache \
+    ENV=test
+
+# Install system dependencies including Docker CLI for testcontainers
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip install poetry
+
+# Configure poetry to not use virtual environments
+RUN poetry config virtualenvs.create false
+
+# Set work directory
+WORKDIR /app
+
+# Copy poetry files
+COPY pyproject.toml poetry.lock ./
+
+# Install dependencies (including dev for testing)
+RUN poetry install --with dev && rm -rf $POETRY_CACHE_DIR
+
+# Copy application code
+COPY . .
+
+# Default command runs all tests via Makefile (can be overridden)
+CMD ["make", "test-all"]

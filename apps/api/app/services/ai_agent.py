@@ -24,7 +24,7 @@ from app.agents.thread_agent import (
 )
 from app.models.message import AuthorType, Message, MessageRole
 from app.models.space import Space, SpaceMember
-from app.models.thread import Thread
+from app.models.thread import Thread, ThreadVisibility
 from app.services.citation_service import get_citation_service
 
 logger = logging.getLogger(__name__)
@@ -205,19 +205,31 @@ class AIAgentService:
         Returns:
             Saved Thread record
         """
-        # Get organization_id from space if not provided directly
-        if not organization_id and space_id:
+        # Determine thread visibility and context
+        # PERSONAL threads: No space_id, No organization_id (check constraint enforcement)
+        # SPACE threads: Has space_id, resolve organization_id from space
+        # ORGANIZATION threads: No space_id, Has organization_id
+        resolved_org_id: UUID | None = None
+        resolved_visibility: ThreadVisibility = ThreadVisibility.PERSONAL
+
+        if space_id:
+            # SPACE thread: Resolve organization_id from space
             space_stmt = select(Space.organization_id).where(Space.id == space_id)
             space_result = await db.execute(space_stmt)
-            organization_id = space_result.scalar_one()
-        elif not organization_id:
-            msg = "Either organization_id or space_id must be provided"
-            raise ValueError(msg)
+            resolved_org_id = space_result.scalar_one()
+            resolved_visibility = ThreadVisibility.SPACE
+        elif organization_id:
+            # ORGANIZATION thread: Use provided organization_id
+            resolved_org_id = organization_id
+            resolved_visibility = ThreadVisibility.ORGANIZATION
+        # else: PERSONAL thread (no space_id, no organization_id)
 
         thread_record = Thread(
-            organization_id=organization_id,
+            organization_id=resolved_org_id,  # None for personal threads
             query_text=query_text,
-            space_id=space_id,  # Can be None for org-wide threads
+            space_id=space_id,  # None for personal/org threads
+            visibility=resolved_visibility,
+            owner_user_id=user_id,  # Set owner for personal threads
             created_by=user_id,
             result=result_text,
             confidence_score=confidence_score,
@@ -369,49 +381,78 @@ class AIAgentService:
                 "thread_id": saved_thread_id,
             }
 
-        elif save_to_db and db and user_id and (space_id or organization_id):
+        elif save_to_db and db and user_id:
             # NEW THREAD: Create thread before streaming
             # This enables immediate navigation to thread page while streaming continues
 
-            # Get organization_id from space if not provided directly
-            resolved_org_id = organization_id
-            if not resolved_org_id and space_id:
+            # Determine thread visibility and context
+            # PERSONAL threads: No space_id, No organization_id (check constraint enforcement)
+            # SPACE threads: Has space_id, resolve organization_id from space
+            # ORGANIZATION threads: No space_id, Has organization_id
+            resolved_org_id: UUID | None = None
+            resolved_visibility: ThreadVisibility = ThreadVisibility.PERSONAL
+
+            if space_id:
+                # SPACE thread: Resolve organization_id from space
                 space_stmt = select(Space.organization_id).where(Space.id == space_id)
                 space_result = await db.execute(space_stmt)
                 resolved_org_id = space_result.scalar_one()
-            elif not resolved_org_id:
-                error_msg = "Either organization_id or space_id must be provided"
-                raise ValueError(error_msg)
+                resolved_visibility = ThreadVisibility.SPACE
+            elif organization_id:
+                # ORGANIZATION thread: Use provided organization_id
+                resolved_org_id = organization_id
+                resolved_visibility = ThreadVisibility.ORGANIZATION
+            # else: PERSONAL thread (no space_id, no organization_id)
 
             # Create thread with empty result (will be updated after streaming)
-            thread_record = Thread(
-                organization_id=resolved_org_id,
-                query_text=query,
-                space_id=space_id,  # Can be None for org-wide threads
-                created_by=user_id,
-                result="",  # Empty initially, updated after streaming
-                confidence_score=0.0,  # Calculated after streaming
-                sources={"citations": [], "count": 0},  # Updated after streaming
-                agent_steps={},  # Updated after streaming
-            )
+            try:
+                # Flush any pending changes first to avoid "add during flush" warning
+                # This ensures we're not in the middle of a flush cycle when adding the thread
+                await db.flush()
 
-            db.add(thread_record)
-            await db.commit()
-            await db.refresh(thread_record)
+                thread_record = Thread(
+                    organization_id=resolved_org_id,  # None for personal threads
+                    query_text=query,
+                    space_id=space_id,  # None for personal/org threads
+                    visibility=resolved_visibility,
+                    owner_user_id=user_id,  # Set owner for personal threads
+                    created_by=user_id,
+                    result="",  # Empty initially, updated after streaming
+                    confidence_score=0.0,  # Calculated after streaming
+                    sources={"citations": [], "count": 0},  # Updated after streaming
+                    agent_steps={},  # Updated after streaming
+                )
+
+                db.add(thread_record)
+                await db.commit()
+                await db.refresh(thread_record)
+            except Exception as e:
+                # Rollback on any error (IntegrityError, database errors, etc.)
+                await db.rollback()
+                logger.exception(f"Failed to create thread: {e}")
+                # Re-raise to be caught by outer try-except in generate_sse_events
+                raise
 
             saved_thread_id = str(thread_record.id)
 
             # Create user message for the query
-            user_message = Message(
-                thread_id=thread_record.id,
-                message_role=MessageRole.USER,
-                author_user_id=user_id,  # Track message author
-                author_type=AuthorType.USER,  # User-generated message
-                content=query,
-                message_metadata={},
-            )
-            db.add(user_message)
-            await db.commit()
+            try:
+                user_message = Message(
+                    thread_id=thread_record.id,
+                    message_role=MessageRole.USER,
+                    author_user_id=user_id,  # Track message author
+                    author_type=AuthorType.USER,  # User-generated message
+                    content=query,
+                    message_metadata={},
+                )
+                db.add(user_message)
+                await db.commit()
+            except Exception as e:
+                # Rollback on any error
+                await db.rollback()
+                logger.exception(f"Failed to create user message for thread {saved_thread_id}: {e}")
+                # Re-raise to be caught by outer try-except in generate_sse_events
+                raise
 
             logger.info(f"Created new thread before streaming: id={saved_thread_id}")
 

@@ -19,22 +19,65 @@ depends_on: Union[str, Sequence[str], None] = None  # noqa: F841
 
 
 def upgrade() -> None:
-    """Add created_at and updated_at columns to space_members table."""
-    # Add created_at column
+    """Conditionally add created_at and updated_at columns to space_members table.
+
+    Checks if columns exist before adding to handle both:
+    - Fresh installs (columns exist from initial schema 3df48089188e)
+    - Manual DB modifications (columns may not exist)
+    """
+    # Check and add created_at if not exists
     op.execute("""
-        ALTER TABLE space_members
-        ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'space_members' AND column_name = 'created_at'
+            ) THEN
+                ALTER TABLE space_members
+                ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+            END IF;
+        END $$;
     """)
 
-    # Add updated_at column
+    # Check and add updated_at if not exists
     op.execute("""
-        ALTER TABLE space_members
-        ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'space_members' AND column_name = 'updated_at'
+            ) THEN
+                ALTER TABLE space_members
+                ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+            END IF;
+        END $$;
     """)
 
 
 def downgrade() -> None:
-    """Remove created_at and updated_at columns from space_members table."""
-    # Drop the timestamp columns
-    op.drop_column('space_members', 'updated_at')
-    op.drop_column('space_members', 'created_at')
+    """Conditionally remove created_at and updated_at columns from space_members table."""
+    # Drop updated_at if exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'space_members' AND column_name = 'updated_at'
+            ) THEN
+                ALTER TABLE space_members DROP COLUMN updated_at;
+            END IF;
+        END $$;
+    """)
+
+    # Drop created_at if exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'space_members' AND column_name = 'created_at'
+            ) THEN
+                ALTER TABLE space_members DROP COLUMN created_at;
+            END IF;
+        END $$;
+    """)
