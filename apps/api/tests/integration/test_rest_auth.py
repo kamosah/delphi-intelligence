@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.factories import create_user
 from tests.fixtures.api_clients import RESTClient
-from tests.fixtures.auth import TestUser, create_test_token
+from tests.fixtures.auth import AuthTestUser, create_test_token
 
 
 @pytest.mark.integration
@@ -130,7 +130,7 @@ async def test_rest_auth_get_current_user(
     # postgres_test_user fixture ensures PostgreSQL user exists with matching ID
 
     # Create JWT token using Supabase user_id
-    test_user = TestUser(
+    test_user = AuthTestUser(
         id=supabase_test_user["user_id"],
         email=supabase_test_user["email"],
         full_name="Test User",
@@ -181,7 +181,7 @@ async def test_rest_auth_logout_success(
     # postgres_test_user fixture ensures PostgreSQL user exists with matching ID
 
     # Create JWT token using Supabase user_id
-    test_user = TestUser(
+    test_user = AuthTestUser(
         id=supabase_test_user["user_id"],
         email=supabase_test_user["email"],
         full_name="",
@@ -249,7 +249,7 @@ async def test_rest_auth_sse_token_creation(
     # postgres_test_user fixture ensures PostgreSQL user exists with matching ID
 
     # Create JWT token using Supabase user_id
-    test_user = TestUser(
+    test_user = AuthTestUser(
         id=supabase_test_user["user_id"],
         email=supabase_test_user["email"],
         full_name="",

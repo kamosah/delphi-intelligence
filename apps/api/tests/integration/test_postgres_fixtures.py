@@ -6,8 +6,11 @@ This module tests the PostgreSQL testing infrastructure to ensure:
 - Parallel execution is safe with unique_test_id
 """
 
+import warnings
+
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import SAWarning
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.models.user import User
@@ -25,7 +28,12 @@ async def test_postgres_session_transaction_rollback(
     await postgres_session.flush()
 
     # Act: Rollback the transaction
-    await postgres_session.rollback()
+    # Suppress expected SAWarning about transaction deassociation during rollback testing
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", category=SAWarning, message=".*transaction already deassociated.*"
+        )
+        await postgres_session.rollback()
 
     # Assert: User should not exist after rollback (verify with new session)
     async with AsyncSession(postgres_engine) as verification_session:

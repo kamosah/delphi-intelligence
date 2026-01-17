@@ -406,6 +406,10 @@ class AIAgentService:
 
             # Create thread with empty result (will be updated after streaming)
             try:
+                # Flush any pending changes first to avoid "add during flush" warning
+                # This ensures we're not in the middle of a flush cycle when adding the thread
+                await db.flush()
+
                 thread_record = Thread(
                     organization_id=resolved_org_id,  # None for personal threads
                     query_text=query,

@@ -306,6 +306,7 @@ markers = [
 ]
 filterwarnings = [
     "ignore::DeprecationWarning:importlib._bootstrap",  # PyMuPDF/SwigPy internal warnings
+    "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers",  # testcontainers library deprecation
 ]
 
 [tool.coverage.run]

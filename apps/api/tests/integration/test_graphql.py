@@ -23,7 +23,7 @@ from tests.factories import (
     create_user,
 )
 from tests.fixtures.api_clients import GraphQLClient
-from tests.fixtures.auth import TestUser, create_test_token
+from tests.fixtures.auth import AuthTestUser, create_test_token
 from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 
 
@@ -39,7 +39,7 @@ async def test_graphql_create_user_mutation(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(admin.id), email=admin.email, full_name=admin.full_name or "")
+    test_user = AuthTestUser(id=str(admin.id), email=admin.email, full_name=admin.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -81,7 +81,7 @@ async def test_graphql_query_user_by_id(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -114,7 +114,7 @@ async def test_graphql_create_organization(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -167,7 +167,7 @@ async def test_graphql_list_organizations(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -204,7 +204,7 @@ async def test_graphql_create_space(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -291,7 +291,7 @@ async def test_graphql_update_space(
     )
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -341,7 +341,7 @@ async def test_graphql_create_thread_with_mocked_llm(
     mock_llm.responses = ["This is a mocked AI response"]
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -415,7 +415,7 @@ async def test_graphql_validation_error_handling(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -452,7 +452,7 @@ async def test_graphql_query_nonexistent_resource(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 

@@ -123,7 +123,7 @@ jobs:
         run: |
           poetry run pytest -m "not integration" -n auto -v
 
-      - name: Run integration tests serially
+      - name: Run integration tests in parallel (limited)
         env:
           SPICEDB_ENDPOINT: localhost:50051
           SPICEDB_TOKEN: testtoken
@@ -135,7 +135,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           CI: 'true'
         run: |
-          poetry run pytest -m integration -v
+          poetry run pytest -m integration -n 3 -v
 
       - name: Check test results
         if: failure()

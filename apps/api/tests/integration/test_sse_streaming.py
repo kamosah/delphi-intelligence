@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.factories import create_membership, create_organization, create_space, create_user
 from tests.fixtures.api_clients import SSEClient
-from tests.fixtures.auth import TestUser, create_test_token
+from tests.fixtures.auth import AuthTestUser, create_test_token
 from tests.fixtures.openai_mocks import MockChatOpenAI, MockOpenAIEmbeddings
 
 
@@ -44,7 +44,7 @@ async def test_sse_basic_streaming(
     mock_llm.responses = ["This is a mocked AI response for testing SSE streaming"]
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
 
     # Create SSE client
@@ -96,7 +96,7 @@ async def test_sse_event_type_parsing(
     mock_llm.responses = ["Test response"]
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
 
     # Create SSE client
@@ -146,7 +146,7 @@ async def test_sse_stream_completion(
     mock_llm.responses = ["Test response"]
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
 
     # Create SSE client
@@ -194,7 +194,7 @@ async def test_sse_chunk_reconstruction(
     mock_llm.responses = [expected_response]
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
 
     # Create SSE client
@@ -244,7 +244,7 @@ async def test_sse_missing_query_parameter(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
@@ -300,7 +300,7 @@ async def test_sse_space_access_control(
     await postgres_integration_session.commit()
 
     # Authenticate as user2 (NOT in space)
-    test_user = TestUser(id=str(user2.id), email=user2.email, full_name=user2.full_name or "")
+    test_user = AuthTestUser(id=str(user2.id), email=user2.email, full_name=user2.full_name or "")
     token = create_test_token(test_user)
 
     # Request with space_id that user2 cannot access (SSE requires token in query params)
@@ -335,7 +335,7 @@ async def test_sse_concurrent_streams(
     mock_llm.responses = ["Response 1", "Response 2", "Response 3"]
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
 
     # Create SSE client
@@ -388,7 +388,7 @@ async def test_sse_timeout_handling(
     await postgres_integration_session.commit()
 
     # Authenticate client
-    test_user = TestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
+    test_user = AuthTestUser(id=str(user.id), email=user.email, full_name=user.full_name or "")
     token = create_test_token(test_user)
 
     # Create SSE client with very short timeout

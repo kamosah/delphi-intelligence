@@ -10,7 +10,7 @@ Note: Test environment is automatically loaded via pytest configuration
 
 import asyncio
 import os
-from collections.abc import AsyncGenerator, Callable, Generator
+from collections.abc import AsyncGenerator, Callable, Generator, Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.schema import Table
-from supabase import create_client
+from supabase import Client, ClientOptions, create_client
 
 from app.config import settings
 from app.db import session as db_session_module
@@ -61,7 +61,7 @@ from tests.fixtures.postgres import (  # noqa: F401
 
 # Import API client abstractions for integration tests
 from tests.fixtures.api_clients import GraphQLClient, RESTClient, SSEClient
-from tests.fixtures.auth import TestUser, create_test_token
+from tests.fixtures.auth import AuthTestUser, create_test_token
 from tests.fixtures.openai_mocks import (
     MockChatOpenAI,
     MockEmbeddingService,
@@ -428,7 +428,7 @@ async def authenticated_graphql_client(
     await postgres_integration_session.commit()
 
     # Create JWT token
-    test_user = TestUser(
+    test_user = AuthTestUser(
         id=str(user.id),
         email=user.email,
         full_name=user.full_name or "Test User",
@@ -727,19 +727,46 @@ def mock_storage_service(monkeypatch: pytest.MonkeyPatch) -> MockStorageService:
 # --------------------------------------------------------------------------- #
 
 
-@pytest.fixture
-def supabase_client():
+@pytest.fixture(scope="session")
+def supabase_client() -> Iterator[Client]:
     """Provide Supabase client for auth integration tests.
 
     Uses cloud Supabase test instance configured in .env.test.
     Allows tests to interact with real Supabase Auth for login/signup/etc.
+
+    IMPORTANT: Auto-refresh is disabled to prevent background threads from
+    outliving the test session and causing CI hangs. The GoTrue client starts
+    a background timer thread for token refresh that can cause pytest to hang
+    for up to 1 hour after tests complete.
 
     Usage:
         async def test_auth(supabase_client):
             result = supabase_client.auth.sign_up({"email": "test@example.com", "password": "pass123"})
             assert result.user is not None
     """
-    return create_client(settings.supabase_url, settings.supabase_anon_key)
+    options = ClientOptions(
+        auto_refresh_token=False,  # Prevents background Timer thread
+        persist_session=False,  # Don't persist sessions
+    )
+
+    client = create_client(settings.supabase_url, settings.supabase_anon_key, options=options)
+
+    yield client
+
+    # Cleanup: Explicitly close any connections
+    try:
+        if hasattr(client, "_http_client") and client._http_client:
+            # Try to close gracefully if possible
+            try:
+                loop = asyncio.get_event_loop()
+                if not loop.is_closed():
+                    loop.run_until_complete(client._http_client.aclose())
+            except Exception:
+                # If async close fails, just pass - fixture cleanup
+                pass
+    except Exception:
+        # Swallow any cleanup errors to avoid masking test failures
+        pass
 
 
 @pytest.fixture
