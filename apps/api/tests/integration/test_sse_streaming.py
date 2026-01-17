@@ -51,8 +51,9 @@ async def test_sse_basic_streaming(
     sse_client = SSEClient(async_client)
 
     # Stream events (SSE requires token in query params, not Authorization header)
+    # Note: Personal thread (no space_id, no organization_id)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
+        url=f"/api/thread/stream?query=Test question&save_to_db=true&token={token}",
         max_events=20,  # Limit events for test performance
         timeout_seconds=30.0,
     )
@@ -102,8 +103,9 @@ async def test_sse_event_type_parsing(
     sse_client = SSEClient(async_client)
 
     # Stream events (SSE requires token in query params, not Authorization header)
+    # Note: Personal thread (no space_id, no organization_id)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
+        url=f"/api/thread/stream?query=Test question&save_to_db=true&token={token}",
         max_events=20,
         timeout_seconds=30.0,
     )
@@ -151,8 +153,9 @@ async def test_sse_stream_completion(
     sse_client = SSEClient(async_client)
 
     # Stream ALL events (no max_events limit, SSE requires token in query params)
+    # Note: Personal thread (no space_id, no organization_id)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
+        url=f"/api/thread/stream?query=Test question&save_to_db=true&token={token}",
         timeout_seconds=30.0,
     )
 
@@ -198,8 +201,9 @@ async def test_sse_chunk_reconstruction(
     sse_client = SSEClient(async_client)
 
     # Stream events (SSE requires token in query params, not Authorization header)
+    # Note: Personal thread (no space_id, no organization_id)
     events = await sse_client.stream_events(
-        url=f"/api/thread/stream?query=Test question&organization_id={org.id}&save_to_db=true&token={token}",
+        url=f"/api/thread/stream?query=Test question&save_to_db=true&token={token}",
         timeout_seconds=30.0,
     )
 
@@ -244,10 +248,8 @@ async def test_sse_missing_query_parameter(
     token = create_test_token(test_user)
     async_client.headers["Authorization"] = f"Bearer {token}"
 
-    # Request without query parameter
-    response = await async_client.get(
-        f"/api/thread/stream?organization_id={org.id}&save_to_db=true"
-    )
+    # Request without query parameter (personal thread, no organization_id)
+    response = await async_client.get("/api/thread/stream?save_to_db=true")
 
     # Should return 400 or 422 (validation error)
     assert response.status_code in {400, 422}
@@ -260,14 +262,8 @@ async def test_sse_requires_authentication(
     unique_test_id: str,
 ) -> None:
     """Test that SSE endpoint requires authentication."""
-    # Create organization (no user auth)
-    org = await create_organization(postgres_integration_session, f"Test Org {unique_test_id}")
-    await postgres_integration_session.commit()
-
-    # Request WITHOUT authentication (no token parameter)
-    response = await async_client.get(
-        f"/api/thread/stream?query=Test&organization_id={org.id}&save_to_db=true"
-    )
+    # Request WITHOUT authentication (no token parameter, personal thread)
+    response = await async_client.get("/api/thread/stream?query=Test&save_to_db=true")
 
     # Should return 422 (validation error - missing required 'token' parameter)
     # FastAPI validates required parameters before authentication dependency runs
@@ -346,10 +342,11 @@ async def test_sse_concurrent_streams(
     sse_client = SSEClient(async_client)
 
     # Define async task for streaming (SSE requires token in query params)
+    # Note: Personal threads (no space_id, no organization_id) for parallel safety testing
     async def stream_query(query_text: str) -> list:
         """Stream a single query and return events."""
         return await sse_client.stream_events(
-            url=f"/api/thread/stream?query={query_text}&organization_id={org.id}&save_to_db=true&token={token}",
+            url=f"/api/thread/stream?query={query_text}&save_to_db=true&token={token}",
             max_events=10,
             timeout_seconds=30.0,
         )
@@ -399,10 +396,11 @@ async def test_sse_timeout_handling(
 
     # Attempt to stream with timeout (SSE requires token in query params)
     # Use a query that might take longer than 1 second (simulates timeout scenario)
+    # Note: Personal thread (no space_id, no organization_id)
     exception_raised = False
     try:
         events = await sse_client.stream_events(
-            url=f"/api/thread/stream?query=Complex question requiring analysis&organization_id={org.id}&save_to_db=true&token={token}",
+            url=f"/api/thread/stream?query=Complex question requiring analysis&save_to_db=true&token={token}",
             max_events=100,  # Large max to potentially trigger timeout
             timeout_seconds=1.0,  # Very short timeout
         )
