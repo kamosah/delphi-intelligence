@@ -112,6 +112,8 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
     # Cancel all pending tasks before closing the loop to prevent hang
     try:
+        # Set the loop as current to ensure all_tasks() works correctly
+        asyncio.set_event_loop(loop)
         # Get all pending tasks
         pending = asyncio.all_tasks(loop)
         if pending:
@@ -121,7 +123,9 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
             # Wait for all tasks to be cancelled
             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
     finally:
-        loop.close()
+        # Ensure loop is closed even if cancellation fails
+        if not loop.is_closed():
+            loop.close()
 
 
 @pytest.fixture
