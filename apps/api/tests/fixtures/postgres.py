@@ -23,6 +23,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -150,9 +151,12 @@ def apply_alembic_migrations_sync(database_url: str) -> None:
     except psycopg2.errors.UndefinedTable:
         # Table doesn't exist yet - this is OK, Alembic will create it
         print("✓ alembic_version table does not exist yet (will be created by Alembic)")
+    except psycopg2.OperationalError as e:
+        # Connection issues - fail fast since we can't proceed
+        raise RuntimeError(f"Failed to connect to test database: {e}") from e
     except Exception as e:
-        print(f"⚠ Warning: Could not verify schema or clear alembic_version: {e}")
-        # Don't raise - let Alembic handle schema/table creation
+        # Other errors - log but continue (Alembic might handle them)
+        print(f"⚠ Warning: Could not clear alembic_version: {e}")
 
     # Get path to alembic.ini
     # From: tests/fixtures/postgres.py
@@ -238,20 +242,19 @@ async def setup_database_schema(engine: AsyncEngine, database_url: str) -> None:
 
         # Create auth.uid() function for RLS testing
         # This function is required by RLS policies that use auth.uid()
+        # Returns NULL for unauthenticated requests (intentional - some policies require auth)
         await conn.execute(
             text("""
             CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
             LANGUAGE sql STABLE
             AS $$
-              SELECT CASE
-                WHEN current_setting('request.jwt.claim.sub', true) IS NOT NULL
-                  AND current_setting('request.jwt.claim.sub', true) != ''
-                THEN current_setting('request.jwt.claim.sub', true)::uuid
-                WHEN current_setting('request.jwt.claims', true) IS NOT NULL
-                  AND (current_setting('request.jwt.claims', true)::jsonb ->> 'sub') IS NOT NULL
-                THEN (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')::uuid
-                ELSE NULL
-              END
+              SELECT NULLIF(
+                COALESCE(
+                  current_setting('request.jwt.claim.sub', true),
+                  (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')
+                ),
+                ''
+              )::uuid
             $$
         """)
         )
@@ -335,15 +338,36 @@ async def postgres_engine(
     if not _is_ci_environment():
         await setup_database_schema(engine, async_url)
     else:
-        # In CI, verify schema is ready (basic sanity check)
+        # In CI, verify schema is ready with comprehensive checks
         async with engine.connect() as conn:
+            # Verify tables exist
             result = await conn.execute(
                 text("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'")
             )
             table_count = result.scalar()
             if table_count == 0:
                 raise RuntimeError("CI database has no tables - workflow setup may have failed")
-            print(f"✓ Using pre-configured CI database ({table_count} tables in public schema)")
+
+            # Verify alembic migrations completed
+            try:
+                result = await conn.execute(
+                    text("SELECT version_num FROM _internal.alembic_version")
+                )
+                version = result.scalar()
+                if not version:
+                    raise RuntimeError(
+                        "CI database has no alembic version - migrations may not have run"
+                    )
+                print(
+                    f"✓ Using pre-configured CI database ({table_count} tables, alembic version: {version})"
+                )
+            except ProgrammingError as e:
+                # Table/schema doesn't exist - migrations didn't run
+                raise RuntimeError(
+                    f"CI database missing _internal schema or alembic_version table: {e}"
+                ) from e
+            except Exception as e:
+                raise RuntimeError(f"CI database alembic version check failed: {e}") from e
 
     yield engine
 
