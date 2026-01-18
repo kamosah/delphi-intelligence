@@ -163,6 +163,20 @@ export type DocumentSortInput = {
   order?: SortOrder;
 };
 
+export enum InvitationStatus {
+  Accepted = 'ACCEPTED',
+  Expired = 'EXPIRED',
+  Pending = 'PENDING',
+  Revoked = 'REVOKED',
+}
+
+export type InviteOrganizationMemberInput = {
+  customMessage?: InputMaybe<Scalars['String']['input']>;
+  inviteeEmail: Scalars['String']['input'];
+  organizationId: Scalars['ID']['input'];
+  role?: OrganizationRole;
+};
+
 export type Message = {
   __typename?: 'Message';
   authorType: AuthorTypeEnum;
@@ -184,6 +198,7 @@ export enum MessageRole {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  acceptInvitation: OrganizationMember;
   addOrganizationMember: OrganizationMember;
   bulkDeleteDocuments: BulkDeleteResult;
   createOrganization: Organization;
@@ -195,7 +210,9 @@ export type Mutation = {
   deleteSpace: Scalars['Boolean']['output'];
   deleteThread: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  inviteOrganizationMember: OrganizationInvitation;
   removeOrganizationMember: Scalars['Boolean']['output'];
+  revokeInvitation: Scalars['Boolean']['output'];
   switchOrganization: Organization;
   updateMemberRole?: Maybe<OrganizationMember>;
   updateOrganization?: Maybe<Organization>;
@@ -203,6 +220,10 @@ export type Mutation = {
   updateThread?: Maybe<Thread>;
   updateUser?: Maybe<User>;
   updateUserPreferences: UserPreferences;
+};
+
+export type MutationAcceptInvitationArgs = {
+  invitationId: Scalars['ID']['input'];
 };
 
 export type MutationAddOrganizationMemberArgs = {
@@ -249,9 +270,17 @@ export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
 };
 
+export type MutationInviteOrganizationMemberArgs = {
+  input: InviteOrganizationMemberInput;
+};
+
 export type MutationRemoveOrganizationMemberArgs = {
   organizationId: Scalars['ID']['input'];
   userId: Scalars['ID']['input'];
+};
+
+export type MutationRevokeInvitationArgs = {
+  invitationId: Scalars['ID']['input'];
 };
 
 export type MutationSwitchOrganizationArgs = {
@@ -304,6 +333,24 @@ export type Organization = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type OrganizationInvitation = {
+  __typename?: 'OrganizationInvitation';
+  acceptedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customMessage?: Maybe<Scalars['String']['output']>;
+  expiresAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  invitationRole: OrganizationRole;
+  invitedAt: Scalars['DateTime']['output'];
+  invitedBy: Scalars['ID']['output'];
+  inviteeEmail: Scalars['String']['output'];
+  organizationId: Scalars['ID']['output'];
+  revokedAt?: Maybe<Scalars['DateTime']['output']>;
+  revokedBy?: Maybe<Scalars['ID']['output']>;
+  status: InvitationStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
 export type OrganizationMember = {
   __typename?: 'OrganizationMember';
   createdAt: Scalars['DateTime']['output'];
@@ -329,7 +376,9 @@ export type Query = {
   documents: Array<Document>;
   health: Scalars['String']['output'];
   me: User;
+  myPendingInvitations: Array<OrganizationInvitation>;
   organization?: Maybe<Organization>;
+  organizationInvitations: Array<OrganizationInvitation>;
   organizationMembers: Array<OrganizationMember>;
   organizations: Array<Organization>;
   searchDocuments: Array<SearchResult>;
@@ -358,6 +407,11 @@ export type QueryDocumentsArgs = {
 
 export type QueryOrganizationArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryOrganizationInvitationsArgs = {
+  organizationId: Scalars['ID']['input'];
+  status?: InputMaybe<InvitationStatus>;
 };
 
 export type QueryOrganizationMembersArgs = {
@@ -702,6 +756,56 @@ export type SwitchOrganizationMutation = {
   };
 };
 
+export type InviteOrganizationMemberMutationVariables = Exact<{
+  input: InviteOrganizationMemberInput;
+}>;
+
+export type InviteOrganizationMemberMutation = {
+  __typename?: 'Mutation';
+  inviteOrganizationMember: {
+    __typename?: 'OrganizationInvitation';
+    id: string;
+    organizationId: string;
+    inviteeEmail: string;
+    invitationRole: OrganizationRole;
+    status: InvitationStatus;
+    invitedBy: string;
+    invitedAt: string;
+    expiresAt: string;
+    acceptedAt?: string | null;
+    revokedAt?: string | null;
+    revokedBy?: string | null;
+    customMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type AcceptInvitationMutationVariables = Exact<{
+  invitationId: Scalars['ID']['input'];
+}>;
+
+export type AcceptInvitationMutation = {
+  __typename?: 'Mutation';
+  acceptInvitation: {
+    __typename?: 'OrganizationMember';
+    id: string;
+    organizationId: string;
+    userId: string;
+    role: OrganizationRole;
+    createdAt: string;
+  };
+};
+
+export type RevokeInvitationMutationVariables = Exact<{
+  invitationId: Scalars['ID']['input'];
+}>;
+
+export type RevokeInvitationMutation = {
+  __typename?: 'Mutation';
+  revokeInvitation: boolean;
+};
+
 export type CreateSpaceMutationVariables = Exact<{
   input: CreateSpaceInput;
 }>;
@@ -1011,6 +1115,54 @@ export type GetOrganizationMembersQuery = {
       fullName?: string | null;
       avatarUrl?: string | null;
     } | null;
+  }>;
+};
+
+export type GetOrganizationInvitationsQueryVariables = Exact<{
+  organizationId: Scalars['ID']['input'];
+  status?: InputMaybe<InvitationStatus>;
+}>;
+
+export type GetOrganizationInvitationsQuery = {
+  __typename?: 'Query';
+  organizationInvitations: Array<{
+    __typename?: 'OrganizationInvitation';
+    id: string;
+    organizationId: string;
+    inviteeEmail: string;
+    invitationRole: OrganizationRole;
+    status: InvitationStatus;
+    invitedBy: string;
+    invitedAt: string;
+    expiresAt: string;
+    acceptedAt?: string | null;
+    revokedAt?: string | null;
+    revokedBy?: string | null;
+    customMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetMyPendingInvitationsQueryVariables = Exact<{
+  [key: string]: never;
+}>;
+
+export type GetMyPendingInvitationsQuery = {
+  __typename?: 'Query';
+  myPendingInvitations: Array<{
+    __typename?: 'OrganizationInvitation';
+    id: string;
+    organizationId: string;
+    inviteeEmail: string;
+    invitationRole: OrganizationRole;
+    status: InvitationStatus;
+    invitedBy: string;
+    invitedAt: string;
+    expiresAt: string;
+    customMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
   }>;
 };
 
@@ -1675,6 +1827,147 @@ useSwitchOrganizationMutation.fetcher = (
     SwitchOrganizationMutation,
     SwitchOrganizationMutationVariables
   >(SwitchOrganizationDocument, variables, options);
+
+export const InviteOrganizationMemberDocument = `
+    mutation InviteOrganizationMember($input: InviteOrganizationMemberInput!) {
+  inviteOrganizationMember(input: $input) {
+    id
+    organizationId
+    inviteeEmail
+    invitationRole
+    status
+    invitedBy
+    invitedAt
+    expiresAt
+    acceptedAt
+    revokedAt
+    revokedBy
+    customMessage
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useInviteOrganizationMemberMutation = <
+  TError = Error,
+  TContext = unknown,
+>(
+  options?: UseMutationOptions<
+    InviteOrganizationMemberMutation,
+    TError,
+    InviteOrganizationMemberMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    InviteOrganizationMemberMutation,
+    TError,
+    InviteOrganizationMemberMutationVariables,
+    TContext
+  >({
+    mutationKey: ['InviteOrganizationMember'],
+    mutationFn: (variables?: InviteOrganizationMemberMutationVariables) =>
+      graphqlRequestFetcher<
+        InviteOrganizationMemberMutation,
+        InviteOrganizationMemberMutationVariables
+      >(InviteOrganizationMemberDocument, variables)(),
+    ...options,
+  });
+};
+
+useInviteOrganizationMemberMutation.fetcher = (
+  variables: InviteOrganizationMemberMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    InviteOrganizationMemberMutation,
+    InviteOrganizationMemberMutationVariables
+  >(InviteOrganizationMemberDocument, variables, options);
+
+export const AcceptInvitationDocument = `
+    mutation AcceptInvitation($invitationId: ID!) {
+  acceptInvitation(invitationId: $invitationId) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}
+    `;
+
+export const useAcceptInvitationMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    AcceptInvitationMutation,
+    TError,
+    AcceptInvitationMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    AcceptInvitationMutation,
+    TError,
+    AcceptInvitationMutationVariables,
+    TContext
+  >({
+    mutationKey: ['AcceptInvitation'],
+    mutationFn: (variables?: AcceptInvitationMutationVariables) =>
+      graphqlRequestFetcher<
+        AcceptInvitationMutation,
+        AcceptInvitationMutationVariables
+      >(AcceptInvitationDocument, variables)(),
+    ...options,
+  });
+};
+
+useAcceptInvitationMutation.fetcher = (
+  variables: AcceptInvitationMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    AcceptInvitationMutation,
+    AcceptInvitationMutationVariables
+  >(AcceptInvitationDocument, variables, options);
+
+export const RevokeInvitationDocument = `
+    mutation RevokeInvitation($invitationId: ID!) {
+  revokeInvitation(invitationId: $invitationId)
+}
+    `;
+
+export const useRevokeInvitationMutation = <TError = Error, TContext = unknown>(
+  options?: UseMutationOptions<
+    RevokeInvitationMutation,
+    TError,
+    RevokeInvitationMutationVariables,
+    TContext
+  >
+) => {
+  return useMutation<
+    RevokeInvitationMutation,
+    TError,
+    RevokeInvitationMutationVariables,
+    TContext
+  >({
+    mutationKey: ['RevokeInvitation'],
+    mutationFn: (variables?: RevokeInvitationMutationVariables) =>
+      graphqlRequestFetcher<
+        RevokeInvitationMutation,
+        RevokeInvitationMutationVariables
+      >(RevokeInvitationDocument, variables)(),
+    ...options,
+  });
+};
+
+useRevokeInvitationMutation.fetcher = (
+  variables: RevokeInvitationMutationVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    RevokeInvitationMutation,
+    RevokeInvitationMutationVariables
+  >(RevokeInvitationDocument, variables, options);
 
 export const CreateSpaceDocument = `
     mutation CreateSpace($input: CreateSpaceInput!) {
@@ -2450,6 +2743,129 @@ useGetOrganizationMembersQuery.fetcher = (
     GetOrganizationMembersQuery,
     GetOrganizationMembersQueryVariables
   >(GetOrganizationMembersDocument, variables, options);
+
+export const GetOrganizationInvitationsDocument = `
+    query GetOrganizationInvitations($organizationId: ID!, $status: InvitationStatus) {
+  organizationInvitations(organizationId: $organizationId, status: $status) {
+    id
+    organizationId
+    inviteeEmail
+    invitationRole
+    status
+    invitedBy
+    invitedAt
+    expiresAt
+    acceptedAt
+    revokedAt
+    revokedBy
+    customMessage
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetOrganizationInvitationsQuery = <
+  TData = GetOrganizationInvitationsQuery,
+  TError = Error,
+>(
+  variables: GetOrganizationInvitationsQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetOrganizationInvitationsQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<
+      GetOrganizationInvitationsQuery,
+      TError,
+      TData
+    >['queryKey'];
+  }
+) => {
+  return useQuery<GetOrganizationInvitationsQuery, TError, TData>({
+    queryKey: ['GetOrganizationInvitations', variables],
+    queryFn: graphqlRequestFetcher<
+      GetOrganizationInvitationsQuery,
+      GetOrganizationInvitationsQueryVariables
+    >(GetOrganizationInvitationsDocument, variables),
+    ...options,
+  });
+};
+
+useGetOrganizationInvitationsQuery.getKey = (
+  variables: GetOrganizationInvitationsQueryVariables
+) => ['GetOrganizationInvitations', variables];
+
+useGetOrganizationInvitationsQuery.fetcher = (
+  variables: GetOrganizationInvitationsQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    GetOrganizationInvitationsQuery,
+    GetOrganizationInvitationsQueryVariables
+  >(GetOrganizationInvitationsDocument, variables, options);
+
+export const GetMyPendingInvitationsDocument = `
+    query GetMyPendingInvitations {
+  myPendingInvitations {
+    id
+    organizationId
+    inviteeEmail
+    invitationRole
+    status
+    invitedBy
+    invitedAt
+    expiresAt
+    customMessage
+    createdAt
+    updatedAt
+  }
+}
+    `;
+
+export const useGetMyPendingInvitationsQuery = <
+  TData = GetMyPendingInvitationsQuery,
+  TError = Error,
+>(
+  variables?: GetMyPendingInvitationsQueryVariables,
+  options?: Omit<
+    UseQueryOptions<GetMyPendingInvitationsQuery, TError, TData>,
+    'queryKey'
+  > & {
+    queryKey?: UseQueryOptions<
+      GetMyPendingInvitationsQuery,
+      TError,
+      TData
+    >['queryKey'];
+  }
+) => {
+  return useQuery<GetMyPendingInvitationsQuery, TError, TData>({
+    queryKey:
+      variables === undefined
+        ? ['GetMyPendingInvitations']
+        : ['GetMyPendingInvitations', variables],
+    queryFn: graphqlRequestFetcher<
+      GetMyPendingInvitationsQuery,
+      GetMyPendingInvitationsQueryVariables
+    >(GetMyPendingInvitationsDocument, variables),
+    ...options,
+  });
+};
+
+useGetMyPendingInvitationsQuery.getKey = (
+  variables?: GetMyPendingInvitationsQueryVariables
+) =>
+  variables === undefined
+    ? ['GetMyPendingInvitations']
+    : ['GetMyPendingInvitations', variables];
+
+useGetMyPendingInvitationsQuery.fetcher = (
+  variables?: GetMyPendingInvitationsQueryVariables,
+  options?: RequestInit['headers']
+) =>
+  graphqlRequestFetcher<
+    GetMyPendingInvitationsQuery,
+    GetMyPendingInvitationsQueryVariables
+  >(GetMyPendingInvitationsDocument, variables, options);
 
 export const GetSpacesDocument = `
     query GetSpaces($organizationId: ID, $limit: Int, $offset: Int) {

@@ -156,6 +156,20 @@ export type DocumentSortInput = {
   order?: SortOrder;
 };
 
+export enum InvitationStatus {
+  Accepted = 'ACCEPTED',
+  Expired = 'EXPIRED',
+  Pending = 'PENDING',
+  Revoked = 'REVOKED',
+}
+
+export type InviteOrganizationMemberInput = {
+  customMessage?: InputMaybe<Scalars['String']['input']>;
+  inviteeEmail: Scalars['String']['input'];
+  organizationId: Scalars['ID']['input'];
+  role?: OrganizationRole;
+};
+
 export type Message = {
   __typename?: 'Message';
   authorType: AuthorTypeEnum;
@@ -177,6 +191,7 @@ export enum MessageRole {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  acceptInvitation: OrganizationMember;
   addOrganizationMember: OrganizationMember;
   bulkDeleteDocuments: BulkDeleteResult;
   createOrganization: Organization;
@@ -188,7 +203,9 @@ export type Mutation = {
   deleteSpace: Scalars['Boolean']['output'];
   deleteThread: Scalars['Boolean']['output'];
   deleteUser: Scalars['Boolean']['output'];
+  inviteOrganizationMember: OrganizationInvitation;
   removeOrganizationMember: Scalars['Boolean']['output'];
+  revokeInvitation: Scalars['Boolean']['output'];
   switchOrganization: Organization;
   updateMemberRole?: Maybe<OrganizationMember>;
   updateOrganization?: Maybe<Organization>;
@@ -196,6 +213,10 @@ export type Mutation = {
   updateThread?: Maybe<Thread>;
   updateUser?: Maybe<User>;
   updateUserPreferences: UserPreferences;
+};
+
+export type MutationAcceptInvitationArgs = {
+  invitationId: Scalars['ID']['input'];
 };
 
 export type MutationAddOrganizationMemberArgs = {
@@ -242,9 +263,17 @@ export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
 };
 
+export type MutationInviteOrganizationMemberArgs = {
+  input: InviteOrganizationMemberInput;
+};
+
 export type MutationRemoveOrganizationMemberArgs = {
   organizationId: Scalars['ID']['input'];
   userId: Scalars['ID']['input'];
+};
+
+export type MutationRevokeInvitationArgs = {
+  invitationId: Scalars['ID']['input'];
 };
 
 export type MutationSwitchOrganizationArgs = {
@@ -297,6 +326,24 @@ export type Organization = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type OrganizationInvitation = {
+  __typename?: 'OrganizationInvitation';
+  acceptedAt?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  customMessage?: Maybe<Scalars['String']['output']>;
+  expiresAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  invitationRole: OrganizationRole;
+  invitedAt: Scalars['DateTime']['output'];
+  invitedBy: Scalars['ID']['output'];
+  inviteeEmail: Scalars['String']['output'];
+  organizationId: Scalars['ID']['output'];
+  revokedAt?: Maybe<Scalars['DateTime']['output']>;
+  revokedBy?: Maybe<Scalars['ID']['output']>;
+  status: InvitationStatus;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
 export type OrganizationMember = {
   __typename?: 'OrganizationMember';
   createdAt: Scalars['DateTime']['output'];
@@ -322,7 +369,9 @@ export type Query = {
   documents: Array<Document>;
   health: Scalars['String']['output'];
   me: User;
+  myPendingInvitations: Array<OrganizationInvitation>;
   organization?: Maybe<Organization>;
+  organizationInvitations: Array<OrganizationInvitation>;
   organizationMembers: Array<OrganizationMember>;
   organizations: Array<Organization>;
   searchDocuments: Array<SearchResult>;
@@ -351,6 +400,11 @@ export type QueryDocumentsArgs = {
 
 export type QueryOrganizationArgs = {
   id: Scalars['ID']['input'];
+};
+
+export type QueryOrganizationInvitationsArgs = {
+  organizationId: Scalars['ID']['input'];
+  status?: InputMaybe<InvitationStatus>;
 };
 
 export type QueryOrganizationMembersArgs = {
@@ -695,6 +749,56 @@ export type SwitchOrganizationMutation = {
   };
 };
 
+export type InviteOrganizationMemberMutationVariables = Exact<{
+  input: InviteOrganizationMemberInput;
+}>;
+
+export type InviteOrganizationMemberMutation = {
+  __typename?: 'Mutation';
+  inviteOrganizationMember: {
+    __typename?: 'OrganizationInvitation';
+    id: string;
+    organizationId: string;
+    inviteeEmail: string;
+    invitationRole: OrganizationRole;
+    status: InvitationStatus;
+    invitedBy: string;
+    invitedAt: string;
+    expiresAt: string;
+    acceptedAt?: string | null;
+    revokedAt?: string | null;
+    revokedBy?: string | null;
+    customMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type AcceptInvitationMutationVariables = Exact<{
+  invitationId: Scalars['ID']['input'];
+}>;
+
+export type AcceptInvitationMutation = {
+  __typename?: 'Mutation';
+  acceptInvitation: {
+    __typename?: 'OrganizationMember';
+    id: string;
+    organizationId: string;
+    userId: string;
+    role: OrganizationRole;
+    createdAt: string;
+  };
+};
+
+export type RevokeInvitationMutationVariables = Exact<{
+  invitationId: Scalars['ID']['input'];
+}>;
+
+export type RevokeInvitationMutation = {
+  __typename?: 'Mutation';
+  revokeInvitation: boolean;
+};
+
 export type CreateSpaceMutationVariables = Exact<{
   input: CreateSpaceInput;
 }>;
@@ -1004,6 +1108,54 @@ export type GetOrganizationMembersQuery = {
       fullName?: string | null;
       avatarUrl?: string | null;
     } | null;
+  }>;
+};
+
+export type GetOrganizationInvitationsQueryVariables = Exact<{
+  organizationId: Scalars['ID']['input'];
+  status?: InputMaybe<InvitationStatus>;
+}>;
+
+export type GetOrganizationInvitationsQuery = {
+  __typename?: 'Query';
+  organizationInvitations: Array<{
+    __typename?: 'OrganizationInvitation';
+    id: string;
+    organizationId: string;
+    inviteeEmail: string;
+    invitationRole: OrganizationRole;
+    status: InvitationStatus;
+    invitedBy: string;
+    invitedAt: string;
+    expiresAt: string;
+    acceptedAt?: string | null;
+    revokedAt?: string | null;
+    revokedBy?: string | null;
+    customMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+};
+
+export type GetMyPendingInvitationsQueryVariables = Exact<{
+  [key: string]: never;
+}>;
+
+export type GetMyPendingInvitationsQuery = {
+  __typename?: 'Query';
+  myPendingInvitations: Array<{
+    __typename?: 'OrganizationInvitation';
+    id: string;
+    organizationId: string;
+    inviteeEmail: string;
+    invitationRole: OrganizationRole;
+    status: InvitationStatus;
+    invitedBy: string;
+    invitedAt: string;
+    expiresAt: string;
+    customMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
   }>;
 };
 

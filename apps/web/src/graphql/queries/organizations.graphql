@@ -47,3 +47,38 @@ query GetOrganizationMembers($organizationId: ID!, $limit: Int, $offset: Int) {
     }
   }
 }
+
+query GetOrganizationInvitations($organizationId: ID!, $status: InvitationStatus) {
+  organizationInvitations(organizationId: $organizationId, status: $status) {
+    id
+    organizationId
+    inviteeEmail
+    invitationRole
+    status
+    invitedBy
+    invitedAt
+    expiresAt
+    acceptedAt
+    revokedAt
+    revokedBy
+    customMessage
+    createdAt
+    updatedAt
+  }
+}
+
+query GetMyPendingInvitations {
+  myPendingInvitations {
+    id
+    organizationId
+    inviteeEmail
+    invitationRole
+    status
+    invitedBy
+    invitedAt
+    expiresAt
+    customMessage
+    createdAt
+    updatedAt
+  }
+}

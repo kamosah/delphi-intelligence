@@ -47,6 +47,13 @@ export const queryKeys = {
       [...queryKeys.organizations.lists(), filters] as const,
     details: () => [...queryKeys.organizations.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.organizations.details(), id] as const,
+    invitations: (organizationId: string, status?: string | null) =>
+      [
+        ...queryKeys.organizations.all,
+        'invitations',
+        organizationId,
+        status,
+      ] as const,
   },
 
   // Organization members queries
@@ -81,6 +88,12 @@ export const queryKeys = {
     details: () => [...queryKeys.userPreferences.all, 'detail'] as const,
     detail: (userId: string) =>
       [...queryKeys.userPreferences.details(), userId] as const,
+  },
+
+  // Invitations queries
+  invitations: {
+    all: ['invitations'] as const,
+    myPending: () => [...queryKeys.invitations.all, 'myPending'] as const,
   },
 
   // Auth queries (for client-side short-lived tokens and user data)
