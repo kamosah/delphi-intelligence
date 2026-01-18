@@ -12,6 +12,9 @@ from app.models.document import Document as DocumentModel
 from app.models.document_chunk import DocumentChunk as DocumentChunkModel
 from app.models.message import Message as MessageModel
 from app.models.organization import Organization as OrganizationModel
+from app.models.organization_invitation import (
+    OrganizationInvitation as OrganizationInvitationModel,
+)
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
 )
@@ -704,3 +707,63 @@ class UpdateUserPreferencesInput:
     language: str | None = None
     timezone: str | None = None
     custom_settings: strawberry.scalars.JSON | None = None  # type: ignore[valid-type]
+
+
+@strawberry.enum
+class InvitationStatus(StrEnum):
+    """Invitation lifecycle status."""
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+
+
+@strawberry.type
+class OrganizationInvitation:
+    """GraphQL OrganizationInvitation type."""
+
+    id: strawberry.ID
+    organization_id: strawberry.ID
+    invitee_email: str
+    invitation_role: OrganizationRole
+    status: InvitationStatus
+    invited_by: strawberry.ID
+    invited_at: datetime
+    expires_at: datetime
+    accepted_at: datetime | None
+    revoked_at: datetime | None
+    revoked_by: strawberry.ID | None
+    custom_message: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, invitation: OrganizationInvitationModel) -> "OrganizationInvitation":
+        """Convert SQLAlchemy OrganizationInvitation model to GraphQL type."""
+        return cls(
+            id=strawberry.ID(str(invitation.id)),
+            organization_id=strawberry.ID(str(invitation.organization_id)),
+            invitee_email=invitation.invitee_email,
+            invitation_role=OrganizationRole(invitation.invitation_role.value),
+            status=InvitationStatus(invitation.status),
+            invited_by=strawberry.ID(str(invitation.invited_by)),
+            invited_at=invitation.invited_at,
+            expires_at=invitation.expires_at,
+            accepted_at=invitation.accepted_at,
+            revoked_at=invitation.revoked_at,
+            revoked_by=strawberry.ID(str(invitation.revoked_by)) if invitation.revoked_by else None,
+            custom_message=invitation.custom_message,
+            created_at=invitation.created_at,
+            updated_at=invitation.updated_at,
+        )
+
+
+@strawberry.input
+class InviteOrganizationMemberInput:
+    """Input for inviting organization member."""
+
+    organization_id: strawberry.ID
+    invitee_email: str
+    role: OrganizationRole = OrganizationRole.MEMBER
+    custom_message: str | None = None
