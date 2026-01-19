@@ -13,6 +13,8 @@ import {
   type GetOrganizationQuery,
   GetOrganizationMembersDocument,
   type GetOrganizationMembersQuery,
+  GetMyPendingInvitationsDocument,
+  type GetMyPendingInvitationsQuery,
 } from '@/lib/api/hooks.generated';
 
 /**
@@ -138,4 +140,35 @@ export async function fetchOrganization(
   return client.request<GetOrganizationQuery>(GetOrganizationDocument, {
     id: options.id,
   });
+}
+
+/**
+ * Fetch user's pending invitations (server-side only).
+ *
+ * Used in Server Components for SSR data prefetching of pending invitations.
+ * Query key must match client-side hook for proper hydration.
+ *
+ * @param client - GraphQL client instance from getServerGraphQLClient()
+ * @returns Pending invitations query result
+ *
+ * @example
+ * ```typescript
+ * // In Server Component (e.g., accept-invite/page.tsx)
+ * import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
+ * import { fetchMyPendingInvitations } from '@/lib/api/server-fetchers';
+ * import { queryKeys } from '@/lib/query/query-keys';
+ *
+ * const graphqlClient = await getServerGraphQLClient();
+ * await queryClient.prefetchQuery({
+ *   queryKey: queryKeys.invitations.myPending(),
+ *   queryFn: () => fetchMyPendingInvitations(graphqlClient),
+ * });
+ * ```
+ */
+export async function fetchMyPendingInvitations(
+  client: GraphQLClient
+): Promise<GetMyPendingInvitationsQuery> {
+  return client.request<GetMyPendingInvitationsQuery>(
+    GetMyPendingInvitationsDocument
+  );
 }
