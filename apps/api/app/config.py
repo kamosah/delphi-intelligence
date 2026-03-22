@@ -48,6 +48,12 @@ class Settings(BaseSettings):
         default=None, description="SpiceDB PostgreSQL datastore connection URI"
     )
 
+    # Frontend Configuration
+    frontend_url: str = Field(
+        default="http://localhost:3000",
+        description="Frontend URL for email redirects and CORS (e.g., https://app.example.com in production)",
+    )
+
     # CORS Configuration
     # WARNING: At least one of cors_origins or cors_origin_regex must be configured
     # in production, otherwise all CORS requests will be rejected.

@@ -18,6 +18,7 @@ from pydantic import BaseModel, EmailStr, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import (
     AuthSyncOutbox,
     InvitationStatus,
@@ -162,35 +163,55 @@ class InvitationService:
         if existing.scalar_one_or_none():
             raise ValueError(f"Pending invitation already exists for {validated_email}")
 
-        # 3. Call Supabase to send invitation email
-        try:
-            admin_client = get_admin_client()
-            supabase_response = admin_client.auth.admin.invite_user_by_email(
-                validated_email,
-                options={
-                    "data": {
-                        "organization_id": str(organization_id),
-                        "invited_role": role.value,
-                        "custom_message": custom_message or "",
-                    }
-                },
+        # 3. Check if user already exists in our system
+        user_exists_result = await db.execute(
+            select(User).where(User.email == validated_email)
+        )
+        user_exists = user_exists_result.scalar_one_or_none() is not None
+
+        # 4. Send invitation email via Supabase (only for new users)
+        email_sent = False
+        if not user_exists:
+            # New user - send Supabase invite (creates account + sends email)
+            try:
+                admin_client = get_admin_client()
+                redirect_url = f"{settings.frontend_url}/accept-invite"
+                supabase_response = admin_client.auth.admin.invite_user_by_email(
+                    validated_email,
+                    options={
+                        "data": {
+                            "organization_id": str(organization_id),
+                            "invited_role": role.value,
+                            "custom_message": custom_message or "",
+                        },
+                        "redirect_to": redirect_url,
+                    },
+                )
+
+                # Verify Supabase response
+                if not supabase_response or not hasattr(supabase_response, "user"):
+                    msg = "Supabase invitation response invalid"
+                    raise ValueError(msg)
+
+                email_sent = True
+                logger.info(f"Sent Supabase invite email to new user: {validated_email}")
+
+            except Exception as e:
+                logger.exception(
+                    f"Supabase invite failed for {validated_email} to org {organization_id}: {e}"
+                )
+                # Don't leak internal error details to users
+                raise ValueError(
+                    f"Failed to send invitation to {validated_email}. Please try again later."
+                ) from e
+        else:
+            # Existing user - skip email (user will see invitation when they log in)
+            logger.info(
+                f"Skipping email for existing user: {validated_email}. "
+                f"User will see invitation on /accept-invite"
             )
 
-            # Verify Supabase response
-            if not supabase_response or not hasattr(supabase_response, "user"):
-                msg = "Supabase invitation response invalid"
-                raise ValueError(msg)
-
-        except Exception as e:
-            logger.exception(
-                f"Supabase invite failed for {validated_email} to org {organization_id}: {e}"
-            )
-            # Don't leak internal error details to users
-            raise ValueError(
-                f"Failed to send invitation to {validated_email}. Please try again later."
-            ) from e
-
-        # 4. Create invitation record
+        # 5. Create invitation record (always create, regardless of email status)
         invitation = OrganizationInvitation(
             organization_id=organization_id,
             invitee_email=validated_email,
@@ -203,7 +224,7 @@ class InvitationService:
         await db.commit()
         await db.refresh(invitation)
 
-        # 5. Create outbox event (for future enhancements - not currently used for invitations)
+        # 6. Create outbox event (for future enhancements - not currently used for invitations)
         await InvitationService._create_outbox_event(
             db=db,
             event_type=AuthSyncEventType.INVITATION_CREATED,
@@ -213,14 +234,16 @@ class InvitationService:
                 "invitee_email": validated_email,
                 "invitation_role": role.value,
                 "invited_by": str(inviter_id),
+                "email_sent": email_sent,
             },
         )
         await db.commit()
 
-        # 6. Audit log (security event)
+        # 7. Audit log (security event)
         logger.info(
             f"Invitation created: org={organization_id} "
-            f"inviter={inviter_id} invitee={validated_email} role={role.value}"
+            f"inviter={inviter_id} invitee={validated_email} role={role.value} "
+            f"email_sent={email_sent}"
         )
 
         return invitation

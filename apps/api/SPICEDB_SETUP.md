@@ -212,6 +212,191 @@ docker compose logs spicedb
 docker compose logs api
 ```
 
+### Issue: "Insufficient permissions" - Organization relationships not synced
+
+**Symptoms**:
+- GraphQL mutations fail with `"Insufficient permissions to invite members"` or similar errors
+- Permission checks return `False` even though you're an admin/owner in the database
+- Error occurs after creating/joining an organization
+
+**Root Cause**: Organization membership relationships haven't been synced from PostgreSQL to SpiceDB
+
+#### Step 1: Set up zed CLI local context (M1/ARM64 Macs)
+
+The `zed` CLI requires a local context to avoid connection issues:
+
+```bash
+cd apps/api
+
+# Set up local context (run once)
+zed context set local localhost:50051 "$(grep SPICEDB_TOKEN .env | cut -d= -f2)" --insecure
+
+# Verify connection
+zed schema read | head -20
+```
+
+#### Step 2: Check if organization relationships exist
+
+```bash
+# Replace ORG_ID with your organization ID from the error message
+zed relationship read organization:ORG_ID
+
+# Expected output (if working):
+# organization:ORG_ID admin user:USER_ID
+# organization:ORG_ID owner user:USER_ID
+# organization:ORG_ID member user:USER_ID
+
+# If empty: relationships are missing (proceed to Step 3)
+```
+
+#### Step 3: Get your user ID and organization role
+
+**Option A: Via GraphQL API** (easiest)
+```bash
+# Get your user ID from the GraphQL me query
+curl -X POST http://localhost:8000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"query": "{ me { id email } }"}'
+
+# Response: {"data": {"me": {"id": "USER_ID", "email": "your@email.com"}}}
+```
+
+**Option B: Via backend logs**
+```bash
+# Check recent API logs for your user ID
+docker compose logs api --tail=100 | grep "user_id"
+```
+
+**Option C: Query Supabase directly** (if using Supabase)
+```bash
+# In Supabase SQL Editor, run:
+# SELECT id, email FROM auth.users WHERE email = 'your@email.com';
+```
+
+#### Step 4: Manually create organization relationship
+
+Once you have your `USER_ID` and `ORGANIZATION_ID`:
+
+```bash
+# For owners (full permissions)
+zed relationship create organization:ORG_ID owner user:USER_ID
+
+# For admins (can invite, manage settings)
+zed relationship create organization:ORG_ID admin user:USER_ID
+
+# For regular members
+zed relationship create organization:ORG_ID member user:USER_ID
+
+# Example:
+# zed relationship create organization:63250e6b-c140-4452-ba71-e00f001ab4ab owner user:a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+#### Step 5: Verify the fix
+
+```bash
+# Check relationship was created
+zed relationship read organization:ORG_ID
+
+# Test permission check via Python
+docker compose exec api poetry run python -c "
+import asyncio
+from app.services.spicedb_service import get_spicedb_service
+from app.schemas.spicedb import CheckPermissionInput
+
+async def check():
+    service = get_spicedb_service()
+    has_perm = await service.check_permission(
+        CheckPermissionInput(
+            user_id='YOUR_USER_ID',
+            permission='invite_member',
+            resource_type='organization',
+            resource_id='YOUR_ORG_ID'
+        )
+    )
+    print(f'Has invite_member permission: {has_perm}')
+
+asyncio.run(check())
+"
+
+# Expected output: Has invite_member permission: True
+```
+
+#### Step 6: Prevent future occurrences
+
+**Root cause**: The `add_organization_member` mutation in `app/graphql/mutation.py` should automatically sync to SpiceDB but may have failed.
+
+**Verify auto-sync is working**:
+```bash
+# Check backend logs for SpiceDB sync errors
+docker compose logs api | grep -i "spicedb\|sync"
+
+# Look for errors like:
+# - "SpiceDB sync failed"
+# - "Failed to write relationship"
+# - Connection errors to SpiceDB
+```
+
+**Common causes of sync failures**:
+1. **SpiceDB not running**: Ensure `docker compose ps spicedb` shows healthy
+2. **Network issues**: Check Docker network connectivity
+3. **Token mismatch**: Verify `SPICEDB_TOKEN` matches in both `.env` files
+4. **Schema not loaded**: Run `zed schema read` to verify schema exists
+
+**Fix auto-sync for future members**:
+
+Ensure the mutation includes SpiceDB sync:
+```python
+# In app/graphql/mutation.py - add_organization_member mutation
+# Should include this after database commit:
+
+spicedb = get_spicedb_service()
+await spicedb.sync_organization_member(
+    organization_id=str(org_id),
+    user_id=str(user_to_add_id),
+    role=role.value,
+)
+```
+
+If sync is missing or failing, all organization members will need manual relationship creation.
+
+#### Quick Fix Script
+
+Create a script to sync all existing organization members:
+
+```python
+# scripts/sync_organization_relationships.py
+import asyncio
+from sqlalchemy import select
+from app.db.session import get_session
+from app.models import OrganizationMember
+from app.services.spicedb_service import get_spicedb_service
+
+async def sync_all_members():
+    async for session in get_session():
+        result = await session.execute(select(OrganizationMember))
+        members = result.scalars().all()
+
+        spicedb = get_spicedb_service()
+        for member in members:
+            try:
+                await spicedb.sync_organization_member(
+                    organization_id=str(member.organization_id),
+                    user_id=str(member.user_id),
+                    role=member.organization_role.value,
+                )
+                print(f"✓ Synced {member.user_id} to {member.organization_id}")
+            except Exception as e:
+                print(f"✗ Failed to sync {member.user_id}: {e}")
+
+asyncio.run(sync_all_members())
+```
+
+Run the script:
+```bash
+docker compose exec api poetry run python scripts/sync_organization_relationships.py
+```
+
 ## Testing
 
 ### Run Integration Tests

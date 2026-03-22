@@ -15,6 +15,7 @@ import {
   type RevokeInvitationMutationVariables,
 } from '@/lib/api/hooks.generated';
 import { queryKeys } from '@/lib/query/query-keys';
+import { getErrorMessage } from '@/lib/utils/error-handling';
 
 // Re-export generated types
 export type {
@@ -94,13 +95,17 @@ export function useInviteOrganizationMember() {
       });
 
       toast.success('Invitation sent successfully', {
-        description: `Invitation email sent to ${variables.input.inviteeEmail}`,
+        description: `${variables.input.inviteeEmail} has been invited to join the organization`,
       });
     },
     onError: (error) => {
+      const errorMessage = getErrorMessage(
+        error,
+        'Failed to send invitation. Please try again.'
+      );
+
       toast.error('Failed to send invitation', {
-        description:
-          error instanceof Error ? error.message : 'Please try again',
+        description: errorMessage,
       });
     },
   });
@@ -134,14 +139,18 @@ export function useAcceptInvitation() {
         queryKey: queryKeys.organizations.lists(),
       });
 
-      toast.success('Invitation accepted successfully', {
-        description: 'You are now a member of the organization',
+      toast.success('Welcome to the organization!', {
+        description: 'You have successfully joined the organization',
       });
     },
     onError: (error) => {
+      const errorMessage = getErrorMessage(
+        error,
+        'Failed to accept invitation. Please try again.'
+      );
+
       toast.error('Failed to accept invitation', {
-        description:
-          error instanceof Error ? error.message : 'Please try again',
+        description: errorMessage,
       });
     },
   });
@@ -169,12 +178,18 @@ export function useRevokeInvitation() {
         queryKey: queryKeys.organizations.all,
       });
 
-      toast.success('Invitation revoked successfully');
+      toast.success('Invitation revoked', {
+        description: 'The invitation has been cancelled',
+      });
     },
     onError: (error) => {
+      const errorMessage = getErrorMessage(
+        error,
+        'Failed to revoke invitation. Please try again.'
+      );
+
       toast.error('Failed to revoke invitation', {
-        description:
-          error instanceof Error ? error.message : 'Please try again',
+        description: errorMessage,
       });
     },
   });

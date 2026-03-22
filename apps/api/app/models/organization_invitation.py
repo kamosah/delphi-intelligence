@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy import Enum as SQLEnum, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,7 +45,13 @@ class OrganizationInvitation(Base):
     invitee_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
     invitation_role: Mapped[OrganizationRole] = mapped_column(
-        nullable=False, default=OrganizationRole.MEMBER
+        SQLEnum(
+            OrganizationRole,
+            name="organization_role",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=OrganizationRole.MEMBER,
     )
 
     # Lifecycle tracking

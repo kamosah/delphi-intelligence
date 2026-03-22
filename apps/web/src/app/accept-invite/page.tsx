@@ -1,12 +1,13 @@
+import { redirect } from 'next/navigation';
 import {
   HydrationBoundary,
   QueryClient,
   dehydrate,
 } from '@tanstack/react-query';
 import { AcceptInviteContent } from '@/components/invitations/AcceptInviteContent';
-import { getServerGraphQLClient } from '@/lib/api/graphql-server-client';
 import { fetchMyPendingInvitations } from '@/lib/api/server-fetchers';
 import { queryKeys } from '@/lib/query/query-keys';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 interface AcceptInvitePageProps {
   searchParams: { invitation_id?: string };
@@ -15,8 +16,9 @@ interface AcceptInvitePageProps {
 /**
  * Accept invitation page (Server Component).
  *
- * Prefetches user's pending invitations on the server for fast initial render.
- * Displays invitation details and allows user to accept/decline.
+ * Handles both authenticated and unauthenticated users:
+ * - Authenticated: Shows pending invitations
+ * - Unauthenticated: Redirects to login with return URL
  *
  * Query params:
  * - invitation_id: Optional invitation ID to pre-select
@@ -24,12 +26,31 @@ interface AcceptInvitePageProps {
 export default async function AcceptInvitePage({
   searchParams,
 }: AcceptInvitePageProps) {
-  const queryClient = new QueryClient();
-  const graphqlClient = await getServerGraphQLClient();
+  const supabase = await createSupabaseServerClient();
   const invitationIdParam = searchParams.invitation_id || null;
 
-  // Prefetch pending invitations on server
+  // Check authentication
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // If not authenticated, redirect to login with return URL
+  if (!session) {
+    const returnUrl = invitationIdParam
+      ? `/accept-invite?invitation_id=${invitationIdParam}`
+      : '/accept-invite';
+    redirect(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+  }
+
+  // User is authenticated - prefetch invitations
+  const queryClient = new QueryClient();
+
   try {
+    // Import here to avoid issues when redirecting
+    const { getServerGraphQLClient } =
+      await import('@/lib/api/graphql-server-client');
+    const graphqlClient = await getServerGraphQLClient();
+
     await queryClient.prefetchQuery({
       queryKey: queryKeys.invitations.myPending(),
       queryFn: () => fetchMyPendingInvitations(graphqlClient),
