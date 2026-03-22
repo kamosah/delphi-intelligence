@@ -55,8 +55,15 @@ class OrganizationInvitation(Base):
     )
 
     # Lifecycle tracking
-    status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default=InvitationStatus.PENDING.value, index=True
+    status: Mapped[InvitationStatus] = mapped_column(
+        SQLEnum(
+            InvitationStatus,
+            name="invitation_status",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        default=InvitationStatus.PENDING,
+        index=True,
     )
 
     invited_by: Mapped[UUID] = mapped_column(

@@ -157,16 +157,14 @@ class InvitationService:
             select(OrganizationInvitation).where(
                 OrganizationInvitation.organization_id == organization_id,
                 OrganizationInvitation.invitee_email == validated_email,
-                OrganizationInvitation.status == InvitationStatus.PENDING.value,
+                OrganizationInvitation.status == InvitationStatus.PENDING,
             )
         )
         if existing.scalar_one_or_none():
             raise ValueError(f"Pending invitation already exists for {validated_email}")
 
         # 3. Check if user already exists in our system
-        user_exists_result = await db.execute(
-            select(User).where(User.email == validated_email)
-        )
+        user_exists_result = await db.execute(select(User).where(User.email == validated_email))
         user_exists = user_exists_result.scalar_one_or_none() is not None
 
         # 4. Send invitation email via Supabase (only for new users)
@@ -286,13 +284,11 @@ class InvitationService:
             raise ValueError(f"Invitation {invitation_id} not found")
 
         # 2. Validate status
-        if invitation.status != InvitationStatus.PENDING.value:
+        if invitation.status != InvitationStatus.PENDING:
             raise ValueError(f"Invitation already {invitation.status}")
 
-        # 3. Check expiration
+        # 3. Check expiration — raise without committing; expires_at is the source of truth
         if _ensure_timezone(invitation.expires_at) < _now():
-            invitation.status = InvitationStatus.EXPIRED.value
-            await db.commit()
             msg = "Invitation has expired"
             raise ValueError(msg)
 
@@ -319,7 +315,7 @@ class InvitationService:
         db.add(membership)
 
         # 6. Update invitation status
-        invitation.status = InvitationStatus.ACCEPTED.value
+        invitation.status = InvitationStatus.ACCEPTED
         invitation.accepted_at = _now()
 
         # Commit database changes first (membership creation is critical)
@@ -403,11 +399,11 @@ class InvitationService:
         if not invitation:
             raise ValueError(f"Invitation {invitation_id} not found")
 
-        if invitation.status != InvitationStatus.PENDING.value:
+        if invitation.status != InvitationStatus.PENDING:
             raise ValueError(f"Cannot revoke invitation with status: {invitation.status}")
 
         # 2. Update status
-        invitation.status = InvitationStatus.REVOKED.value
+        invitation.status = InvitationStatus.REVOKED
         invitation.revoked_at = _now()
         invitation.revoked_by = revoker_id  # type: ignore[assignment]
 
@@ -462,7 +458,7 @@ class InvitationService:
         )
 
         if status:
-            query = query.where(OrganizationInvitation.status == status.value)
+            query = query.where(OrganizationInvitation.status == status)
 
         query = query.order_by(OrganizationInvitation.created_at.desc())
 
@@ -487,7 +483,7 @@ class InvitationService:
             select(OrganizationInvitation)
             .where(
                 OrganizationInvitation.invitee_email == email.lower(),
-                OrganizationInvitation.status == InvitationStatus.PENDING.value,
+                OrganizationInvitation.status == InvitationStatus.PENDING,
                 OrganizationInvitation.expires_at > _now(),
             )
             .order_by(OrganizationInvitation.created_at.desc())

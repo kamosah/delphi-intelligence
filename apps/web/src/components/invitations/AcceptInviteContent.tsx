@@ -113,7 +113,19 @@ export function AcceptInviteContent({
 
         {/* Invitation Card */}
         <Card className="p-8">
-          {selectedInvitation && (
+          {!selectedInvitation ? (
+            <div className="text-center py-4">
+              <p className="text-gray-600 mb-4">
+                This invitation is no longer available.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedId(invitations[0]?.id ?? null)}
+              >
+                View other invitations
+              </Button>
+            </div>
+          ) : (
             <>
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="mb-3">
