@@ -6,6 +6,19 @@ An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/)
 
 **Tech Stack**: Next.js 14, FastAPI, Supabase PostgreSQL, LangChain + LangGraph + CrewAI
 
+## Screenshots
+
+**Product Preview** — AI-powered document querying with source citations, interactive Threads, Documents, and Spaces views:
+
+![Product Preview](./docs/screenshots/screenshot-product-preview.png)
+
+|                                                                     |                                                                  |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Dashboard** — Overview of documents, spaces, and recent activity  | **Documents** — Library with upload, search, and status tracking |
+| ![Dashboard](./docs/screenshots/screenshot-dashboard.png)           | ![Documents](./docs/screenshots/screenshot-documents.png)        |
+| **Spaces** — Collaborative team workspaces for organizing documents | **Login** — Clean authentication flow                            |
+| ![Spaces](./docs/screenshots/screenshot-spaces.png)                 | ![Login](./docs/screenshots/screenshot-login.png)                |
+
 ## About This Project
 
 Olympus is an educational recreation of Athena Intelligence's core capabilities:

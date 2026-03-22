@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
+    from .organization_invitation import OrganizationInvitation
     from .organization_member import OrganizationMember
     from .space import Space
     from .thread import Thread
@@ -54,6 +55,13 @@ class Organization(Base):
 
     threads: Mapped[list["Thread"]] = relationship(
         "Thread",
+        back_populates="organization",
+        lazy="selectin",  # Always eager load to avoid async lazy-loading issues
+        cascade="all, delete-orphan",
+    )
+
+    invitations: Mapped[list["OrganizationInvitation"]] = relationship(
+        "OrganizationInvitation",
         back_populates="organization",
         lazy="selectin",  # Always eager load to avoid async lazy-loading issues
         cascade="all, delete-orphan",

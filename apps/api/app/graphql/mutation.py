@@ -10,6 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
 from app.models.organization import Organization as OrganizationModel
+from app.models.organization_invitation import (
+    OrganizationInvitation as OrganizationInvitationModel,
+)
 from app.models.organization_member import (
     OrganizationMember as OrganizationMemberModel,
     OrganizationRole,
@@ -19,6 +22,7 @@ from app.models.thread import Thread as ThreadModel, ThreadVisibility
 from app.models.user import User as UserModel
 from app.models.user_preferences import UserPreferences as UserPreferencesModel
 from app.schemas.spicedb import CheckPermissionInput
+from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.spicedb_service import get_spicedb_service
 from app.services.storage_service import get_storage_service
@@ -33,7 +37,9 @@ from .types import (
     CreateThreadInput,
     CreateUserInput,
     DeleteDocumentInput,
+    InviteOrganizationMemberInput,
     Organization,
+    OrganizationInvitation,
     OrganizationMember,
     OrganizationRole as OrganizationRoleType,
     Space,
@@ -513,6 +519,188 @@ class Mutation:
                 await session.commit()
 
                 return True
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        return False
+
+    @strawberry.mutation
+    async def invite_organization_member(
+        self, info: strawberry.types.Info, input: InviteOrganizationMemberInput
+    ) -> OrganizationInvitation:
+        """
+        Invite a user to join an organization via email.
+
+        Args:
+            input: Invitation details (email, role, custom message)
+
+        Returns:
+            Created invitation
+
+        Authorization:
+            - Owner or admins can invite members
+
+        Raises:
+            ValueError: Invalid email, duplicate invitation, or Supabase error
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                org_id = UUID(str(input.organization_id))
+
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="invite_member",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to invite members to this organization"
+                    raise ValueError(msg)
+
+                # Create invitation via service
+                invitation = await InvitationService.create_invitation(
+                    db=session,
+                    organization_id=org_id,
+                    inviter_id=user.id,
+                    invitee_email=input.invitee_email,
+                    role=OrganizationRole(input.role.value),
+                    custom_message=input.custom_message,
+                )
+
+                return OrganizationInvitation.from_model(invitation)
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.mutation
+    async def accept_invitation(
+        self, info: strawberry.types.Info, invitation_id: strawberry.ID
+    ) -> OrganizationMember:
+        """
+        Accept an organization invitation.
+
+        Args:
+            invitation_id: Invitation ID to accept
+
+        Returns:
+            Created organization membership
+
+        Authorization:
+            - Email must match authenticated user (verified in service)
+
+        Raises:
+            ValueError: Invitation not found, expired, or email mismatch
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                # Accept invitation (email verification happens inside service)
+                membership = await InvitationService.accept_invitation(
+                    db=session,
+                    invitation_id=UUID(str(invitation_id)),
+                    user_id=user.id,
+                )
+
+                return OrganizationMember.from_model(membership)
+
+            except ValueError:
+                await session.rollback()
+                raise
+
+        # Fallback if session doesn't yield
+        msg = "Database session unavailable"
+        raise RuntimeError(msg)
+
+    @strawberry.mutation
+    async def revoke_invitation(
+        self, info: strawberry.types.Info, invitation_id: strawberry.ID
+    ) -> bool:
+        """
+        Revoke a pending organization invitation.
+
+        Args:
+            invitation_id: Invitation ID to revoke
+
+        Returns:
+            True if revoked successfully
+
+        Authorization:
+            - Owner or admins can revoke invitations
+
+        Raises:
+            ValueError: Invitation not found or not pending
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                # Get invitation to check organization
+                invitation_stmt = select(OrganizationInvitationModel).where(
+                    OrganizationInvitationModel.id == UUID(str(invitation_id))
+                )
+                invitation_result = await session.execute(invitation_stmt)
+                invitation = invitation_result.scalar_one_or_none()
+
+                if not invitation:
+                    msg = "Invitation not found"
+                    raise ValueError(msg)
+
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="manage_settings",
+                        resource_type="organization",
+                        resource_id=str(invitation.organization_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to revoke invitations"
+                    raise ValueError(msg)
+
+                # Revoke invitation
+                success = await InvitationService.revoke_invitation(
+                    db=session,
+                    invitation_id=UUID(str(invitation_id)),
+                    revoker_id=user.id,
+                )
+
+                return success
 
             except ValueError:
                 await session.rollback()

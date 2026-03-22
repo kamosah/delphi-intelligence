@@ -4,12 +4,13 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Enum as SQLEnum, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
+from app.schemas.outbox import AuthSyncEventType, AuthSyncStatus
 
 
 class AuthSyncOutbox(Base):
@@ -22,11 +23,26 @@ class AuthSyncOutbox(Base):
     __tablename__ = "auth_sync_outbox"
 
     # id, created_at, updated_at inherited from Base
-    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    event_type: Mapped[AuthSyncEventType] = mapped_column(
+        SQLEnum(
+            AuthSyncEventType,
+            name="auth_sync_event_type",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+    )
     table_name: Mapped[str] = mapped_column(String(100), nullable=False)
     record_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
     event_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="pending")
+    status: Mapped[AuthSyncStatus] = mapped_column(
+        SQLEnum(
+            AuthSyncStatus,
+            name="auth_sync_status",
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=False,
+        server_default="pending",
+    )
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False, server_default="5")
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
