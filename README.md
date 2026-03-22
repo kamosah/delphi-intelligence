@@ -12,21 +12,12 @@ An open-source recreation of [Athena Intelligence](https://www.athenaintel.com/)
 
 ![Product Preview](./docs/screenshots/screenshot-product-preview.png)
 
-**Dashboard** — Overview of documents, spaces, and recent thread activity:
-
-![Dashboard](./docs/screenshots/screenshot-dashboard.png)
-
-**Documents** — Document library with upload, search, and status tracking across spaces:
-
-![Documents](./docs/screenshots/screenshot-documents.png)
-
-**Spaces** — Collaborative team workspaces for organizing documents and threads:
-
-![Spaces](./docs/screenshots/screenshot-spaces.png)
-
-**Login** — Clean authentication flow:
-
-![Login](./docs/screenshots/screenshot-login.png)
+|                                                                     |                                                                  |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Dashboard** — Overview of documents, spaces, and recent activity  | **Documents** — Library with upload, search, and status tracking |
+| ![Dashboard](./docs/screenshots/screenshot-dashboard.png)           | ![Documents](./docs/screenshots/screenshot-documents.png)        |
+| **Spaces** — Collaborative team workspaces for organizing documents | **Login** — Clean authentication flow                            |
+| ![Spaces](./docs/screenshots/screenshot-spaces.png)                 | ![Login](./docs/screenshots/screenshot-login.png)                |
 
 ## About This Project
 
