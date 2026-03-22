@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@olympus/ui';
+import { ProductPreview } from './ProductPreview';
 
 interface HeroSectionProps {
   subtitle?: string;
@@ -40,32 +41,9 @@ export function HeroSection({
           </div>
         </div>
 
-        {/* Product Preview - Hex-style minimal placeholder */}
+        {/* Product Preview */}
         <div className="mt-16 max-w-5xl mx-auto">
-          <div className="relative rounded-xl overflow-hidden shadow-2xl bg-white border border-gray-200">
-            <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-              <div className="text-center p-12">
-                <div className="w-20 h-20 mx-auto mb-4 bg-blue-50 rounded-xl flex items-center justify-center">
-                  <svg
-                    className="w-10 h-10 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Product preview
-                </p>
-              </div>
-            </div>
-          </div>
+          <ProductPreview />
         </div>
       </div>
     </section>

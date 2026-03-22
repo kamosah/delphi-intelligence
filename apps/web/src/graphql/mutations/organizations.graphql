@@ -76,3 +76,36 @@ mutation SwitchOrganization($input: SwitchOrganizationInput!) {
     lastActiveAt
   }
 }
+
+mutation InviteOrganizationMember($input: InviteOrganizationMemberInput!) {
+  inviteOrganizationMember(input: $input) {
+    id
+    organizationId
+    inviteeEmail
+    invitationRole
+    status
+    invitedBy
+    invitedAt
+    expiresAt
+    acceptedAt
+    revokedAt
+    revokedBy
+    customMessage
+    createdAt
+    updatedAt
+  }
+}
+
+mutation AcceptInvitation($invitationId: ID!) {
+  acceptInvitation(invitationId: $invitationId) {
+    id
+    organizationId
+    userId
+    role
+    createdAt
+  }
+}
+
+mutation RevokeInvitation($invitationId: ID!) {
+  revokeInvitation(invitationId: $invitationId)
+}

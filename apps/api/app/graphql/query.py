@@ -12,6 +12,10 @@ from app.auth.jwt_handler import jwt_manager
 from app.db.session import get_session
 from app.models.document import Document as DocumentModel
 from app.models.organization import Organization as OrganizationModel
+from app.models.organization_invitation import (
+    InvitationStatus,
+    OrganizationInvitation as OrganizationInvitationModel,
+)
 from app.models.organization_member import OrganizationMember as OrganizationMemberModel
 from app.models.thread import Thread as ThreadModel
 from app.models.space import Space as SpaceModel, SpaceMember as SpaceMemberModel
@@ -28,7 +32,9 @@ from .types import (
     Document,
     DocumentFilterInput,
     DocumentSortInput,
+    InvitationStatus as InvitationStatusType,
     Organization,
+    OrganizationInvitation,
     OrganizationMember,
     SearchDocumentsInput,
     SearchResult,
@@ -1004,6 +1010,154 @@ class Query:
 
             except ValueError:
                 # Invalid UUID format or access denied
+                return []
+
+        return []
+
+    @strawberry.field
+    async def organization_invitations(
+        self,
+        info: strawberry.types.Info,
+        organization_id: strawberry.ID,
+        status: InvitationStatusType | None = None,
+    ) -> list[OrganizationInvitation]:
+        """
+        Get invitations for an organization.
+
+        Args:
+            organization_id: The organization ID
+            status: Optional status filter (PENDING, ACCEPTED, EXPIRED, REVOKED)
+
+        Returns:
+            List of organization invitations
+
+        Authorization:
+            - Requires authentication
+            - User must have manage_settings permission on the organization
+
+        Example query:
+            query {
+              organizationInvitations(organizationId: "org-uuid", status: PENDING) {
+                id
+                inviteeEmail
+                invitationRole
+                status
+                invitedAt
+                expiresAt
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                org_id = UUID(str(organization_id))
+
+                # Check authorization via SpiceDB
+                spicedb = get_spicedb_service()
+                has_permission = await spicedb.check_permission(
+                    CheckPermissionInput(
+                        user_id=str(user.id),
+                        permission="manage_settings",
+                        resource_type="organization",
+                        resource_id=str(org_id),
+                    )
+                )
+
+                if not has_permission:
+                    msg = "Insufficient permissions to view invitations"
+                    raise ValueError(msg)
+
+                # Build query
+                query = select(OrganizationInvitationModel).where(
+                    OrganizationInvitationModel.organization_id == org_id
+                )
+
+                # Apply status filter if provided
+                if status:
+                    query = query.where(OrganizationInvitationModel.status == status.value)
+
+                # Order by created_at descending
+                query = query.order_by(OrganizationInvitationModel.created_at.desc())
+
+                # Execute query
+                result = await session.execute(query)
+                invitation_models = result.scalars().all()
+
+                return [OrganizationInvitation.from_model(inv) for inv in invitation_models]
+
+            except ValueError:
+                # Access denied or invalid UUID
+                return []
+
+        return []
+
+    @strawberry.field
+    async def my_pending_invitations(
+        self,
+        info: strawberry.types.Info,
+    ) -> list[OrganizationInvitation]:
+        """
+        Get pending invitations for the authenticated user.
+
+        Returns:
+            List of pending invitations for the current user's email
+
+        Authorization:
+            - Requires authentication
+            - Only returns invitations matching the user's email
+
+        Example query:
+            query {
+              myPendingInvitations {
+                id
+                organizationId
+                inviteeEmail
+                invitationRole
+                status
+                invitedAt
+                expiresAt
+                customMessage
+              }
+            }
+        """
+        async for session in get_session():
+            try:
+                # Get the authenticated user from the request context
+                request = info.context["request"]
+                user = getattr(request.state, "user", None)
+
+                if not user:
+                    msg = "Authentication required"
+                    raise ValueError(msg)
+
+                # Get current datetime for expiration check
+                now = datetime.now(UTC)
+
+                # Query pending, non-expired invitations for user's email
+                query = (
+                    select(OrganizationInvitationModel)
+                    .where(
+                        OrganizationInvitationModel.invitee_email == user.email.lower(),
+                        OrganizationInvitationModel.status == InvitationStatus.PENDING.value,
+                        OrganizationInvitationModel.expires_at > now,
+                    )
+                    .order_by(OrganizationInvitationModel.created_at.desc())
+                )
+
+                result = await session.execute(query)
+                invitation_models = result.scalars().all()
+
+                return [OrganizationInvitation.from_model(inv) for inv in invitation_models]
+
+            except ValueError:
+                # Access denied
                 return []
 
         return []

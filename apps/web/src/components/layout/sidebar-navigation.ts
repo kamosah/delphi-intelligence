@@ -4,6 +4,7 @@ import {
   Database,
   FileText,
   Key,
+  Mail,
   MessageSquare,
   Settings,
   Shield,
@@ -75,6 +76,13 @@ export const SETTINGS_NAV_SECTIONS: NavSection[] = [
         label: 'Users',
         href: (orgId) => `/settings/organizations/${orgId}/members`,
         description: 'Manage team members',
+      },
+      {
+        id: 'invitations',
+        icon: Mail,
+        label: 'Invitations',
+        href: (orgId) => `/settings/organizations/${orgId}/invitations`,
+        description: 'Invite team members',
       },
       {
         id: 'groups',
